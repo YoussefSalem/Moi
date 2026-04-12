@@ -83,7 +83,7 @@ export const IMAGES = {
    *          This placeholder is a confirmed-accessible MP4 (CORS *, video/mp4, ~10 MB).
    */
   hero: {
-    videoUrl: "https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4",
+    videoUrl: "",
     fallbackUrl: PRODUCT_SHOT_LARGE,
   },
 
