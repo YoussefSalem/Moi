@@ -5,7 +5,7 @@ import { useImageColor } from "@/hooks/useImageColor";
 import { IMAGES } from "@/config/images";
 
 export function Carousel() {
-  const images = IMAGES.product1.filmstrip as unknown as string[];
+  const images: readonly string[] = IMAGES.product1.filmstrip;
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(0);

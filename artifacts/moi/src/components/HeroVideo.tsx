@@ -1,11 +1,15 @@
 import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { IMAGES } from "@/config/images";
+import { useImageColor } from "@/hooks/useImageColor";
 
 export function HeroVideo() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
+
+  const color = useImageColor(IMAGES.hero.fallbackUrl);
+  const gradEdge = color?.rgba(0.22) ?? "rgba(180,160,130,0.15)";
 
   useEffect(() => {
     if (!IMAGES.hero.videoUrl) {
@@ -36,6 +40,19 @@ export function HeroVideo() {
 
   return (
     <section className="relative w-full h-screen overflow-hidden">
+      {/* Ambient edge glow — derived from hero image dominant color */}
+      <div
+        className="absolute inset-0 pointer-events-none z-10"
+        style={{
+          background: [
+            `radial-gradient(ellipse 60% 40% at 0% 50%, ${gradEdge} 0%, transparent 70%)`,
+            `radial-gradient(ellipse 60% 40% at 100% 50%, ${gradEdge} 0%, transparent 70%)`,
+            `radial-gradient(ellipse 100% 30% at 50% 100%, ${gradEdge} 0%, transparent 60%)`,
+          ].join(", "),
+          transition: "background 2s ease",
+        }}
+      />
+
       {/* Video or Ken Burns image */}
       {!videoFailed && IMAGES.hero.videoUrl ? (
         <video
@@ -56,9 +73,9 @@ export function HeroVideo() {
         />
       )}
 
-      {/* Gradient overlay */}
+      {/* Primary gradient overlay */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 z-[2]"
         style={{
           background:
             "linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.04) 35%, rgba(0,0,0,0.04) 55%, rgba(0,0,0,0.55) 100%)",
@@ -70,7 +87,7 @@ export function HeroVideo() {
         initial={{ opacity: 0, y: 28 }}
         animate={{ opacity: loaded ? 1 : 0, y: loaded ? 0 : 28 }}
         transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
-        className="absolute bottom-0 left-0 right-0 pb-20 flex flex-col items-center text-center px-6"
+        className="absolute bottom-0 left-0 right-0 pb-20 flex flex-col items-center text-center px-6 z-[3]"
       >
         <p
           className="text-[10px] tracking-[0.55em] uppercase mb-4 font-light"
@@ -80,7 +97,7 @@ export function HeroVideo() {
         </p>
 
         <h1
-          className="font-serif leading-[0.88] font-light mb-10"
+          className="font-serif leading-[0.88] font-light mb-8"
           style={{
             color: "#fff",
             fontSize: "clamp(3.5rem, 10vw, 8.5rem)",
@@ -89,13 +106,6 @@ export function HeroVideo() {
         >
           Moi
         </h1>
-
-        <p
-          className="text-[10px] tracking-[0.45em] uppercase mb-8 font-light"
-          style={{ color: "rgba(255,255,255,0.72)" }}
-        >
-          Shop Now
-        </p>
 
         <motion.a
           href="#collection"
@@ -118,7 +128,7 @@ export function HeroVideo() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 2, duration: 1 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[3]"
       >
         <motion.div
           animate={{ y: [0, 9, 0] }}

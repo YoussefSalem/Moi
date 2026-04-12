@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ShoppingBag, Heart, X, Menu } from "lucide-react";
+import { Search, ShoppingBag, Heart, User, X } from "lucide-react";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -52,6 +52,13 @@ export function Header() {
           <div className="flex items-center gap-5">
             <button aria-label="Search" className="transition-opacity hover:opacity-60">
               <Search
+                size={18}
+                strokeWidth={1.5}
+                style={{ color: scrolled ? "#1e1814" : "#fff" }}
+              />
+            </button>
+            <button aria-label="Account" className="transition-opacity hover:opacity-60">
+              <User
                 size={18}
                 strokeWidth={1.5}
                 style={{ color: scrolled ? "#1e1814" : "#fff" }}
