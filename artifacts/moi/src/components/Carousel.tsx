@@ -1,208 +1,209 @@
-import { useState, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Heart } from "lucide-react";
 import { useImageColor } from "@/hooks/useImageColor";
 import { IMAGES } from "@/config/images";
 
 export function Carousel() {
-  const images = IMAGES.carousel as readonly string[];
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [activeThumb, setActiveThumb] = useState(0);
-  const color = useImageColor(images[activeThumb]);
+  const images = IMAGES.product1.filmstrip as unknown as string[];
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const color = useImageColor(images[activeIndex]);
 
-  const openLightbox = (i: number) => {
-    setLightboxIndex(i);
+  const openLightbox = (idx: number) => {
+    setLightboxIdx(idx);
+    setLightboxOpen(true);
     document.body.style.overflow = "hidden";
   };
 
   const closeLightbox = () => {
-    setLightboxIndex(null);
+    setLightboxOpen(false);
     document.body.style.overflow = "";
   };
 
-  const prev = useCallback(() => {
-    setLightboxIndex((i) => (i === null ? null : (i - 1 + images.length) % images.length));
-  }, [images.length]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!lightboxOpen) return;
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") setLightboxIdx((i) => (i - 1 + images.length) % images.length);
+      if (e.key === "ArrowRight") setLightboxIdx((i) => (i + 1) % images.length);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightboxOpen, images.length]);
 
-  const next = useCallback(() => {
-    setLightboxIndex((i) => (i === null ? null : (i + 1) % images.length));
-  }, [images.length]);
+  const handleScroll = useCallback(() => {
+    if (!scrollRef.current) return;
+    const el = scrollRef.current;
+    const centerX = el.scrollLeft + el.clientWidth / 2;
+    const children = Array.from(el.children) as HTMLElement[];
+    let closest = 0;
+    let minDist = Infinity;
+    children.forEach((child, i) => {
+      const dist = Math.abs(child.offsetLeft + child.offsetWidth / 2 - centerX);
+      if (dist < minDist) { minDist = dist; closest = i; }
+    });
+    setActiveIndex(closest);
+  }, []);
 
-  const gradientColor = color?.rgba(0.18) ?? "rgba(180, 160, 130, 0.12)";
+  const gradBg = color?.rgba(0.14) ?? "rgba(180,160,140,0.10)";
 
   return (
     <>
       <section
-        className="relative w-full py-24 md:py-36 overflow-hidden"
+        id="collection"
+        className="relative w-full overflow-hidden py-0"
         style={{
-          background: `radial-gradient(ellipse 100% 80% at 50% 50%, ${gradientColor} 0%, hsl(30 20% 97%) 65%)`,
-          transition: "background 1.2s ease",
+          background: `radial-gradient(ellipse 100% 80% at 50% 50%, ${gradBg} 0%, hsl(30 15% 95%) 65%)`,
+          transition: "background 1.5s ease",
         }}
       >
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-14"
-        >
-          <p
-            className="text-[10px] tracking-[0.5em] uppercase mb-4 font-medium"
-            style={{ color: "#9a8e82" }}
+        <div className="relative">
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="flex gap-2 overflow-x-auto py-8"
+            style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
-            Curated
-          </p>
-          <h2
-            className="font-serif text-[clamp(2rem,5vw,4rem)] font-light"
-            style={{ color: "#1e1814", letterSpacing: "0.05em" }}
-          >
-            The Collection
-          </h2>
-        </motion.div>
-
-        <div className="flex flex-col md:flex-row gap-4 max-w-7xl mx-auto px-6 md:px-12">
-          <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto md:w-20 pb-2 md:pb-0 md:max-h-[600px] scrollbar-hide">
+            <style>{`#carousel-strip::-webkit-scrollbar { display: none; }`}</style>
             {images.map((src, i) => (
-              <button
+              <motion.button
                 key={i}
-                onClick={() => { setActiveThumb(i); openLightbox(i); }}
-                onMouseEnter={() => setActiveThumb(i)}
-                className="relative flex-shrink-0"
-                style={{ width: 64, height: 88 }}
+                onClick={() => openLightbox(i)}
+                className="flex-shrink-0 relative overflow-hidden focus:outline-none"
+                style={{
+                  width: "clamp(220px, 30vw, 380px)",
+                  scrollSnapAlign: "center",
+                }}
+                whileHover={{ scale: 1.01 }}
+                transition={{ duration: 0.3 }}
               >
                 <img
                   src={src}
-                  alt=""
-                  className="w-full h-full object-cover object-top transition-all duration-300"
-                  style={{ opacity: activeThumb === i ? 1 : 0.45, filter: activeThumb === i ? "none" : "grayscale(20%)" }}
+                  alt={`Cape look ${i + 1}`}
+                  className="w-full h-full object-cover object-top transition-opacity duration-300"
+                  style={{
+                    height: "clamp(300px, 55vh, 600px)",
+                    opacity: i === activeIndex ? 1 : 0.75,
+                  }}
                   crossOrigin="anonymous"
                 />
-                {activeThumb === i && (
-                  <motion.div
-                    layoutId="carousel-thumb-border"
-                    className="absolute inset-0 border-2"
-                    style={{ borderColor: "#1e1814" }}
-                  />
-                )}
-              </button>
+              </motion.button>
             ))}
           </div>
 
-          <motion.div
-            className="flex-1 relative overflow-hidden cursor-pointer group"
-            style={{ maxHeight: 680 }}
-            onClick={() => openLightbox(activeThumb)}
-          >
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={activeThumb}
-                src={images[activeThumb]}
-                alt="Collection"
-                className="w-full h-full object-cover object-top"
-                style={{ maxHeight: 680 }}
-                initial={{ opacity: 0, scale: 1.03 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.03 }}
-                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                crossOrigin="anonymous"
-              />
-            </AnimatePresence>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0 }}
-              whileHover={{ opacity: 1 }}
-              className="absolute inset-0 flex items-end pb-10 justify-center"
-              style={{ background: "linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 60%)" }}
+          <div className="absolute top-4 right-6 md:right-12 flex flex-col items-end gap-1 pointer-events-none z-10">
+            <span
+              className="text-[10px] tracking-[0.3em] uppercase font-medium"
+              style={{ color: "#1e1814", letterSpacing: "0.2em" }}
             >
-              <p className="text-xs tracking-[0.35em] uppercase font-medium text-white">
-                Open Gallery
-              </p>
-            </motion.div>
+              See Look
+            </span>
+          </div>
 
-            <div className="absolute top-0 right-0 p-4">
-              <span
-                className="text-[10px] tracking-[0.3em] uppercase font-medium px-3 py-2"
-                style={{
-                  backgroundColor: "rgba(250,248,245,0.9)",
-                  color: "#1e1814",
-                  backdropFilter: "blur(8px)",
-                }}
-              >
-                {activeThumb + 1} / {images.length}
-              </span>
-            </div>
-          </motion.div>
+          <div className="absolute bottom-4 left-6 md:left-12 pointer-events-none z-10">
+            <span
+              className="text-[10px] tracking-widest uppercase font-light"
+              style={{ color: "#7a6e64" }}
+            >
+              Height of model: 178 cm – Size S
+            </span>
+          </div>
+
+          <button
+            className="absolute bottom-4 right-6 md:right-12 z-10 hover:opacity-60 transition-opacity"
+            aria-label="Add to wishlist"
+            onClick={() => openLightbox(activeIndex)}
+          >
+            <Heart size={18} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+          </button>
         </div>
       </section>
 
       <AnimatePresence>
-        {lightboxIndex !== null && (
+        {lightboxOpen && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="fixed inset-0 z-[90] bg-black/92 backdrop-blur-sm"
+              className="fixed inset-0 z-[90] bg-black/85 backdrop-blur-sm"
               onClick={closeLightbox}
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
+              initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
+              exit={{ opacity: 0, scale: 0.97 }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="fixed inset-0 z-[91] flex items-center justify-center"
+              className="fixed inset-0 z-[91] flex"
+              onClick={(e) => e.stopPropagation()}
             >
+              {/* Left: label + thumbnail strip */}
+              <div
+                className="hidden md:flex flex-col w-24 lg:w-28 bg-white h-full"
+                style={{ backgroundColor: "hsl(30 20% 97%)" }}
+              >
+                <div className="px-3 pt-6 pb-4">
+                  <p
+                    className="text-[9px] tracking-[0.3em] uppercase font-medium leading-tight"
+                    style={{ color: "#9a8e82" }}
+                  >
+                    The Collection
+                  </p>
+                </div>
+                <div className="flex-1 overflow-y-auto flex flex-col gap-1 px-2 pb-4">
+                  {images.map((src, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setLightboxIdx(i)}
+                      className="relative flex-shrink-0 focus:outline-none"
+                      style={{ width: "100%", aspectRatio: "2/3" }}
+                    >
+                      <img
+                        src={src}
+                        alt=""
+                        className="w-full h-full object-cover object-top transition-all duration-300"
+                        style={{ opacity: i === lightboxIdx ? 1 : 0.45 }}
+                      />
+                      {i === lightboxIdx && (
+                        <motion.div
+                          layoutId="lb-thumb-border"
+                          className="absolute inset-0 border-2"
+                          style={{ borderColor: "#1e1814" }}
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right: full-size image */}
+              <div className="flex-1 flex items-center justify-center relative bg-black">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={lightboxIdx}
+                    src={images[lightboxIdx]}
+                    alt={`Cape look ${lightboxIdx + 1}`}
+                    className="max-h-full max-w-full object-contain"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </AnimatePresence>
+              </div>
+
               <button
                 onClick={closeLightbox}
-                className="absolute top-6 right-6 z-10 hover:opacity-50 transition-opacity"
+                className="absolute top-5 right-6 z-10 hover:opacity-50 transition-opacity"
                 aria-label="Close"
               >
                 <X size={22} strokeWidth={1.5} className="text-white" />
               </button>
-
-              <button
-                onClick={prev}
-                className="absolute left-4 md:left-8 hover:opacity-50 transition-opacity"
-                aria-label="Previous"
-              >
-                <ChevronLeft size={32} strokeWidth={1} className="text-white" />
-              </button>
-
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={lightboxIndex}
-                  src={images[lightboxIndex]}
-                  alt=""
-                  className="max-h-[90vh] max-w-[90vw] md:max-w-[50vw] object-contain"
-                  initial={{ opacity: 0, x: 30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -30 }}
-                  transition={{ duration: 0.3 }}
-                  crossOrigin="anonymous"
-                />
-              </AnimatePresence>
-
-              <button
-                onClick={next}
-                className="absolute right-4 md:right-8 hover:opacity-50 transition-opacity"
-                aria-label="Next"
-              >
-                <ChevronRight size={32} strokeWidth={1} className="text-white" />
-              </button>
-
-              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
-                {images.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
-                    className="w-1.5 h-1.5 rounded-full transition-all duration-300"
-                    style={{ backgroundColor: i === lightboxIndex ? "#fff" : "rgba(255,255,255,0.35)" }}
-                  />
-                ))}
-              </div>
             </motion.div>
           </>
         )}

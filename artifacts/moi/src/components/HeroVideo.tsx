@@ -21,101 +21,110 @@ export function HeroVideo() {
     video.playsInline = true;
 
     const play = async () => {
-      try {
-        await video.play();
-      } catch {
-        setVideoFailed(true);
-      }
+      try { await video.play(); }
+      catch { setVideoFailed(true); setLoaded(true); }
     };
 
     if (video.readyState >= 3) {
       setLoaded(true);
       play();
     } else {
-      video.oncanplay = () => {
-        setLoaded(true);
-        play();
-      };
+      video.oncanplay = () => { setLoaded(true); play(); };
       video.onerror = () => { setVideoFailed(true); setLoaded(true); };
     }
   }, []);
 
   return (
     <section className="relative w-full h-screen overflow-hidden">
+      {/* Video or Ken Burns image */}
       {!videoFailed && IMAGES.hero.videoUrl ? (
         <video
           ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover object-top"
           src={IMAGES.hero.videoUrl}
-          loop
-          muted
-          playsInline
-          autoPlay
+          loop muted playsInline autoPlay
           poster={IMAGES.hero.fallbackUrl}
         />
       ) : (
-        <img
+        <motion.img
           src={IMAGES.hero.fallbackUrl}
           alt="Moi fashion"
           className="absolute inset-0 w-full h-full object-cover object-top"
+          initial={{ scale: 1 }}
+          animate={{ scale: 1.06 }}
+          transition={{ duration: 14, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
         />
       )}
 
+      {/* Gradient overlay */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.05) 60%, rgba(0,0,0,0.45) 100%)",
+            "linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.04) 35%, rgba(0,0,0,0.04) 55%, rgba(0,0,0,0.55) 100%)",
         }}
       />
 
+      {/* Text content */}
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: loaded || videoFailed ? 1 : 0, y: loaded || videoFailed ? 0 : 30 }}
-        transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.5 }}
-        className="absolute bottom-0 left-0 right-0 pb-20 flex flex-col items-center text-center"
+        initial={{ opacity: 0, y: 28 }}
+        animate={{ opacity: loaded ? 1 : 0, y: loaded ? 0 : 28 }}
+        transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
+        className="absolute bottom-0 left-0 right-0 pb-20 flex flex-col items-center text-center px-6"
       >
         <p
-          className="text-xs tracking-[0.4em] uppercase mb-4 font-light"
-          style={{ color: "rgba(255,255,255,0.75)" }}
+          className="text-[10px] tracking-[0.55em] uppercase mb-4 font-light"
+          style={{ color: "rgba(255,255,255,0.72)" }}
         >
           New Collection
         </p>
+
         <h1
-          className="font-serif text-[clamp(3rem,8vw,7rem)] leading-[0.9] font-light mb-8"
-          style={{ color: "#fff", letterSpacing: "0.04em" }}
-        >
-          The Cape
-          <br />
-          <em style={{ fontStyle: "italic", opacity: 0.85 }}>Edit</em>
-        </h1>
-        <motion.a
-          href="#collection"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="inline-block px-10 py-4 text-xs tracking-[0.3em] uppercase font-medium border transition-all duration-300"
+          className="font-serif leading-[0.88] font-light mb-10"
           style={{
             color: "#fff",
-            borderColor: "rgba(255,255,255,0.6)",
-            backdropFilter: "blur(8px)",
-            backgroundColor: "rgba(255,255,255,0.08)",
+            fontSize: "clamp(3.5rem, 10vw, 8.5rem)",
+            letterSpacing: "0.04em",
           }}
         >
-          Discover
+          Moi
+        </h1>
+
+        <p
+          className="text-[10px] tracking-[0.45em] uppercase mb-8 font-light"
+          style={{ color: "rgba(255,255,255,0.72)" }}
+        >
+          Shop Now
+        </p>
+
+        <motion.a
+          href="#collection"
+          whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.14)" }}
+          whileTap={{ scale: 0.98 }}
+          className="inline-block px-12 py-4 text-[10px] tracking-[0.4em] uppercase font-light border transition-all duration-300"
+          style={{
+            color: "#fff",
+            borderColor: "rgba(255,255,255,0.55)",
+            backdropFilter: "blur(4px)",
+            backgroundColor: "rgba(255,255,255,0.06)",
+          }}
+        >
+          Shop Now
         </motion.a>
       </motion.div>
 
+      {/* Scroll cue */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.5, duration: 1 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        transition={{ delay: 2, duration: 1 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2"
       >
         <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-          className="w-px h-10"
-          style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.6))" }}
+          animate={{ y: [0, 9, 0] }}
+          transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
+          className="w-px h-10 mx-auto"
+          style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.55))" }}
         />
       </motion.div>
     </section>

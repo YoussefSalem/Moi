@@ -11,7 +11,7 @@ function App() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "hsl(30 20% 98%)" }}>
+    <div className="min-h-screen" style={{ backgroundColor: "hsl(30 15% 95%)" }}>
       <Header />
 
       <main>
@@ -20,7 +20,6 @@ function App() {
         <ProductCard
           product={IMAGES.product1}
           onLookView={setLookProduct}
-          reverse={false}
         />
 
         <Carousel />
@@ -28,7 +27,6 @@ function App() {
         <ProductCard
           product={IMAGES.product2}
           onLookView={setLookProduct}
-          reverse={true}
         />
       </main>
 
