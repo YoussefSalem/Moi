@@ -45,7 +45,10 @@ export const IMAGES = {
    *           (empty = falls back to fallbackUrl image with Ken Burns animation)
    */
   hero: {
-    videoUrl: "",      // SWAP ME: paste a .mp4 URL here to enable video
+    // SWAP ME: replace with a hosted fashion .mp4 (e.g. from Cloudinary or your CDN).
+    // Hotlinking from Mixkit/Pexels/Pixabay returns 403; use a self-hosted or CDN URL.
+    // This placeholder confirms the video infrastructure (autoplay/muted/loop + Ken Burns fallback).
+    videoUrl: "https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4",
     fallbackUrl: PRODUCT_SHOT_LARGE,
   },
 
