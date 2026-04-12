@@ -62,6 +62,7 @@ export function Carousel() {
       >
         <div className="relative">
           <div
+            id="carousel-strip"
             ref={scrollRef}
             onScroll={handleScroll}
             className="flex gap-2 overflow-x-auto py-8"
