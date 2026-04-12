@@ -1,0 +1,3204 @@
+
+<!DOCTYPE html>
+<html id="ItxProductPage" lang="en-EG">
+	<head>
+<!-- BEGIN pre-common head -->
+<meta charset="utf-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+<script type="text/javascript">
+	const observabilityConfiguration = {
+	  enabled: true,
+	  apiKey: "8c7c673f-fe82-479d-a69d-07b8431cd552",
+	  env: "pro",
+	  projectKey: "ECOMST",
+	  projectName: "web-ecommercestradivarius",
+	  appVersion: "76.0.4",
+	  tenant: "stradivarius",
+	  logLevel: 'warn',
+	  store: "StradivariusEG"
+	};
+</script>
+
+<meta content="Asymmetric cape in Stradivarius for only 1690 EGP available for a limited time. Mocacos Nuevo for women always on trend, come in and find out now!" name="description">
+<title>Asymmetric cape - Women's Mocacos Nuevo | Stradivarius Egypt</title>
+<meta http-equiv="content-language" content="en-EG">
+<meta property="og:title" content="Asymmetric cape - Women's Mocacos Nuevo | Stradivarius Egypt" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://static.e-stradivarius.net/assets/public/6609/3c52/c7794a08bf4d/3e85295c5fe2/02076511400-a15/02076511400-a15.jpg?ts=1773676013508&w=1536" />
+<meta property="og:url" content="https://www.stradivarius.com/eg/asymmetric-cape-l02076511" />
+<meta property="og:description" content="Asymmetric cape in Stradivarius for only 1690 EGP available for a limited time. Mocacos Nuevo for women always on trend, come in and find out now!" />
+<meta property="twitter:card" content="summary">
+<meta property="twitter:site" content="@stradivarius"/>
+<meta property="twitter:title" content="Asymmetric cape - Women's Mocacos Nuevo | Stradivarius Egypt"/>
+<meta property="twitter:description" content="Asymmetric cape in Stradivarius for only 1690 EGP available for a limited time. Mocacos Nuevo for women always on trend, come in and find out now!"/>
+<meta property="twitter:image" content="https://static.e-stradivarius.net/assets/public/6609/3c52/c7794a08bf4d/3e85295c5fe2/02076511400-a15/02076511400-a15.jpg?ts=1773676013508&w=1536"/>
+
+<link rel="image_src" href="https://static.e-stradivarius.net/5/static2/itxwebstandard/logo/logo.png?t=20260412015704319987968" /><link rel="canonical" href="https://www.stradivarius.com/eg/asymmetric-cape-l02076511" />
+
+<!-- BEGIN SPOT=ST3_ESpot_OneTrust -->
+<script type="text/javascript">
+</script>
+<!-- El aviso de consentimiento de cookies de OneTrust comienza para www.stradivarius.com. -->
+
+<script src="https://cdn.cookielaw.org/scripttemplates/otSDKStub.js"  type="text/javascript" charset="UTF-8" data-domain-script="e1aba3ef-a27f-45ab-8c55-e697cd6b4f09" data-language="en"></script>
+<script type="text/javascript">
+    function OptanonWrapper() { inditex.cookieConsent.init(); }
+</script>
+
+ 
+<!-- El aviso de consentimiento de cookies de OneTrust finaliza para www.stradivarius.com. -->
+<!-- END SPOT=ST3_ESpot_OneTrust -->
+<!-- BEGIN SPOT=ST3_ESpot_HeadBegin -->
+<meta name="msvalidate.01" content="2F8D1F8A0B912AABDAE3BD34763D34DB" ><meta name="msvalidate.01" content="C4D3A87F66D752538D5F4EB16DD69F0D"><link rel="preconnect" href="https://static.e-stradivarius.net/" crossorigin />
+<link rel="dns-prefetch" href="https://static.e-stradivarius.net/" />
+
+<meta name="robots" content="max-image-preview:large">
+<meta name="google-site-verification" content="1Bh-bQZSWCL-eilX-xipQ9FRHLnnGIAQBMEZEA-JYD0" >
+<meta name="apple-itunes-app" content="app-id=421874087">
+<meta name="google-play-app" content="app-id=com.inditex.stradivarius"><meta name="p:domain_verify" content="31f7f1377e39e3c23023f872a7f22200">
+<meta name="facebook-domain-verification" content="73pdhjfppb9fmultnopscq2rejjyor" >
+<meta name="baidu-site-verification" content="xSEbR5gwD8" >
+  <script type="text/javascript" async src="https://bdyoomvaq5bp.eu.wpi.jscrambler.com/8ymg83inwlwk/1588655105.js"></script><script type="text/javascript">
+  const url = new URL(document.location.toString());
+  const oauthEnabled = true &&
+  !(
+    (url.searchParams.get("utm_medium") == "sms" &&
+      url.pathname.includes("login")) ||
+    (url.searchParams.get("utm_medium") == "email" &&
+      url.pathname.includes("login"))
+  ) && 
+  !(
+    url.pathname.includes("guest-orders")
+  ) &&
+  !(
+    document.cookie.indexOf("access_token") === -1 &&
+    JSON.parse(sessionStorage.getItem("cache-current-user"))?.userType === "R"
+  );
+  const oauthOptions = {
+    enabled: oauthEnabled,
+    refreshPath: "/integration/oauth2/refresh",
+    loginPath:
+      "/integration/oauth2/login?storeId=55009592&storeCode=EG&language=en-US&langCode=en&redirectUri=https://www.stradivarius.com/eg/my-account.html",
+    storeId: "55009592",
+    guestLoginPath: "/integration/oauth2/login?storeId=55009592&storeCode=EG&language=en-US&langCode=en&redirectUri=https://www.stradivarius.com/eg/my-account.html",
+  };
+</script><script src="https://stradivarius.app.baqend.com/v1/speedkit/install.js" async crossorigin="anonymous"></script>
+<!-- END SPOT=ST3_ESpot_HeadBegin -->
+
+<!-- BEGIN SPOT=ST3_ESpot_ProductPageHead -->
+
+<!-- END SPOT=ST3_ESpot_ProductPageHead -->
+
+<link rel="stylesheet" type="text/css" href="/front/static/itxwebstandard/css/itx-core-main.min.css?t=2026033111153121db319987968" />
+<link rel="stylesheet" type="text/css" href="https://static.e-stradivarius.net/5/static2/itxwebstandard/css/itx-custom-main.min.css?t=20260412015704319987968" />
+
+<script type="text/javascript" src="/front/static/corefront/js/itx-core-api.min.js?t=2026033111153121db319987968" crossorigin="anonymous"></script>
+<script type="text/javascript" src="/front/static/itxwebstandard/js/itx-app-api.min.js?t=2026033111153121db319987968" crossorigin="anonymous"></script>
+<script type="text/javascript" src="/front/core-static/corefront/js/55009592/-1/50331102/ST3_ESpot_I18N.min.js?t=20260412015704319987968" crossorigin="anonymous"></script>
+
+<!-- Begin JS Attachments -->
+<!-- End JS Attachments -->
+
+<!-- Begin CSS Attachments -->
+<!-- End CSS Attachments -->
+
+
+
+
+<script type="text/javascript" crossorigin="anonymous">
+	inditex.iBrand = "stradivarius";
+	inditex.iBrandId = 5;
+	inditex.iIsMobile = false;
+	inditex.iIsMobileOn = false;
+	inditex.iPage = "ItxProductPage";
+	inditex.iIsPost = false
+	inditex.iParams = {"gad_source":["1"],"gad_campaignid":["22329459350"],"gclid":["CjwKCAjwhe3OBhABEiwA6392zPlXA9nQfjy_NxQ4tTII4S7CnQ4a2Qi0RdUYOis3bktlk6s2RXLpCBoCi4oQAvD_BwE"],"mfname":["02076511"],"colorId":["400"],"unifiedProductUrl":[],"gbraid":["0AAAAApaim-tOEsMOg4YdZwzaUmuE1XJV6"],"keyWordCatentry":["asymmetric-cape"],"pelement":["488363518"],"storeId":["55009592"],"categoryId":["1020727764"]};
+	inditex.iRequestParameters = {"gad_source":["1"],"gad_campaignid":["22329459350"],"gclid":["CjwKCAjwhe3OBhABEiwA6392zPlXA9nQfjy_NxQ4tTII4S7CnQ4a2Qi0RdUYOis3bktlk6s2RXLpCBoCi4oQAvD_BwE"],"colorId":["400"],"gbraid":["0AAAAApaim-tOEsMOg4YdZwzaUmuE1XJV6"],"pelement":["488363518"]};
+	inditex.iStoreId = 55009592;
+	inditex.iStoreIdentifier = "StradivariusEG";
+	inditex.iLangId = -1;
+	inditex.iCatalogId = 50331102;
+	inditex.iLayout = "itxwebstandard";
+	inditex.iRegistryTs = "20260412015704319987968";
+	inditex.iCustomTs = "2026033111153121db319987968";
+	inditex.iProxyHostMobile = "www.stradivarius.com";
+	inditex.iProxyHostStandard = "www.stradivarius.com";
+	inditex.iProxySecurePortMobile = 443;
+	inditex.iProxySecurePortStandard = 443;
+	inditex.iProxyContextPathMobile = "/";
+	inditex.iProxyContextPathStandard = "/";
+	inditex.iSecureSet = null;
+	inditex.iLocale = "en_EG";
+	inditex.languageLocaleIOP = "en_US";
+	inditex.iCountryCode = "EG";
+	inditex.iCountryName = "Egypt";
+	inditex.iSpotPrefix = "ST3_ESpot_";
+	inditex.iCategoryId = 1020727764;
+	inditex.iCategoryKey = "STR_MUNDO_VER_TODO_NUEVO";
+	inditex.iProductId = 488363518;
+	inditex.iMaxLastProductListLength = 10;
+	inditex.iAsyncPaymentPollingTries = 5;
+	inditex.iAsyncPaymentPollingInterval = 5000;
+	inditex.iGaKeyAnt = "UA-2867364-1";
+	inditex.iGaKey1 = null;
+	inditex.iGaKey2 = null;
+  inditex.iGooglePlacesKey = null;
+	inditex.iGooglePlacesEnabled = true;
+	inditex.iEnableGoogleMapsCountryRestriction = 0;
+	inditex.iGoogleMapsVersion = "3";
+	inditex.iGoogleMapsPlatformKey = "AIzaSyDOiG_tPnh50QRaG8eMHE3wcqMN_YmYVpI";
+	inditex.iGaDomain = ".www.stradivarius.com";
+	inditex.iEnableUniversalAnalytics = "3";
+	inditex.iAppId = 1;
+	inditex.iIsWebResponsive = true;
+	inditex.iTmpUrlLangStandard = true;
+	inditex.iTmpUrlLangMobile = true;
+	inditex.iMaxProductsShopCart = 25;
+	inditex.iMaxProductsRegShopCart = 25;
+	inditex.iMaxProductsBussinessShopCart = 100;
+	inditex.iMaxProductsWishList = 50;
+	inditex.iSecureEnabled = true;
+	inditex.iBaiduMapsKey = "";
+	inditex.iMapLocationFromStoreEnabled = true;
+	inditex.iSequenceFromStockEnabled = true;
+  inditex.iEnableOptimizelyAnalyticsIntegration = false;
+  inditex.iParseMspotEnabled = false;
+  inditex.iGoogleMapsRegion = false;
+  inditex.iGoogleMapsLanguage = false;
+	inditex.iSafeCartEnabled = false;
+	inditex.iDisablePersistLocalCart = true;
+  inditex.iMpulseEnabled = true;
+  inditex.iProxyRestContextPathMobile = "/itxrest/";
+	inditex.iProxyRestContextPathStandard = "/itxrest/";
+	inditex.iRestVersion = 2;
+	inditex.iRemoveCategoryRequest = false;
+	inditex.iPhysicalStore = null;
+	inditex.iCityStores = null;
+	inditex.iUnifiedProductUrlEnabled = true;
+	inditex.iWebChatAsyncEnabled = false
+	inditex.iUnifiedCategoryUrlEnabled = true;
+	inditex.iNewSearchPageEnabled = false;
+	inditex.iSearchTerm = null;
+	inditex.iIMUTCCookieTTL = 365;
+	inditex.iWebJsRedirectStoreDisabled = false;
+	inditex.iFrontVersion = "76.0.4";
+	inditex.iCoreVersion = "1.51.2";
+	inditex.iUseViewCategoryIdForCategoryUrl = false;
+	inditex.iGetWishlistJsonDuringLogin = true;
+  inditex.iGetWishlistJsonDuringCurrentUser = true;
+	inditex.iCephActive = null;
+	inditex.iCephTestActive = false;
+	inditex.iWebVisibilityMocacoAsProduct = false;
+	inditex.iIsDebugEnabled = false;
+	inditex.iStaticContentUrl = "https://static.e-stradivarius.net/5/static2/";
+	inditex.iStaticBaseUrl = "https://static.e-stradivarius.net/";
+	inditex.iWWCountryCodes = {"WW":"WW","WY":"WY","WZ":"WZ","WM":"WM","WA":"WA","WE":"WE"};
+	inditex.iIsWWStore = false;
+	inditex.iStaticImageContentUrl = "https://static.e-stradivarius.net/5/static2/";
+	inditex.iUseNewFingerPrint = false;
+	inditex.iXPublicVarsMap = {"yodaCampaign":"V2024","ATTACH_FILES_CONTACT_FORM_SIZE":"1","hideEmailContactBox":"0","DroppointSearchRadius":"50","MYACCOUNT_ENABLE_DARK_MODE":"0","CMS_ASSETS_URL":"","ENABLE_FECHA_NACIMIENTO_NEWSLETTER":"1","ENABLE_BLACKFRIDAY_MINICESTA":"0","CART_SHOW_PAYMENTS":"false","ENABLED_SMARTBANNER":"false","GOOGLE_LOGIN_ENABLED":"1","uniqueLoginMaxConversionAttempts":"2","mediaCloudUrl":"https://static.e-stradivarius.net/","GROWTHBOOK_KEY":"sdk-DrFga32vvq2k47FT","enableCities":"true","ENABLE_TICKETLESS":"1","enableVideoFit":"0","CHECKOUT_FAST_SINT_ENABLED_WEB":"0","ENABLE_SHOW_INVOICE":"1","ctabuttoncolor":"{\"background\": \"#A5D8FD\", \"text\": \"#000000\", \"hover\": \"#A5D8FD\"}","XMEDIA_CLASS":"[{\"type\": \"X1\",\"clazz\": [1,2,22,23,24,3,6,7]},{\"type\": \"X2H\",\"clazz\": [8,9]}]","isNifPersonalRequired":"false","ENABLE_FECHA_NACIMIENTO_DATOS_PERSONALES":"1","ENABLED_100ML":"true","LOGO_WEB":"itxwebstandard/images/logos/stradilogo.png","cmsApi":"https://www.stradivarius.com/integration/cms/api","isBottomPartFamilyName":"[\"Trousers\", \"Skirts\", \"Shorts\", \"Jeans\"]","FSO_SHOW_LOADER":"true","STORE_COLLECTION_MINIMUN_RANGE":"500","CROSS_BAG":"1020275573","Promotions_date":"true","sugerenciasMail":"yahoo.com|gmail.com|icloud.com","dropPointParameters":"countryCode|longitude|latitude","IS_NEW_COD_AVAILABLE":"1","GOOGLEPOC_APIKEY":"AIzaSyAqcx6jTBLl6TbCcvYQGgkSgEdfT5eDK88","returnTypesAllowed":"STORERETURN|HOMERETURN","SUMMARY_INFO_SALES":"false","promo_percentage_hide":"false","stradilookspdp":"true","CART_SORT_BY_PRICE":"false","TRIPLE_PRICE_REMARK":"true","VISOR_3D_ENABLED":"1","qualityimages":"stradivarius-itxmediumhigh","menucaps":"true","CART_RECOMMENDER":"FBT","ENABLE_HOME_DELIVERY_ADDRESS_UPDATE":"1","FUTUREPRICE_ENABLED":"true","MODADIGITALREF":"310323808,310323824,310323816,310323810,310323814,310323804,310323818,310323812,310323820,310323802,310323822,310323806,310323826,315301979,315301968,315301963,315302011,315302007,315302009,315302000,315302005,315301996,315301998","FUTUREPRICE_CATEGORY":"false","CHECKOUT_FAST_SINT_ENABLED":"true","MECC_ANALYTICS_URL":"https://www.stradivarius.com/1to1/metrackm/api/v1","AKAMAI_WIDTHS":"1920,1280,1024,768,414,320","MECC_RECOMENDATIONS_URL":"https://www.stradivarius.com/1to1/merecomm/api/v1/r","YODA_ENDPOINT":"https://inditex-rt-pro.tinybird.co/v0/pipes/{algorithm}?tenant_id=st&token=p.eyJ1IjogIjAyYzc1MTRiLTM4ZDctNDEwNC1iZjliLTI4OTVhNjAxOTFmOCIsICJpZCI6ICI2YWE3ZGZmZi0yNDFmLTQ1ZmMtYWEyZS1lOWRkMmJkZmQwNWYifQ.Wg9ZXdfX7RqQ_BE7VrECpSThiSVV7x1PdwYMylbx2EU","ENABLE_LITERAL_NEW_PUSH":"0","enableSocialLoginOnIdentificationLanding":"0","ENABLE_DELETE_ACCOUNT":"1","FLUJO_UNIQUE_ENABLED":"1","CHAT_BIND_URL":"https://www.stradivarius.com/chat/http-bind","GROWTHBOOK_DECRYPTION_KEY":"ygfFd9UZ1DHOQEnIo/Bv9Q==","KEY_TRENDS":"1020128864","AKAMAI_IM_ENABLED":"0","DAYS_TO_SHOW_RETURN_LABEL":"5","ENABLE_CHECKOUT_MECCANO":"1","deliveryAndReturnsPDP":"1","refundTypesAllowed":"VOUCHER","NEW_ORDER_CONFIRMATION_ENABLED":"1","show_additionalInfo":"false","ORDER_ALREADY_IN_SHOP_ENABLE":"0","ENABLE_SHOW_TICKET":"1","HideReturnsList":"1","ENABLE_BOTON_PKPASS":"1","EVALUATE_USER_EVENTS_ENABLED":"1","CHAT_MOCA_ENABLED":"1","FUTURE_PRICES_COLOR_BACKGROUND":"#FFFFFF","SHOW_DELIVERY_DATE":"1","FUTURE_PRICES_COLOR_TEXT":"#D52234","ACTIVATE_APPLEPAY_FEDERATED":"0","ENABLE_CHECK_REGISTER":"1","ENABLE_DELIVERY_DATE_CRONOS_FRONT":"1","priceRange":"0-24900#25000-49900#50000-59900#60000-119900#120000-0"};
+	inditex.iLastProductsExpirationDays = 2;
+	inditex.iUseStaticFilesPrefix = true;
+	inditex.iUseNewOrderConfirmation = true;
+	inditex.iUserEventType = "0";
+	inditex.iCheckUserEvents = false;
+	inditex.iCheckUserEventsInterval = 600;
+	inditex.iUseDefaultMinicart = false;
+	inditex.iUseXMediaExtraInfo = true;
+	inditex.seoInfo = {
+	"title": "Asymmetric cape - Women's Mocacos Nuevo | Stradivarius Egypt",
+	"metaTitle": "???ItxProductPage.meta.title???",
+	"metaDescription": "Asymmetric cape in Stradivarius for only 1690 EGP available for a limited time. Mocacos Nuevo for women always on trend, come in and find out now!",
+	"seoCategoryH1": "",
+	"seoCategoryH2": "",
+	"seoProductH1": "Asymmetric cape Stradivarius",
+	"seoCategoryPositioningText": "",
+	"productId": 488363518,
+	"categoryId": 1020727764,
+	"categoryLongDescription": "",
+	"categorySecondaryDescription": ""
+};
+</script>
+  <script type="text/javascript">
+inditex.iCmsConfigMap = {"pixlee_pacha_2022_landing":"4881968","newin_categoria_addToCart":"1020409327","BlackFriday_BestOf_ids":"1020399291","newin_URL_Unica":"1906","sale_categoria_1_2022":"1020444445","Benefits":"true","versionId_stage_benefits":"24620","newin_verano":"1020409327","sale_categoria_0_2022":"1020444422","pixlee_calendario_adviento_2022_landing":"1020472639","href_pixlee_landings":"","evento_TheCollective":"","MSpotsCMS":"ST3_ESpot_HeadBegin,\nST3_ESpot_HeadHide,ST3_ESpot_STR_MUNDO_INV_CATALOGOCMS_CONTENTPRUEBAS_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LANDING_TEST_CONTENTPRUEBAS_NOVIEW,ST3_ESpot_CSP_Header,ST3_ESpot_HomePageHead, ST3_ESpot_STR_MUNDO_INV_SPECIAL_PRICES_ON_COLOREA0029_LANDING_NOAPP,ST3_ESpot_Header_CMS,ST3_ESpot_STR_MUNDO_BLACK_FRIDAY_LANDING_SEO_NOVIEW,ST3_ESpot_STR_MUNDO_VER_HOTSALE_LANDING_NOVIEW,ST3_ESpot_STR_REBAJAS_INVIERNO_LANDING_DIRECT_NOVIEW,ST3_ESpot_STR_REBAJAS_VERANO_LANDING_DIRECT_NOVIEW,ST3_ESpot_STR_MUNDO_VER_MUJER_TICKET2_NOAPP,ST3_ESpot_STR_MUNDO_VER_LANDING_UGC_STR_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LANDING_EMPRESA_NOVIEW,ST3_ESpot_STR_MUNDO_VER_CONTRAFRAUDE_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_VER_ZAPATOS_SPECIAL_PRICES_SHOES_ON_COLOREA0029_LANDING_NOAPP,ST3_ESpot_STR_MUNDO_VER_LANDING_BIZUM_CMS_NOVIEW,ST3_ESpot_STR_MUNDO_INV_LANDING_APP_NOVIEW,ST3_ESpot_STR_MUNDO_VER_NUEVOS_USUARIOS_NEWS_LANDING_NOVIEW,ST3_ESpot_STR_VER_BOLSO_MOCHILA_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_VER_MONOS_PETOS_LANDING_NOVIEW,ST3_ESpot_STR_VER_PUNTO_VESTIDO_LANDING_NOVIEW,ST3_ESpot_STR_VER_PANT_LEGGING_LANDING_NOVIEW,ST3_ESpot_STR_VER_CHAQ_SOBRECAMISA_LANDING_NOVIEW,ST3_ESpot_STR_VER_CMS_TOPS_LANDING_NOVIEW,ST3_ESpot_STR_VER_TEEN_TODO_NUEVO_LANDING_NOVIEW,ST3_ESpot_STR_VER_PANT_CARGOPARACHUTE_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_VER_TIENDA_COLONIA_LANDING_NOVIEW,ST3_ESpot_LandingNewsletter,ST3_ESpot_STR_VER_PANT_CULOTTE_LANDING_NOVIEW,ST3_ESpot_STR_VER_PANT_COATING_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_VER_ABRIGOS_LANDING_NOVIEW,ST3_ESpot_STR_VER_DENIM_TODO_JEAN_LANDING_NOVIEW,ST3_ESpot_STR_VER_DENIM_TODO_CAMISA_LANDING_NOVIEW,ST3_ESpot_STR_VER_DENIM_TODO_FALDA_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LEATHER_EFFECT_LANDING_NOVIEW,ST3_ESpot_Home,ST3_ESpot_STR_INV_DENIM_TODO_JEAN_LANDING_NOVIEW,ST3_ESpot_STR_INV_DENIM_TODO_CAMISA_LANDING_NOVIEW,ST3_ESpot_STR_INV_BOLSO_MOCHILA_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_INV_MONOS_PETOS_LANDING_NOVIEW,ST3_ESpot_STR_INV_PUNTO_VESTIDO_LANDING_NOVIEW,ST3_ESpot_STR_INV_DENIM_TODO_FALDA_LANDING_NOVIEW,ST3_ESpot_STR_INV_PANT_LEGGING_LANDING_NOVIEW,ST3_ESpot_STR_INV_CHAQ_SOBRECAMISA_LANDING_NOVIEW,ST3_ESpot_STR_INV_CMS_TOP_LANDING_NOVIEW,ST3_ESpot_STR_INV_CHAQ_DENIM_LANDING_NOVIEW,ST3_ESpot_STR_INV_TEEN_TODO_NUEVO_LANDING_NOVIEW,ST3_ESpot_STR_INV_PANT_CARGOPARACHUTE_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_INV_ABRIGOS_LANDING_NOVIEW,ST3_ESpot_STR_INV_PANT_CULOTTE_LANDING_NOVIEW,ST3_ESpot_STR_INV_PANT_COATING_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_INV_LEATHER_EFFECT_LANDING_NOVIEW,ST3_ESpot_STR_INV_VEST_PUNTO_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE1_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE2_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE3_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE4_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE5_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE6_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE7_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE8_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE9_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE10_NOVIEW,ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE11_NOVIEW,ST3_ESpot_STR_MUNDO_VER_PERFUME_RETIRADO_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_VER_PERFUME_RETIRADO_LANDING,ST3_ESpot_STR_MUNDO_BUEN_FIN_LANDING_SEO_NOVIEW,ST3_ESpot_STR_MUNDO_INV_SPECIAL_PRICES_ON_COLORFC0D0D_LANDING_NOAPP_DIRECT,ST3_ESpot_STR_MUNDO_INV_ZAPATOS_SPECIAL_PRICES_ON_COLOREA0029_LANDING_NOAPP,ST3_ESPOT_Llms,ST3_ESpot_Robots,ST3_ESpot_RedirectURLs,ST3_ESpot_CustomUrlConf,ST3_ESpot_STR_INV_CHAQ_BIKER_LANDING_NOVIEW,ST3_ESpot_STR_INV_AMER_CROPPED_LANDING_NOVIEW,ST3_ESpot_STR_VER_AMER_SLIMFIT_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_INV_BLAZERS_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_INV_SUDADERAS_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_INV_TRAJES_LANDING_NOVIEW,ST3_ESpot_STR_INV_PANT_FLARE_LANDING_NOVIEW,ST3_ESpot_STR_INV_CHAQ_TRENCH_LANDING_NOVIEW,ST3_ESpot_STR_VER_SHORT_BERMUDA_LANDING_NOVIEW,ST3_ESpot_STR_VER_VEST_PUNTO_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_INV_ZAPATOS_TODOS_COWBOY_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_VER_MUJER_TICKET2_NOVIEW,ST3_ESpot_AppleAppSiteAssociation,ST3_ESpot_BodyBegin,ST3_ESpot_I18N,ST3_ESpot_Inditex,ST3_ESpot_BodyEnd,ST3_ESpot_HeadEnd,ST3_ESpot_SpeedKit,ST3_ESpot_STR_MUNDO_INV_SPECIAL_PRICES_ON_COLORFC0D0D_LANDING_NOAPP,ST3_ESpot_STR_MUNDO_INV_XMAS25_LANDING,ST3_ESpot_STR_MUNDO_INV_VIRAL_ITEMS_LANDING,ST3_ESpot_STR_MUNDO_INV_XMAS25_LANDING_HTML,ST3_ESpot_TermsAndConditions,ST3_ESpot_LegalNote,ST3_ESpot_LegalNote_Image,ST3_ESpot_STR_MUNDO_VER_THE_COLLECTIVE_GUESTS_LANDING_NOVIEW,ST3_ESpot_STR_MUNDO_VER_THE_COLLECTIVE_GUESTS_LANDING,ST3_ESpot_STR_MUNDO_VER_LANDING_JOIN_LIFE,ST3_ESpot_OneTrust,ST3_ESpot_STR_MUNDO_VER_BOOKINGS_THE_COLLECTIVE_LANDING","BlackFriday_ID_BEST_OF":"1020322024","winter22_id_carousel_Moca":"","versionId_stage_home":"24801","test-mecfront-date":"06/09/2021 20:00","TRIPLE_PRICE_MESSAGE":"false","banner_womensday":"1020603340","ENABLED_TRIPLE_PRICE":"true","BlackFriday_ID_category_03":"1020265041","winter22_id_categoria_6":"1020170504","BlackFriday_ID_category_02":"1020265035","BlackFriday_ID_category_05":"1020404364","BlackFriday_ID_category_04":"1020199518","BlackFriday_ID_category_06":"1020470548","id_BestOf_salesSS":"1020411826","id_pixlee_home":"","IDAlbumCategoryIdEcommTV":"","winter22_id_categoria_5_segundas":"","holiday_sales_2021_cesta":"1020411826","winter22_id_categoria_1":"1020412968","sale_categoria_3_2022":"1020412939","winter22_id_categoria_2":"1020486173","winter22_id_categoria_3":"1020486180","BlackFriday_ID_category_01":"1020404838","id_BestOf_salesFW":"1020411826","winter22_id_categoria_4":"1020486163","winter22_id_categoria_5":"1020412923","rebajas_1_categoria1":"1020412933","rebajas_1_categoria2":"1020412950","rebajas_1_categoria3":"1020412923","rebajas_1_categoria4":"1020170504","home_secondarypage_isbuttonvisible":"false","IDVideoEcommTV":"","id_camisetas_w10_2022":"1020047036","BlackFriday_ID_carousel":"1020398258","pixlee_pacha_2022_home":"3783212","sale_categoria_4_2022":"1020444468","versionId_stage_home_testAB":"26072","2026_newin":"5150","sale_categoria_5_2022":"1020412929","sale_categoria_2_2022":"1020412945","sale_categoria_5_2022_variacion":"","TRIPLE_PRICE_PERCENTAGE":"original","id_pixlee_landings":"","newin_invierno":"1020379525","DOUBLE_PRICE_MESSAGE":"false","ID_POC_HERACLES":"1020392177","many_loves_2022":"1020419304","id_url_unica_descarga_apps":"1020310534","holiday_sales_2021":"1020411354","newin":"1020409327","newin_winter":"1020379525"};
+inditex.iCmsSpotNames = ["ST3_ESpot_STR_MUNDO_INV_CATALOGOCMS_CONTENTPRUEBAS_NOVIEW","ST3_ESpot_CSP_Header","ST3_ESpot_STR_MUNDO_INV_VIRAL_ITEMS_LANDING","ST3_ESpot_HomePageHead","ST3_ESpot_BodyEnd","ST3_ESpot_STR_MUNDO_INV_SPECIAL_PRICES_ON_COLORFC0D0D_LANDING_NOAPP_DIRECT","ST3_ESpot_STR_INV_CMS_TOP_LANDING_NOVIEW","ST3_ESpot_HeadHide","ST3_ESpot_Home","ST3_ESpot_STR_MUNDO_INV_SPECIAL_PRICES_ON_COLORFC0D0D_LANDING_NOAPP","ST3_ESpot_STR_MUNDO_VER_LANDING_BIZUM_CMS_NOVIEW","ST3_ESpot_STR_MUNDO_VER_LEATHER_EFFECT_LANDING_NOVIEW","ST3_ESpot_OneTrust","ST3_ESpot_Inditex","ST3_ESpot_STR_INV_CHAQ_BIKER_LANDING_NOVIEW","ST3_ESpot_HeadEnd","ST3_ESpot_STR_VER_PANT_CULOTTE_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_BOOKINGS_THE_COLLECTIVE_LANDING","ST3_ESpot_STR_MUNDO_INV_MONOS_PETOS_LANDING_NOVIEW","ST3_ESpot_I18N","ST3_ESpot_CustomUrlConf","ST3_ESpot_STR_MUNDO_BUEN_FIN_LANDING_SEO_NOVIEW","ST3_ESpot_STR_INV_PANT_COATING_LANDING_NOVIEW","ST3_ESpot_RedirectURLs","ST3_ESpot_STR_MUNDO_INV_LANDING_APP_NOVIEW","ST3_ESpot_STR_MUNDO_VER_LANDING_JOIN_LIFE","ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE10_NOVIEW","ST3_ESpot_STR_INV_DENIM_TODO_CAMISA_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE9_NOVIEW","ST3_ESpot_STR_INV_DENIM_TODO_FALDA_LANDING_NOVIEW","ST3_ESpot_STR_INV_PANT_CARGOPARACHUTE_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_THE_COLLECTIVE_GUESTS_LANDING_NOVIEW","ST3_ESpot_Header_CMS","ST3_ESpot_LegalNote","ST3_ESpot_STR_MUNDO_VER_NUEVOS_USUARIOS_NEWS_LANDING_NOVIEW","ST3_ESpot_STR_VER_BOLSO_MOCHILA_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_THE_COLLECTIVE_GUESTS_LANDING","ST3_ESpot_STR_MUNDO_INV_TRAJES_LANDING_NOVIEW","ST3_ESpot_STR_INV_PUNTO_VESTIDO_LANDING_NOVIEW","ST3_ESpot_STR_VER_PUNTO_VESTIDO_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE1_NOVIEW","ST3_ESpot_STR_MUNDO_VER_ABRIGOS_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_LANDING_EMPRESA_NOVIEW","ST3_ESpot_STR_INV_PANT_LEGGING_LANDING_NOVIEW","ST3_ESpot_LandingNewsletter","ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE5_NOVIEW","ST3_ESpot_STR_VER_SHORT_BERMUDA_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE4_NOVIEW","ST3_ESpot_SpeedKit","ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE8_NOVIEW","ST3_ESpot_STR_VER_AMER_SLIMFIT_LANDING_NOVIEW","ST3_ESpot_STR_REBAJAS_INVIERNO_LANDING_DIRECT_NOVIEW","ST3_ESpot_TermsAndConditions","ST3_ESpot_STR_VER_DENIM_TODO_FALDA_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_INV_ZAPATOS_TODOS_COWBOY_LANDING_NOVIEW","ST3_ESpot_AppleAppSiteAssociation","ST3_ESpot_STR_MUNDO_VER_HOTSALE_LANDING_NOVIEW","ST3_ESPOT_Llms","ST3_ESpot_STR_VER_DENIM_TODO_JEAN_LANDING_NOVIEW","ST3_ESpot_STR_VER_CMS_TOPS_LANDING_NOVIEW","ST3_ESpot_Robots","ST3_ESpot_STR_INV_VEST_PUNTO_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_PERFUME_RETIRADO_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_MUJER_TICKET2_NOVIEW","ST3_ESpot_STR_MUNDO_INV_SUDADERAS_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_PERFUME_RETIRADO_LANDING","ST3_ESpot_STR_INV_TEEN_TODO_NUEVO_LANDING_NOVIEW","ST3_ESpot_STR_INV_CHAQ_TRENCH_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_LANDING_UGC_STR_NOVIEW","ST3_ESpot_STR_VER_CHAQ_SOBRECAMISA_LANDING_NOVIEW","ST3_ESpot_STR_VER_PANT_CARGOPARACHUTE_LANDING_NOVIEW","ST3_ESpot_STR_VER_PANT_LEGGING_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_INV_LEATHER_EFFECT_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_INV_BLAZERS_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_INV_XMAS25_LANDING_HTML","ST3_ESpot_BodyBegin","ST3_ESpot_HeadBegin","ST3_ESpot_STR_MUNDO_VER_LANDING_TEST_CONTENTPRUEBAS_NOVIEW","ST3_ESpot_STR_MUNDO_VER_MONOS_PETOS_LANDING_NOVIEW","ST3_ESpot_STR_INV_PANT_FLARE_LANDING_NOVIEW","ST3_ESpot_STR_INV_CHAQ_SOBRECAMISA_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE11_NOVIEW","ST3_ESpot_STR_INV_DENIM_TODO_JEAN_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_CONTRAFRAUDE_LANDING_NOVIEW","ST3_ESpot_STR_INV_BOLSO_MOCHILA_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE2_NOVIEW","ST3_ESpot_STR_INV_AMER_CROPPED_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE3_NOVIEW","ST3_ESpot_STR_REBAJAS_VERANO_LANDING_DIRECT_NOVIEW","ST3_ESpot_STR_VER_TEEN_TODO_NUEVO_LANDING_NOVIEW","ST3_ESpot_STR_INV_PANT_CULOTTE_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE6_NOVIEW","ST3_ESpot_STR_VER_DENIM_TODO_CAMISA_LANDING_NOVIEW","ST3_ESpot_STR_VER_VEST_PUNTO_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_VER_MUJER_TICKET2_NOAPP","ST3_ESpot_STR_MUNDO_VER_LANDING_PRIDE7_NOVIEW","ST3_ESpot_STR_MUNDO_INV_ZAPATOS_SPECIAL_PRICES_ON_COLOREA0029_LANDING_NOAPP","ST3_ESpot_LegalNote_Image","ST3_ESpot_STR_MUNDO_VER_ZAPATOS_SPECIAL_PRICES_SHOES_ON_COLOREA0029_LANDING_NOAPP","ST3_ESpot_STR_MUNDO_BLACK_FRIDAY_LANDING_SEO_NOVIEW","ST3_ESpot_STR_MUNDO_INV_SPECIAL_PRICES_ON_COLOREA0029_LANDING_NOAPP","ST3_ESpot_STR_INV_CHAQ_DENIM_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_INV_XMAS25_LANDING","ST3_ESpot_STR_MUNDO_VER_TIENDA_COLONIA_LANDING_NOVIEW","ST3_ESpot_STR_VER_PANT_COATING_LANDING_NOVIEW","ST3_ESpot_STR_MUNDO_INV_ABRIGOS_LANDING_NOVIEW"];
+inditex.iAllSpotsFromCms = false;
+</script>
+
+
+
+<!-- END pre-common head -->
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="white" />
+<meta name="format-detection" content="telephone=no">
+<meta name="msapplication-config" content="none"/>
+
+<!-- Following meta tags set the theme color of the top status bar on mobile devices -->
+<!-- Chrome, Firefox OS and Opera -->
+<meta name="theme-color" content="#ffffff">
+<!-- Windows Phone -->
+<meta name="msapplication-navbutton-color" content="#ffffff">
+<!-- iOS Safari -->
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+<!-- Favicons -->
+<link rel="apple-touch-icon-precomposed" href="/front/static/itxwebstandard/images/apple-touch-icon-precomposed.png?t=2026033111153121db319987968">
+<link rel="apple-touch-icon" sizes="180x180" href="/front/static/itxwebstandard/images/apple-touch-icon.png?t=2026033111153121db319987968">
+<link rel="icon" type="image/png" sizes="32x32" href="/front/static/itxwebstandard/images/favicon-32x32.png?t=2026033111153121db319987968">
+<link rel="icon" type="image/png" sizes="16x16" href="/front/static/itxwebstandard/images/favicon-16x16.png?t=2026033111153121db319987968">
+<link rel="manifest" href="/front/static/itxwebstandard/site.webmanifest?t=2026033111153121db319987968">
+<link rel="mask-icon" href="/front/static/itxwebstandard/images/safari-pinned-tab.svg?t=2026033111153121db319987968" color="#555555">
+<link rel="shortcut icon" type="image/x-icon" href="/front/static/itxwebstandard/images/favicon.ico?v=2022&t=2026033111153121db319987968">
+<meta name="apple-mobile-web-app-title" content="Stradivarius">
+<meta name="application-name" content="Stradivarius">
+<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="msapplication-TileImage" content="/front/static/itxwebstandard/images/mstile-144x144.png?t=2026033111153121db319987968">
+<meta name="theme-color" content="#ffffff">
+
+<link rel="StyleSheet" media="all" type="text/css" href="/front/static/itxwebstandard/css/itx-core-main-2.min.css?t=2026033111153121db319987968"/> 
+
+<!-- Menu -->
+<link rel="stylesheet" type="text/css" href="/front/static/itxwebstandard/css/lib/ecomstmenu/itx-menu.min.css?t=2026033111153121db319987968" /><!-- Grids library -->
+<script src="https://static.e-stradivarius.net/5/static2/itxwebstandard/strcomp/com.inditex.strcomp.umd.js?t=20260412015704319987968" type="text/javascript"></script>
+
+<script src="/front/static/itxwebstandard/js/conf/itx-app-vendors.min.js?t=2026033111153121db319987968"></script>
+<script src="/front/static/itxwebstandard/js/conf/itx-jquery-vendors.min.js?t=2026033111153121db319987968"></script>
+<script src="/front/static/itxwebstandard/js/conf/itx-search-bar.min.js?t=2026033111153121db319987968"></script>
+<script src="/front/static/itxwebstandard/js/conf/itx-icons.min.js?t=2026033111153121db319987968"></script>
+
+<script type="text/javascript">
+    window.Inditex = window.inditex;
+    inditex.iXBindType = 'click';
+    inditex.xRestLogLevel = inditex.REST_LOG_NONE;
+    
+    /* Evita que se pueda realizar zoom en dispositivos que utilizan el sistema operativo IOS.
+    * A partir de iOS 10 no es posible deshabilitar el zoom con la etiqueta meta "viewport". La única opción es hacerlo mediante javascript.
+    */
+    function disableZoomOnIOS() {
+        var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        let isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+
+        if (isIOS) {
+        // Se deshabilita el zoom al hacer doble tap
+        $('html').addClass('disable-double-tap-zoom');
+
+        // Se deshabilita que se pueda hacer zoom al hacer pinch-in. Se mantiene habilitado el pinch-out.
+        document.addEventListener(
+            'touchmove',
+            function (event) {
+            event = event.originalEvent || event;
+            if (event.scale > 1) {
+                event.preventDefault();
+            }
+            },
+            { passive: false, capture: false }
+        );
+        }
+    }
+
+    inditex.onReady(function() {
+        disableZoomOnIOS();
+        inditex.iGaIsoLang = inditex.iLocale;
+        inditex.iGaIsoCountry = inditex.iStoreJSON.countryCode;
+        
+        if(typeof moment !== 'undefined') {
+            moment.locale(inditex.iLocale);
+        }
+
+        inditex.rest.sessionExpired = function (request) { 
+            if (inditex.iPage == 'ItxMyAccountPage') {
+                goToPage('ItxLoginPage', '_self')();
+                localStorage.setItem('isSessionExpiredWithRedirect', true)
+            } else if (inditex.iPage == 'ItxCheckoutPage') {
+                const params = Object.assign(
+                    {},
+                    {
+                        [redirectQueryParams.SHOPCART_TO_LOGIN.queryParam]: redirectQueryParams.SHOPCART_TO_LOGIN.value
+                    }
+                );
+                goToPage('ItxLoginPage', '_self', params)();
+                localStorage.setItem('isSessionExpiredWithRedirect', true)
+            }else{
+                const tooltip = new ItxSessionExpiredTooltipClass();
+                tooltip.renderTooltip();
+            }
+        }; 
+    });
+</script>
+
+<!-- Datalayer -->
+<script>
+    window.dataLayer = window.dataLayer || [];
+</script>
+<!-- End Datalayer -->
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+<!-- INIT GROWTHBOOK -->
+<script type="text/javascript"> 
+    var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    var GrowthBookExperimentsDeviceId = localStorage.getItem('GrowthBookExperiments-deviceId') || function () {
+        var newId = crypto.randomUUID();
+        localStorage.setItem('GrowthBookExperiments-deviceId', newId);
+        return newId;
+    }();
+    GrowthBookReact.configureCache({ disableCache: true })
+    var STRGrowthBook = new GrowthBookReact.GrowthBook({
+        apiHost: "https://features.inditex.com",
+        clientKey: "sdk-DrFga32vvq2k47FT",
+        decryptionKey: "ygfFd9UZ1DHOQEnIo/Bv9Q==",
+        enableDevMode: location.hostname !== "www.stradivarius.com",
+        attributes: {
+            storeId: 55009592,
+            storeISO: "EG",
+            deviceId: GrowthBookExperimentsDeviceId,
+            language: 'en',
+            target: isMobile ? 'web_mobile' : 'web_desktop',
+            userAgent: navigator.userAgent,
+        },
+        trackingCallback: function (experiment, result) {
+            inditex.onReady(function () {
+                growthbookTrackingCallback(experiment, result);
+            });
+        }
+    });
+</script>
+<!-- END GROWTHBOOK -->
+
+<!-- CookiesConsent manager -->
+<script type="text/javascript"> 
+    inditex.onReady(itxCookiesConsentCookieManager);
+</script>
+
+<!-- INIT OAUTH GUEST -->
+<script type="text/javascript">
+    function initOauthGuest() {
+        if (typeof oauthOptions != 'undefined' && oauthOptions && oauthOptions.enabled) {
+            inditex.oauth.initFetchWithAutoGuestByUrls(
+                {
+                    clientId: "web-st",
+                    language: "en-US",
+                    storeId: 55009592
+                },
+                [
+                    {url:/itxrest\/\d+\/wish\/store\/\d+\/wishlist/, method:'POST'},
+                    {url:/itxrest\/\d+\/order\/store\/\d+\/cart/, method:'POST'}
+                ]
+            );
+        }
+    }
+    initOauthGuest();
+</script>
+<!-- END OAUTH GUEST -->
+
+<!-- INIT LD+JSON -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Corporation",
+  "name": "Stradivarius",
+  "alternateName": "Stradivarius, women's clothing online store",
+  "url": "https://www.stradivarius.com/eg/",
+  "logo": "https://static.e-stradivarius.net/5/static2/itxwebstandard/logo/logo.png",
+  "sameAs": [
+    "https://www.facebook.com/stradivas/",
+    "https://www.instagram.com/stradivarius/",
+    "https://www.youtube.com/channel/UC7mg-R8sonGRbOtLYEsy4EA",
+    "https://es.wikipedia.org/wiki/Stradivarius_(Inditex)",
+    "https://www.stradivarius.com/eg/"
+  ]
+}
+</script>
+<!-- END LD+JSON -->
+
+<!-- INIT GEOLOCATION -->
+<script type="text/javascript">
+  inditex.onReady(function () {
+    const countryCode = inditex.iStoreJSON.countryCode;
+
+    const lang = navigator.language || '';
+    const parts = lang.split("-");
+    const navigatorCountryCode = parts.length > 1 ? parts[1].toUpperCase() : null;
+
+    // Only show the banner if we actually have a country code from the browser
+    if (navigatorCountryCode && countryCode !== navigatorCountryCode && inditex.readCookie('cookie_is_open_banner_geolocation') !== 'false') {
+      inditex.writeCookie('cookie_is_open_banner_geolocation', 'true', 7);
+    }
+  });
+</script>
+<!-- END GEOLOCATION -->
+
+<!-- Menu library -->
+<script src="/front/static/itxwebstandard/js/lib/ecomstmenu/itx-menu.min.js?t=2026033111153121db319987968" defer type="text/javascript"></script><!-- BEGIN SPOT=ST3_ESpot_MiniShopCartDisplay -->
+
+<!-- END SPOT=ST3_ESpot_MiniShopCartDisplay -->
+
+		<!-- Specific CSS/JS for product -->
+		<link rel="stylesheet" type="text/css" href="/front/static/itxwebstandard/pages/product/itx-product.min.css?t=2026033111153121db319987968" />
+		<script src="/front/static/itxwebstandard/pages/product/itx-product.min.js?t=2026033111153121db319987968"></script>
+
+<!-- BEGIN SPOT=ST3_ESpot_HeadHide -->
+<script>
+var defaultShippingType =
+{ 
+"bg": "pickup",
+"cn": "delivery",
+"hr": "delivery",
+"sk": "delivery",
+"es": "pickup",
+"ee": "pickup",
+"fr": "pickup",
+"gb": "delivery",
+"gr": "pickup",
+"nl": "delivery",
+"hu": "pickup",
+"ie": "delivery",
+"it": "delivery",
+"lv": "pickup",
+"lt": "pickup",
+"mt": "pickup", 
+"mx": "pickup",
+"pl": "pickup",
+"pt": "pickup",
+"cz": "pickup",
+"ro": "pickup",
+"ru": "pickup",
+"tr": "delivery" 
+}
+</script>
+<!-- END SPOT=ST3_ESpot_HeadHide -->
+
+<!-- END page head -->
+
+<!-- BEGIN post-common head -->
+<script type="text/javascript" src="https://static.e-stradivarius.net/5/static2/itxwebstandard/js/itx-custom-api.min.js?t=20260412015704319987968" crossorigin="anonymous"></script>
+<!-- BEGIN SPOT=ST3_ESpot_Inditex -->
+<!-- BEGIN FIX_COREFRONT-1824 -->
+<script type="text/javascript">
+inditex.rest.ERROR_KEYS_TO_DELETE_CARTS['DynamicError.genericProblem'] = 'both';
+</script>
+<!-- END FIX_COREFRONT-1824-->
+<!-- END SPOT=ST3_ESpot_Inditex -->
+
+<!-- Begin Mpulse -->
+<script type="text/javascript">
+if ((window.inditex && window.inditex.iPage == "ItxOrderConfirmationPage") ){
+	window.BOOMR_config = window.BOOMR_config || {};
+
+	window.BOOMR_config.autorun = false;
+}
+
+var mpulseSpaCustomPages = ["ItxProductPage","ItxCategoryPage"];
+if (mpulseSpaCustomPages.indexOf(inditex.iPage) != -1) {
+    window.BOOMR_config = window.BOOMR_config || {};
+
+    window.BOOMR_config.autorun = false;
+    
+    window.BOOMR_config.History = {
+        enabled: true,
+        auto: true
+    };
+}
+
+</script>
+<!-- End Mpulse -->
+<!-- BEGIN SPOT=ST3_ESpot_HeadEnd -->
+<meta name="yandex-verification" content="a1229583597e9621" /><script>
+    var freeShippingMspot = {
+            generic: [{
+                    minPrice: "3000",
+                    shippingMethodId: "22856"
+                },
+                {
+                    minPrice: "0000",
+                    shippingMethodId: "1020013001"
+                },
+                {
+                    minPrice: "3000",
+                    shippingMethodId: "120903"
+                }
+            ],
+            AT: [{
+                minPrice: "4500",
+                shippingMethodId: "130904"
+            }],
+            CN: [{
+                minPrice: "19900",
+                shippingMethodId: "193001"
+            }],
+            IT: [{
+                minPrice: "4000",
+                shippingMethodId: "22865"
+            }],
+            GB: [{
+                minPrice: "3000",
+                shippingMethodId: "63403"
+            }],
+            FR: [{
+                minPrice: "4000",
+                shippingMethodId: "22859"
+            }],
+            DE: [{
+                    minPrice: "4500",
+                    shippingMethodId: "22853"
+                },
+                {
+                    minPrice: "4500",
+                    shippingMethodId: "1020016002"
+                }
+            ],
+            BE: [{
+                minPrice: "4500",
+                shippingMethodId: "130901"
+            }],
+            BG: [{
+                minPrice: "8500",
+                shippingMethodId: "215508"
+            }],
+            LU: [{
+                minPrice: "4000",
+                shippingMethodId: "130908"
+            }],
+            NL: [{
+                minPrice: "4500",
+                shippingMethodId: "130906"
+            }],
+            IE: [{
+                minPrice: "4500",
+                shippingMethodId: "130910"
+            }],
+            PL: [{
+                    minPrice: "13900",
+                    shippingMethodId: "26904"
+                },
+                {
+                    minPrice: "13900",
+                    shippingMethodId: "26903"
+                }
+            ],
+            RU: [{
+                    minPrice: "200000",
+                    shippingMethodId: "136423"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "136425"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "136432"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "136426"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "136429"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "136430"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "136427"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "136431"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "136428"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "1020001002"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "1020001010"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "1020001003"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "1020001004"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "1020001005"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "1020001006"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "1020001007"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "1020001008"
+                },
+                {
+                    minPrice: "200000",
+                    shippingMethodId: "1020001009"
+                }
+
+            ],
+            RO: [{
+                minPrice: "20000",
+                shippingMethodId: "161404"
+            }],
+            GR: [{
+                minPrice: "4000",
+                shippingMethodId: "161402"
+            }],
+            CH: [{
+                minPrice: "5000",
+                shippingMethodId: "161407"
+            }],
+            DK: [{
+                minPrice: "50000",
+                shippingMethodId: "204523"
+            }],
+            CZ: [{
+                minPrice: "99900",
+                shippingMethodId: "213002"
+            }],
+            SE: [{
+                minPrice: "60000",
+                shippingMethodId: "204535"
+            }],
+            SK: [{
+                minPrice: "4000",
+                shippingMethodId: "213005"
+            }],
+            SI: [{
+                minPrice: "4500",
+                shippingMethodId: "222017"
+            }],
+            MX: [{
+                minPrice: "79900",
+                shippingMethodId: "173001"
+            }],
+            TR: [{
+                minPrice: "139900",
+                shippingMethodId: "227502"
+            }],
+            PT: [{
+                minPrice: "3000",
+                shippingMethodId: "22868"
+            }],
+            IC: [{
+                minPrice: "3000",
+                shippingMethodId: "119902"
+            }],
+            SA: [{
+                minPrice: "20000",
+                shippingMethodId: "1020040001"
+            }],
+            IL: [{
+                minPrice: "19900",
+                shippingMethodId: "1020039502"
+            }],
+            UA: [{
+                minPrice: "199900",
+                shippingMethodId: "1020042002"
+            }],
+            CO: [{
+                minPrice: "19990000",
+                shippingMethodId: "1020042502"
+            }],
+            RS: [{
+                minPrice: "319000",
+                shippingMethodId: "1020042508"
+            }],
+            MA: [{
+                minPrice: "59000",
+                shippingMethodId: "1020042510"
+            }],
+            US: [{
+                minPrice: "5000",
+                shippingMethodId: "1020032501"
+            }],
+            HU: [{
+                minPrice: "1300000",
+                shippingMethodId: "215511"
+            }],
+            HR: [{
+                minPrice: "3500",
+                shippingMethodId: "213008"
+            }],
+            MT: [{
+                minPrice: "5000",
+                shippingMethodId: "222011"
+            }],
+            ID: [{
+                minPrice: "75000000",
+                shippingMethodId: "1020049503"
+            }],
+            EG: [{
+                minPrice: "139900",
+                shippingMethodId: "1020050001"
+            }],
+            AE: [{
+                minPrice: "20000",
+                shippingMethodId: "1020049001"
+            }],
+            TN: [{
+                minPrice: "19900",
+                shippingMethodId: "1020064501"
+            }],
+            BA: [{
+                minPrice: "9995",
+                shippingMethodId: "1020064503"
+            }],
+            DZ: [{
+                minPrice: "849900",
+                shippingMethodId: "1340122284"
+            }],
+            LB: [{
+                minPrice: "380000000",
+                shippingMethodId: "1020093006"
+            }],
+            CA: [{
+                minPrice: "10000",
+                shippingMethodId: "1020093003"
+            }],
+            KZ: [{
+                minPrice: "2399000",
+                shippingMethodId: "1020095002"
+            }]
+        } 
+</script><script>
+
+var denimValue = 1390581;
+var puntoValue = 1390585;
+var abrigosValue = 1020192002;
+var zapatosValue = 1020088038;
+var arraySubCategoriesGrid = ([
+{id:denimValue,img:"https://static.e-stradivarius.net/5/static2//itxwebstandard/images/subcategorias/denim/en_denim.jpg?t=202510021700",size:2,name:"Accessories","showName":0,"type":14}
+,
+{id:puntoValue,img:"https://static.e-stradivarius.net/5/static2//itxwebstandard/images/subcategorias/punto/en_punto.jpg?t=202510021700",size:2,name:"Dresses","showName":0,"type":14}
+,
+{id:abrigosValue,img:"https://static.e-stradivarius.net/5/static2//itxwebstandard/images/subcategorias/abrigos/en_abrigos.jpg?t=202510021700",size:2,name:"T-shirts","showName":0,"type":14}
+,
+{id:zapatosValue,img:"https://static.e-stradivarius.net/5/static2//itxwebstandard/images/subcategorias/zapatos/zapatos_en.jpg?t=202510021700",size:2,name:"Jeans","showName":0,"type":14}
+
+]);
+
+inditex.onReady(function() 
+{
+	if(inditex.iCountryCode == "CN")
+	{
+		
+		denimValue = 1020047058;
+		puntoValue = 1020047043;
+		abrigosValue = 1020206509;
+		zapatosValue = 1020048021;
+		arraySubCategoriesGrid[0]["id"] =denimValue;
+		arraySubCategoriesGrid[1]["id"] =puntoValue;
+		arraySubCategoriesGrid[2]["id"] =abrigosValue;
+		arraySubCategoriesGrid[3]["id"] =zapatosValue;
+	}  
+});
+</script><script>
+  
+  var textModul1 = [ 
+      {      
+        "I18N": { 
+           "GENERIC": { 
+               "text": "Stradivarius" 
+           }, 
+           "ES": { 
+               'es': { 
+                 "text": "Envío gratuito a domicilio a partir de 20€"
+               }, 
+               'ca': { 
+                 "text": "Enviament gratuït a casa a partir de 20€"
+               }, 
+               'eu': { 
+                  "text": "Dohaineko bidalketa etxera bertara, 20€-tik aurrera"
+               }, 
+               'gl': { 
+                  "text": "Envío gratuíto á casa a partir dos 20€"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over €20"
+               } 
+            },
+            "IT": { 
+               'it': { 
+                 "text": "Spedizione a domicilio gratuita a partire da 20€"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders of €20 or more"
+               } 
+            },
+            "CN": { 
+               'zh': { 
+                 "text": "满199元包邮"
+               }, 
+               'en': { 
+                  "text": "Free shipping for orders over ￥199"
+               } 
+            },
+            "NL": { 
+               'nl': { 
+                 "text": "Gratis standaard verzending of naar afgiftepunt boven €25"
+               }, 
+               'en': { 
+                  "text": "Free Shipping on all Standard and Drop Point orders above 25€"
+               } 
+            },
+            "PL": { 
+               'pl': { 
+                 "text": "Darmowa dostawa standardowa dla zamówień od 119zł"
+               }, 
+               'en': { 
+                  "text": "Free standard delivery for orders of 119 PLN or more"
+               } 
+            },
+            "PT": { 
+               'pt': { 
+                 "text": "Envio gratuito ao domicílio a partir de 20€"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over €20"
+               } 
+            },
+            "GB": { 
+               'en': { 
+                 "text": "Free home delivery on orders over £20"
+               }
+            },
+            "DE": { 
+               'de': { 
+                 "text": "Kostenloser Standardversand ab 25€"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over 25€"
+               } 
+            },
+            "AT": { 
+               'de': { 
+                 "text": "Kostenlose Hauszustellung ab 25€"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders of €25 or more"
+               } 
+            },
+            "FR": { 
+               'fr': { 
+                 "text": "Envoi gratuit à domicile à partir de 25€"
+               }, 
+               'en': { 
+                  "text": "Free home delivery for orders of €25 or more"
+                }
+            },
+            "GR": { 
+               'el': { 
+                 "text": "Δωρεάν αποστολή κατ'οίκον με αγορές πάνω απο 20€"
+               }, 
+               'en': { 
+                  "text": "Free home shipping for purchases over €20"
+                } 
+            },
+            "IC": { 
+               'es': { 
+                 "text": "Envío gratuito a domicilio a partir de 20€"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders of €20 or more"
+                } 
+            },
+            "IE": { 
+               'en': { 
+                  "text": "Free home delivery on orders over 25€"
+                } 
+            },
+            "RO": { 
+               'ro': { 
+                 "text": "Transport gratuit la domiciliu pentru comenzi de minimum 120 LEI" 
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders of 120 LEI or more"
+                } 
+            },
+            "RU": { 
+               'ru': { 
+                 "text": "Бесплатная доставка домой заказов на сумму более 2000 РУБ."
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over 2000 РУБ"
+                } 
+            },
+            "MX": { 
+               'es': { 
+                 "text": "Envío gratuito a domicilio a partir de MXN 699"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over MXN 699"
+                } 
+            },
+            "TR": { 
+               'tr': { 
+                 "text": "99 TL ve üzeri siparişlerde ücretsiz kargo"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders of 99 TL or more"
+               }
+            },
+            "LU": { 
+               'fr': { 
+                 "text": "Envoi gratuit à domicile à partir de 25€"
+               },
+               'de': { 
+                 "text": "Kostenlose Hauszustellung ab 25€"
+               },  
+               'en': { 
+                  "text": "Free home delivery for orders of €25 or more"
+               }
+            },
+            "CH": { 
+               'en': { 
+                 "text": "Free home delivery on orders over CHF 25"
+               },
+               'de': { 
+                 "text": "Kostenlose Hauszustellung ab 25 CHF"
+               },
+               'fr': { 
+                 "text": "Livraison gratuite à domicile à partir de CHF 25"
+               }, 
+               'it': { 
+                  "text": "Consegna gratuita per ordini superiori a CHF 25"
+               }
+            },
+            "SE": { 
+               'en': { 
+                  "text": "Free home delivery on orders over 500 Kr"
+               }
+            },
+            "DK": { 
+               'da': { 
+                 "text": "Gratis levering på ordrer over 500 Kr"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over 500 Kr"
+               }
+            },
+            "BE": { 
+               'fr': { 
+                 "text": "Envoi gratuit à domicile à partir de 25€"
+               },
+               'de': { 
+                 "text": "Gratis thuisbezorging van bestelling van €25 of meer"
+               },
+               'en': { 
+                 "text": "Free home delivery on orders over €25"
+               }, 
+               'nl': { 
+                  "text": "Gratis standaard verzending of naar afgiftepunt boven €25"
+               }
+            },
+            "CZ": { 
+               'cs': { 
+                 "text": "Free home delivery on orders over 699 CZK" 
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over 699 CZK" 
+               }
+            },
+            "HR": { 
+               'hr': { 
+                 "text": "Free home delivery on orders over 199 HRK"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over 199 HRK"
+               }
+            },
+            "SK": { 
+               'sk': { 
+                 "text": "Free home delivery on orders over 25€"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over 25€"
+               }
+            },
+            "BG": { 
+               'bg': { 
+                 "text": "Free home delivery on orders over 49 LV"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over 49 LV"
+               }
+            },
+            "HU": { 
+               'hu': { 
+                 "text": "Free home delivery on orders over 10000 HUF"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over 10000 HUF"
+               }
+            },
+            "LT": { 
+               'lt': { 
+                 "text": "Free home delivery on orders over 25€"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over 25€"
+               }
+            },
+            "LV": { 
+               'lv': { 
+                 "text": "Free home delivery on orders over 25€"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over 25€"
+               }
+            },
+            "EE": { 
+               'et': { 
+                 "text": "Free home delivery on orders over 25€"
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over 25€"
+               }
+            },
+            "MT": { 
+               'en': { 
+                  "text": "Free home delivery on orders over 25€"
+               }
+            },
+            "SI": { 
+               'en': { 
+                  "text": "Free home delivery on orders over 25€"
+               }
+            },
+            "FI": { 
+               'en': { 
+                  "text": "Free home delivery on orders over 25€"
+               }
+            }
+        }
+     }
+  ];
+
+  var textModul2 = [ 
+      {      
+        "I18N": { 
+           "GENERIC": { 
+               "text": "Extended period for returns" 
+           },
+           "ES": { 
+               'es': { 
+                 "text": "Plazo de devolución ampliado"
+               }, 
+               'ca': { 
+                 "text": "Termini de devolució ampliat"
+               }, 
+               'eu': { 
+                  "text": "Itzultzeko epea luzatzen da"
+               }, 
+               'gl': { 
+                  "text": "Prazo de devolución ampliado"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+               } 
+            },
+           "FR": { 
+               'fr': { 
+                 "text": "Délai de retour prolongé"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+               } 
+            },
+            "IT": { 
+               'it': { 
+                 "text": "Periodo di reso esteso"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns" 
+               } 
+            },
+            "CN": { 
+               'zh': { 
+                 "text": ""
+               }, 
+               'en': { 
+                  "text": ""
+               } 
+            },
+            "NL": { 
+               'nl': { 
+                 "text": "De retourtermijn is verruimd naar" 
+               }, 
+               'en': { 
+                  "text": "Extended period for returns" 
+               } 
+            },
+            "PL": { 
+               'pl': { 
+                 "text": "Wydłużony okres zwrotu"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+               } 
+            },
+            "PT": { 
+               'pt': { 
+                 "text": "Prazo de devolução ampliado"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+               } 
+            },
+            "GB": { 
+               'en': { 
+                 "text": "Extended period for returns" 
+               }
+            },
+            "DE": { 
+               'de': { 
+                 "text": "Verlängerung der Rückgabefrist"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+               } 
+            },
+            "AT": { 
+               'de': { 
+                 "text": "Verlängerung der Rückgabefrist"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+               } 
+            },
+            "GR": { 
+               'el': { 
+                 "text": "Η περίοδος επιστροφών διευρύνεται"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+                } 
+            },
+            "IC": { 
+               'es': { 
+                 "text": "Plazo de devolución ampliado"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+                } 
+            },
+            "IE": { 
+               'en': { 
+                  "text": "Extended period for returns"
+                } 
+            },
+            "RO": { 
+               'ro': { 
+                 "text": "Extended period for returns"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+                } 
+            },
+            "RU": { 
+               'ru': { 
+                 "text": "Срок возврата продлен"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+                } 
+            },
+            "MX": { 
+               'es': { 
+                 "text": "Periodo devolución ampliado"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+                } 
+            },
+            "TR": { 
+               'tr': { 
+                 "text": "İade süresi uzatılmıştır" 
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+               }
+            },
+            "LU": { 
+               'fr': { 
+                 "text": "Délai de retour prolongé"
+               },
+               'de': { 
+                 "text": "Verlängerung der Rückgabefrist"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+               }
+            },
+            "CH": {               
+              'en': { 
+                  "text": "Extended period for returns"
+               },
+               'de': { 
+                 "text": "Verlängerung der Rückgabefrist"
+               },
+               'fr': { 
+                 "text": "Délai de retour prolongé"
+               },
+               'it': { 
+                 "text": "Periodo di reso esteso"
+               }
+            },
+            "SE": { 
+               'en': { 
+                  "text": "Free home delivery" 
+               }
+            },
+            "DK": { 
+               'da': { 
+                 "text": "Extended period for returns" 
+               }, 
+               'en': { 
+                  "text": "Extended period for returns" 
+               }
+            },
+            "BE": { 
+               'fr': { 
+                 "text": "Délai de retour prolongé"
+               },
+               'de': { 
+                 "text": "Verlängerung der Rückgabefrist"
+               },                
+               'en': { 
+                  "text": "Extended period for returns"
+               },
+               'nl': { 
+                 "text": "De retourtermijn is verruimd naar"
+               }
+            },
+            "CZ": { 
+               'cs': { 
+                 "text": "Prodloužená lhůta pro vrácení"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+               }
+            },
+            "HR": { 
+               'hr': { 
+                 "text": "Extended period for returns" 
+               }, 
+               'en': { 
+                  "text": "Extended period for returns" 
+               }
+            },
+            "SK": { 
+               'sk': { 
+                 "text": "Extended period for returns"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+               }
+            },
+            "BG": { 
+               'bg': { 
+                 "text": "Удължен период на връщане"
+               }, 
+               'en': { 
+                  "text": "Extended period for returns"
+               }
+            },
+            "HU": { 
+               'hu': { 
+                 "text": "Extended period for returns" 
+               }, 
+               'en': { 
+                  "text": "Extended period for returns" 
+               }
+            },
+            "LT": { 
+               'lt': { 
+                 "text": "Extended period for returns" 
+               }, 
+               'en': { 
+                  "text": "Extended period for returns" 
+               }
+            },
+            "LV": { 
+               'lv': { 
+                 "text": "Return period extended to 60 days"
+               }, 
+               'en': { 
+                  "text": "Return period extended to 60 days"
+               }
+            },
+            "EE": { 
+               'et': { 
+                 "text": "Free home delivery" 
+               }, 
+               'en': { 
+                  "text": "Free home delivery" 
+               }
+            },
+            "MT": { 
+               'en': { 
+                  "text": "Free home delivery" 
+               }
+            },
+            "US": { 
+               'en': { 
+                  "text": "Extended period for returns" 
+               },
+               'es': { 
+                  "text": "Extended period for returns" 
+               }
+            },
+            "SI": { 
+               'en': { 
+                  "text": "Extended period for returns" 
+               }
+            }            
+        }
+     }
+  ];
+
+  var textModul3 = [ 
+      {      
+        "I18N": { 
+           "GENERIC": { 
+               "text": "Stradivarius" 
+           }, 
+           "ES": { 
+               'es': { 
+                 "text": "Envío gratuito a tienda" 
+               }, 
+               'ca': { 
+                 "text": "Enviament gratuït a botiga" 
+               }, 
+               'eu': { 
+                  "text": "Bidalketak doan dendetara " 
+               }, 
+               'gl': { 
+                  "text": "Envíos gratis a tendas" 
+               }, 
+               'en': { 
+                  "text": "Free order pick-up in store" 
+               } 
+            },
+            "IT": { 
+               'it': { 
+                 "text": "Spedizione gratuita presso il negozio" 
+               }, 
+               'en': { 
+                  "text": "Free shipping to the store" 
+               } 
+            },
+            "MT": { 
+               'en': { 
+                  "text": "Online order collection available in-store"
+                }
+            },
+            "CN": { 
+               'zh': { 
+                 "text": "免费配送至门店"
+               }, 
+               'en': { 
+                  "text": "Free pick up in store"
+               } 
+            },
+            "CZ": { 
+               'cs': { 
+                 "text": "Buy online and pay in store" 
+               }, 
+               'en': { 
+                  "text": "Buy online and pay in store" 
+               }
+            },
+            "CH": { 
+               'fr': { 
+                 "text": "Retours gratuits" 
+               },
+               'de': { 
+                 "text": "Kostenlose Rücksendung" 
+               },
+               'it': { 
+                 "text": "Reso gratuito" 
+               }, 
+               'en': { 
+                  "text": "Free returns" 
+               }
+            },
+            "NL": { 
+               'nl': { 
+                 "text": "Online bestellingen kunnen worden afgehaald in de winkel" 
+               }, 
+               'en': { 
+                  "text": "Online order collection available in-store" 
+               } 
+            },
+            "PL": { 
+               'pl': { 
+                 "text": "W sklepie istnieje możliwość odbioru zamówienia online" 
+               }, 
+               'en': { 
+                  "text": "Online order collection available in-store" 
+               } 
+            },
+            "HU": { 
+               'hu': { 
+                 "text": "Online order collection available in-store" 
+               }, 
+               'en': { 
+                  "text": "Online order collection available in-store" 
+               }
+            },
+            "PT": { 
+               'pt': { 
+                 "text": "Levantamento de encomendas online disponível na loja" 
+               }, 
+               'en': { 
+                  "text": "Online order collection available in-store" 
+               } 
+            },
+            "GB": { 
+               'en': { 
+                 "text": "Free shipping to the store and returns" 
+               }
+            },
+            "SE": { 
+               'en': { 
+                 "text": "New drop point service" 
+               }
+            },
+            "DE": { 
+               'de': { 
+                 "text": "Kostenloser Standardversand ab 30€" 
+               }, 
+               'en': { 
+                  "text": "Free home delivery on orders over 30€" 
+               } 
+            },
+            "AT": { 
+               'de': { 
+                 "text": "Kostenlose Hauszustellung"
+               }, 
+               'en': { 
+                  "text": "Free home delivery"
+               } 
+            },
+            "FR": { 
+               'fr': { 
+                 "text": "Envoi gratuit à domicile à partir de 50€" 
+               }, 
+               'en': { 
+                  "text": "Free home delivery for orders of €50 or more" 
+                }
+            },
+            "GR": { 
+               'el': { 
+                 "text": "Δωρεάν αποστολή σε κατάστημα" 
+               }, 
+               'en': { 
+                  "text": "Free shipping to the store"
+                } 
+            },
+            "IC": { 
+               'es': { 
+                 "text": "Envío gratuito a tienda" 
+               }, 
+               'en': { 
+                  "text": "Free shipping to the store"
+                } 
+            },
+            "IE": { 
+               'en': { 
+                  "text": "Free shipping to the store"
+                } 
+            },
+            "LT": { 
+               'lt': { 
+                 "text": "Online order collection available in-store" 
+               }, 
+               'en': { 
+                  "text": "Online order collection available in-store" 
+               }
+            },
+            "EE": { 
+               'et': { 
+                 "text": "Online order collection available in-store" 
+               }, 
+               'en': { 
+                  "text": "Online order collection available in-store" 
+               }
+            },
+            "RO": { 
+               'ro': { 
+                 "text": "Expediere gratuită la magazin" 
+               }, 
+               'en': { 
+                  "text": "Free shipping to the store"
+                } 
+            },
+            "RU": { 
+               'ru': { 
+                 "text": "Теперь -5% на предоплаченные заказы"
+               }, 
+               'en': { 
+                  "text": "5% off on all prepaid orders"
+                } 
+            },
+            "MX": { 
+               'es': { 
+                 "text": "Envio a tienda y devolución gratuitos" 
+               }, 
+               'en': { 
+                  "text": "Free shipping to the store and returns"
+                } 
+            },
+            "TR": { 
+               'tr': { 
+                 "text": "Mağazaya ücretsiz gönderim" 
+               }, 
+               'en': { 
+                  "text": "Free shipping to the store" 
+               }
+            },
+            "SE": { 
+               'en': { 
+                 "text": "New payment method: Klarna" 
+               }
+            },
+            "SI": { 
+               'en': { 
+                  "text": "Online order collection available in-store"
+               }
+            },
+            "DK": { 
+               'da': { 
+                 "text": "Ny betalingsmetode: Klarna" 
+               },
+               'en': { 
+                 "text": "New payment method: Klarna" 
+               }
+            }
+        }
+     }
+  ];
+
+  var textModul4 = [ 
+      {      
+        "I18N": { 
+           "GENERIC": { 
+               "text": "Stradivarius" 
+           }, 
+           "ES": { 
+               'es': { 
+                 "text": "+ info"
+               }, 
+               'ca': { 
+                 "text": "+ info"
+               }, 
+               'eu': { 
+                 "text": "+ info"
+               }, 
+               'gl': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               } 
+            },
+            "IC": { 
+                'es': { 
+                 "text": "+ info"
+                },
+               'en': { 
+                 "text": "+ info"
+                } 
+            },
+            "CN": { 
+               'zh': { 
+                 "text": "满199元包邮" 
+               }, 
+               'en': { 
+                  "text": "Free shipping for orders over ￥199" 
+               } 
+            },
+            "FR": { 
+                'fr': { 
+                 "text": "+ info"
+                },
+               'en': { 
+                 "text": "+ info"
+                } 
+            },
+            "CH": { 
+               'fr': { 
+                 "text": "+ info"
+               },
+               'de': { 
+                 "text": "+ info"
+               },
+               'it': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "MX": { 
+               'es': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+                } 
+            },
+            "RO": { 
+                'ro': { 
+                 "text": "+ info"
+                },
+               'en': { 
+                 "text": "+ info"
+                } 
+            },
+            "HR": { 
+               'hr': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "CZ": { 
+               'cs': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "SI": { 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "HU": { 
+               'hu': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "IE": { 
+               'en': { 
+                 "text": "+ info"
+                } 
+            },
+            "IT": { 
+               'it': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               } 
+            },
+            "NL": { 
+               'nl': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               } 
+            },
+            "DK": { 
+               'da': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "BE": { 
+               'fr': { 
+                 "text": "+ info"
+               },
+               'de': { 
+                 "text": "+ info"
+               },
+               'nl': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "LU": { 
+               'fr': { 
+                 "text": "+ info"
+               },
+               'de': { 
+                 "text": "+ info"
+               },  
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "PL": { 
+               'pl': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               } 
+            },
+            "PT": { 
+               'pt': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               } 
+            },
+            "GB": { 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "US": { 
+               'en': { 
+                 "text": "+ info"
+               },
+               'es': { 
+                 "text": "+ info"
+               }
+            },
+            "SE": { 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "SK": { 
+               'sk': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "BG": { 
+               'bg': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "LT": { 
+               'lt': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "LV": { 
+               'lv': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "EE": { 
+               'et': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               }
+            },
+            "DE": { 
+               'de': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               } 
+            },
+            "RU": { 
+               'ru': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+                } 
+            },
+            "AT": { 
+               'de': { 
+                 "text": "+ info" 
+               }, 
+               'en': { 
+                 "text": "+ info"
+               } 
+            },
+            "GR": { 
+               'el': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               } 
+            },
+            "TR": { 
+               'tr': { 
+                 "text": "+ info"
+               }, 
+               'en': { 
+                 "text": "+ info"
+               } 
+            }
+         }
+      }
+  ];
+
+  var mSpotBenefit = {
+     generic : {
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans",
+        boxes: [
+           {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ],
+     },
+     ES:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans",
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ],
+     },
+     BE:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ],
+     },   
+     LU:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },
+           {
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ],
+     },
+     IT:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+           {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ],
+     },
+     NL:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+           {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul3,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ],
+     },
+     PL:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+           {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul3,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ],
+     },
+     PT:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul3,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     GB:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+          {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },
+           {
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     DE:{
+      totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+           {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     MX:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+           {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     AT:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     FR:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     GR:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+           {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },
+           {
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     IC:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     IE:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },
+           {
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     RO:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+           {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },
+           {
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     RU:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },
+           {
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },
+           {
+              type: "text",
+              text: textModul3,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     TR:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },
+           {
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     LV:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ],
+     },
+     CH:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+           {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },
+           {
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },     
+     BG:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ],
+     },     
+     SE:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     DK:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+           {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },
+           {
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     CZ:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ],
+     },
+     SK:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ],
+     },
+     HU:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul3,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     LT:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul3,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     EE:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul3,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     MT:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul3,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     US:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },
+           {
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     SI:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul3,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     FI:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              
+           }
+        ]
+     },
+     HR:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+            {
+              type: "text",
+              text: textModul1,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul2,
+              textColor: "#fff",
+              backgroundColor:"#000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           },{
+              type: "text",
+              text: textModul4,
+              textColor: "#fff",
+              backgroundColor:" #000000",
+              fontSize: "12px",
+              aligment: "center",
+              textTransform:"none" 
+           }
+        ]
+     },
+     CN:{
+        totalBoxes:0,
+        allowHidden:false,
+        backgroundColor: "#fff",
+        
+        height:"30",
+        iconColor:"#000000",
+        iconWidth:"20px",
+        fontFamily:"Open Sans", 
+        boxes: [
+        ],
+     },
+     hiddenCountries: ["AD","AE","AL","AM","AZ","BA","BH","BY","CO","CR","CY","DO","DZ","EC","EG","GE","GT","HK","HN","ID","IL","JO","JP","KR","KW","KZ","LB","MA","ME","MK","MO","NI","OM","PA","PH","QA","RS","SA","SG","SV","SY","TH","TN","UA","KR","XK","ww","WW","AX","AI","AG","BS","BB","BZ","BJ","BM","BQ","BW","BN","BF","KH","KY","TD","CX","CC","CG","CW","DM","TL","FJ","GF","GA","GM","GH","GD","GP","GG","GQ","GY","HT","JM","JE","KE","LS","LR","MG","MW","MV","ML","MQ","MU","YT","MZ","NA","NC","NE","PG","MF","PM","SM","SN","LK","BL","KN","SX","VC","SZ","TZ","TT","TC","UG","WF","ZM","ZW","AS","AO","CM","CV","KM","CK","CI","DJ","FO","GL","GU","KI","MP","MH","MR","FM","MS","NR","NU","PW","RE","RW","WS","ST","SC","SL","SB","GS","SH","LC","SR","PF","TG","TK","TO","TV","VU","VA","VG","VI","CA","CL","KR","MY","NO","PK","ZA","IS","NZ","AU","BR","TW","AW","BD","BT","BO","ER","ET","HK","IN","KG","LA","MO","MN","NP","NG","NF","PS","PE","PR","SG","UZ","ES","IC","PT","IT","GR","MT","US","FR","CH","DE","NL","BE","AT","LU","SE","DK","FI","PL","SK","CZ","HU","SI","HR","LT","LV","EE","RO","BG","GB","IE","MX","TR","RU"
+     ]
+  }
+
+
+
+</script>
+
+<!-- END SPOT=ST3_ESpot_HeadEnd -->
+
+<!-- END post-common head -->
+	</head>
+
+	<body class="theme ">
+<style type="text/css">
+    .stage-warning {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            right:0px;
+            background-color: red;
+            color: white;
+            font-size: 11px;
+            padding: 4px;
+            text-align: center;
+            z-index: 1000000000;
+        }
+</style>
+
+
+<!-- BEGIN SPOT=ST3_ESpot_BodyBegin -->
+<script type="text/javascript" src="https://static.e-stradivarius.net/5/static2/itxwebstandard/js/itx-custom-config.js?t=202510211055" id="itx_custom_config_js"></script>
+<link rel="stylesheet" type="text/css" href="https://static.e-stradivarius.net/5/static2/itxwebstandard/css/itx-custom-config.css?t=202510271611" id="itx_custom_config_css">
+
+<!-- END SPOT=ST3_ESpot_BodyBegin -->
+
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org/",
+  "@type": "Product",
+  "logo" : "https://static.e-stradivarius.net/5/static2/itxwebstandard/logo/logo.png?t=20260412015704319987968",
+  "name": "Asymmetric cape",
+  "image": "https://static.e-stradivarius.net/assets/public/6609/3c52/c7794a08bf4d/3e85295c5fe2/02076511400-a15/02076511400-a15.jpg?ts=1773676013508&w=1536",
+  "sku": "C02076511400-V2026",
+  "description": "Asymmetric cape with a single wide sleeve and an exposed shoulder. Ruched detail on the side. Available in several colours.",
+  "mpn": "2076/511",
+  "brand": {
+    "@type": "Brand",
+    "name": "stradivarius"
+  },
+  "offers": {
+    "@type": "Offer",
+    "priceCurrency": "EGP",
+    "price": "1690",
+    "url": "https://www.stradivarius.com/eg/asymmetric-cape-l02076511",
+    "category": "Shirts",
+    "color": "Brown",
+    "availability": "http://schema.org/InStock",
+    "eligibleRegion" : "EG"
+  }
+}
+</script>
+
+<script type="text/javascript">
+	</script>
+
+<!-- Google Tag Manager -->
+<noscript>
+	<iframe src="//www.googletagmanager.com/ns.html?id=GTM-WN82WL" height="0" width="0" style="display:none;visibility:hidden"></iframe>
+</noscript>
+<script>
+	// GTM script needs to be loaded after inditex.onReady because internal event session_start, which is required by Data-team for analysing number and country of visits, requires country-related information to be injected before gtm.start
+	inditex.onReady(
+		function() {
+			var countryCode = inditex.iStoreJSON.countryCode.toUpperCase();
+
+			try {
+				dataLayer.push({
+					context: {
+						im_local_store_id: "STRADIVARIUS_" + countryCode,
+						im_platform: "web-responsive"
+					},
+					user: {
+						im_store_id: "STRADIVARIUS_" + countryCode
+					}
+				});
+			} catch (e) {
+				// ignore
+				console.error("Failed to inject country context to dataLayer before GTM script loads", e);
+			}
+
+		(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+		new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+		j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+		'//www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+		})(window,document,'script','dataLayer','GTM-WN82WL');
+		}
+	);
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Contenedor para html a mostrar en modal -->
+<div id="modal" class="modal"></div>
+<!-- Contenedor para html a mostrar en modal (mensajes de error y success) -->
+<div id="message_modal" class="modal"></div>
+
+<div id="newErrorModal"></div>
+
+		<div id="iPageContent">
+			<div id="idReactComponent">
+				<script type="text/javascript">
+					inditex.onReady(function() {
+						new ItxProductPageCtrl();
+					});
+				</script>
+			</div>
+		</div>
+		<div id="sendToAFriend" class="modal">
+			<!-- inicio del contenido de la modal -->
+
+			<!-- fin del contenido de la modal -->
+		</div>
+<!-- BEGIN SPOT=ST3_ESpot_BodyEnd -->
+
+<!-- END SPOT=ST3_ESpot_BodyEnd -->
+	
+<script type="text/javascript">
+	inditex.initialize();
+</script>
+
+	<script type="text/javascript"  src="/uF8IeiSNc-Tk1IWexTj8GOz_/1V5hpk1Dz7Y7azO7uc/TVhVX1U/SCdoBjgz/XwgB"></script></body>
+</html>
