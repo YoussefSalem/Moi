@@ -92,7 +92,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 src={product.productShot}
                 alt={product.name}
                 className="relative z-10 w-full max-w-xs md:max-w-sm"
-                style={{ maxHeight: 440, objectFit: "contain", objectPosition: "center" }}
+                style={{ maxHeight: 440, objectFit: "contain", objectPosition: "center", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
                 crossOrigin="anonymous"
               />
               <motion.div

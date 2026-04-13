@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
 import { ProductCard } from "@/components/ProductCard";
-import { Carousel } from "@/components/Carousel";
 import { LookView } from "@/components/LookView";
 import { Footer } from "@/components/Footer";
 import { IMAGES, type ProductConfig } from "@/config/images";
@@ -22,12 +21,19 @@ function App() {
           onLookView={setLookProduct}
         />
 
-        <Carousel />
-
         <ProductCard
           product={IMAGES.product2}
           onLookView={setLookProduct}
         />
+
+        <section className="py-16 md:py-24 text-center px-6">
+          <p
+            className="text-lg md:text-2xl font-light tracking-[0.18em] uppercase"
+            style={{ color: "#1e1814", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
+            Check out Instagram and TikTok
+          </p>
+        </section>
       </main>
 
       <Footer />
