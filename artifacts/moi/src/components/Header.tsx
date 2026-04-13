@@ -4,9 +4,10 @@ import { Search, ShoppingBag, User, X } from "lucide-react";
 
 interface HeaderProps {
   onNavigate?: (page: "home" | "accessories") => void;
+  dark?: boolean;
 }
 
-export function Header({ onNavigate }: HeaderProps) {
+export function Header({ onNavigate, dark }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -23,10 +24,10 @@ export function Header({ onNavigate }: HeaderProps) {
       <header
         className="fixed top-0 left-0 right-0 z-50 transition-all duration-500"
         style={{
-          backgroundColor: scrolled ? "rgba(250, 248, 245, 0.97)" : "transparent",
-          backdropFilter: scrolled ? "blur(12px)" : "none",
-          borderBottom: scrolled ? "1px solid rgba(180,160,140,0.18)" : "1px solid transparent",
-          boxShadow: scrolled ? "0 2px 20px rgba(20,16,12,0.06)" : "none",
+          backgroundColor: dark ? "rgba(30,24,20,0.08)" : scrolled ? "rgba(250, 248, 245, 0.97)" : "transparent",
+          backdropFilter: dark || scrolled ? "blur(12px)" : "none",
+          borderBottom: dark ? "1px solid rgba(30,24,20,0.12)" : scrolled ? "1px solid rgba(180,160,140,0.18)" : "1px solid transparent",
+          boxShadow: dark ? "0 2px 20px rgba(20,16,12,0.04)" : scrolled ? "0 2px 20px rgba(20,16,12,0.06)" : "none",
         }}
       >
         <div className="flex items-center justify-between px-6 md:px-12 h-16">
@@ -37,18 +38,18 @@ export function Header({ onNavigate }: HeaderProps) {
           >
             <span
               className="block w-6 h-px transition-all duration-300"
-              style={{ backgroundColor: scrolled ? "#1e1814" : "#fff" }}
+              style={{ backgroundColor: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff" }}
             />
             <span
               className="block w-4 h-px transition-all duration-300 group-hover:w-6"
-              style={{ backgroundColor: scrolled ? "#1e1814" : "#fff" }}
+              style={{ backgroundColor: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff" }}
             />
           </button>
 
           <a
             href="#"
             className="absolute left-1/2 -translate-x-1/2 font-serif text-2xl tracking-[0.3em] font-light select-none transition-colors duration-500"
-            style={{ color: scrolled ? "#1e1814" : "#fff", letterSpacing: "0.35em" }}
+            style={{ color: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff", letterSpacing: "0.35em" }}
           >
             MOI
           </a>
@@ -58,25 +59,25 @@ export function Header({ onNavigate }: HeaderProps) {
               <Search
                 size={18}
                 strokeWidth={1.5}
-                style={{ color: scrolled ? "#1e1814" : "#fff" }}
+                style={{ color: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff" }}
               />
             </button>
             <button aria-label="Account" className="transition-opacity hover:opacity-60">
               <User
                 size={18}
                 strokeWidth={1.5}
-                style={{ color: scrolled ? "#1e1814" : "#fff" }}
+                style={{ color: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff" }}
               />
             </button>
             <button aria-label="Cart" className="transition-opacity hover:opacity-60 relative">
               <ShoppingBag
                 size={18}
                 strokeWidth={1.5}
-                style={{ color: scrolled ? "#1e1814" : "#fff" }}
+                style={{ color: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff" }}
               />
               <span
                 className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full text-[9px] font-medium flex items-center justify-center"
-                style={{ backgroundColor: scrolled ? "#1e1814" : "#fff", color: scrolled ? "#fff" : "#1e1814" }}
+                style={{ backgroundColor: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff", color: dark ? "#fff" : scrolled ? "#fff" : "#1e1814" }}
               >
                 0
               </span>

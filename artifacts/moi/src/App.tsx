@@ -15,7 +15,7 @@ function App() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "hsl(30 15% 95%)" }}>
-      <Header onNavigate={setPage} />
+      <Header onNavigate={setPage} dark={page === "accessories"} />
 
       {page === "home" ? (
         <main>
