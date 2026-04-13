@@ -104,7 +104,6 @@ export function HeroVideo() {
             letterSpacing: "0.02em",
             lineHeight: 0.9,
             fontFamily: "'Cormorant Garamond', Georgia, serif",
-            fontStyle: "italic",
           }}
         >
           MOI
