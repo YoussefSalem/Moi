@@ -12,7 +12,7 @@ export function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const navLinks = ["New In", "Clothing", "Accessories", "Sale"];
+  const navLinks = ["Clothing", "Accessories"];
 
   return (
     <>
@@ -131,7 +131,7 @@ export function Header() {
                 </ul>
 
                 <div className="mt-16 pt-8 border-t border-stone-200 space-y-4">
-                  {["Sign In", "Help", "Stores"].map((link) => (
+                  {["Sign In"].map((link) => (
                     <a
                       key={link}
                       href="#"
