@@ -47,9 +47,10 @@ export function Header({ onNavigate, dark }: HeaderProps) {
           </button>
 
           <a
-            href="#"
+            href="#home"
             className="absolute left-1/2 -translate-x-1/2 font-serif text-2xl tracking-[0.3em] font-light select-none transition-colors duration-500"
             style={{ color: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff", letterSpacing: "0.35em" }}
+            onClick={() => onNavigate?.("home")}
           >
             MOI
           </a>
@@ -124,12 +125,12 @@ export function Header({ onNavigate, dark }: HeaderProps) {
                       transition={{ delay: 0.1 + i * 0.07 }}
                     >
                       <a
-                        href={link === "Accessories" ? "#accessories" : "#"}
+                        href={link === "Accessories" ? "#accessories" : "#home"}
                         className="block text-2xl font-light tracking-wide hover:opacity-50 transition-opacity"
                         style={{ color: "#1e1814", letterSpacing: "0.08em" }}
                         onClick={() => {
                           setMenuOpen(false);
-                          if (link === "Accessories") onNavigate?.("accessories");
+                          onNavigate?.(link === "Accessories" ? "accessories" : "home");
                         }}
                       >
                         {link}
