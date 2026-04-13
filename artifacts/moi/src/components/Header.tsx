@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ShoppingBag, User, X } from "lucide-react";
 
-export function Header() {
+interface HeaderProps {
+  onNavigate?: (page: "home" | "accessories") => void;
+}
+
+export function Header({ onNavigate }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -119,10 +123,13 @@ export function Header() {
                       transition={{ delay: 0.1 + i * 0.07 }}
                     >
                       <a
-                        href="#"
+                        href={link === "Accessories" ? "#accessories" : "#"}
                         className="block text-2xl font-light tracking-wide hover:opacity-50 transition-opacity"
                         style={{ color: "#1e1814", letterSpacing: "0.08em" }}
-                        onClick={() => setMenuOpen(false)}
+                        onClick={() => {
+                          setMenuOpen(false);
+                          if (link === "Accessories") onNavigate?.("accessories");
+                        }}
                       >
                         {link}
                       </a>
