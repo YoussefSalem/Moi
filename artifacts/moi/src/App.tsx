@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
 import { ProductCard } from "@/components/ProductCard";
+import { ProductDivider } from "@/components/ProductDivider";
 import { LookView } from "@/components/LookView";
 import { Footer } from "@/components/Footer";
 import { IMAGES, type ProductConfig } from "@/config/images";
@@ -21,6 +22,8 @@ function App() {
           product={IMAGES.product1}
           onLookView={setLookProduct}
         />
+
+        <ProductDivider />
 
         <ProductCard
           product={IMAGES.product2}

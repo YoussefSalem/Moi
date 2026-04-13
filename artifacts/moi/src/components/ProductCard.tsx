@@ -5,7 +5,6 @@ import type { ProductConfig } from "@/config/images";
 interface ProductCardProps {
   product: ProductConfig;
   onLookView: (product: ProductConfig) => void;
-  divider?: boolean;
 }
 
 const CARE_ICONS = [
@@ -17,7 +16,7 @@ const CARE_ICONS = [
   { label: "Natural fiber", path: "M17 8C8 10 5.9 16.17 3.82 21L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20c4 0 4-2 8-2s4 2 8 2v-2c-4 0-4-2-8-2-1.13 0-1.9.16-2.53.33C14.28 12.06 16 10 17 8z" },
 ];
 
-export function ProductCard({ product, onLookView, divider }: ProductCardProps) {
+export function ProductCard({ product, onLookView }: ProductCardProps) {
   const color = useImageColor(product.productShot);
   const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
 
@@ -183,26 +182,6 @@ export function ProductCard({ product, onLookView, divider }: ProductCardProps) 
           </div>
         </div>
       </motion.div>
-      {divider && (
-        <div className="mt-10 md:mt-14 px-6 md:px-12">
-          <div className="relative h-14 md:h-16 flex items-center justify-center overflow-hidden">
-            <motion.div
-              className="absolute left-0 right-0 h-px bg-[rgba(30,24,20,0.15)]"
-              initial={{ scaleX: 0.2, opacity: 0.35 }}
-              whileInView={{ scaleX: 1, opacity: 1 }}
-              viewport={{ once: true, amount: 0.8 }}
-              animate={{ opacity: [0.45, 1, 0.45] }}
-              transition={{ scaleX: { duration: 1.1, ease: "easeOut" }, opacity: { duration: 2.8, repeat: Infinity, ease: "easeInOut" } }}
-              style={{ transformOrigin: "center" }}
-            />
-            <motion.div
-              className="relative z-10 h-3 w-3 rounded-full border border-[rgba(30,24,20,0.35)] bg-[rgba(250,248,245,0.9)]"
-              animate={{ scale: [1, 1.18, 1], boxShadow: ["0 0 0 0 rgba(30,24,20,0)", "0 0 0 12px rgba(30,24,20,0.03)", "0 0 0 0 rgba(30,24,20,0)"] }}
-              transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-            />
-          </div>
-        </div>
-      )}
     </section>
   );
 }

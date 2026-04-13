@@ -40,14 +40,6 @@ export function HeroVideo() {
 
   return (
     <section className="relative w-full h-screen overflow-hidden">
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[4]">
-        <img
-          src={IMAGES.hero.fallbackUrl}
-          alt=""
-          className="w-20 md:w-24 opacity-90"
-          style={{ mixBlendMode: "screen" }}
-        />
-      </div>
       {/* Ambient edge glow — derived from hero image dominant color */}
       <div
         className="absolute inset-0 pointer-events-none z-10"
@@ -99,18 +91,20 @@ export function HeroVideo() {
       >
         <p
           className="text-[10px] tracking-[0.55em] uppercase mb-4 font-light"
-          style={{ color: "rgba(255,255,255,0.72)" }}
+          style={{ color: "rgba(255,255,255,0.72)", fontFamily: "'Montserrat', sans-serif" }}
         >
           New Collection
         </p>
 
         <h1
-          className="font-serif leading-[0.88] font-light mb-8"
+          className="font-serif font-light mb-8"
           style={{
             color: "#fff",
-            fontSize: "clamp(3.5rem, 10vw, 8.5rem)",
-            letterSpacing: "0.01em",
-            textTransform: "none",
+            fontSize: "clamp(5rem, 13vw, 11rem)",
+            letterSpacing: "0.02em",
+            lineHeight: 0.9,
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+            fontStyle: "italic",
           }}
         >
           Moi
@@ -126,6 +120,7 @@ export function HeroVideo() {
             borderColor: "rgba(255,255,255,0.55)",
             backdropFilter: "blur(4px)",
             backgroundColor: "rgba(255,255,255,0.06)",
+            fontFamily: "'Montserrat', sans-serif",
           }}
         >
           Shop Now
