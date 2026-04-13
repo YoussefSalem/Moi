@@ -5,6 +5,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { LookView } from "@/components/LookView";
 import { Footer } from "@/components/Footer";
 import { IMAGES, type ProductConfig } from "@/config/images";
+import { Instagram, Music2 } from "lucide-react";
 
 function App() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
@@ -26,13 +27,43 @@ function App() {
           onLookView={setLookProduct}
         />
 
-        <section className="py-16 md:py-24 text-center px-6">
-          <p
-            className="text-lg md:text-2xl font-light tracking-[0.18em] uppercase"
-            style={{ color: "#1e1814", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-          >
-            Check out Instagram and TikTok
-          </p>
+        <section className="py-16 md:py-24 px-6">
+          <div className="max-w-3xl mx-auto flex flex-col items-center gap-6 text-center">
+            <div className="flex items-center gap-4">
+              <div className="h-px w-12 bg-[rgba(30,24,20,0.2)]" />
+              <p
+                className="text-[10px] md:text-[11px] tracking-[0.35em] uppercase"
+                style={{ color: "#7a6e64" }}
+              >
+                Follow Moi
+              </p>
+              <div className="h-px w-12 bg-[rgba(30,24,20,0.2)]" />
+            </div>
+            <div className="flex items-center justify-center gap-5">
+              <a
+                href="https://www.instagram.com/"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Instagram"
+                className="inline-flex items-center gap-2 text-sm tracking-[0.22em] uppercase hover:opacity-60 transition-opacity"
+                style={{ color: "#1e1814" }}
+              >
+                <Instagram size={18} strokeWidth={1.7} />
+                Instagram
+              </a>
+              <a
+                href="https://www.tiktok.com/"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="TikTok"
+                className="inline-flex items-center gap-2 text-sm tracking-[0.22em] uppercase hover:opacity-60 transition-opacity"
+                style={{ color: "#1e1814" }}
+              >
+                <Music2 size={18} strokeWidth={1.7} />
+                TikTok
+              </a>
+            </div>
+          </div>
         </section>
       </main>
 

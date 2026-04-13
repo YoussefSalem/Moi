@@ -92,7 +92,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 src={product.productShot}
                 alt={product.name}
                 className="relative z-10 w-full max-w-xs md:max-w-sm"
-                style={{ maxHeight: 440, objectFit: "contain", objectPosition: "center", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                style={{ maxHeight: 440, objectFit: "contain", objectPosition: "center" }}
                 crossOrigin="anonymous"
               />
               <motion.div
@@ -113,6 +113,12 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 </span>
               </motion.div>
             </motion.button>
+          </div>
+
+          <div className="mt-10 flex items-center justify-center gap-4">
+            <div className="h-px w-16 bg-[rgba(30,24,20,0.18)]" />
+            <div className="h-2 w-2 rounded-full border border-[rgba(30,24,20,0.35)]" />
+            <div className="h-px w-16 bg-[rgba(30,24,20,0.18)]" />
           </div>
         </div>
 
