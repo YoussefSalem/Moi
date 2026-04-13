@@ -93,7 +93,7 @@ export function HeroVideo() {
           className="text-[10px] tracking-[0.55em] uppercase mb-4 font-light"
           style={{ color: "rgba(255,255,255,0.72)", fontFamily: "'Montserrat', sans-serif" }}
         >
-          New Collection
+          NEW COLLECTION
         </p>
 
         <h1
@@ -107,7 +107,7 @@ export function HeroVideo() {
             fontStyle: "italic",
           }}
         >
-          Moi
+          MOI
         </h1>
 
         <motion.a
@@ -123,7 +123,7 @@ export function HeroVideo() {
             fontFamily: "'Montserrat', sans-serif",
           }}
         >
-          Shop Now
+          SHOP NOW
         </motion.a>
       </motion.div>
 
