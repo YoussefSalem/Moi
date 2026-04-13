@@ -40,6 +40,14 @@ export function HeroVideo() {
 
   return (
     <section className="relative w-full h-screen overflow-hidden">
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[4]">
+        <img
+          src={IMAGES.hero.fallbackUrl}
+          alt=""
+          className="w-20 md:w-24 opacity-90"
+          style={{ mixBlendMode: "screen" }}
+        />
+      </div>
       {/* Ambient edge glow — derived from hero image dominant color */}
       <div
         className="absolute inset-0 pointer-events-none z-10"
@@ -101,7 +109,8 @@ export function HeroVideo() {
           style={{
             color: "#fff",
             fontSize: "clamp(3.5rem, 10vw, 8.5rem)",
-            letterSpacing: "0.04em",
+            letterSpacing: "0.01em",
+            textTransform: "none",
           }}
         >
           Moi
