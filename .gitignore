@@ -47,3 +47,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Spec Kit - agent folder may contain credentials/auth tokens
+.claude/

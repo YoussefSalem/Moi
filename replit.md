@@ -56,3 +56,21 @@ Premium single-page fashion website for the brand "Moi", inspired by Stradivariu
 **Typography**: Cormorant Garamond (serif/headings) + Montserrat (sans/UI)
 **Palette**: Warm off-white background (#faf8f5), near-black foreground (#1e1814), warm neutral accents
 **Dependencies**: framer-motion, lucide-react, fast-average-color
+
+## Tooling
+
+### Spec Kit (v0.7.1)
+Spec-Driven Development toolkit installed via `specify-cli` (uv tool).
+
+- **CLI**: `specify` — available after `export PATH="/home/runner/workspace/.local/bin:$PATH"`
+- **Skills**: installed to `.claude/skills/` (gitignored for security)
+- **Integration**: Claude
+
+Available spec-kit commands (run inside Claude):
+- `/speckit-constitution` — establish project principles
+- `/speckit-specify` — create baseline specification
+- `/speckit-plan` — create implementation plan
+- `/speckit-tasks` — generate actionable tasks
+- `/speckit-implement` — execute implementation
+
+Optional enhancement commands: `/speckit-clarify`, `/speckit-analyze`, `/speckit-checklist`
