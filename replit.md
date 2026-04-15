@@ -74,3 +74,18 @@ Available spec-kit commands (run inside Claude):
 - `/speckit-implement` — execute implementation
 
 Optional enhancement commands: `/speckit-clarify`, `/speckit-analyze`, `/speckit-checklist`
+
+### Context Mode (v1.0.89)
+MCP server that reduces context window bloat for AI coding agents. Installed globally via npm.
+
+- **Binary**: `context-mode` (globally installed)
+- **MCP config**: `.mcp.json` at project root
+- **Claude routing rules**: `.claude/CLAUDE.md` (gitignored)
+
+Key tools available when MCP is connected:
+- `ctx_batch_execute` — run multiple shell commands + index output in one call
+- `ctx_execute` — run code in sandbox; only stdout enters context
+- `ctx_execute_file` — analyze a file without loading raw content into context
+- `ctx_fetch_and_index` — fetch + index web pages (replaces WebFetch)
+- `ctx_search` — BM25 full-text search over indexed session content
+- `ctx stats` / `ctx doctor` / `ctx upgrade` — utility commands
