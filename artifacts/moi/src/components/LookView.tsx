@@ -62,6 +62,25 @@ export function LookView({ product, onClose }: LookViewProps) {
               </button>
             </div>
 
+            {/* ── "THE LOOK" label ──────────────────── */}
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.7 }}
+              className="text-center font-serif leading-none mb-8"
+              style={{
+                color: "#1e1814",
+                fontSize: "clamp(4rem, 12vw, 11rem)",
+                letterSpacing: "0.08em",
+                fontWeight: 300,
+                opacity: 0.12,
+                pointerEvents: "none",
+                userSelect: "none",
+              }}
+            >
+              THE LOOK
+            </motion.h2>
+
             {/* ── Editorial layout ─────────────────── */}
             <div className="relative flex-1 mx-auto w-full max-w-5xl px-8 md:px-16 pb-16" style={{ minHeight: 560 }}>
               {/* Model — center */}
