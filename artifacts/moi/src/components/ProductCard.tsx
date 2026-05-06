@@ -16,6 +16,13 @@ const CARE_ICONS = [
   { label: "Natural fiber", path: "M17 8C8 10 5.9 16.17 3.82 21L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20c4 0 4-2 8-2s4 2 8 2v-2c-4 0-4-2-8-2-1.13 0-1.9.16-2.53.33C14.28 12.06 16 10 17 8z" },
 ];
 
+const COLOR_OPTIONS = [
+  { name: "Ivory", swatch: "#f2ede4" },
+  { name: "Sand", swatch: "#cdbfae" },
+  { name: "Taupe", swatch: "#9c8470" },
+  { name: "Charcoal", swatch: "#3a332f" },
+];
+
 export function ProductCard({ product, onLookView }: ProductCardProps) {
   const color = useImageColor(product.productShot);
   const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
@@ -119,6 +126,34 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
         {/* ── Right column: composition and care ───────── */}
         <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
+            <p className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
+              Color Selector
+            </p>
+            <div className="flex items-center gap-3">
+              {COLOR_OPTIONS.map((option, index) => (
+                <button
+                  key={option.name}
+                  type="button"
+                  className="relative group"
+                  style={{ width: 34, height: 34 }}
+                >
+                  <span
+                    className="absolute inset-0 rounded-full transition-transform duration-300 group-hover:scale-110"
+                    style={{
+                      backgroundColor: option.swatch,
+                      boxShadow: index === 3 ? "inset 0 0 0 1px rgba(255,255,255,0.16)" : "inset 0 0 0 1px rgba(30,24,20,0.08)",
+                    }}
+                  />
+                  <span
+                    className="absolute inset-[-5px] rounded-full border opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{ borderColor: "rgba(30,24,20,0.18)" }}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
           <h3
             className="text-xs tracking-[0.2em] uppercase font-bold"
             style={{ color: "#1e1814" }}
