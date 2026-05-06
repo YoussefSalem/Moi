@@ -29,6 +29,13 @@ function App() {
           <ProductDivider />
 
           <ProductCard
+            product={IMAGES.product1}
+            onLookView={setLookProduct}
+          />
+
+          <ProductDivider />
+
+          <ProductCard
             product={IMAGES.product2}
             onLookView={setLookProduct}
           />
