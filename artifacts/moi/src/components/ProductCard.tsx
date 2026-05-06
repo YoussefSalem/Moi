@@ -126,7 +126,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
         {/* ── Right column: composition and care ───────── */}
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col items-start gap-3">
+          <div className="flex flex-col items-start gap-3 md:items-end md:text-right">
             <p className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
               Color Selector
             </p>
