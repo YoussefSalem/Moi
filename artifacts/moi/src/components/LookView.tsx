@@ -96,15 +96,14 @@ export function LookView({ product, onClose }: LookViewProps) {
             </motion.h2>
 
             {/* ── Editorial layout ─────────────────── */}
-            <div className="relative flex-1 mx-auto w-full max-w-5xl px-8 md:px-16 pb-16" style={{ minHeight: 560 }}>
-              {/* Model — center */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                className="flex justify-center"
-              >
-                <div className="relative">
+            <div className="mx-auto w-full max-w-6xl px-8 md:px-16 pb-16">
+              <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.45fr)_minmax(0,0.9fr)] gap-6 items-start">
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                  className="relative"
+                >
                   <div
                     className="absolute inset-0 pointer-events-none"
                     style={{
@@ -119,126 +118,35 @@ export function LookView({ product, onClose }: LookViewProps) {
                       key={activeImage ?? product.look.model}
                       src={activeImage ?? product.look.model}
                       alt={product.name}
-                      className="relative z-10"
-                      initial={{ opacity: 0, x: 40, scale: 0.98 }}
-                      animate={{ opacity: 1, x: 0, scale: 1 }}
-                      exit={{ opacity: 0, x: -40, scale: 0.98 }}
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
                       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                      style={{
-                        maxHeight: "65vh",
-                        maxWidth: "100%",
-                        objectFit: "contain",
-                        objectPosition: "top",
-                      }}
+                      className="relative z-10 w-full h-[70vh] object-cover object-top"
                       crossOrigin="anonymous"
                     />
                   </AnimatePresence>
+                </motion.div>
+                <div className="grid grid-rows-2 gap-6">
+                  {thumbnails.slice(1, 3).map((src) => (
+                    <motion.button
+                      key={src}
+                      type="button"
+                      onClick={() => handleSwap(src)}
+                      initial={{ opacity: 0, x: 16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <img src={src} alt="Thumbnail" className="w-full h-[calc(35vh-0.75rem)] object-cover" />
+                    </motion.button>
+                  ))}
                 </div>
-              </motion.div>
-
-              {/* Floating accessories */}
-              {/* Earring — top left */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4, duration: 0.7 }}
-                className="absolute hidden md:block"
-                style={{ top: "8%", left: "2%" }}
-              >
-                <button type="button" onClick={() => handleSwap(product.look.earring)} className="block">
-                  <motion.img
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.98 }}
-                    src={product.look.earring}
-                    alt="Earrings"
-                    className="rounded-sm"
-                    style={{ width: 90, height: 90, objectFit: "cover" }}
-                  />
-                </button>
-                <p
-                  className="mt-2 text-[9px] tracking-[0.2em] uppercase font-medium leading-tight"
-                  style={{ color: "#7a6e64", maxWidth: 90 }}
-                >
-                  Gold<br />Drop<br />Earrings
-                </p>
-              </motion.div>
-
-              {/* Shoes — bottom left */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5, duration: 0.7 }}
-                className="absolute hidden md:block"
-                style={{ bottom: "12%", left: "3%" }}
-              >
-                <button type="button" onClick={() => handleSwap(product.look.shoes)} className="block">
-                  <motion.img
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.98 }}
-                    src={product.look.shoes}
-                    alt="Shoes"
-                    className="rounded-sm"
-                    style={{ width: 100, height: 100, objectFit: "cover" }}
-                  />
-                </button>
-                <p
-                  className="mt-2 text-[9px] tracking-[0.2em] uppercase font-medium leading-tight"
-                  style={{ color: "#7a6e64", maxWidth: 100 }}
-                >
-                  Leather<br />Mule Heel
-                </p>
-              </motion.div>
-
-              {/* Bag — right center */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.45, duration: 0.7 }}
-                className="absolute hidden md:block"
-                style={{ top: "30%", right: "2%" }}
-              >
-                <button type="button" onClick={() => handleSwap(product.look.bag)} className="block">
-                  <motion.img
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.98 }}
-                    src={product.look.bag}
-                    alt="Bag"
-                    className="rounded-sm"
-                    style={{ width: 110, height: 110, objectFit: "cover" }}
-                  />
-                </button>
-                <p
-                  className="mt-2 text-[9px] tracking-[0.2em] uppercase font-medium leading-tight"
-                  style={{ color: "#7a6e64", maxWidth: 110 }}
-                >
-                  Structured<br />Handbag
-                </p>
-              </motion.div>
-
-              {/* Product annotation — right of model */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.55, duration: 0.7 }}
-                className="absolute hidden lg:block"
-                style={{ top: "20%", right: "14%" }}
-              >
-                <div className="flex items-start gap-2">
-                  <div className="w-6 h-px mt-2" style={{ backgroundColor: "#c8beb4" }} />
-                  <div>
-                    <p className="text-[9px] tracking-[0.2em] uppercase font-medium leading-tight" style={{ color: "#7a6e64" }}>
-                      {product.name}
-                    </p>
-                    <p className="text-[9px] tracking-[0.1em] uppercase mt-0.5 leading-tight" style={{ color: "#bab0a6" }}>
-                      {product.colorLabel.split("|")[0].trim()}
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
+              </div>
             </div>
 
             {thumbnails.length > 0 && (
-              <div className="mx-auto w-full max-w-5xl px-8 md:px-16 pb-6 flex gap-3 justify-center md:justify-start">
+              <div className="mx-auto w-full max-w-6xl px-8 md:px-16 pb-6 flex gap-3 justify-center md:justify-start">
                 <AnimatePresence>
                   {thumbnails.map((src) => (
                     <motion.button
