@@ -39,6 +39,10 @@ export function LookView({ product, onClose }: LookViewProps) {
   const handleSwap = (src: string) => {
     setActiveImage(src);
   };
+  const sideImages = useMemo(() => {
+    if (!product) return [];
+    return availableImages.filter((src) => src !== activeImage).slice(0, 4);
+  }, [activeImage, availableImages, product]);
 
   return (
     <AnimatePresence>
@@ -97,7 +101,23 @@ export function LookView({ product, onClose }: LookViewProps) {
 
             {/* ── Editorial layout ─────────────────── */}
             <div className="mx-auto w-full max-w-6xl px-8 md:px-16 pb-16">
-              <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.45fr)_minmax(0,0.9fr)] gap-6 items-start">
+              <div className="grid grid-cols-1 md:grid-cols-[minmax(140px,1fr)_minmax(0,1.35fr)_minmax(140px,1fr)] gap-4 md:gap-6 items-center">
+                <div className="grid grid-rows-2 gap-4">
+                  {sideImages.slice(0, 2).map((src) => (
+                    <motion.button
+                      key={src}
+                      type="button"
+                      onClick={() => handleSwap(src)}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                      className="overflow-hidden rounded-sm border border-stone-200"
+                      style={{ aspectRatio: "1 / 1" }}
+                    >
+                      <img src={src} alt="Thumbnail" className="w-full h-full object-cover" />
+                    </motion.button>
+                  ))}
+                </div>
                 <motion.div
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -127,52 +147,24 @@ export function LookView({ product, onClose }: LookViewProps) {
                     />
                   </AnimatePresence>
                 </motion.div>
-                <div className="grid grid-rows-2 gap-6">
-                  {thumbnails.slice(1, 3).map((src) => (
+                <div className="grid grid-rows-2 gap-4">
+                  {sideImages.slice(2, 4).map((src) => (
                     <motion.button
                       key={src}
                       type="button"
                       onClick={() => handleSwap(src)}
-                      initial={{ opacity: 0, x: 16 }}
+                      initial={{ opacity: 0, x: 12 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                      className="overflow-hidden"
+                      className="overflow-hidden rounded-sm border border-stone-200"
+                      style={{ aspectRatio: "1 / 1" }}
                     >
-                      <img src={src} alt="Thumbnail" className="w-full h-[calc(35vh-0.75rem)] object-cover" />
+                      <img src={src} alt="Thumbnail" className="w-full h-full object-cover" />
                     </motion.button>
                   ))}
                 </div>
               </div>
             </div>
-
-            {thumbnails.length > 0 && (
-              <div className="mx-auto w-full max-w-6xl px-8 md:px-16 pb-6 flex gap-3 justify-center md:justify-start">
-                <AnimatePresence>
-                  {thumbnails.map((src) => (
-                    <motion.button
-                      key={src}
-                      type="button"
-                      onClick={() => handleSwap(src)}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 12 }}
-                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                      className="overflow-hidden rounded-sm border border-stone-200"
-                      style={{ width: 84, height: 84 }}
-                    >
-                      <motion.img
-                        src={src}
-                        alt="Thumbnail"
-                        className="w-full h-full"
-                        whileHover={{ scale: 1.05 }}
-                        transition={{ duration: 0.25 }}
-                        style={{ objectFit: "cover" }}
-                      />
-                    </motion.button>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
 
             {/* ── Bottom product info strip ─────────── */}
             <motion.div
