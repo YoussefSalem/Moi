@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useImageColor } from "@/hooks/useImageColor";
@@ -10,6 +10,7 @@ interface LookViewProps {
 }
 
 export function LookView({ product, onClose }: LookViewProps) {
+  const [activeImage, setActiveImage] = useState(product?.look.model ?? null);
   const color = useImageColor(product?.look.model ?? null);
 
   useEffect(() => {
@@ -24,7 +25,20 @@ export function LookView({ product, onClose }: LookViewProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  useEffect(() => {
+    setActiveImage(product?.look.model ?? null);
+  }, [product]);
+
   const gradColor = color?.rgba(0.15) ?? "rgba(180,160,130,0.10)";
+  const availableImages = useMemo(() => {
+    if (!product) return [];
+    const items = [product.look.model, product.look.earring, product.look.shoes, product.look.bag];
+    return items.filter((src, index, array) => array.indexOf(src) === index);
+  }, [product]);
+  const thumbnails = availableImages.filter((src) => src !== activeImage);
+  const handleSwap = (src: string) => {
+    setActiveImage(src);
+  };
 
   return (
     <AnimatePresence>
@@ -100,18 +114,25 @@ export function LookView({ product, onClose }: LookViewProps) {
                       transition: "background 1.5s ease",
                     }}
                   />
-                  <img
-                    src={product.look.model}
-                    alt={product.name}
-                    className="relative z-10"
-                    style={{
-                      maxHeight: "65vh",
-                      maxWidth: "100%",
-                      objectFit: "contain",
-                      objectPosition: "top",
-                    }}
-                    crossOrigin="anonymous"
-                  />
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={activeImage ?? product.look.model}
+                      src={activeImage ?? product.look.model}
+                      alt={product.name}
+                      className="relative z-10"
+                      initial={{ opacity: 0, x: 40, scale: 0.98 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, x: -40, scale: 0.98 }}
+                      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                      style={{
+                        maxHeight: "65vh",
+                        maxWidth: "100%",
+                        objectFit: "contain",
+                        objectPosition: "top",
+                      }}
+                      crossOrigin="anonymous"
+                    />
+                  </AnimatePresence>
                 </div>
               </motion.div>
 
@@ -124,12 +145,16 @@ export function LookView({ product, onClose }: LookViewProps) {
                 className="absolute hidden md:block"
                 style={{ top: "8%", left: "2%" }}
               >
-                <img
-                  src={product.look.earring}
-                  alt="Earrings"
-                  className="rounded-sm"
-                  style={{ width: 90, height: 90, objectFit: "cover" }}
-                />
+                <button type="button" onClick={() => handleSwap(product.look.earring)} className="block">
+                  <motion.img
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    src={product.look.earring}
+                    alt="Earrings"
+                    className="rounded-sm"
+                    style={{ width: 90, height: 90, objectFit: "cover" }}
+                  />
+                </button>
                 <p
                   className="mt-2 text-[9px] tracking-[0.2em] uppercase font-medium leading-tight"
                   style={{ color: "#7a6e64", maxWidth: 90 }}
@@ -146,12 +171,16 @@ export function LookView({ product, onClose }: LookViewProps) {
                 className="absolute hidden md:block"
                 style={{ bottom: "12%", left: "3%" }}
               >
-                <img
-                  src={product.look.shoes}
-                  alt="Shoes"
-                  className="rounded-sm"
-                  style={{ width: 100, height: 100, objectFit: "cover" }}
-                />
+                <button type="button" onClick={() => handleSwap(product.look.shoes)} className="block">
+                  <motion.img
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    src={product.look.shoes}
+                    alt="Shoes"
+                    className="rounded-sm"
+                    style={{ width: 100, height: 100, objectFit: "cover" }}
+                  />
+                </button>
                 <p
                   className="mt-2 text-[9px] tracking-[0.2em] uppercase font-medium leading-tight"
                   style={{ color: "#7a6e64", maxWidth: 100 }}
@@ -168,12 +197,16 @@ export function LookView({ product, onClose }: LookViewProps) {
                 className="absolute hidden md:block"
                 style={{ top: "30%", right: "2%" }}
               >
-                <img
-                  src={product.look.bag}
-                  alt="Bag"
-                  className="rounded-sm"
-                  style={{ width: 110, height: 110, objectFit: "cover" }}
-                />
+                <button type="button" onClick={() => handleSwap(product.look.bag)} className="block">
+                  <motion.img
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    src={product.look.bag}
+                    alt="Bag"
+                    className="rounded-sm"
+                    style={{ width: 110, height: 110, objectFit: "cover" }}
+                  />
+                </button>
                 <p
                   className="mt-2 text-[9px] tracking-[0.2em] uppercase font-medium leading-tight"
                   style={{ color: "#7a6e64", maxWidth: 110 }}
@@ -203,6 +236,35 @@ export function LookView({ product, onClose }: LookViewProps) {
                 </div>
               </motion.div>
             </div>
+
+            {thumbnails.length > 0 && (
+              <div className="mx-auto w-full max-w-5xl px-8 md:px-16 pb-6 flex gap-3 justify-center md:justify-start">
+                <AnimatePresence>
+                  {thumbnails.map((src) => (
+                    <motion.button
+                      key={src}
+                      type="button"
+                      onClick={() => handleSwap(src)}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 12 }}
+                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                      className="overflow-hidden rounded-sm border border-stone-200"
+                      style={{ width: 84, height: 84 }}
+                    >
+                      <motion.img
+                        src={src}
+                        alt="Thumbnail"
+                        className="w-full h-full"
+                        whileHover={{ scale: 1.05 }}
+                        transition={{ duration: 0.25 }}
+                        style={{ objectFit: "cover" }}
+                      />
+                    </motion.button>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
 
             {/* ── Bottom product info strip ─────────── */}
             <motion.div
