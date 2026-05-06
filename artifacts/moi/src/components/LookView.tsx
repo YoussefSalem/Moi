@@ -35,7 +35,7 @@ export function LookView({ product, onClose }: LookViewProps) {
     const items = [product.look.model, product.look.earring, product.look.shoes, product.look.bag];
     return items.filter((src, index, array) => array.indexOf(src) === index);
   }, [product]);
-  const thumbnails = availableImages.filter((src) => src !== activeImage);
+  const thumbnails = availableImages;
   const handleSwap = (src: string) => {
     setActiveImage(src);
   };
