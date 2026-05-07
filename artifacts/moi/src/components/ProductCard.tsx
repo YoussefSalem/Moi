@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useImageColor } from "@/hooks/useImageColor";
 import type { ProductConfig } from "@/config/images";
@@ -8,6 +9,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onLookView }: ProductCardProps) {
+  const [selectedSize, setSelectedSize] = useState("Small");
   const color = useImageColor(product.productShot);
   const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
   const colorOptions = [
@@ -137,15 +139,18 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               Size
             </p>
             <div className="flex items-center gap-3 justify-center">
-              {sizeOptions.map((size, index) => (
+              {sizeOptions.map((size) => (
                 <button
                   key={size}
+                  onClick={() => setSelectedSize(size)}
                   type="button"
+                  aria-pressed={selectedSize === size}
                   className="min-w-24 px-5 py-3 text-[11px] tracking-[0.22em] uppercase font-medium border transition-all duration-300"
                   style={{
-                    color: index === 0 ? "#1e1814" : "#7a6e64",
-                    borderColor: index === 0 ? "#1e1814" : "rgba(30,24,20,0.14)",
-                    backgroundColor: index === 0 ? "rgba(30,24,20,0.04)" : "rgba(250,248,245,0.78)",
+                    color: selectedSize === size ? "#1e1814" : "#7a6e64",
+                    borderColor: selectedSize === size ? "#1e1814" : "rgba(30,24,20,0.14)",
+                    backgroundColor: selectedSize === size ? "rgba(30,24,20,0.04)" : "rgba(250,248,245,0.78)",
+                    boxShadow: selectedSize === size ? "inset 0 0 0 1px rgba(30,24,20,0.08)" : "none",
                   }}
                 >
                   {size}
