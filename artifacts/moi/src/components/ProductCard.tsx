@@ -51,29 +51,11 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
             {product.name}
           </h2>
           <p
-            className="text-[11px] tracking-widest uppercase font-light"
-            style={{ color: "#7a6e64", letterSpacing: "0.1em" }}
-          >
-            {product.colorLabel}
-          </p>
-
-          <p
             className="text-sm leading-relaxed font-light mt-2"
             style={{ color: "#5a5048" }}
           >
             {product.description}
           </p>
-
-          <div className="mt-4">
-            <a
-              href="#"
-              className="inline-flex items-center gap-2 text-[11px] tracking-widest uppercase font-medium hover:opacity-60 transition-opacity"
-              style={{ color: "#1e1814", letterSpacing: "0.12em" }}
-            >
-              Availability in Store
-              <span style={{ fontFamily: "monospace" }}>→</span>
-            </a>
-          </div>
         </div>
 
         {/* ── Center column: product image ──────────────── */}

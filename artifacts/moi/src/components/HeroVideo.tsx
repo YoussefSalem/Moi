@@ -10,6 +10,9 @@ export function HeroVideo() {
 
   const color = useImageColor(IMAGES.hero.fallbackUrl);
   const gradEdge = color?.rgba(0.22) ?? "rgba(180,160,130,0.15)";
+  const handleShopNow = () => {
+    document.getElementById("collection")?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
     if (!IMAGES.hero.videoUrl) {
@@ -109,8 +112,9 @@ export function HeroVideo() {
           MOI
         </h1>
 
-        <motion.a
-          href="#collection"
+        <motion.button
+          type="button"
+          onClick={handleShopNow}
           whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.14)" }}
           whileTap={{ scale: 0.98 }}
           className="inline-block px-12 py-4 text-[10px] tracking-[0.4em] uppercase font-light border transition-all duration-300"
@@ -123,7 +127,7 @@ export function HeroVideo() {
           }}
         >
           SHOP NOW
-        </motion.a>
+        </motion.button>
       </motion.div>
 
       {/* Scroll cue */}

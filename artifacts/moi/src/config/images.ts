@@ -88,7 +88,7 @@ export const IMAGES = {
   },
 
   /**
-   * PRODUCT 1 — Asymmetric Cape, Brown
+ * PRODUCT 1 — Moi Versa Top
    * productShot : center column of the 3-col product card (CDN a15 confirmed 200 OK)
    * filmstrip[] : 8 model/lifestyle shots for the horizontal carousel (a1–a8 substitutes)
    * look.model  : full editorial model shot for the Look View (a9 substitute)
@@ -102,11 +102,9 @@ export const IMAGES = {
       bag:     ACC_BAG,      // SWAP ME: a11 or branded bag shot
       earring: ACC_EARRING,  // SWAP ME: a12 or branded earring shot
     },
-    name: "Asymmetric Cape",
-    colorLabel: "BROWN | REF: 2076/511/400",
-    description:
-      "Asymmetric cape with a single wide sleeve and an exposed shoulder. " +
-      "Ruched detail on the side. Available in several colours.",
+    name: "Moi Versa Top",
+    colorLabel: "",
+    description: "A versatile top designed to be styled in multiple ways.",
     price: "1.690 EGP",
     outer: "Outer shell: 100% Polyester",
     lining: "Lining: 96% Polyester, 4% Elastane",
@@ -129,10 +127,8 @@ export const IMAGES = {
       earring: ACC_EARRING,
     },
     name: "Asymmetric Cape",
-    colorLabel: "TAUPE | REF: 2076/511/401",
-    description:
-      "Asymmetric cape with a single wide sleeve and an exposed shoulder. " +
-      "Ruched detail on the side. Available in several colours.",
+    colorLabel: "",
+    description: "A versatile top designed to be styled in multiple ways.",
     price: "1.690 EGP",
     outer: "Outer shell: 100% Polyester",
     lining: "Lining: 96% Polyester, 4% Elastane",

@@ -21,10 +21,12 @@ function App() {
         <main>
           <HeroVideo />
 
-          <ProductCard
-            product={IMAGES.product1}
-            onLookView={setLookProduct}
-          />
+          <div id="collection">
+            <ProductCard
+              product={IMAGES.product1}
+              onLookView={setLookProduct}
+            />
+          </div>
 
           <ProductDivider />
 
