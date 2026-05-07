@@ -7,22 +7,6 @@ interface ProductCardProps {
   onLookView: (product: ProductConfig) => void;
 }
 
-const CARE_ICONS = [
-  { label: "Machine wash", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" },
-  { label: "Bleach when needed", path: "M12 2L2 19h20L12 2zm0 3.5l7.5 13H4.5l7.5-13z" },
-  { label: "Dry clean", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" },
-  { label: "Tumble dry", path: "M19 3H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" },
-  { label: "Do not iron", path: "M20 3H4v2l9 9 9-9V3zm0 16H4v-2l9-9 9 9v2z" },
-  { label: "Natural fiber", path: "M17 8C8 10 5.9 16.17 3.82 21L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20c4 0 4-2 8-2s4 2 8 2v-2c-4 0-4-2-8-2-1.13 0-1.9.16-2.53.33C14.28 12.06 16 10 17 8z" },
-];
-
-const COLOR_OPTIONS = [
-  { name: "Ivory", swatch: "#f2ede4" },
-  { name: "Sand", swatch: "#cdbfae" },
-  { name: "Taupe", swatch: "#9c8470" },
-  { name: "Charcoal", swatch: "#3a332f" },
-];
-
 export function ProductCard({ product, onLookView }: ProductCardProps) {
   const color = useImageColor(product.productShot);
   const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
@@ -106,98 +90,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
         </div>
 
-        {/* ── Right column: composition and care ───────── */}
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col items-start gap-3">
-            <p className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
-              Color Selector
-            </p>
-            <div className="flex items-center gap-3">
-              {COLOR_OPTIONS.map((option, index) => (
-                <button
-                  key={option.name}
-                  type="button"
-                  className="relative group"
-                  style={{ width: 34, height: 34 }}
-                >
-                  <span
-                    className="absolute inset-0 rounded-full transition-transform duration-300 group-hover:scale-110"
-                    style={{
-                      backgroundColor: option.swatch,
-                      boxShadow: index === 3 ? "inset 0 0 0 1px rgba(255,255,255,0.16)" : "inset 0 0 0 1px rgba(30,24,20,0.08)",
-                    }}
-                  />
-                  <span
-                    className="absolute inset-[-5px] rounded-full border opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    style={{ borderColor: "rgba(30,24,20,0.18)" }}
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <h3
-            className="text-xs tracking-[0.2em] uppercase font-bold"
-            style={{ color: "#1e1814" }}
-          >
-            Composition and Care
-          </h3>
-
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-light" style={{ color: "#5a5048" }}>
-              {product.outer}
-            </p>
-            <p className="text-sm font-light" style={{ color: "#5a5048" }}>
-              {product.lining}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3 mt-2">
-            {CARE_ICONS.map((icon) => (
-              <span
-                key={icon.label}
-                title={icon.label}
-                className="block"
-                style={{ width: 22, height: 22, color: "#5a5048" }}
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
-                  <path d={icon.path} />
-                </svg>
-              </span>
-            ))}
-          </div>
-
-          <p
-            className="text-[11px] tracking-wider font-light mt-1"
-            style={{ color: "#9a8e82" }}
-          >
-            Bleach when needed
-          </p>
-
-          <div className="mt-4 flex flex-col gap-3">
-            <a
-              href="#"
-              className="inline-block text-[11px] tracking-widest uppercase font-medium underline underline-offset-4 hover:opacity-60 transition-opacity"
-              style={{ color: "#1e1814" }}
-            >
-              Environmental Characteristics
-            </a>
-            <a
-              href="#"
-              className="inline-flex items-center gap-2 text-[11px] tracking-widest uppercase font-medium hover:opacity-60 transition-opacity"
-              style={{ color: "#1e1814" }}
-            >
-              Deliveries and Returns
-              <span style={{ fontFamily: "monospace" }}>→</span>
-            </a>
-            <p
-              className="text-[11px] tracking-wide font-medium"
-              style={{ color: "#2a8a6a" }}
-            >
-              Free store delivery!
-            </p>
-          </div>
-        </div>
       </motion.div>
     </section>
   );
