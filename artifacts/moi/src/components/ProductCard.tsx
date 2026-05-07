@@ -94,7 +94,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-5 md:items-start md:justify-center">
+        <div className="flex flex-col gap-5 items-center md:items-center md:justify-center text-center">
           <div className="flex flex-col gap-3">
             <p
               className="text-[11px] tracking-[0.22em] uppercase font-medium"
@@ -102,7 +102,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
             >
               Color
             </p>
-            <div className="flex items-center gap-3 justify-center md:justify-start">
+            <div className="flex items-center gap-3 justify-center">
               {colorOptions.map((option, index) => (
                 <button
                   key={option.name}
@@ -136,7 +136,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
             >
               Size
             </p>
-            <div className="flex items-center gap-3 justify-center md:justify-start">
+            <div className="flex items-center gap-3 justify-center">
               {sizeOptions.map((size, index) => (
                 <button
                   key={size}
