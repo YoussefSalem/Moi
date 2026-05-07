@@ -10,6 +10,13 @@ interface ProductCardProps {
 export function ProductCard({ product, onLookView }: ProductCardProps) {
   const color = useImageColor(product.productShot);
   const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
+  const colorOptions = [
+    { name: "Ivory", swatch: "#f2ede4" },
+    { name: "Sand", swatch: "#d1c2b0" },
+    { name: "Taupe", swatch: "#a28a76" },
+    { name: "Espresso", swatch: "#3a312c" },
+  ];
+  const sizeOptions = ["Small", "Medium"];
 
   return (
     <section
@@ -40,6 +47,78 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
           >
             {product.description}
           </p>
+          <div className="mt-4 flex flex-col gap-5">
+            <div className="flex flex-col gap-3">
+              <p
+                className="text-[11px] tracking-[0.22em] uppercase font-medium"
+                style={{ color: "#7a6e64" }}
+              >
+                Color
+              </p>
+              <div className="flex items-center gap-3">
+                {colorOptions.map((option, index) => (
+                  <button
+                    key={option.name}
+                    type="button"
+                    aria-label={option.name}
+                    className="relative group"
+                    style={{ width: 34, height: 34 }}
+                  >
+                    <span
+                      className="absolute inset-0 rounded-full transition-transform duration-300 group-hover:scale-110"
+                      style={{
+                        backgroundColor: option.swatch,
+                        boxShadow:
+                          index === 3
+                            ? "inset 0 0 0 1px rgba(255,255,255,0.16)"
+                            : "inset 0 0 0 1px rgba(30,24,20,0.08)",
+                      }}
+                    />
+                    <span
+                      className="absolute inset-[-5px] rounded-full border opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      style={{ borderColor: "rgba(30,24,20,0.18)" }}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-3">
+              <p
+                className="text-[11px] tracking-[0.22em] uppercase font-medium"
+                style={{ color: "#7a6e64" }}
+              >
+                Size
+              </p>
+              <div className="flex items-center gap-3">
+                {sizeOptions.map((size, index) => (
+                  <button
+                    key={size}
+                    type="button"
+                    className="min-w-24 px-5 py-3 text-[11px] tracking-[0.22em] uppercase font-medium border transition-all duration-300"
+                    style={{
+                      color: index === 0 ? "#1e1814" : "#7a6e64",
+                      borderColor: index === 0 ? "#1e1814" : "rgba(30,24,20,0.14)",
+                      backgroundColor: index === 0 ? "rgba(30,24,20,0.04)" : "rgba(250,248,245,0.78)",
+                    }}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="w-full md:w-auto px-8 py-4 text-[10px] tracking-[0.35em] uppercase font-light border transition-all duration-300"
+              style={{
+                color: "#fff",
+                borderColor: "#1e1814",
+                backgroundColor: "#1e1814",
+                letterSpacing: "0.28em",
+              }}
+            >
+              Add to Cart
+            </button>
+          </div>
         </div>
 
         {/* ── Center column: product image ──────────────── */}
