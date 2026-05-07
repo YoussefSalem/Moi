@@ -155,7 +155,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
           </div>
           <button
             type="button"
-            className="min-w-[204px] px-7 py-4 text-[10px] tracking-[0.35em] uppercase font-light border transition-all duration-300"
+            className="min-w-[204px] px-7 py-4 text-[10px] tracking-[0.35em] uppercase font-light border transition-all duration-300 self-center md:self-start md:ml-[118px]"
             style={{
               color: "#fff",
               borderColor: "#1e1814",
