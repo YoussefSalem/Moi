@@ -1,8 +1,26 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Instagram, Twitter } from "lucide-react";
-import { subscribeToNewsletter, SHOPIFY_CONFIGURED } from "@/lib/shopify";
 import { ContactModal } from "@/components/ContactModal";
+
+const BASE = import.meta.env.BASE_URL ?? "/";
+
+async function subscribeEmail(email: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${BASE}api/newsletter`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string };
+      return { success: false, error: body.error ?? "Something went wrong." };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: "Unable to subscribe. Please try again." };
+  }
+}
 
 export function Footer() {
   const [email, setEmail] = useState("");
@@ -15,24 +33,13 @@ export function Footer() {
     if (!email.includes("@")) return;
     setSubStatus("loading");
     setSubError("");
-    try {
-      if (SHOPIFY_CONFIGURED) {
-        const result = await subscribeToNewsletter(email);
-        if (result.success) {
-          setSubStatus("success");
-          setEmail("");
-        } else {
-          setSubStatus("error");
-          setSubError(result.error ?? "Something went wrong.");
-        }
-      } else {
-        await new Promise((r) => setTimeout(r, 600));
-        setSubStatus("success");
-        setEmail("");
-      }
-    } catch {
+    const result = await subscribeEmail(email);
+    if (result.success) {
+      setSubStatus("success");
+      setEmail("");
+    } else {
       setSubStatus("error");
-      setSubError("Unable to subscribe. Please try again.");
+      setSubError(result.error ?? "Something went wrong.");
     }
   };
 

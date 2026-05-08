@@ -136,6 +136,14 @@ export const IMAGES = {
   },
 } as const;
 
+export interface VariantOption {
+  id: string;
+  title: string;
+  availableForSale: boolean;
+  price: string;
+  selectedOptions: { name: string; value: string }[];
+}
+
 export interface ProductConfig {
   readonly productShot: string;
   readonly filmstrip: readonly string[];
@@ -153,4 +161,5 @@ export interface ProductConfig {
   readonly lining: string;
   readonly ref: string;
   readonly variantId?: string;
+  readonly variants?: VariantOption[];
 }

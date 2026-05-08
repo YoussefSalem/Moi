@@ -23,6 +23,7 @@ export function Header({ onNavigate, dark }: HeaderProps) {
 
   const iconColor = dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff";
   const navLinks = ["Clothing", "Accessories"];
+  const displayName = customer?.firstName ?? null;
 
   return (
     <>
@@ -58,13 +59,24 @@ export function Header({ onNavigate, dark }: HeaderProps) {
             <button aria-label="Search" className="transition-opacity hover:opacity-60">
               <Search size={18} strokeWidth={1.5} style={{ color: iconColor }} />
             </button>
+
+            {/* User icon + name when logged in */}
             <button
               aria-label={customer ? "My Account" : "Sign In"}
-              className="transition-opacity hover:opacity-60"
+              className="flex items-center gap-1.5 transition-opacity hover:opacity-60"
               onClick={openAuth}
             >
               <User size={18} strokeWidth={1.5} style={{ color: iconColor }} />
+              {displayName && (
+                <span
+                  className="hidden md:block text-[10px] tracking-[0.18em] uppercase font-light"
+                  style={{ color: iconColor }}
+                >
+                  {displayName}
+                </span>
+              )}
             </button>
+
             <button
               aria-label="Cart"
               className="transition-opacity hover:opacity-60 relative"
@@ -154,11 +166,10 @@ export function Header({ onNavigate, dark }: HeaderProps) {
                 <div className="mt-16 pt-8 border-t border-stone-200 space-y-4">
                   {customer ? (
                     <>
-                      <p
-                        className="text-sm font-light tracking-wide"
-                        style={{ color: "#1e1814" }}
-                      >
-                        {customer.firstName ?? customer.email}
+                      <p className="text-sm font-light tracking-wide" style={{ color: "#1e1814" }}>
+                        {customer.firstName
+                          ? `${customer.firstName}${customer.lastName ? ` ${customer.lastName}` : ""}`
+                          : customer.email}
                       </p>
                       <button
                         className="block text-sm tracking-widest uppercase hover:opacity-50 transition-opacity"

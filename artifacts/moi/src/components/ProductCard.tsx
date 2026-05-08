@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useImageColor } from "@/hooks/useImageColor";
-import type { ProductConfig } from "@/config/images";
+import type { ProductConfig, VariantOption } from "@/config/images";
 import { useCart } from "@/context/CartContext";
 
 interface ProductCardProps {
@@ -9,28 +9,113 @@ interface ProductCardProps {
   onLookView: (product: ProductConfig) => void;
 }
 
+const STATIC_COLORS = [
+  { name: "Ivory", swatch: "#f2ede4" },
+  { name: "Sand", swatch: "#d1c2b0" },
+  { name: "Taupe", swatch: "#a28a76" },
+  { name: "Espresso", swatch: "#3a312c" },
+];
+
+const SWATCH_MAP: Record<string, string> = {
+  ivory: "#f2ede4",
+  white: "#f5f5f0",
+  sand: "#d1c2b0",
+  beige: "#d1c2b0",
+  taupe: "#a28a76",
+  brown: "#6b4c3b",
+  espresso: "#3a312c",
+  black: "#1a1614",
+  navy: "#1c2444",
+  camel: "#c19a6b",
+  grey: "#9e9e9e",
+  gray: "#9e9e9e",
+};
+
+function swatchFor(name: string): string {
+  return SWATCH_MAP[name.toLowerCase()] ?? "#c8bdb5";
+}
+
 export function ProductCard({ product, onLookView }: ProductCardProps) {
-  const [selectedSize, setSelectedSize] = useState("Small");
-  const [selectedColor, setSelectedColor] = useState("Ivory");
-  const [addedFeedback, setAddedFeedback] = useState(false);
   const color = useImageColor(product.productShot);
   const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
   const { addToCart } = useCart();
+  const [addedFeedback, setAddedFeedback] = useState(false);
 
-  const colorOptions = [
-    { name: "Ivory", swatch: "#f2ede4" },
-    { name: "Sand", swatch: "#d1c2b0" },
-    { name: "Taupe", swatch: "#a28a76" },
-    { name: "Espresso", swatch: "#3a312c" },
-  ];
-  const sizeOptions = ["Small", "Medium"];
+  const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
+
+  const colorOption = useMemo(() => {
+    if (!hasShopifyVariants) return null;
+    const opt = product.variants![0].selectedOptions.find((o) => o.name.toLowerCase() === "color");
+    if (!opt) return null;
+    const names = [...new Set(product.variants!.map((v) => {
+      const o = v.selectedOptions.find((x) => x.name.toLowerCase() === "color");
+      return o?.value ?? null;
+    }).filter(Boolean))] as string[];
+    return { optionName: opt.name, values: names };
+  }, [product.variants, hasShopifyVariants]);
+
+  const sizeOption = useMemo(() => {
+    if (!hasShopifyVariants) return null;
+    const opt = product.variants![0].selectedOptions.find(
+      (o) => o.name.toLowerCase() === "size" || o.name.toLowerCase() === "titre"
+    );
+    if (!opt) return null;
+    const names = [...new Set(product.variants!.map((v) => {
+      const o = v.selectedOptions.find((x) => x.name.toLowerCase() === opt.name.toLowerCase());
+      return o?.value ?? null;
+    }).filter(Boolean))] as string[];
+    return { optionName: opt.name, values: names };
+  }, [product.variants, hasShopifyVariants]);
+
+  const [selectedColor, setSelectedColor] = useState<string>(
+    () => colorOption?.values[0] ?? STATIC_COLORS[0].name
+  );
+  const [selectedSize, setSelectedSize] = useState<string>(
+    () => sizeOption?.values[0] ?? "Small"
+  );
+
+  const selectedVariant: VariantOption | undefined = useMemo(() => {
+    if (!hasShopifyVariants || !product.variants) return undefined;
+    return product.variants.find((v) => {
+      const colorMatch = !colorOption || v.selectedOptions.some(
+        (o) => o.name.toLowerCase() === "color" && o.value === selectedColor
+      );
+      const sizeMatch = !sizeOption || v.selectedOptions.some(
+        (o) => o.name.toLowerCase() === sizeOption.optionName.toLowerCase() && o.value === selectedSize
+      );
+      return colorMatch && sizeMatch;
+    }) ?? product.variants[0];
+  }, [product.variants, hasShopifyVariants, selectedColor, selectedSize, colorOption, sizeOption]);
+
+  function isSizeAvailable(size: string): boolean {
+    if (!hasShopifyVariants || !product.variants) return true;
+    return product.variants.some((v) => {
+      const sizeMatch = v.selectedOptions.some(
+        (o) => o.name.toLowerCase() === (sizeOption?.optionName.toLowerCase() ?? "size") && o.value === size
+      );
+      const colorMatch = !colorOption || v.selectedOptions.some(
+        (o) => o.name.toLowerCase() === "color" && o.value === selectedColor
+      );
+      return sizeMatch && colorMatch && v.availableForSale;
+    });
+  }
+
+  const effectivePrice = selectedVariant?.price ?? product.price;
+  const isOutOfStock = hasShopifyVariants && selectedVariant ? !selectedVariant.availableForSale : false;
+
+  const displayColors = colorOption
+    ? colorOption.values.map((name) => ({ name, swatch: swatchFor(name) }))
+    : STATIC_COLORS;
+
+  const displaySizes = sizeOption?.values ?? ["Small", "Medium"];
 
   const handleAddToCart = async () => {
+    if (isOutOfStock) return;
     await addToCart({
-      variantId: product.variantId,
+      variantId: selectedVariant?.id ?? product.variantId,
       title: product.name,
-      price: product.price,
-      priceAmount: parseFloat(product.price.replace(/[^0-9.]/g, "")),
+      price: effectivePrice,
+      priceAmount: parseFloat(String(effectivePrice).replace(/[^0-9.]/g, "")),
       currencyCode: "EGP",
       image: product.productShot,
       size: selectedSize,
@@ -126,7 +211,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               Color — <span style={{ color: "#1e1814" }}>{selectedColor}</span>
             </p>
             <div className="flex items-center gap-3 justify-center">
-              {colorOptions.map((option, index) => (
+              {displayColors.map((option, index) => (
                 <button
                   key={option.name}
                   type="button"
@@ -141,7 +226,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                     style={{
                       backgroundColor: option.swatch,
                       boxShadow:
-                        index === 3
+                        index === displayColors.length - 1 && option.swatch.startsWith("#1")
                           ? "inset 0 0 0 1px rgba(255,255,255,0.16)"
                           : "inset 0 0 0 1px rgba(30,24,20,0.08)",
                     }}
@@ -163,46 +248,60 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
             <p className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
               Size
             </p>
-            <div className="flex items-center gap-3 justify-center">
-              {sizeOptions.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  type="button"
-                  aria-pressed={selectedSize === size}
-                  className="min-w-24 px-5 py-3 text-[11px] tracking-[0.22em] uppercase font-medium border transition-all duration-300"
-                  style={{
-                    color: selectedSize === size ? "#1e1814" : "#7a6e64",
-                    borderColor: selectedSize === size ? "#1e1814" : "rgba(30,24,20,0.14)",
-                    backgroundColor: selectedSize === size ? "rgba(30,24,20,0.04)" : "rgba(250,248,245,0.78)",
-                    boxShadow: selectedSize === size ? "inset 0 0 0 1px rgba(30,24,20,0.08)" : "none",
-                  }}
-                >
-                  {size}
-                </button>
-              ))}
+            <div className="flex items-center gap-3 justify-center flex-wrap">
+              {displaySizes.map((size) => {
+                const available = isSizeAvailable(size);
+                const isSelected = selectedSize === size;
+                return (
+                  <button
+                    key={size}
+                    onClick={() => { if (available) setSelectedSize(size); }}
+                    type="button"
+                    aria-pressed={isSelected}
+                    disabled={!available}
+                    title={!available ? "Out of stock" : undefined}
+                    className="min-w-24 px-5 py-3 text-[11px] tracking-[0.22em] uppercase font-medium border transition-all duration-300 relative"
+                    style={{
+                      color: !available ? "rgba(30,24,20,0.25)" : isSelected ? "#1e1814" : "#7a6e64",
+                      borderColor: isSelected ? "#1e1814" : "rgba(30,24,20,0.14)",
+                      backgroundColor: isSelected ? "rgba(30,24,20,0.04)" : "rgba(250,248,245,0.78)",
+                      boxShadow: isSelected ? "inset 0 0 0 1px rgba(30,24,20,0.08)" : "none",
+                      cursor: available ? "pointer" : "not-allowed",
+                      textDecoration: !available ? "line-through" : "none",
+                    }}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Price */}
           <p className="text-base font-light tracking-widest" style={{ color: "#1e1814" }}>
-            {product.price}
+            {effectivePrice}
           </p>
 
           {/* Add to Cart */}
           <motion.button
             type="button"
             onClick={handleAddToCart}
-            whileTap={{ scale: 0.97 }}
+            disabled={isOutOfStock}
+            whileTap={isOutOfStock ? {} : { scale: 0.97 }}
             className="min-w-[204px] px-7 py-4 text-[10px] tracking-[0.35em] uppercase font-light border transition-all duration-300 self-center"
             style={{
-              color: addedFeedback ? "#1e1814" : "#fff",
+              color: addedFeedback ? "#1e1814" : isOutOfStock ? "#7a6e64" : "#fff",
               borderColor: "#1e1814",
-              backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
+              backgroundColor: addedFeedback
+                ? "rgba(30,24,20,0.06)"
+                : isOutOfStock
+                  ? "rgba(30,24,20,0.06)"
+                  : "#1e1814",
+              cursor: isOutOfStock ? "not-allowed" : "pointer",
               letterSpacing: "0.28em",
             }}
           >
-            {addedFeedback ? "Added ✓" : "Add to Cart"}
+            {isOutOfStock ? "Out of Stock" : addedFeedback ? "Added ✓" : "Add to Cart"}
           </motion.button>
         </div>
       </motion.div>

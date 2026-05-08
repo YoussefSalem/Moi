@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getProducts, formatMoney, SHOPIFY_CONFIGURED, type ShopifyProduct } from "@/lib/shopify";
-import { type ProductConfig } from "@/config/images";
+import { type ProductConfig, type VariantOption } from "@/config/images";
 
 function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductConfig): ProductConfig {
   const { minVariantPrice } = shopify.priceRange;
@@ -9,7 +9,16 @@ function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductConfig): P
   const filmstripImages = shopify.images.nodes.length > 0
     ? shopify.images.nodes.map((img) => img.url)
     : (fallback.filmstrip as string[]);
-  const firstVariant = shopify.variants.nodes[0];
+
+  const variants: VariantOption[] = shopify.variants.nodes.map((v) => ({
+    id: v.id,
+    title: v.title,
+    availableForSale: v.availableForSale,
+    price: formatMoney(v.price.amount, v.price.currencyCode),
+    selectedOptions: v.selectedOptions,
+  }));
+
+  const firstAvailable = shopify.variants.nodes.find((v) => v.availableForSale) ?? shopify.variants.nodes[0];
 
   return {
     ...fallback,
@@ -18,7 +27,8 @@ function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductConfig): P
     price: priceFormatted || fallback.price,
     productShot: mainImage,
     filmstrip: filmstripImages,
-    variantId: firstVariant?.id,
+    variantId: firstAvailable?.id,
+    variants,
   };
 }
 
