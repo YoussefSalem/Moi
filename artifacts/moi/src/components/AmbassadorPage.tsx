@@ -3,35 +3,23 @@ import { Send, UserRound, Phone, Mail, Facebook, Instagram, MessageCircleMore, V
 
 const videos = [
   {
-    title: "Everyday styling",
-    handle: "@moiwithsara",
-    text: "A clean, modern look styled for day-to-night wear.",
-    url: "https://www.tiktok.com/@grwm._isaaa/video/7637274579974606087?q=get%20ready%20with%20me%20&t=1778214831769",
+    title: "Get ready with me",
+    handle: "@grwm._isaaa",
+    caption: "Morning routine & outfit check — effortless day-to-night dressing.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7637274579974606087",
   },
   {
-    title: "Unboxing + fit check",
-    handle: "@noorwearsmoi",
-    text: "Real try-on content that builds trust and shows the fit.",
-    url: "https://www.tiktok.com/@hollyjai_/photo/7329247143737249056?q=get%20ready%20with%20me%20&t=1778214831769",
+    title: "Outfit of the day",
+    handle: "@hollyjai_",
+    caption: "Styling picks that feel polished and easy to recreate.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7329247143737249056",
   },
   {
-    title: "How I style it",
-    handle: "@bydalia",
-    text: "Short-form content that feels authentic and easy to share.",
-    url: "https://www.tiktok.com/@tatiannaareizaga/video/7598245849679826206?q=get%20ready%20with%20me%20&t=1778214831769",
+    title: "My go-to look",
+    handle: "@tatiannaareizaga",
+    caption: "Real, wearable outfits that translate from screen to wardrobe.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7598245849679826206",
   },
-];
-
-const embedUrls = [
-  "https://www.tiktok.com/embed/v2/7637274579974606087",
-  "https://www.tiktok.com/embed/v2/7329247143737249056",
-  "https://www.tiktok.com/embed/v2/7598245849679826206",
-];
-
-const captions = [
-  "A clean, modern look styled for day-to-night wear.",
-  "Real try-on content that builds trust and shows the fit.",
-  "Short-form content that feels authentic and easy to share.",
 ];
 
 export function AmbassadorPage() {
@@ -134,20 +122,20 @@ export function AmbassadorPage() {
               <p className="text-[10px] tracking-[0.35em] uppercase text-white/50">TikTok social proof</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {videos.map((video, index) => (
+              {videos.map((video) => (
                 <div
-                  key={video.title}
+                  key={video.handle}
                   className="rounded-2xl border border-white/10 p-4"
                   style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
                 >
                   <p className="text-sm text-white/90">{video.title}</p>
                   <p className="mt-1 text-[10px] tracking-[0.25em] uppercase text-white/40">{video.handle}</p>
-                  <p className="mt-3 text-sm leading-7 text-white/60">{captions[index]}</p>
+                  <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
                     <div className="relative aspect-[9/16]">
                       <iframe
                         title={video.title}
-                        src={embedUrls[index]}
+                        src={video.embedUrl}
                         className="absolute inset-0 h-full w-full"
                         allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
                         scrolling="no"
