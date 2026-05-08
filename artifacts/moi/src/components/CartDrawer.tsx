@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, ShoppingBag } from "lucide-react";
+import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 
@@ -17,6 +18,7 @@ export function CartDrawer() {
     loading,
     isShopify,
   } = useCart();
+  const [checkoutPending, setCheckoutPending] = useState(false);
 
   const hasItems = isShopify
     ? (shopifyCart?.lines.nodes.length ?? 0) > 0
@@ -293,15 +295,17 @@ export function CartDrawer() {
                   Shipping & taxes calculated at checkout
                 </p>
                 {SHOPIFY_CONFIGURED && checkoutUrl ? (
-                  <a
-                    href={checkoutUrl}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCheckoutPending(true);
+                      window.location.assign(checkoutUrl);
+                    }}
                     className="block text-center py-4 text-[11px] tracking-[0.32em] uppercase font-medium text-white transition-opacity hover:opacity-80"
                     style={{ backgroundColor: "#1e1814" }}
                   >
-                    {loading ? "…" : "Checkout"}
-                  </a>
+                    {loading || checkoutPending ? "…" : "Checkout"}
+                  </button>
                 ) : (
                   <button
                     className="py-4 text-[11px] tracking-[0.32em] uppercase font-medium text-white transition-opacity hover:opacity-80"
