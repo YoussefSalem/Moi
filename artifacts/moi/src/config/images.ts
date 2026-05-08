@@ -152,4 +152,5 @@ export interface ProductConfig {
   readonly outer: string;
   readonly lining: string;
   readonly ref: string;
+  readonly variantId?: string;
 }

@@ -27,7 +27,7 @@ export interface LocalCartItem {
   quantity: number;
 }
 
-interface AddToCartParams {
+export interface AddToCartParams {
   variantId?: string;
   title?: string;
   price?: string;
@@ -81,7 +81,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
-
+    setLocalItems(loadLocalCart());
     if (SHOPIFY_CONFIGURED) {
       const savedId = localStorage.getItem(CART_ID_KEY);
       if (savedId) {
@@ -92,8 +92,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           })
           .catch(() => localStorage.removeItem(CART_ID_KEY));
       }
-    } else {
-      setLocalItems(loadLocalCart());
     }
   }, []);
 
@@ -113,32 +111,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const c = await ensureShopifyCart();
         const updated = await addCartLines(c.id, [{ merchandiseId: params.variantId, quantity: qty }]);
         setShopifyCart(updated);
-      } else {
-        setLocalItems((prev) => {
-          const key = `${params.variantId ?? params.title ?? "item"}-${params.size ?? ""}`;
-          const existing = prev.find((i) => i.id === key);
-          let updated: LocalCartItem[];
-          if (existing) {
-            updated = prev.map((i) => i.id === key ? { ...i, quantity: i.quantity + qty } : i);
-          } else {
-            const newItem: LocalCartItem = {
-              id: key,
-              variantId: params.variantId ?? key,
-              title: params.title ?? "Item",
-              price: params.price ?? "",
-              priceAmount: params.priceAmount ?? 0,
-              currencyCode: params.currencyCode ?? "EGP",
-              image: params.image ?? null,
-              size: params.size,
-              color: params.color,
-              quantity: qty,
-            };
-            updated = [...prev, newItem];
-          }
-          saveLocalCart(updated);
-          return updated;
-        });
       }
+      const key = `${params.variantId ?? params.title ?? "item"}-${params.size ?? ""}`;
+      setLocalItems((prev) => {
+        const existing = prev.find((i) => i.id === key);
+        let updated: LocalCartItem[];
+        if (existing) {
+          updated = prev.map((i) => i.id === key ? { ...i, quantity: i.quantity + qty } : i);
+        } else {
+          const newItem: LocalCartItem = {
+            id: key,
+            variantId: params.variantId ?? key,
+            title: params.title ?? "Item",
+            price: params.price ?? "",
+            priceAmount: params.priceAmount ?? 0,
+            currencyCode: params.currencyCode ?? "EGP",
+            image: params.image ?? null,
+            size: params.size,
+            color: params.color,
+            quantity: qty,
+          };
+          updated = [...prev, newItem];
+        }
+        saveLocalCart(updated);
+        return updated;
+      });
       setCartOpen(true);
     } finally {
       setLoading(false);
@@ -149,15 +146,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       if (SHOPIFY_CONFIGURED && shopifyCart) {
-        const updated = await removeCartLines(shopifyCart.id, [idOrLineId]);
-        setShopifyCart(updated);
-      } else {
-        setLocalItems((prev) => {
-          const updated = prev.filter((i) => i.id !== idOrLineId);
-          saveLocalCart(updated);
-          return updated;
-        });
+        try {
+          const updated = await removeCartLines(shopifyCart.id, [idOrLineId]);
+          setShopifyCart(updated);
+        } catch {
+          // line may be local-only
+        }
       }
+      setLocalItems((prev) => {
+        const updated = prev.filter((i) => i.id !== idOrLineId);
+        saveLocalCart(updated);
+        return updated;
+      });
     } finally {
       setLoading(false);
     }
@@ -168,15 +168,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       if (SHOPIFY_CONFIGURED && shopifyCart) {
-        const updated = await updateCartLines(shopifyCart.id, [{ id: idOrLineId, quantity }]);
-        setShopifyCart(updated);
-      } else {
-        setLocalItems((prev) => {
-          const updated = prev.map((i) => i.id === idOrLineId ? { ...i, quantity } : i);
-          saveLocalCart(updated);
-          return updated;
-        });
+        try {
+          const updated = await updateCartLines(shopifyCart.id, [{ id: idOrLineId, quantity }]);
+          setShopifyCart(updated);
+        } catch {
+          // line may be local-only
+        }
       }
+      setLocalItems((prev) => {
+        const updated = prev.map((i) => i.id === idOrLineId ? { ...i, quantity } : i);
+        saveLocalCart(updated);
+        return updated;
+      });
     } finally {
       setLoading(false);
     }
@@ -187,18 +190,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return formatMoney(String(price), line.merchandise.price.currencyCode);
   }, []);
 
+  const shopifyItemCount = shopifyCart?.totalQuantity ?? 0;
+  const localItemCount = localItems.reduce((sum, i) => sum + i.quantity, 0);
+  const itemCount = SHOPIFY_CONFIGURED ? shopifyItemCount : localItemCount;
+
+  const shopifyTotal = shopifyCart
+    ? formatMoney(shopifyCart.cost.totalAmount.amount, shopifyCart.cost.totalAmount.currencyCode)
+    : "";
   const localTotal = localItems.reduce((sum, i) => sum + i.priceAmount * i.quantity, 0);
   const localCurrency = localItems[0]?.currencyCode ?? "EGP";
-
   const cartTotal = SHOPIFY_CONFIGURED && shopifyCart
-    ? formatMoney(shopifyCart.cost.totalAmount.amount, shopifyCart.cost.totalAmount.currencyCode)
+    ? shopifyTotal
     : localItems.length > 0
       ? formatMoney(String(localTotal), localCurrency)
       : "";
-
-  const itemCount = SHOPIFY_CONFIGURED
-    ? (shopifyCart?.totalQuantity ?? 0)
-    : localItems.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
     <CartContext.Provider value={{

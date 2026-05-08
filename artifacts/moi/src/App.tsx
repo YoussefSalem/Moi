@@ -11,11 +11,18 @@ import { CustomerAuthModal } from "@/components/CustomerAuthModal";
 import { CartProvider } from "@/context/CartContext";
 import { CustomerProvider } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
+import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 import { Instagram, Music2 } from "lucide-react";
+
+const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
 
 function AppContent() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
   const [page, setPage] = useState<"home" | "accessories">("home");
+  const { products } = useShopifyProducts(FALLBACK_PRODUCTS);
+
+  const product1 = products[0] ?? IMAGES.product1;
+  const product2 = products[1] ?? IMAGES.product2;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "hsl(30 15% 95%)" }}>
@@ -27,7 +34,7 @@ function AppContent() {
 
           <div id="collection">
             <ProductCard
-              product={IMAGES.product1}
+              product={product1}
               onLookView={setLookProduct}
             />
           </div>
@@ -35,7 +42,7 @@ function AppContent() {
           <ProductDivider />
 
           <ProductCard
-            product={IMAGES.product2}
+            product={product2}
             onLookView={setLookProduct}
           />
 

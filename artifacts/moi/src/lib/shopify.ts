@@ -1,4 +1,5 @@
 const STORE_DOMAIN = import.meta.env.VITE_SHOPIFY_STORE_DOMAIN as string | undefined;
+const STOREFRONT_TOKEN = import.meta.env.VITE_SHOPIFY_STOREFRONT_TOKEN as string | undefined;
 
 export const SHOPIFY_CONFIGURED = Boolean(STORE_DOMAIN);
 
@@ -9,11 +10,16 @@ const ENDPOINT = STORE_DOMAIN
 async function shopifyFetch<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   if (!SHOPIFY_CONFIGURED) throw new Error("Shopify not configured");
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (STOREFRONT_TOKEN) {
+    headers["X-Shopify-Storefront-Access-Token"] = STOREFRONT_TOKEN;
+  }
+
   const res = await fetch(ENDPOINT, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({ query, variables }),
   });
 
@@ -179,7 +185,13 @@ export async function updateCartLines(
   return data.cartLinesUpdate.cart;
 }
 
-export async function customerCreate(email: string, password: string, firstName?: string, lastName?: string, acceptsMarketing = false): Promise<{ customerId: string } | { error: string }> {
+export async function customerCreate(
+  email: string,
+  password: string,
+  firstName?: string,
+  lastName?: string,
+  acceptsMarketing = false,
+): Promise<{ customerId: string } | { error: string }> {
   const data = await shopifyFetch<{
     customerCreate: {
       customer: { id: string } | null;
@@ -200,7 +212,10 @@ export async function customerCreate(email: string, password: string, firstName?
   return { customerId: data.customerCreate.customer!.id };
 }
 
-export async function customerAccessTokenCreate(email: string, password: string): Promise<{ accessToken: string; expiresAt: string } | { error: string }> {
+export async function customerAccessTokenCreate(
+  email: string,
+  password: string,
+): Promise<{ accessToken: string; expiresAt: string } | { error: string }> {
   const data = await shopifyFetch<{
     customerAccessTokenCreate: {
       customerAccessToken: { accessToken: string; expiresAt: string } | null;
@@ -223,7 +238,9 @@ export async function customerAccessTokenCreate(email: string, password: string)
   return { accessToken: token.accessToken, expiresAt: token.expiresAt };
 }
 
-export async function getCustomer(accessToken: string): Promise<{ id: string; firstName: string | null; lastName: string | null; email: string } | null> {
+export async function getCustomer(
+  accessToken: string,
+): Promise<{ id: string; firstName: string | null; lastName: string | null; email: string } | null> {
   const data = await shopifyFetch<{
     customer: { id: string; firstName: string | null; lastName: string | null; email: string } | null;
   }>(`

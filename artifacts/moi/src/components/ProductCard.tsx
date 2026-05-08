@@ -27,6 +27,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   const handleAddToCart = async () => {
     await addToCart({
+      variantId: product.variantId,
       title: product.name,
       price: product.price,
       priceAmount: parseFloat(product.price.replace(/[^0-9.]/g, "")),
