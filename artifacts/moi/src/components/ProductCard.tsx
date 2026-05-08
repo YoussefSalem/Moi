@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useImageColor } from "@/hooks/useImageColor";
 import type { ProductConfig, VariantOption } from "@/config/images";
@@ -74,6 +74,17 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     () => sizeOption?.values[0] ?? "Small"
   );
 
+  const prevVariantsRef = useRef<readonly VariantOption[] | undefined>(undefined);
+  useEffect(() => {
+    if (product.variants === prevVariantsRef.current) return;
+    prevVariantsRef.current = product.variants;
+    if (!product.variants || product.variants.length === 0) return;
+    const firstColor = colorOption?.values[0];
+    if (firstColor) setSelectedColor(firstColor);
+    const firstSize = sizeOption?.values[0];
+    if (firstSize) setSelectedSize(firstSize);
+  });
+
   const selectedVariant: VariantOption | undefined = useMemo(() => {
     if (!hasShopifyVariants || !product.variants) return undefined;
     return product.variants.find((v) => {
@@ -110,6 +121,13 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
       return sizeMatch && colorMatch && v.availableForSale;
     });
   }
+
+  useEffect(() => {
+    if (!sizeOption || !product.variants) return;
+    if (isSizeAvailable(selectedSize)) return;
+    const firstAvail = sizeOption.values.find((s) => isSizeAvailable(s));
+    if (firstAvail) setSelectedSize(firstAvail);
+  }, [selectedColor, product.variants]);
 
   const effectivePrice = selectedVariant?.price ?? product.price;
 
