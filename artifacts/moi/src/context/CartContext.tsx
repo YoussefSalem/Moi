@@ -192,14 +192,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const shopifyItemCount = shopifyCart?.totalQuantity ?? 0;
   const localItemCount = localItems.reduce((sum, i) => sum + i.quantity, 0);
-  const itemCount = SHOPIFY_CONFIGURED ? shopifyItemCount : localItemCount;
+  const shopifyActive = SHOPIFY_CONFIGURED && shopifyCart !== null;
+  const itemCount = shopifyActive ? shopifyItemCount : localItemCount;
 
   const shopifyTotal = shopifyCart
     ? formatMoney(shopifyCart.cost.totalAmount.amount, shopifyCart.cost.totalAmount.currencyCode)
     : "";
   const localTotal = localItems.reduce((sum, i) => sum + i.priceAmount * i.quantity, 0);
   const localCurrency = localItems[0]?.currencyCode ?? "EGP";
-  const cartTotal = SHOPIFY_CONFIGURED && shopifyCart
+  const cartTotal = shopifyActive
     ? shopifyTotal
     : localItems.length > 0
       ? formatMoney(String(localTotal), localCurrency)

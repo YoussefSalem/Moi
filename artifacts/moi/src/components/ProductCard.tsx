@@ -88,6 +88,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   }, [product.variants, hasShopifyVariants, selectedColor, selectedSize, colorOption, sizeOption]);
 
   function getDefaultStock(color: string, size: string): number {
+    if (hasShopifyVariants) return -1;
     if (!product.defaultInventory) return -1;
     const colorKey = color.toLowerCase();
     const colorInventory = product.defaultInventory[colorKey];

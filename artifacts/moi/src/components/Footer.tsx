@@ -2,10 +2,14 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Instagram, Twitter } from "lucide-react";
 import { ContactModal } from "@/components/ContactModal";
+import { subscribeToNewsletter, SHOPIFY_CONFIGURED } from "@/lib/shopify";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
 
 async function subscribeEmail(email: string): Promise<{ success: boolean; error?: string }> {
+  if (SHOPIFY_CONFIGURED) {
+    return subscribeToNewsletter(email);
+  }
   try {
     const res = await fetch(`${BASE}api/newsletter`, {
       method: "POST",
