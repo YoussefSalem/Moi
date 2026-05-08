@@ -10,20 +10,14 @@ interface ProductCardProps {
   onLookView: (product: ProductConfig) => void;
 }
 
-const STATIC_COLORS = [
-  { name: "Ivory", swatch: "#f0e1db" },
-  { name: "Sand", swatch: "#e6ddd3" },
-  { name: "Taupe", swatch: "#916241" },
-  { name: "Espresso", swatch: "#2d2724" },
-];
-
 const SWATCH_MAP: Record<string, string> = {
-  ivory: "#f0e1db",
-  white: "#f0e1db",
-  sand: "#e6ddd3",
-  beige: "#e6ddd3",
-  taupe: "#916241",
-  brown: "#916241",
+  blue: "#8fa3b8",
+  ivory: "#dfd2c9",
+  white: "#dfd2c9",
+  beige: "#dfd2c9",
+  sand: "#c88f62",
+  taupe: "#3f3632",
+  brown: "#7b4d2f",
   espresso: "#2d2724",
   black: "#2d2724",
   navy: "#1c2444",
@@ -69,7 +63,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   }, [product.variants, hasShopifyVariants]);
 
   const [selectedColor, setSelectedColor] = useState<string>(
-    () => colorOption?.values[0] ?? STATIC_COLORS[0].name
+    () => colorOption?.values[0] ?? "Ivory"
   );
   const [selectedSize, setSelectedSize] = useState<string>(
     () => sizeOption?.values[0] ?? "Small"
@@ -140,7 +134,11 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   const displayColors = colorOption
     ? colorOption.values.map((name) => ({ name, swatch: swatchFor(name) }))
-    : STATIC_COLORS;
+    : product.variants
+      ? [...new Set(product.variants.flatMap((variant) => variant.selectedOptions
+          .filter((option) => option.name.toLowerCase() === "color")
+          .map((option) => option.value)))].map((name) => ({ name, swatch: swatchFor(name) }))
+      : [];
 
   const displaySizes = sizeOption?.values ?? ["Small", "Medium"];
 
