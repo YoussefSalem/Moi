@@ -30,19 +30,37 @@ function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductConfig): P
     filmstrip: filmstripImages,
     variantId: firstAvailable?.id,
     variants,
-    colorSwatches: {
-      black: "#000000",
-      blue: "#a9bdd7",
-      brown: "#9a6338",
-      red: "#f12e2e",
-      gold: "#d8a018",
-      ivory: "#e3d4cb",
-      white: "#e3d4cb",
-      beige: "#e3d4cb",
-      sand: "#e3d4cb",
-      taupe: "#e3d4cb",
-      espresso: "#9a6338",
-    },
+    colorSwatches: (() => {
+      const LOCAL_FALLBACK: Record<string, string> = {
+        black: "#000000",
+        blue: "#a9bdd7",
+        brown: "#9a6338",
+        red: "#f12e2e",
+        gold: "#d8a018",
+        ivory: "#e3d4cb",
+        white: "#ffffff",
+        beige: "#e3d4cb",
+        sand: "#e3d4cb",
+        taupe: "#e3d4cb",
+        espresso: "#9a6338",
+      };
+      const colorOption = shopify.options.find(
+        (o) => o.name.toLowerCase() === "color",
+      );
+      if (!colorOption) return LOCAL_FALLBACK;
+      const fromShopify: Record<string, string> = {};
+      for (const ov of colorOption.optionValues) {
+        const key = ov.name.toLowerCase();
+        if (ov.swatch?.color) {
+          fromShopify[key] = ov.swatch.color.startsWith("#")
+            ? ov.swatch.color
+            : `#${ov.swatch.color}`;
+        } else {
+          fromShopify[key] = LOCAL_FALLBACK[key] ?? "#c8bdb5";
+        }
+      }
+      return fromShopify;
+    })(),
     defaultInventory: {
       brown: { Small: 10, Medium: 10 },
       taupe: { Small: 10, Medium: 10 },

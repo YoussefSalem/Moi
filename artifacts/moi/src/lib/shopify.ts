@@ -42,6 +42,16 @@ export interface ShopifyProductVariant {
   price: { amount: string; currencyCode: string };
 }
 
+export interface ShopifyProductOptionValue {
+  name: string;
+  swatch: { color: string | null } | null;
+}
+
+export interface ShopifyProductOption {
+  name: string;
+  optionValues: ShopifyProductOptionValue[];
+}
+
 export interface ShopifyProduct {
   id: string;
   handle: string;
@@ -50,6 +60,7 @@ export interface ShopifyProduct {
   featuredImage: ShopifyImage | null;
   images: { nodes: ShopifyImage[] };
   variants: { nodes: ShopifyProductVariant[] };
+  options: ShopifyProductOption[];
   priceRange: {
     minVariantPrice: { amount: string; currencyCode: string };
   };
@@ -80,6 +91,13 @@ const PRODUCT_FRAGMENT = `
     featuredImage { url altText }
     images(first: 10) { nodes { url altText } }
     priceRange { minVariantPrice { amount currencyCode } }
+    options {
+      name
+      optionValues {
+        name
+        swatch { color }
+      }
+    }
     variants(first: 20) {
       nodes {
         id title availableForSale
