@@ -199,7 +199,9 @@ router.post("/ambassador", async (req, res) => {
     });
     req.log.info("Ambassador application emailed via Resend");
   } catch (err) {
-    req.log.warn({ err }, "Resend email failed — application saved to DB");
+    req.log.error({ err }, "Resend email failed");
+    res.status(502).json({ error: "Application saved, but email delivery failed." });
+    return;
   }
 
   res.status(200).json({ success: true });
