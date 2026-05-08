@@ -232,6 +232,15 @@
   body::-webkit-scrollbar {
     display: none;
   }
+
+  html {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Force Sonner toast description to white */

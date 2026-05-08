@@ -69,9 +69,10 @@ export function HeroVideo() {
         <motion.img
           src={IMAGES.hero.fallbackUrl}
           alt="Moi fashion"
-          className="absolute inset-0 w-full h-full object-cover object-top"
+          className="absolute inset-0 w-full h-full object-cover object-top md:object-center"
+          style={{ objectPosition: "center 18%" }}
           initial={{ scale: 1 }}
-          animate={{ scale: 1.06 }}
+          animate={{ scale: 1.07 }}
           transition={{ duration: 14, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
         />
       )}
