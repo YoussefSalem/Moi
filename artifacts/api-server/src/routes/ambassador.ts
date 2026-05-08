@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, ambassadorApplications } from "@workspace/db";
+import nodemailer from "nodemailer";
 
 const router: IRouter = Router();
 
@@ -70,6 +71,54 @@ async function notifyViaShopify(
   }
 }
 
+async function notifyViaResend(data: {
+  name: string;
+  email: string;
+  phone: string;
+  facebook: string;
+  instagram: string;
+  message: string;
+}): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const to = process.env.AMBASSADOR_EMAIL_TO;
+
+  if (!apiKey || !to) return;
+
+  const transporter = nodemailer.createTransport({
+    host: "smtp.resend.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: "resend",
+      pass: apiKey,
+    },
+  });
+
+  const noteLines = [
+    `=== MOI AMBASSADOR APPLICATION ===`,
+    ``,
+    `Name: ${data.name}`,
+    `Email: ${data.email}`,
+    data.phone ? `Phone: ${data.phone}` : null,
+    data.facebook ? `Facebook: ${data.facebook}` : null,
+    data.instagram ? `Instagram: ${data.instagram}` : null,
+    ``,
+    `--- About the applicant ---`,
+    data.message,
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+
+  await transporter.sendMail({
+    from: "Moi <onboarding@resend.dev>",
+    to,
+    replyTo: data.email,
+    subject: `Moi Ambassador Application — ${data.name}`,
+    text: noteLines,
+    html: noteLines.replace(/\n/g, "<br>"),
+  });
+}
+
 router.post("/ambassador", async (req, res) => {
   const { name, phone, email, facebook, instagram, message } =
     req.body as AmbassadorBody;
@@ -137,6 +186,20 @@ router.post("/ambassador", async (req, res) => {
     }
   } else {
     req.log.warn("SHOPIFY_ADMIN_API_TOKEN or VITE_SHOPIFY_STORE_DOMAIN not set");
+  }
+
+  try {
+    await notifyViaResend({
+      name: safeName,
+      email: safeEmail,
+      phone: safePhone,
+      facebook: safeFacebook,
+      instagram: safeInstagram,
+      message: safeMessage,
+    });
+    req.log.info("Ambassador application emailed via Resend");
+  } catch (err) {
+    req.log.warn({ err }, "Resend email failed — application saved to DB");
   }
 
   res.status(200).json({ success: true });
