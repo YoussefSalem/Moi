@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { registerRestockWebhooks } from "./lib/shopifyWebhook";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,9 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Register Shopify webhooks for automatic restock notifications
+  registerRestockWebhooks().catch((e) =>
+    logger.warn({ err: e }, "Webhook registration error"),
+  );
 });

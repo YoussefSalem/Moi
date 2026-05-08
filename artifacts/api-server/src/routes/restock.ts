@@ -123,9 +123,14 @@ router.post("/restock/subscribe", async (req, res) => {
   }
 });
 
+// GET /api/restock/check-and-notify — health check so Shopify can verify the endpoint
+router.get("/restock/check-and-notify", (_req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 // POST /api/restock/check-and-notify
-// Intended to be called by a Shopify webhook (product/update, inventory_levels/update)
-// or triggered on demand. Checks all pending subscriptions and sends emails.
+// Called by Shopify webhooks (inventory_levels/update, products/update)
+// or on demand. Checks all pending subscriptions and sends emails.
 router.post("/restock/check-and-notify", async (req, res) => {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const storefrontToken = process.env.VITE_SHOPIFY_STOREFRONT_TOKEN;

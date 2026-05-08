@@ -15,6 +15,7 @@ import { CartProvider } from "@/context/CartContext";
 import { CustomerProvider } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
+import { useRestockChecker } from "@/hooks/useRestockChecker";
 import { Instagram, Music2 } from "lucide-react";
 
 function ProductSkeleton() {
@@ -53,6 +54,7 @@ function AppContent() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
+  useRestockChecker();
 
   const product1 = products[0] ?? IMAGES.product1;
   const product2 = products[1] ?? IMAGES.product2;
