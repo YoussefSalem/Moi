@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useImageColor } from "@/hooks/useImageColor";
 import type { ProductConfig } from "@/config/images";
+import { useCart } from "@/context/CartContext";
 
 interface LookViewProps {
   product: ProductConfig | null;
@@ -11,7 +12,9 @@ interface LookViewProps {
 
 export function LookView({ product, onClose }: LookViewProps) {
   const [activeImage, setActiveImage] = useState(product?.look.model ?? null);
+  const [addedFeedback, setAddedFeedback] = useState(false);
   const color = useImageColor(product?.look.model ?? null);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     if (product) document.body.style.overflow = "hidden";
@@ -27,7 +30,21 @@ export function LookView({ product, onClose }: LookViewProps) {
 
   useEffect(() => {
     setActiveImage(product?.look.model ?? null);
+    setAddedFeedback(false);
   }, [product]);
+
+  const handleAddToBag = async () => {
+    if (!product) return;
+    await addToCart({
+      title: product.name,
+      price: product.price,
+      priceAmount: parseFloat(product.price.replace(/[^0-9.]/g, "")),
+      currencyCode: "EGP",
+      image: product.look.model,
+    });
+    setAddedFeedback(true);
+    setTimeout(() => setAddedFeedback(false), 1800);
+  };
 
   const gradColor = color?.rgba(0.15) ?? "rgba(180,160,130,0.10)";
   const availableImages = useMemo(() => {
@@ -35,10 +52,6 @@ export function LookView({ product, onClose }: LookViewProps) {
     const items = [product.look.model, product.look.earring, product.look.shoes, product.look.bag];
     return items.filter((src, index, array) => array.indexOf(src) === index);
   }, [product]);
-  const thumbnails = availableImages;
-  const handleSwap = (src: string) => {
-    setActiveImage(src);
-  };
   const sideImages = useMemo(() => {
     if (!product) return [];
     return availableImages.filter((src) => src !== activeImage).slice(0, 4);
@@ -107,7 +120,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                     <motion.button
                       key={src}
                       type="button"
-                      onClick={() => handleSwap(src)}
+                      onClick={() => setActiveImage(src)}
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
@@ -152,7 +165,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                     <motion.button
                       key={src}
                       type="button"
-                      onClick={() => handleSwap(src)}
+                      onClick={() => setActiveImage(src)}
                       initial={{ opacity: 0, x: 12 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
@@ -178,9 +191,6 @@ export function LookView({ product, onClose }: LookViewProps) {
                 <p className="text-lg font-bold tracking-widest uppercase" style={{ color: "#1e1814" }}>
                   {product.name}
                 </p>
-                <p className="text-[11px] tracking-widest uppercase mt-1 font-light" style={{ color: "#7a6e64" }}>
-                  {product.colorLabel}
-                </p>
               </div>
               <p className="text-lg font-light" style={{ color: "#1e1814" }}>
                 {product.price}
@@ -189,10 +199,15 @@ export function LookView({ product, onClose }: LookViewProps) {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="px-10 py-3.5 text-[11px] tracking-[0.2em] uppercase font-medium text-white"
-                  style={{ backgroundColor: "#1e1814" }}
+                  onClick={handleAddToBag}
+                  className="px-10 py-3.5 text-[11px] tracking-[0.2em] uppercase font-medium transition-all duration-300"
+                  style={{
+                    backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
+                    color: addedFeedback ? "#1e1814" : "#fff",
+                    border: "1px solid #1e1814",
+                  }}
                 >
-                  Add to Bag
+                  {addedFeedback ? "Added ✓" : "Add to Bag"}
                 </motion.button>
               </div>
             </motion.div>

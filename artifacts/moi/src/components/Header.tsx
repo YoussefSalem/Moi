@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ShoppingBag, User, X } from "lucide-react";
+import { useCart } from "@/context/CartContext";
+import { useCustomer } from "@/context/CustomerContext";
 
 interface HeaderProps {
   onNavigate?: (page: "home" | "accessories") => void;
@@ -10,6 +12,8 @@ interface HeaderProps {
 export function Header({ onNavigate, dark }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { itemCount, openCart } = useCart();
+  const { customer, openAuth, signOut } = useCustomer();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -17,6 +21,7 @@ export function Header({ onNavigate, dark }: HeaderProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const iconColor = dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff";
   const navLinks = ["Clothing", "Accessories"];
 
   return (
@@ -36,20 +41,14 @@ export function Header({ onNavigate, dark }: HeaderProps) {
             className="flex flex-col gap-1.5 w-8 h-8 items-center justify-center group"
             aria-label="Open menu"
           >
-            <span
-              className="block w-6 h-px transition-all duration-300"
-              style={{ backgroundColor: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff" }}
-            />
-            <span
-              className="block w-4 h-px transition-all duration-300 group-hover:w-6"
-              style={{ backgroundColor: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff" }}
-            />
+            <span className="block w-6 h-px transition-all duration-300" style={{ backgroundColor: iconColor }} />
+            <span className="block w-4 h-px transition-all duration-300 group-hover:w-6" style={{ backgroundColor: iconColor }} />
           </button>
 
           <a
             href="#home"
             className="absolute left-1/2 -translate-x-1/2 font-serif text-2xl tracking-[0.3em] font-light select-none transition-colors duration-500"
-            style={{ color: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff", letterSpacing: "0.35em" }}
+            style={{ color: iconColor, letterSpacing: "0.35em" }}
             onClick={() => onNavigate?.("home")}
           >
             MOI
@@ -57,31 +56,46 @@ export function Header({ onNavigate, dark }: HeaderProps) {
 
           <div className="flex items-center gap-5">
             <button aria-label="Search" className="transition-opacity hover:opacity-60">
-              <Search
-                size={18}
-                strokeWidth={1.5}
-                style={{ color: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff" }}
-              />
+              <Search size={18} strokeWidth={1.5} style={{ color: iconColor }} />
             </button>
-            <button aria-label="Account" className="transition-opacity hover:opacity-60">
-              <User
-                size={18}
-                strokeWidth={1.5}
-                style={{ color: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff" }}
-              />
+            <button
+              aria-label={customer ? "My Account" : "Sign In"}
+              className="transition-opacity hover:opacity-60"
+              onClick={openAuth}
+            >
+              <User size={18} strokeWidth={1.5} style={{ color: iconColor }} />
             </button>
-            <button aria-label="Cart" className="transition-opacity hover:opacity-60 relative">
-              <ShoppingBag
-                size={18}
-                strokeWidth={1.5}
-                style={{ color: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff" }}
-              />
-              <span
-                className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full text-[9px] font-medium flex items-center justify-center"
-                style={{ backgroundColor: dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff", color: dark ? "#fff" : scrolled ? "#fff" : "#1e1814" }}
-              >
-                0
-              </span>
+            <button
+              aria-label="Cart"
+              className="transition-opacity hover:opacity-60 relative"
+              onClick={openCart}
+            >
+              <ShoppingBag size={18} strokeWidth={1.5} style={{ color: iconColor }} />
+              <AnimatePresence>
+                {itemCount > 0 && (
+                  <motion.span
+                    key="badge"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full text-[9px] font-medium flex items-center justify-center"
+                    style={{
+                      backgroundColor: iconColor,
+                      color: iconColor === "#fff" ? "#1e1814" : "#fff",
+                    }}
+                  >
+                    {itemCount > 9 ? "9+" : itemCount}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              {itemCount === 0 && (
+                <span
+                  className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full text-[9px] font-medium flex items-center justify-center"
+                  style={{ backgroundColor: iconColor, color: iconColor === "#fff" ? "#1e1814" : "#fff" }}
+                >
+                  0
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -107,9 +121,7 @@ export function Header({ onNavigate, dark }: HeaderProps) {
               style={{ backgroundColor: "#faf8f5" }}
             >
               <div className="flex items-center justify-between px-8 py-6 border-b border-stone-200">
-                <span className="font-serif text-xl tracking-[0.3em]" style={{ color: "#1e1814" }}>
-                  MOI
-                </span>
+                <span className="font-serif text-xl tracking-[0.3em]" style={{ color: "#1e1814" }}>MOI</span>
                 <button onClick={() => setMenuOpen(false)} className="transition-opacity hover:opacity-50">
                   <X size={20} strokeWidth={1.5} />
                 </button>
@@ -140,16 +152,31 @@ export function Header({ onNavigate, dark }: HeaderProps) {
                 </ul>
 
                 <div className="mt-16 pt-8 border-t border-stone-200 space-y-4">
-                  {["Sign In"].map((link) => (
-                    <a
-                      key={link}
-                      href="#"
+                  {customer ? (
+                    <>
+                      <p
+                        className="text-sm font-light tracking-wide"
+                        style={{ color: "#1e1814" }}
+                      >
+                        {customer.firstName ?? customer.email}
+                      </p>
+                      <button
+                        className="block text-sm tracking-widest uppercase hover:opacity-50 transition-opacity"
+                        style={{ color: "#7a6e64", letterSpacing: "0.15em" }}
+                        onClick={() => { setMenuOpen(false); signOut(); }}
+                      >
+                        Sign Out
+                      </button>
+                    </>
+                  ) : (
+                    <button
                       className="block text-sm tracking-widest uppercase hover:opacity-50 transition-opacity"
                       style={{ color: "#7a6e64", letterSpacing: "0.15em" }}
+                      onClick={() => { setMenuOpen(false); openAuth(); }}
                     >
-                      {link}
-                    </a>
-                  ))}
+                      Sign In
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.nav>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useImageColor } from "@/hooks/useImageColor";
 import type { ProductConfig } from "@/config/images";
+import { useCart } from "@/context/CartContext";
 
 interface ProductCardProps {
   product: ProductConfig;
@@ -10,8 +11,12 @@ interface ProductCardProps {
 
 export function ProductCard({ product, onLookView }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState("Small");
+  const [selectedColor, setSelectedColor] = useState("Ivory");
+  const [addedFeedback, setAddedFeedback] = useState(false);
   const color = useImageColor(product.productShot);
   const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
+  const { addToCart } = useCart();
+
   const colorOptions = [
     { name: "Ivory", swatch: "#f2ede4" },
     { name: "Sand", swatch: "#d1c2b0" },
@@ -19,6 +24,20 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     { name: "Espresso", swatch: "#3a312c" },
   ];
   const sizeOptions = ["Small", "Medium"];
+
+  const handleAddToCart = async () => {
+    await addToCart({
+      title: product.name,
+      price: product.price,
+      priceAmount: parseFloat(product.price.replace(/[^0-9.]/g, "")),
+      currencyCode: "EGP",
+      image: product.productShot,
+      size: selectedSize,
+      color: selectedColor,
+    });
+    setAddedFeedback(true);
+    setTimeout(() => setAddedFeedback(false), 1800);
+  };
 
   return (
     <section
@@ -35,6 +54,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
         transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
         className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-[minmax(260px,1fr)_minmax(320px,460px)_minmax(260px,1fr)] gap-10 md:gap-16 items-center"
       >
+        {/* Left: name + description */}
         <div className="flex flex-col gap-5 md:items-start md:justify-center md:text-left text-center">
           <h2
             className="text-xl md:text-2xl font-bold tracking-widest uppercase"
@@ -50,6 +70,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
           </p>
         </div>
 
+        {/* Center: product image */}
         <div className="flex justify-center relative">
           <div className="relative">
             <div
@@ -96,13 +117,12 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
           </div>
         </div>
 
+        {/* Right: color + size + price + add to cart */}
         <div className="flex flex-col gap-5 items-center md:items-center md:justify-center text-center">
+          {/* Color */}
           <div className="flex flex-col gap-3">
-            <p
-              className="text-[11px] tracking-[0.22em] uppercase font-medium"
-              style={{ color: "#7a6e64" }}
-            >
-              Color
+            <p className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
+              Color — <span style={{ color: "#1e1814" }}>{selectedColor}</span>
             </p>
             <div className="flex items-center gap-3 justify-center">
               {colorOptions.map((option, index) => (
@@ -110,6 +130,8 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                   key={option.name}
                   type="button"
                   aria-label={option.name}
+                  aria-pressed={selectedColor === option.name}
+                  onClick={() => setSelectedColor(option.name)}
                   className="relative group"
                   style={{ width: 34, height: 34 }}
                 >
@@ -124,18 +146,20 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                     }}
                   />
                   <span
-                    className="absolute inset-[-5px] rounded-full border opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    style={{ borderColor: "rgba(30,24,20,0.18)" }}
+                    className="absolute inset-[-5px] rounded-full border transition-opacity duration-300"
+                    style={{
+                      borderColor: "rgba(30,24,20,0.35)",
+                      opacity: selectedColor === option.name ? 1 : 0,
+                    }}
                   />
                 </button>
               ))}
             </div>
           </div>
+
+          {/* Size */}
           <div className="flex flex-col gap-3">
-            <p
-              className="text-[11px] tracking-[0.22em] uppercase font-medium"
-              style={{ color: "#7a6e64" }}
-            >
+            <p className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
               Size
             </p>
             <div className="flex items-center gap-3 justify-center">
@@ -158,18 +182,27 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               ))}
             </div>
           </div>
-          <button
+
+          {/* Price */}
+          <p className="text-base font-light tracking-widest" style={{ color: "#1e1814" }}>
+            {product.price}
+          </p>
+
+          {/* Add to Cart */}
+          <motion.button
             type="button"
+            onClick={handleAddToCart}
+            whileTap={{ scale: 0.97 }}
             className="min-w-[204px] px-7 py-4 text-[10px] tracking-[0.35em] uppercase font-light border transition-all duration-300 self-center"
             style={{
-              color: "#fff",
+              color: addedFeedback ? "#1e1814" : "#fff",
               borderColor: "#1e1814",
-              backgroundColor: "#1e1814",
+              backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
               letterSpacing: "0.28em",
             }}
           >
-            Add to Cart
-          </button>
+            {addedFeedback ? "Added ✓" : "Add to Cart"}
+          </motion.button>
         </div>
       </motion.div>
     </section>

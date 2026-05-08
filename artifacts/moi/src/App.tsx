@@ -6,10 +6,14 @@ import { ProductDivider } from "@/components/ProductDivider";
 import { AccessoriesPage } from "@/components/AccessoriesPage";
 import { LookView } from "@/components/LookView";
 import { Footer } from "@/components/Footer";
+import { CartDrawer } from "@/components/CartDrawer";
+import { CustomerAuthModal } from "@/components/CustomerAuthModal";
+import { CartProvider } from "@/context/CartContext";
+import { CustomerProvider } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { Instagram, Music2 } from "lucide-react";
 
-function App() {
+function AppContent() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
   const [page, setPage] = useState<"home" | "accessories">("home");
 
@@ -84,7 +88,19 @@ function App() {
       {page === "home" && <Footer />}
 
       <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
+      <CartDrawer />
+      <CustomerAuthModal />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <CustomerProvider>
+      <CartProvider>
+        <AppContent />
+      </CartProvider>
+    </CustomerProvider>
   );
 }
 
