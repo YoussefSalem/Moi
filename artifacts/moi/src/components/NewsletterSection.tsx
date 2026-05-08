@@ -5,7 +5,7 @@ import { useCustomer } from "@/context/CustomerContext";
 import { subscribeToNewsletter } from "@/lib/shopify";
 
 export function NewsletterSection() {
-  const { customer, openAuth } = useCustomer();
+  const { customer } = useCustomer();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -36,16 +36,20 @@ export function NewsletterSection() {
   };
 
   return (
-    <section className="px-6 pb-20 md:pb-28">
-      <div className="mx-auto max-w-5xl">
+    <section className="relative overflow-hidden px-6 pb-20 md:pb-28 pt-10 md:pt-14">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 md:h-36 bg-[linear-gradient(to_bottom,rgba(40,33,29,0),rgba(40,33,29,0.22),rgba(40,33,29,0.5))]" />
+      <div className="mx-auto max-w-5xl relative">
+        <div className="absolute inset-x-8 -top-10 h-24 rounded-full blur-3xl bg-[radial-gradient(circle,rgba(255,255,255,0.26),transparent_70%)] opacity-70" />
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.35 }}
           transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden border border-[rgba(30,24,20,0.14)] bg-[linear-gradient(135deg,#fbf7f1_0%,#f2ebe2_52%,#e9dfd2_100%)]"
+          className="relative overflow-hidden border border-[rgba(255,255,255,0.06)] bg-[linear-gradient(135deg,rgba(251,247,241,0.96)_0%,rgba(242,235,226,0.93)_52%,rgba(233,223,210,0.9)_100%)] shadow-[0_24px_80px_rgba(20,16,12,0.12)]"
+          style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28), 0 24px 80px rgba(20,16,12,0.12)" }}
         >
-          <div className="absolute inset-0 opacity-70 bg-[radial-gradient(circle_at_top_left,rgba(30,24,20,0.08),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(122,110,100,0.16),transparent_34%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(30,24,20,0.08),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(122,110,100,0.18),transparent_34%)]" />
+          <div className="absolute inset-0 opacity-35 bg-[linear-gradient(115deg,transparent_0%,rgba(255,255,255,0.55)_44%,transparent_58%)] animate-[moi-shine_7s_ease-in-out_infinite]" />
           <div className="relative px-6 py-10 md:px-12 md:py-14">
             <div className="flex flex-col gap-8 md:gap-10">
               <div className="flex items-center gap-3 text-[10px] tracking-[0.35em] uppercase" style={{ color: "#7a6e64" }}>
@@ -63,57 +67,41 @@ export function NewsletterSection() {
               </div>
 
               <form onSubmit={handleSubmit} className="max-w-2xl flex flex-col gap-4">
-                {isLoggedIn ? (
-                  <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                    <div className="flex-1 px-4 py-4 border border-[rgba(30,24,20,0.14)] bg-white/35 backdrop-blur-sm">
-                      <div className="flex items-center gap-3">
-                        <Mail size={15} strokeWidth={1.6} style={{ color: "#1e1814" }} />
-                        <div className="min-w-0">
-                          <p className="text-[10px] tracking-[0.28em] uppercase" style={{ color: "#7a6e64" }}>
-                            Your email
-                          </p>
-                          <p className="truncate text-sm md:text-base font-light" style={{ color: "#1e1814" }}>
-                            {resolvedEmail}
-                          </p>
-                        </div>
+                <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                  <div className="flex-1 px-4 py-4 border border-[rgba(30,24,20,0.12)] bg-white/25 backdrop-blur-sm">
+                    <div className="flex items-center gap-3">
+                      <Mail size={15} strokeWidth={1.6} style={{ color: "#1e1814" }} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] tracking-[0.28em] uppercase" style={{ color: "#7a6e64" }}>
+                          Email address
+                        </p>
+                        <input
+                          type="email"
+                          required
+                          placeholder="Email address"
+                          value={resolvedEmail}
+                          onChange={(e) => setEmail(e.target.value)}
+                          disabled={status === "loading" || status === "success" || isLoggedIn}
+                          autoComplete="email"
+                          className="mt-1 w-full bg-transparent text-sm md:text-base font-light outline-none placeholder:text-[rgba(30,24,20,0.35)]"
+                          style={{ color: "#1e1814" }}
+                        />
                       </div>
                     </div>
-                    <button
-                      type="submit"
-                      disabled={status === "loading" || status === "success"}
-                      className="inline-flex items-center justify-center gap-2 px-6 py-4 text-[11px] tracking-[0.28em] uppercase font-medium text-white transition-opacity disabled:opacity-50"
-                      style={{ backgroundColor: "#1e1814" }}
-                    >
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={status === "loading" || status === "success"}
+                    className="relative isolate inline-flex items-center justify-center gap-2 overflow-hidden px-6 py-4 text-[11px] tracking-[0.28em] uppercase font-medium text-white transition-transform duration-300 hover:scale-[1.01] disabled:opacity-60 disabled:hover:scale-100"
+                    style={{ backgroundColor: "#1e1814", boxShadow: "0 12px 28px rgba(30,24,20,0.2), inset 0 1px 0 rgba(255,255,255,0.12)" }}
+                  >
+                    <span className="absolute inset-0 bg-[linear-gradient(115deg,transparent_0%,rgba(255,255,255,0.42)_46%,transparent_60%)] animate-[moi-shine_6s_ease-in-out_infinite]" />
+                    <span className="relative z-10 flex items-center gap-2">
                       {status === "loading" ? "Joining…" : status === "success" ? "Subscribed" : "Subscribe"}
                       <ArrowRight size={14} strokeWidth={1.8} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                    <div className="flex-1">
-                      <input
-                        type="email"
-                        required
-                        placeholder="Email address"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={status === "loading" || status === "success"}
-                        autoComplete="email"
-                        className="w-full px-4 py-4 text-sm md:text-base font-light tracking-wide bg-transparent outline-none placeholder:text-[rgba(30,24,20,0.35)]"
-                        style={{ color: "#1e1814", border: "1px solid rgba(30,24,20,0.14)" }}
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={status === "loading" || status === "success"}
-                      className="inline-flex items-center justify-center gap-2 px-6 py-4 text-[11px] tracking-[0.28em] uppercase font-medium text-white transition-opacity disabled:opacity-50"
-                      style={{ backgroundColor: "#1e1814" }}
-                    >
-                      {status === "loading" ? "Joining…" : status === "success" ? "Subscribed" : "Subscribe"}
-                      <ArrowRight size={14} strokeWidth={1.8} />
-                    </button>
-                  </div>
-                )}
+                    </span>
+                  </button>
+                </div>
 
                 {(status === "error" || errorMsg) && (
                   <p className="text-[11px] tracking-wide" style={{ color: "#a0522d" }}>
@@ -125,17 +113,6 @@ export function NewsletterSection() {
                   <p className="text-[11px] tracking-[0.22em] uppercase" style={{ color: "#7a6e64" }}>
                     You're on the list.
                   </p>
-                )}
-
-                {!isLoggedIn && (
-                  <button
-                    type="button"
-                    onClick={openAuth}
-                    className="w-fit text-[10px] tracking-[0.28em] uppercase transition-opacity hover:opacity-60"
-                    style={{ color: "#7a6e64" }}
-                  >
-                    Sign in for one-click subscribe
-                  </button>
                 )}
               </form>
             </div>
