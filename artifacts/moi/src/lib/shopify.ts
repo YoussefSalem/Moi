@@ -1,7 +1,7 @@
 const STORE_DOMAIN = import.meta.env.VITE_SHOPIFY_STORE_DOMAIN as string | undefined;
 const STOREFRONT_TOKEN = import.meta.env.VITE_SHOPIFY_STOREFRONT_TOKEN as string | undefined;
 
-export const SHOPIFY_CONFIGURED = Boolean(STORE_DOMAIN);
+export const SHOPIFY_CONFIGURED = Boolean(STORE_DOMAIN && STOREFRONT_TOKEN);
 
 const ENDPOINT = STORE_DOMAIN
   ? `https://${STORE_DOMAIN}/api/2024-04/graphql.json`
