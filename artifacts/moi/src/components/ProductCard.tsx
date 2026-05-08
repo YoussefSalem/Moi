@@ -73,6 +73,14 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     }) ?? product.variants[0];
   }, [product.variants, hasShopifyVariants, selectedColor, selectedSize, colorOption, sizeOption]);
 
+  const swatchFor = (name: string): string => {
+    const currentVariantColor = selectedVariant?.selectedOptions.find(
+      (option) => option.name.toLowerCase() === "color" && option.value.toLowerCase() === name.toLowerCase(),
+    )?.value;
+    const fallbackColor = product.colorSwatches?.[name.toLowerCase()];
+    return currentVariantColor ? currentVariantColor.toLowerCase() : fallbackColor ?? "#c8bdb5";
+  };
+
   function getDefaultStock(color: string, size: string): number {
     if (hasShopifyVariants) return -1;
     if (!product.defaultInventory) return -1;
@@ -111,9 +119,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     if (defaultStock >= 0) return defaultStock <= 0;
     return hasShopifyVariants && selectedVariant ? !selectedVariant.availableForSale : false;
   })();
-
-  const swatchFor = (name: string): string =>
-    product.colorSwatches?.[name.toLowerCase()] ?? "#c8bdb5";
 
   const displayColors = colorOption
     ? colorOption.values.map((name) => ({ name, swatch: swatchFor(name) }))
