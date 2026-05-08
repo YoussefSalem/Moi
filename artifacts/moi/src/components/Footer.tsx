@@ -80,12 +80,12 @@ export function Footer() {
                 </a>
               </div>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-3xl bg-[#ebe6dd] p-4 md:p-5" style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)" }}>
               {accordionSections.map((item) => {
                 const isOpen = openSection === item.title.toLowerCase().replace(/\s+/g, "-");
                 const key = item.title.toLowerCase().replace(/\s+/g, "-");
                 return (
-                  <div key={item.title} className="border-b border-black/8">
+                  <div key={item.title} className="border-b border-black/10 last:border-b-0">
                     <button
                       type="button"
                       onClick={() => setOpenSection(isOpen ? null : key)}
@@ -108,7 +108,7 @@ export function Footer() {
                           transition={{ duration: 0.35, ease: [0.76, 0, 0.24, 1] }}
                           className="overflow-hidden"
                         >
-                          <div className="pb-6 text-sm leading-7 text-black/55 max-w-2xl">
+                          <div className="pb-6 text-sm leading-7 text-black/60 max-w-2xl">
                             {item.body}
                           </div>
                         </motion.div>
