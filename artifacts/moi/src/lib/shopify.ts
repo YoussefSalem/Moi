@@ -23,9 +23,20 @@ async function shopifyFetch<T>(query: string, variables?: Record<string, unknown
     body: JSON.stringify({ query, variables }),
   });
 
-  if (!res.ok) throw new Error(`Shopify API error: ${res.status}`);
+  if (!res.ok) {
+    throw new Error(res.status === 429
+      ? "Shopify is temporarily limiting login attempts. Please try again in a moment."
+      : `Shopify API error: ${res.status}`);
+  }
   const json = await res.json() as { data?: T; errors?: { message: string }[] };
-  if (json.errors?.length) throw new Error(json.errors[0].message);
+  if (json.errors?.length) {
+    const message = json.errors[0].message;
+    throw new Error(
+      message.toLowerCase().includes("attempt limit exceeded")
+        ? "Shopify is temporarily limiting login attempts. Please try again in a moment."
+        : message,
+    );
+  }
   return json.data as T;
 }
 
