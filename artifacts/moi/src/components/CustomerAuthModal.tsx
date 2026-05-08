@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { Eye, EyeOff, X } from "lucide-react";
 import { useCustomer } from "@/context/CustomerContext";
 import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 
@@ -11,13 +11,14 @@ export function CustomerAuthModal() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const reset = () => {
-    setEmail(""); setPassword(""); setFirstName(""); setLastName("");
+    setEmail(""); setPassword(""); setFirstName(""); setLastName(""); setShowPassword(false);
     setError(null); setSuccess(false);
   };
 
@@ -65,7 +66,6 @@ export function CustomerAuthModal() {
               className="relative w-full max-w-sm pointer-events-auto flex flex-col"
               style={{ backgroundColor: "#faf8f5" }}
             >
-              {/* Header */}
               <div
                 className="flex items-center justify-between px-8 py-6"
                 style={{ borderBottom: "1px solid rgba(30,24,20,0.08)" }}
@@ -132,16 +132,36 @@ export function CustomerAuthModal() {
                       onChange={(e) => setEmail(e.target.value)}
                       autoComplete="email"
                     />
-                    <input
-                      type="password"
-                      required
-                      className={inputClass}
-                      style={inputStyle}
-                      placeholder="Password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                    />
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        required
+                        className={`${inputClass} pr-12`}
+                        style={inputStyle}
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 hover:bg-black/5 active:scale-95"
+                        style={{ color: "#1e1814" }}
+                      >
+                        <motion.span
+                          key={showPassword ? "hide" : "show"}
+                          initial={{ opacity: 0, scale: 0.8, rotate: -12 }}
+                          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                          exit={{ opacity: 0, scale: 0.8, rotate: 12 }}
+                          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                          className="flex items-center justify-center"
+                        >
+                          {showPassword ? <EyeOff size={17} strokeWidth={1.6} /> : <Eye size={17} strokeWidth={1.6} />}
+                        </motion.span>
+                      </button>
+                    </div>
 
                     {error && (
                       <p className="text-[11px] tracking-wide" style={{ color: "#a0522d" }}>
