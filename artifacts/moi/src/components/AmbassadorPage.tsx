@@ -6,16 +6,19 @@ const videos = [
     title: "Everyday styling",
     handle: "@moiwithsara",
     text: "A clean, modern look styled for day-to-night wear.",
+    url: "https://www.tiktok.com/@grwm._isaaa/video/7637274579974606087?q=get%20ready%20with%20me%20&t=1778214831769",
   },
   {
     title: "Unboxing + fit check",
     handle: "@noorwearsmoi",
     text: "Real try-on content that builds trust and shows the fit.",
+    url: "https://www.tiktok.com/@hollyjai_/photo/7329247143737249056?q=get%20ready%20with%20me%20&t=1778214831769",
   },
   {
     title: "How I style it",
     handle: "@bydalia",
     text: "Short-form content that feels authentic and easy to share.",
+    url: "https://www.tiktok.com/@tatiannaareizaga/video/7598245849679826206?q=get%20ready%20with%20me%20&t=1778214831769",
   },
 ];
 
@@ -120,14 +123,21 @@ export function AmbassadorPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {videos.map((video) => (
-                <div key={video.title} className="rounded-2xl border border-white/10 p-4" style={{ backgroundColor: "rgba(255,255,255,0.03)" }}>
+                <a
+                  key={video.title}
+                  href={video.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-2xl border border-white/10 p-4 block transition-transform hover:-translate-y-0.5 hover:border-white/20"
+                  style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
+                >
                   <p className="text-sm text-white/90">{video.title}</p>
                   <p className="mt-1 text-[10px] tracking-[0.25em] uppercase text-white/40">{video.handle}</p>
                   <p className="mt-3 text-sm leading-7 text-white/60">{video.text}</p>
                   <div className="mt-4 aspect-[9/16] rounded-2xl border border-white/10 bg-black/30 flex items-center justify-center">
                     <span className="text-[10px] tracking-[0.35em] uppercase text-white/45">TikTok Video Embed</span>
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           </motion.aside>
