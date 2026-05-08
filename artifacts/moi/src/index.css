@@ -227,6 +227,12 @@
   }
 }
 
+/* Force Sonner toast description to white */
+[data-sonner-toaster] [data-description] {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
 @layer utilities {
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
