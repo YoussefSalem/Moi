@@ -40,12 +40,12 @@ export function AmbassadorPage() {
           </p>
         </motion.section>
 
-        <section className="mt-14 grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-8 items-start">
+        <section className="mt-14 flex flex-col items-center gap-12">
           <motion.form
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.05 }}
-            className="rounded-3xl p-6 md:p-8 border border-black/10"
+            className="w-full max-w-3xl rounded-3xl p-6 md:p-8 border border-black/10"
             style={{ backgroundColor: "#f7f4ef", boxShadow: "0 16px 40px rgba(20,16,12,0.06)" }}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -111,14 +111,14 @@ export function AmbassadorPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="rounded-3xl p-6 md:p-8 border border-black/10"
+            className="w-full max-w-6xl rounded-3xl p-6 md:p-8 border border-black/10"
             style={{ backgroundColor: "#1f1916", boxShadow: "0 16px 40px rgba(20,16,12,0.10)" }}
           >
             <div className="flex items-center gap-3 mb-6">
               <Video size={16} className="text-white/70" />
               <p className="text-[10px] tracking-[0.35em] uppercase text-white/50">TikTok social proof</p>
             </div>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {videos.map((video) => (
                 <div key={video.title} className="rounded-2xl border border-white/10 p-4" style={{ backgroundColor: "rgba(255,255,255,0.03)" }}>
                   <p className="text-sm text-white/90">{video.title}</p>
