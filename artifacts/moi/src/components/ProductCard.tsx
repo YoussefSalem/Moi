@@ -11,21 +11,21 @@ interface ProductCardProps {
 }
 
 const STATIC_COLORS = [
-  { name: "Ivory", swatch: "#f2ede4" },
-  { name: "Sand", swatch: "#d1c2b0" },
-  { name: "Taupe", swatch: "#a28a76" },
-  { name: "Espresso", swatch: "#3a312c" },
+  { name: "Ivory", swatch: "#f0e1db" },
+  { name: "Sand", swatch: "#e6ddd3" },
+  { name: "Taupe", swatch: "#916241" },
+  { name: "Espresso", swatch: "#2d2724" },
 ];
 
 const SWATCH_MAP: Record<string, string> = {
-  ivory: "#f2ede4",
-  white: "#f5f5f0",
-  sand: "#d1c2b0",
-  beige: "#d1c2b0",
-  taupe: "#a28a76",
-  brown: "#6b4c3b",
-  espresso: "#3a312c",
-  black: "#1a1614",
+  ivory: "#f0e1db",
+  white: "#f0e1db",
+  sand: "#e6ddd3",
+  beige: "#e6ddd3",
+  taupe: "#916241",
+  brown: "#916241",
+  espresso: "#2d2724",
+  black: "#2d2724",
   navy: "#1c2444",
   camel: "#c19a6b",
   grey: "#9e9e9e",
