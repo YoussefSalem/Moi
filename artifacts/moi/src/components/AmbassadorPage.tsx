@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Send, UserRound, Phone, Mail, Facebook, Instagram, MessageCircleMore, Video } from "lucide-react";
+import { toast } from "sonner";
 
 const videos = [
   {
@@ -23,6 +25,53 @@ const videos = [
 ];
 
 export function AmbassadorPage() {
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    facebook: "",
+    instagram: "",
+    about: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!form.name.trim() || !form.email.trim()) {
+      toast.error("Please fill in your name and email.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/ambassador", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        toast.error(data.error ?? "Something went wrong. Please try again.");
+        return;
+      }
+
+      toast.success("Application sent! We'll be in touch soon.");
+      setForm({ name: "", phone: "", email: "", facebook: "", instagram: "", about: "" });
+    } catch {
+      toast.error("Could not send your application. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <main className="min-h-screen pt-20 pb-24 px-6 md:px-12" style={{ backgroundColor: "hsl(30 15% 95%)" }}>
       <div className="max-w-6xl mx-auto">
@@ -45,6 +94,7 @@ export function AmbassadorPage() {
 
         <section className="mt-14 flex flex-col items-center gap-12">
           <motion.form
+            onSubmit={handleSubmit}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.05 }}
@@ -56,13 +106,28 @@ export function AmbassadorPage() {
                 <span className="mb-2 flex items-center gap-2 text-[10px] tracking-[0.28em] uppercase" style={{ color: "#7a6e64" }}>
                   <UserRound size={13} /> Full name
                 </span>
-                <input className="w-full px-4 py-3 rounded-2xl border border-black/10 bg-white/70 outline-none" type="text" placeholder="Your full name" />
+                <input
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-2xl border border-black/10 bg-white/70 outline-none"
+                  type="text"
+                  placeholder="Your full name"
+                  required
+                />
               </label>
               <label className="block">
                 <span className="mb-2 flex items-center gap-2 text-[10px] tracking-[0.28em] uppercase" style={{ color: "#7a6e64" }}>
                   <Phone size={13} /> Phone number
                 </span>
-                <input className="w-full px-4 py-3 rounded-2xl border border-black/10 bg-white/70 outline-none" type="tel" placeholder="Phone number" />
+                <input
+                  name="phone"
+                  value={form.phone}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-2xl border border-black/10 bg-white/70 outline-none"
+                  type="tel"
+                  placeholder="Phone number"
+                />
               </label>
             </div>
 
@@ -71,7 +136,15 @@ export function AmbassadorPage() {
                 <span className="mb-2 flex items-center gap-2 text-[10px] tracking-[0.28em] uppercase" style={{ color: "#7a6e64" }}>
                   <Mail size={13} /> Email address
                 </span>
-                <input className="w-full px-4 py-3 rounded-2xl border border-black/10 bg-white/70 outline-none" type="email" placeholder="Email address" />
+                <input
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-2xl border border-black/10 bg-white/70 outline-none"
+                  type="email"
+                  placeholder="Email address"
+                  required
+                />
               </label>
             </div>
 
@@ -80,13 +153,27 @@ export function AmbassadorPage() {
                 <span className="mb-2 flex items-center gap-2 text-[10px] tracking-[0.28em] uppercase" style={{ color: "#7a6e64" }}>
                   <Facebook size={13} /> Facebook profile link
                 </span>
-                <input className="w-full px-4 py-3 rounded-2xl border border-black/10 bg-white/70 outline-none" type="url" placeholder="Optional" />
+                <input
+                  name="facebook"
+                  value={form.facebook}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-2xl border border-black/10 bg-white/70 outline-none"
+                  type="url"
+                  placeholder="Optional"
+                />
               </label>
               <label className="block">
                 <span className="mb-2 flex items-center gap-2 text-[10px] tracking-[0.28em] uppercase" style={{ color: "#7a6e64" }}>
                   <Instagram size={13} /> Instagram profile link
                 </span>
-                <input className="w-full px-4 py-3 rounded-2xl border border-black/10 bg-white/70 outline-none" type="url" placeholder="Optional" />
+                <input
+                  name="instagram"
+                  value={form.instagram}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-2xl border border-black/10 bg-white/70 outline-none"
+                  type="url"
+                  placeholder="Optional"
+                />
               </label>
             </div>
 
@@ -95,6 +182,9 @@ export function AmbassadorPage() {
                 <MessageCircleMore size={13} /> Tell us about yourself
               </span>
               <textarea
+                name="about"
+                value={form.about}
+                onChange={handleChange}
                 rows={6}
                 className="w-full px-4 py-3 rounded-2xl border border-black/10 bg-white/70 outline-none resize-none"
                 placeholder="Describe yourself, your audience, and why you'd like to become an ambassador."
@@ -102,11 +192,12 @@ export function AmbassadorPage() {
             </label>
 
             <button
-              type="button"
-              className="mt-6 inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full text-[10px] tracking-[0.34em] uppercase"
+              type="submit"
+              disabled={submitting}
+              className="mt-6 inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full text-[10px] tracking-[0.34em] uppercase disabled:opacity-50 transition-opacity"
               style={{ backgroundColor: "#1e1814", color: "#fff" }}
             >
-              <Send size={13} /> Apply Now
+              <Send size={13} /> {submitting ? "Sending…" : "Apply Now"}
             </button>
           </motion.form>
 
