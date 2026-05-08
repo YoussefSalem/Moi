@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
@@ -9,6 +9,7 @@ import { LookView } from "@/components/LookView";
 import { Footer } from "@/components/Footer";
 import { CartDrawer } from "@/components/CartDrawer";
 import { CustomerAuthModal } from "@/components/CustomerAuthModal";
+import { SearchDrawer } from "@/components/SearchDrawer";
 import { CartProvider } from "@/context/CartContext";
 import { CustomerProvider } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
@@ -48,14 +49,17 @@ const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
 function AppContent() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
   const [page, setPage] = useState<"home" | "accessories">("home");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
 
   const product1 = products[0] ?? IMAGES.product1;
   const product2 = products[1] ?? IMAGES.product2;
+  const allProducts = useMemo(() => products, [products]);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "hsl(30 15% 95%)" }}>
-      <Header onNavigate={setPage} dark={page === "accessories"} />
+      <Header onNavigate={setPage} onSearch={() => setSearchOpen(true)} dark={page === "accessories"} />
 
       {page === "home" ? (
         <main>
@@ -130,6 +134,19 @@ function AppContent() {
       <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
       <CartDrawer />
       <CustomerAuthModal />
+      <SearchDrawer
+        open={searchOpen}
+        products={allProducts}
+        query={searchQuery}
+        onQueryChange={setSearchQuery}
+        onClose={() => setSearchOpen(false)}
+        onSelect={(product) => {
+          setLookProduct(product);
+          setSearchOpen(false);
+          setSearchQuery("");
+          setPage("home");
+        }}
+      />
     </div>
   );
 }

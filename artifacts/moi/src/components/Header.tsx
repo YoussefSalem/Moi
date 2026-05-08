@@ -6,10 +6,11 @@ import { useCustomer } from "@/context/CustomerContext";
 
 interface HeaderProps {
   onNavigate?: (page: "home" | "accessories") => void;
+  onSearch?: () => void;
   dark?: boolean;
 }
 
-export function Header({ onNavigate, dark }: HeaderProps) {
+export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { itemCount, openCart } = useCart();
@@ -56,7 +57,7 @@ export function Header({ onNavigate, dark }: HeaderProps) {
           </a>
 
           <div className="flex items-center gap-5">
-            <button aria-label="Search" className="transition-opacity hover:opacity-60">
+            <button aria-label="Search" className="transition-opacity hover:opacity-60" onClick={onSearch}>
               <Search size={18} strokeWidth={1.5} style={{ color: iconColor }} />
             </button>
 
