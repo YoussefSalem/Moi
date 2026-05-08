@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Send, UserRound, Phone, Mail, Facebook, Instagram, MessageCircleMore, Video } from "lucide-react";
-import tiktokThumbnail from "@assets/image_1778214967705.png";
+const tiktokThumbnail = "/tiktok-thumbnail.png";
 
 const videos = [
   {
@@ -160,12 +160,13 @@ export function AmbassadorPage() {
                         <button
                           type="button"
                           onClick={() => setActiveVideo(index)}
-                          className="absolute inset-0 h-full w-full"
+                          className="absolute inset-0 overflow-hidden"
+                          style={{ padding: 0, border: "none", background: "none" }}
                         >
                           <img
                             src={tiktokThumbnail}
                             alt={video.title}
-                            className="absolute inset-0 h-full w-full object-cover"
+                            className="block w-full h-full object-cover"
                           />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
