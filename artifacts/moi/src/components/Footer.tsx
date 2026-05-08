@@ -1,53 +1,36 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Instagram, Twitter } from "lucide-react";
-import { ContactModal } from "@/components/ContactModal";
-import { subscribeToNewsletter, SHOPIFY_CONFIGURED } from "@/lib/shopify";
-
-const BASE = import.meta.env.BASE_URL ?? "/";
-
-async function subscribeEmail(email: string): Promise<{ success: boolean; error?: string }> {
-  if (SHOPIFY_CONFIGURED) {
-    return subscribeToNewsletter(email);
-  }
-  try {
-    const res = await fetch(`${BASE}api/newsletter`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({})) as { error?: string };
-      return { success: false, error: body.error ?? "Something went wrong." };
-    }
-    return { success: true };
-  } catch {
-    return { success: false, error: "Unable to subscribe. Please try again." };
-  }
-}
-
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown, Instagram, Twitter } from "lucide-react";
 export function Footer() {
-  const [email, setEmail] = useState("");
-  const [subStatus, setSubStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [subError, setSubError] = useState("");
-  const [contactOpen, setContactOpen] = useState(false);
+  const [openSection, setOpenSection] = useState<string | null>("return");
 
-  const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.includes("@")) return;
-    setSubStatus("loading");
-    setSubError("");
-    const result = await subscribeEmail(email);
-    if (result.success) {
-      setSubStatus("success");
-      setEmail("");
-    } else {
-      setSubStatus("error");
-      setSubError(result.error ?? "Something went wrong.");
-    }
-  };
+  const accordionSections: Array<{ title: string; description: string; body: string }> = [
+    {
+      title: "Care instructions",
+      description: "Handle each piece with care to preserve fit, texture, and finish over time.",
+      body: "We recommend gentle cleaning, low heat drying, and storing garments away from direct sunlight. For more delicate pieces, professional care is best.",
+    },
+    {
+      title: "Return policy",
+      description: "Simple returns within the policy window for eligible items.",
+      body: "Please keep items unworn, with original packaging and tags attached. If you need help with an exchange or return, contact us and we will guide you through the process.",
+    },
+    {
+      title: "Shipping",
+      description: "Fast, tracked delivery with clear timing by region.",
+      body: "Delivery times vary by location. Orders in Cairo and Giza typically arrive within 3 to 4 days, while governorates may take 5 to 6 working days. Tracking details are shared once your order is processed.",
+    },
+    {
+      title: "Contact us",
+      description: "Reach the team for product, order, or policy questions.",
+      body: "For more inquiries, email info@zuricairo.com or use the contact option in the footer menu. We aim to reply as quickly as possible.",
+    },
+  ];
 
-  const footerLinks = [
+  const quickLinks: Array<{
+    title: string;
+    links: Array<{ label: string; href: string }>;
+  }> = [
     {
       title: "Shop",
       links: [
@@ -55,15 +38,6 @@ export function Footer() {
         { label: "Clothing", href: "#" },
         { label: "Accessories", href: "#" },
         { label: "Sale", href: "#" },
-      ],
-    },
-    {
-      title: "Help",
-      links: [
-        { label: "Size Guide", href: "#" },
-        { label: "Shipping", href: "#" },
-        { label: "Returns", href: "#" },
-        { label: "Contact", href: "#", onClick: () => setContactOpen(true) },
       ],
     },
     {
@@ -87,110 +61,75 @@ export function Footer() {
 
   return (
     <>
-      <footer className="w-full py-20 px-6 md:px-12" style={{ backgroundColor: "#1e1814" }}>
-        <div className="max-w-7xl mx-auto">
-          {/* Logo */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-16"
-          >
-            <a
-              href="#"
-              className="font-serif text-4xl tracking-[0.4em] font-light"
-              style={{ color: "#faf8f5", letterSpacing: "0.5em" }}
-            >
-              MOI
-            </a>
-            <p
-              className="mt-4 text-[10px] tracking-[0.4em] uppercase font-light"
-              style={{ color: "rgba(250,248,245,0.4)" }}
-            >
-              Curated Fashion
-            </p>
-          </motion.div>
-
-          {/* Newsletter */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            className="max-w-md mx-auto mb-16 text-center"
-          >
-            <p
-              className="text-[10px] tracking-[0.35em] uppercase mb-5 font-light"
-              style={{ color: "rgba(250,248,245,0.5)" }}
-            >
-              Stay in the World of Moi
-            </p>
-            {subStatus === "success" ? (
-              <motion.p
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-[11px] tracking-[0.2em] uppercase font-light"
-                style={{ color: "rgba(250,248,245,0.6)" }}
-              >
-                Thank you for subscribing.
-              </motion.p>
-            ) : (
-              <form onSubmit={handleSubscribe} className="flex gap-0">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Your email address"
-                  className="flex-1 px-4 py-3 text-[11px] tracking-wide bg-transparent outline-none placeholder:opacity-30 font-light"
-                  style={{
-                    color: "#faf8f5",
-                    border: "1px solid rgba(250,248,245,0.18)",
-                    borderRight: "none",
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={subStatus === "loading"}
-                  className="px-6 py-3 text-[10px] tracking-[0.28em] uppercase font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
-                  style={{
-                    backgroundColor: "rgba(250,248,245,0.12)",
-                    color: "#faf8f5",
-                    border: "1px solid rgba(250,248,245,0.18)",
-                  }}
-                >
-                  {subStatus === "loading" ? "…" : "Subscribe"}
-                </button>
-              </form>
-            )}
-            {subStatus === "error" && (
-              <p className="mt-2 text-[10px] tracking-wide" style={{ color: "rgba(255,160,120,0.8)" }}>
-                {subError}
-              </p>
-            )}
-          </motion.div>
-
-          <div className="w-full h-px mb-16" style={{ backgroundColor: "rgba(250,248,245,0.1)" }} />
-
-          {/* Links */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-16">
-            {footerLinks.map((col) => (
-              <div key={col.title}>
-                <p
-                  className="text-[10px] tracking-[0.35em] uppercase mb-6 font-medium"
-                  style={{ color: "rgba(250,248,245,0.5)" }}
-                >
-                  {col.title}
+      <footer className="w-full px-6 md:px-12 py-14 md:py-18" style={{ backgroundColor: "#f3f1ec" }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-10 border-t border-black/10 pt-8">
+            <div className="flex items-center justify-between gap-4 mb-8">
+              <div>
+                <p className="text-[10px] tracking-[0.35em] uppercase text-black/45">Moi</p>
+                <p className="mt-3 max-w-xl text-sm md:text-base leading-7 text-black/60">
+                  Elegant support, thoughtful care, and a smooth shopping experience.
                 </p>
+              </div>
+              <div className="hidden md:flex gap-4">
+                <a href="#" className="transition-opacity hover:opacity-50" aria-label="Instagram">
+                  <Instagram size={18} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                </a>
+                <a href="#" className="transition-opacity hover:opacity-50" aria-label="Twitter">
+                  <Twitter size={18} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                </a>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {accordionSections.map((item) => {
+                const isOpen = openSection === item.title.toLowerCase().replace(/\s+/g, "-");
+                const key = item.title.toLowerCase().replace(/\s+/g, "-");
+                return (
+                  <div key={item.title} className="border-b border-black/8">
+                    <button
+                      type="button"
+                      onClick={() => setOpenSection(isOpen ? null : key)}
+                      className="w-full flex items-center justify-between py-5 text-left"
+                    >
+                      <div>
+                        <p className="text-[10px] tracking-[0.28em] uppercase text-black/35">{item.title}</p>
+                        <p className="mt-2 text-sm md:text-base text-black/70">{item.description}</p>
+                      </div>
+                      <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.28 }}>
+                        <ChevronDown size={18} strokeWidth={1.5} className="text-black/45" />
+                      </motion.span>
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {isOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.35, ease: [0.76, 0, 0.24, 1] }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pb-6 text-sm leading-7 text-black/55 max-w-2xl">
+                            {item.body}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 mt-12">
+            {quickLinks.map((col) => (
+              <div key={col.title}>
+                <p className="text-[10px] tracking-[0.3em] uppercase mb-5 text-black/40">{col.title}</p>
                 <ul className="space-y-3">
                   {col.links.map((link) => (
                     <li key={link.label}>
                       <a
                         href={link.href}
-                        onClick={link.onClick ? (e) => { e.preventDefault(); link.onClick!(); } : undefined}
-                        className="text-sm font-light tracking-wide hover:opacity-50 transition-opacity"
-                        style={{ color: "rgba(250,248,245,0.75)" }}
+                        className="text-sm text-black/65 hover:text-black transition-colors"
                       >
                         {link.label}
                       </a>
@@ -201,29 +140,13 @@ export function Footer() {
             ))}
           </div>
 
-          <div className="w-full h-px mb-10" style={{ backgroundColor: "rgba(250,248,245,0.1)" }} />
-
-          {/* Bottom bar */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <p
-              className="text-[10px] tracking-widest uppercase font-light"
-              style={{ color: "rgba(250,248,245,0.3)" }}
-            >
-              © 2026 Moi. All rights reserved.
-            </p>
-            <div className="flex gap-5">
-              <a href="#" className="transition-opacity hover:opacity-50" aria-label="Instagram">
-                <Instagram size={18} strokeWidth={1.5} style={{ color: "rgba(250,248,245,0.5)" }} />
-              </a>
-              <a href="#" className="transition-opacity hover:opacity-50" aria-label="Twitter">
-                <Twitter size={18} strokeWidth={1.5} style={{ color: "rgba(250,248,245,0.5)" }} />
-              </a>
-            </div>
+          <div className="mt-12 pt-6 border-t border-black/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-black/35">© 2026 Moi. All rights reserved.</p>
+            <p className="text-[10px] tracking-[0.22em] uppercase text-black/35">Smooth, elegant, minimal.</p>
           </div>
         </div>
       </footer>
 
-      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
     </>
   );
 }
