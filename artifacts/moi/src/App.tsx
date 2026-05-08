@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductDivider } from "@/components/ProductDivider";
+import { NewsletterSection } from "@/components/NewsletterSection";
 import { AccessoriesPage } from "@/components/AccessoriesPage";
 import { AmbassadorPage } from "@/components/AmbassadorPage";
 import { LookView } from "@/components/LookView";
@@ -85,6 +86,8 @@ function AppContent() {
               onLookView={setLookProduct}
             />
           )}
+
+          <NewsletterSection />
 
           <section className="py-16 md:py-24 px-6">
             <div className="max-w-3xl mx-auto flex flex-col items-center gap-6 text-center">
