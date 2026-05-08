@@ -42,10 +42,7 @@ export function HeroVideo() {
   }, []);
 
   return (
-    <section
-      className="relative w-full overflow-hidden"
-      style={{ height: "clamp(320px, 88vw, 100svh)" }}
-    >
+    <section className="relative w-full h-[100svh] overflow-hidden">
       {/* Ambient edge glow — derived from hero image dominant color */}
       <div
         className="absolute inset-0 pointer-events-none z-10"
