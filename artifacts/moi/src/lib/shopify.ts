@@ -283,12 +283,15 @@ export async function getCustomer(
 }
 
 export async function subscribeToNewsletter(email: string): Promise<{ success: boolean; error?: string }> {
-  const result = await customerCreate(email, crypto.randomUUID() + "Aa1!", undefined, undefined, true);
-  if ("error" in result) {
-    if (result.error.toLowerCase().includes("already")) {
-      return { success: true };
-    }
-    return { success: false, error: result.error };
+  const res = await fetch("/api/newsletter", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, error: json.error ?? "Could not subscribe. Please try again." };
   }
   return { success: true };
 }
