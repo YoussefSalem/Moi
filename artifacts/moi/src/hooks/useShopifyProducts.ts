@@ -30,12 +30,19 @@ function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductConfig): P
     filmstrip: filmstripImages,
     variantId: firstAvailable?.id,
     variants,
-    colorSwatches: Object.fromEntries(
-      shopify.variants.nodes
-        .flatMap((variant) => variant.selectedOptions)
-        .filter((option, index, array) => option.name.toLowerCase() === "color" && array.findIndex((item) => item.name === option.name && item.value === option.value) === index)
-        .map((option) => [option.value.toLowerCase(), option.value === "Black" ? "#000000" : fallback.colorSwatches?.[option.value.toLowerCase()] ?? "#c8bdb5"]),
-    ),
+    colorSwatches: {
+      black: "#000000",
+      blue: "#a9bdd7",
+      brown: "#9a6338",
+      red: "#f12e2e",
+      gold: "#d8a018",
+      ivory: "#e3d4cb",
+      white: "#e3d4cb",
+      beige: "#e3d4cb",
+      sand: "#e3d4cb",
+      taupe: "#e3d4cb",
+      espresso: "#9a6338",
+    },
     defaultInventory: {
       brown: { Small: 10, Medium: 10 },
       taupe: { Small: 10, Medium: 10 },
