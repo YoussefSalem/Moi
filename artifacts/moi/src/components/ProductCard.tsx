@@ -10,28 +10,6 @@ interface ProductCardProps {
   onLookView: (product: ProductConfig) => void;
 }
 
-const SWATCH_MAP: Record<string, string> = {
-  blue: "#a9bdd7",
-  ivory: "#e3d4cb",
-  white: "#e3d4cb",
-  beige: "#e3d4cb",
-  sand: "#e3d4cb",
-  taupe: "#e3d4cb",
-  brown: "#9a6338",
-  espresso: "#9a6338",
-  black: "#2e2927",
-  red: "#f12e2e",
-  gold: "#d8a018",
-  navy: "#1c2444",
-  camel: "#c19a6b",
-  grey: "#9e9e9e",
-  gray: "#9e9e9e",
-};
-
-function swatchFor(name: string): string {
-  return SWATCH_MAP[name.toLowerCase()] ?? "#c8bdb5";
-}
-
 export function ProductCard({ product, onLookView }: ProductCardProps) {
   const color = useImageColor(product.productShot);
   const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
@@ -133,6 +111,9 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     if (defaultStock >= 0) return defaultStock <= 0;
     return hasShopifyVariants && selectedVariant ? !selectedVariant.availableForSale : false;
   })();
+
+  const swatchFor = (name: string): string =>
+    product.colorSwatches?.[name.toLowerCase()] ?? "#c8bdb5";
 
   const displayColors = colorOption
     ? colorOption.values.map((name) => ({ name, swatch: swatchFor(name) }))

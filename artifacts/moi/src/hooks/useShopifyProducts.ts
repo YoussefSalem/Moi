@@ -30,6 +30,7 @@ function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductConfig): P
     filmstrip: filmstripImages,
     variantId: firstAvailable?.id,
     variants,
+    colorSwatches: fallback.colorSwatches,
     defaultInventory: {
       brown: { Small: 10, Medium: 10 },
       taupe: { Small: 10, Medium: 10 },

@@ -332,4 +332,5 @@ export interface ProductConfig {
   readonly variantId?: string;
   readonly variants?: readonly VariantOption[];
   readonly defaultInventory?: Record<string, Record<string, number>>;
+  readonly colorSwatches?: Record<string, string>;
 }
