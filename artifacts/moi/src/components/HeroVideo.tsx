@@ -42,7 +42,7 @@ export function HeroVideo() {
   }, []);
 
   return (
-    <section className="relative w-full h-screen overflow-hidden">
+    <section className="relative w-full h-[100svh] overflow-hidden">
       {/* Ambient edge glow — derived from hero image dominant color */}
       <div
         className="absolute inset-0 pointer-events-none z-10"
@@ -69,10 +69,10 @@ export function HeroVideo() {
         <motion.img
           src={IMAGES.hero.fallbackUrl}
           alt="Moi fashion"
-          className="absolute inset-0 w-full h-full object-cover object-top md:object-center"
+          className="absolute inset-0 w-full h-full object-cover object-[center_18%] md:object-center"
           style={{ objectPosition: "center 18%" }}
           initial={{ scale: 1 }}
-          animate={{ scale: 1.07 }}
+          animate={{ scale: 1.1 }}
           transition={{ duration: 14, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
         />
       )}
@@ -91,7 +91,7 @@ export function HeroVideo() {
         initial={{ opacity: 0, y: 28 }}
         animate={{ opacity: loaded ? 1 : 0, y: loaded ? 0 : 28 }}
         transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
-        className="absolute bottom-0 left-0 right-0 pb-20 flex flex-col items-center text-center px-6 z-[3]"
+        className="absolute bottom-0 left-0 right-0 pb-20 flex flex-col items-center text-center px-6 z-[3] md:pb-20"
       >
         <p
           className="text-[10px] tracking-[0.55em] uppercase mb-4 font-light"
@@ -104,7 +104,7 @@ export function HeroVideo() {
           className="font-serif font-light mb-8"
           style={{
             color: "#fff",
-            fontSize: "clamp(5rem, 13vw, 11rem)",
+            fontSize: "clamp(4.3rem, 15vw, 11rem)",
             letterSpacing: "0.02em",
             lineHeight: 0.9,
             fontFamily: "'Cormorant Garamond', Georgia, serif",
