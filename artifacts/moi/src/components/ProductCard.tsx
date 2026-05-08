@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { Bell } from "lucide-react";
 import { useImageColor } from "@/hooks/useImageColor";
 import type { ProductConfig, VariantOption } from "@/config/images";
 import { useCart } from "@/context/CartContext";
@@ -143,6 +144,13 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     });
     setAddedFeedback(true);
     setTimeout(() => setAddedFeedback(false), 1800);
+  };
+
+  const handleNotifyMe = () => {
+    toast.success("We'll notify you when it's back.", {
+      description: `${product.name} · ${selectedColor} · ${selectedSize}`,
+      duration: 2500,
+    });
   };
 
   return (
@@ -303,26 +311,40 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
           </p>
 
           {/* Add to Cart */}
-          <motion.button
-            type="button"
-            onClick={handleAddToCart}
-            disabled={isOutOfStock}
-            whileTap={isOutOfStock ? {} : { scale: 0.97 }}
-            className="min-w-[204px] px-7 py-4 text-[10px] tracking-[0.35em] uppercase font-light border transition-all duration-300 self-center"
-            style={{
-              color: addedFeedback ? "#1e1814" : isOutOfStock ? "#7a6e64" : "#fff",
-              borderColor: "#1e1814",
-              backgroundColor: addedFeedback
-                ? "rgba(30,24,20,0.06)"
-                : isOutOfStock
-                  ? "rgba(30,24,20,0.06)"
-                  : "#1e1814",
-              cursor: isOutOfStock ? "not-allowed" : "pointer",
-              letterSpacing: "0.28em",
-            }}
-          >
-            {isOutOfStock ? "Out of Stock" : addedFeedback ? "Added ✓" : "Add to Cart"}
-          </motion.button>
+          {isOutOfStock ? (
+            <motion.button
+              type="button"
+              onClick={handleNotifyMe}
+              whileTap={{ scale: 0.98 }}
+              className="min-w-[220px] px-7 py-4 text-[10px] tracking-[0.35em] uppercase font-light border transition-all duration-300 self-center flex items-center justify-center gap-2"
+              style={{
+                color: "#f5f0e8",
+                borderColor: "rgba(245,240,232,0.22)",
+                backgroundColor: "rgba(30,24,20,0.92)",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.16)",
+                letterSpacing: "0.28em",
+              }}
+            >
+              <Bell size={12} strokeWidth={1.8} />
+              Notify me when available
+            </motion.button>
+          ) : (
+            <motion.button
+              type="button"
+              onClick={handleAddToCart}
+              whileTap={{ scale: 0.97 }}
+              className="min-w-[204px] px-7 py-4 text-[10px] tracking-[0.35em] uppercase font-light border transition-all duration-300 self-center"
+              style={{
+                color: addedFeedback ? "#1e1814" : "#fff",
+                borderColor: "#1e1814",
+                backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
+                cursor: "pointer",
+                letterSpacing: "0.28em",
+              }}
+            >
+              {addedFeedback ? "Added ✓" : "Add to Cart"}
+            </motion.button>
+          )}
         </div>
       </motion.div>
     </section>
