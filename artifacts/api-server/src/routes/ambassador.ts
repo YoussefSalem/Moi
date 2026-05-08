@@ -12,37 +12,62 @@ interface AmbassadorBody {
   message?: unknown;
 }
 
-interface ShopifyFormContext {
-  contactId: string;
-  cookies: string;
-}
+async function notifyViaShopify(
+  storeDomain: string,
+  adminToken: string,
+  data: {
+    name: string;
+    email: string;
+    phone: string;
+    facebook: string;
+    instagram: string;
+    message: string;
+  },
+): Promise<void> {
+  const noteLines = [
+    `=== MOI AMBASSADOR APPLICATION ===`,
+    ``,
+    data.phone ? `Phone: ${data.phone}` : null,
+    data.facebook ? `Facebook: ${data.facebook}` : null,
+    data.instagram ? `Instagram: ${data.instagram}` : null,
+    ``,
+    `--- About the applicant ---`,
+    data.message,
+  ]
+    .filter((l) => l !== null)
+    .join("\n");
 
-async function getShopifyFormContext(storeDomain: string): Promise<ShopifyFormContext | null> {
-  const res = await fetch(`https://${storeDomain}/pages/contact`, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
+  const nameParts = data.name.trim().split(/\s+/);
+  const firstName = nameParts[0];
+  const lastName = nameParts.slice(1).join(" ") || "-";
+
+  const body = {
+    customer: {
+      first_name: firstName,
+      last_name: lastName,
+      email: data.email,
+      phone: data.phone || undefined,
+      note: noteLines,
+      tags: "ambassador-applicant",
+      send_email_welcome: false,
     },
-    redirect: "follow",
+  };
+
+  const url = `https://${storeDomain}/admin/api/2024-01/customers.json`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Shopify-Access-Token": adminToken,
+    },
+    body: JSON.stringify(body),
   });
 
-  if (!res.ok) return null;
-
-  const html = await res.text();
-
-  // Extract contact[id] value from the hidden field
-  const idMatch = html.match(/name="contact\[id\]"[^>]*value="([^"]+)"/);
-  if (!idMatch) return null;
-
-  // Collect all Set-Cookie headers
-  const rawCookies = res.headers.getSetCookie?.() ?? [];
-  const cookies = rawCookies
-    .map((c) => c.split(";")[0])
-    .filter(Boolean)
-    .join("; ");
-
-  return { contactId: idMatch[1], cookies };
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Shopify Admin API ${res.status}: ${text}`);
+  }
 }
 
 router.post("/ambassador", async (req, res) => {
@@ -70,22 +95,7 @@ router.post("/ambassador", async (req, res) => {
 
   req.log.info({ name: safeName, email: safeEmail }, "Ambassador application received");
 
-  const bodyText = [
-    `=== MOI AMBASSADOR APPLICATION ===`,
-    ``,
-    `Name: ${safeName}`,
-    `Email: ${safeEmail}`,
-    safePhone ? `Phone: ${safePhone}` : null,
-    safeFacebook ? `Facebook: ${safeFacebook}` : null,
-    safeInstagram ? `Instagram: ${safeInstagram}` : null,
-    ``,
-    `--- About the applicant ---`,
-    safeMessage,
-  ]
-    .filter((line) => line !== null)
-    .join("\n");
-
-  // Always save to database first — guaranteed capture regardless of email
+  // Save to DB first — guaranteed capture
   let dbId: number | undefined;
   try {
     const [row] = await db
@@ -107,49 +117,26 @@ router.post("/ambassador", async (req, res) => {
     return;
   }
 
-  // Relay to Shopify contact form so the store owner receives an email
+  // Notify via Shopify Admin API — creates a tagged customer record
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  if (storeDomain) {
+  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
+
+  if (storeDomain && adminToken) {
     try {
-      const ctx = await getShopifyFormContext(storeDomain);
-
-      if (ctx) {
-        req.log.info({ contactId: ctx.contactId }, "Shopify form context acquired");
-
-        const params = new URLSearchParams({
-          "form_type": "contact",
-          "utf8": "✓",
-          "contact[id]": ctx.contactId,
-          "contact[name]": safeName,
-          "contact[email]": safeEmail,
-          "contact[phone]": safePhone,
-          "contact[body]": bodyText,
-        });
-
-        const postRes = await fetch(`https://${storeDomain}/contact`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-            Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            Referer: `https://${storeDomain}/pages/contact`,
-            ...(ctx.cookies ? { Cookie: ctx.cookies } : {}),
-          },
-          body: params.toString(),
-          redirect: "manual",
-        });
-
-        req.log.info(
-          { status: postRes.status, location: postRes.headers.get("location") },
-          "Shopify contact form POST response",
-        );
-      } else {
-        req.log.warn({ storeDomain }, "Could not get Shopify form context");
-      }
+      await notifyViaShopify(storeDomain, adminToken, {
+        name: safeName,
+        email: safeEmail,
+        phone: safePhone,
+        facebook: safeFacebook,
+        instagram: safeInstagram,
+        message: safeMessage,
+      });
+      req.log.info({ id: dbId }, "Ambassador customer created in Shopify");
     } catch (err) {
-      req.log.warn({ err }, "Shopify relay failed — application already saved to DB");
+      req.log.warn({ err }, "Shopify customer creation failed — application saved to DB");
     }
+  } else {
+    req.log.warn("SHOPIFY_ADMIN_API_TOKEN or VITE_SHOPIFY_STORE_DOMAIN not set");
   }
 
   res.status(200).json({ success: true });
