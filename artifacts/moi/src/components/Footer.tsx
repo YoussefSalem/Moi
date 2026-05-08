@@ -112,26 +112,6 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 mt-12">
-            {quickLinks.map((col) => (
-              <div key={col.title}>
-                <p className="text-[10px] tracking-[0.3em] uppercase mb-5 text-black/40">{col.title}</p>
-                <ul className="space-y-3">
-                  {col.links.map((link) => (
-                    <li key={link.label}>
-                      <a
-                        href={link.href}
-                        className="text-sm text-black/65 hover:text-black transition-colors"
-                      >
-                        {link.label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
           <div className="mt-12 pt-6 border-t border-black/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <p className="text-[10px] tracking-[0.3em] uppercase text-black/35">© 2026 Moi. All rights reserved.</p>
             <p className="text-[10px] tracking-[0.22em] uppercase text-black/35">Smooth, elegant, minimal.</p>
