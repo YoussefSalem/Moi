@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Send, UserRound, Phone, Mail, Facebook, Instagram, MessageCircleMore, Video } from "lucide-react";
+import tiktokThumbnail from "@assets/image_1778214967705.png";
 
 const videos = [
   {
@@ -22,7 +24,21 @@ const videos = [
   },
 ];
 
+const embedUrls = [
+  "https://www.tiktok.com/embed/v2/7637274579974606087",
+  "https://www.tiktok.com/embed/v2/7329247143737249056",
+  "https://www.tiktok.com/embed/v2/7598245849679826206",
+];
+
+const captions = [
+  "A clean, modern look styled for day-to-night wear.",
+  "Real try-on content that builds trust and shows the fit.",
+  "Short-form content that feels authentic and easy to share.",
+];
+
 export function AmbassadorPage() {
+  const [activeVideo, setActiveVideo] = useState<number | null>(null);
+
   return (
     <main className="min-h-screen pt-20 pb-24 px-6 md:px-12" style={{ backgroundColor: "hsl(30 15% 95%)" }}>
       <div className="max-w-6xl mx-auto">
@@ -122,22 +138,45 @@ export function AmbassadorPage() {
               <p className="text-[10px] tracking-[0.35em] uppercase text-white/50">TikTok social proof</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {videos.map((video) => (
-                <a
+              {videos.map((video, index) => (
+                <div
                   key={video.title}
-                  href={video.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-2xl border border-white/10 p-4 block transition-transform hover:-translate-y-0.5 hover:border-white/20"
+                  className="rounded-2xl border border-white/10 p-4"
                   style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
                 >
                   <p className="text-sm text-white/90">{video.title}</p>
                   <p className="mt-1 text-[10px] tracking-[0.25em] uppercase text-white/40">{video.handle}</p>
-                  <p className="mt-3 text-sm leading-7 text-white/60">{video.text}</p>
-                  <div className="mt-4 aspect-[9/16] rounded-2xl border border-white/10 bg-black/30 flex items-center justify-center">
-                    <span className="text-[10px] tracking-[0.35em] uppercase text-white/45">TikTok Video Embed</span>
+                  <p className="mt-3 text-sm leading-7 text-white/60">{captions[index]}</p>
+                  <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+                    <div className="relative aspect-[9/16]">
+                      {activeVideo === index ? (
+                        <iframe
+                          title={video.title}
+                          src={embedUrls[index]}
+                          className="absolute inset-0 h-full w-full"
+                          allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setActiveVideo(index)}
+                          className="absolute inset-0 h-full w-full"
+                        >
+                          <img
+                            src={tiktokThumbnail}
+                            alt={video.title}
+                            className="absolute inset-0 h-full w-full object-cover"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
+                              <div className="ml-1 h-0 w-0 border-y-[10px] border-y-transparent border-l-[16px] border-l-white" />
+                            </div>
+                          </div>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </a>
+                </div>
               ))}
             </div>
           </motion.aside>
