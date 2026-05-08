@@ -221,7 +221,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       checkoutUrl: shopifyCart?.checkoutUrl ?? null,
       formatShopifyLinePrice,
       cartTotal,
-      isShopify: SHOPIFY_CONFIGURED,
+      isShopify: shopifyActive,
     }}>
       {children}
     </CartContext.Provider>

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 
+const BASE = import.meta.env.BASE_URL ?? "/";
+
 interface ContactModalProps {
   open: boolean;
   onClose: () => void;
@@ -22,7 +24,7 @@ export function ContactModal({ open, onClose }: ContactModalProps) {
     setStatus("loading");
     setErrorMsg("");
     try {
-      const res = await fetch("/api/contact", {
+      const res = await fetch(`${BASE}api/contact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, message }),

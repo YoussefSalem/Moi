@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { useImageColor } from "@/hooks/useImageColor";
 import type { ProductConfig, VariantOption } from "@/config/images";
 import { useCart } from "@/context/CartContext";
