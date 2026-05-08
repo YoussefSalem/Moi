@@ -282,7 +282,7 @@ export async function getCustomer(
   return data.customer;
 }
 
-export async function subscribeToNewsletter(email: string): Promise<{ success: boolean; error?: string }> {
+export async function subscribeToNewsletter(email: string): Promise<{ success: boolean; delivered: boolean; note?: string; error?: string }> {
   const res = await fetch("/api/newsletter", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -291,9 +291,9 @@ export async function subscribeToNewsletter(email: string): Promise<{ success: b
 
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
-    return { success: false, error: json.error ?? "Could not subscribe. Please try again." };
+    return { success: false, delivered: false, error: json.error ?? "Could not subscribe. Please try again." };
   }
-  return { success: true };
+  return { success: true, delivered: Boolean(json.delivered), note: json.note };
 }
 
 export function formatMoney(amount: string, currencyCode: string): string {

@@ -65,11 +65,24 @@ router.post("/newsletter", async (req, res) => {
   try {
     await sendNewsletterConfirmationEmail(safeEmail);
     req.log.info({ email: safeEmail }, "Newsletter confirmation sent");
+    res.status(200).json({ success: true, delivered: true });
+    return;
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const isResendTestLimit = message.includes("only send testing emails") || message.includes("verify a domain");
     req.log.warn({ err, email: safeEmail }, "Newsletter confirmation email failed");
+
+    if (isResendTestLimit) {
+      res.status(200).json({
+        success: true,
+        delivered: false,
+        note: "Email sending is currently limited to your verified test inbox. Verify a domain in Resend to send to other recipients.",
+      });
+      return;
+    }
   }
 
-  res.status(200).json({ success: true });
+  res.status(500).json({ success: false, error: "Could not send the confirmation email right now." });
 });
 
 export default router;
