@@ -14,6 +14,7 @@ function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductConfig): P
     id: v.id,
     title: v.title,
     availableForSale: v.availableForSale,
+    inventoryQuantity: undefined,
     price: formatMoney(v.price.amount, v.price.currencyCode),
     selectedOptions: v.selectedOptions,
   }));
@@ -29,6 +30,13 @@ function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductConfig): P
     filmstrip: filmstripImages,
     variantId: firstAvailable?.id,
     variants,
+    defaultInventory: {
+      brown: { Small: 10, Medium: 10 },
+      taupe: { Small: 10, Medium: 10 },
+      ivory: { Small: 10, Medium: 10 },
+      sand: { Small: 10, Medium: 10 },
+      espresso: { Small: 10, Medium: 10 },
+    },
   };
 }
 

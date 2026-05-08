@@ -140,6 +140,7 @@ export interface VariantOption {
   id: string;
   title: string;
   availableForSale: boolean;
+  inventoryQuantity?: number;
   price: string;
   selectedOptions: { name: string; value: string }[];
 }
@@ -162,4 +163,5 @@ export interface ProductConfig {
   readonly ref: string;
   readonly variantId?: string;
   readonly variants?: VariantOption[];
+  readonly defaultInventory?: Record<string, Record<string, number>>;
 }
