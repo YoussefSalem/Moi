@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import nodemailer from "nodemailer";
 
 const router: IRouter = Router();
 
@@ -32,49 +33,73 @@ router.post("/ambassador", async (req, res) => {
   const safeInstagram = typeof instagram === "string" ? instagram.trim() : "";
   const safeAbout = typeof about === "string" ? about.trim() : "";
 
-  const lines = [
-    `Ambassador Application — ${safeName}`,
-    `Email: ${safeEmail}`,
-    safePhone ? `Phone: ${safePhone}` : "",
-    safeFacebook ? `Facebook: ${safeFacebook}` : "",
-    safeInstagram ? `Instagram: ${safeInstagram}` : "",
-    safeAbout ? `\nAbout:\n${safeAbout}` : "",
-  ].filter(Boolean);
-
-  const messageBody = lines.join("\n");
-
   req.log.info({ name: safeName, email: safeEmail }, "Ambassador application received");
 
-  const shopDomain = process.env["VITE_SHOPIFY_STORE_DOMAIN"];
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, AMBASSADOR_EMAIL_TO } =
+    process.env;
 
-  if (shopDomain) {
+  const emailTo = AMBASSADOR_EMAIL_TO ?? "youssefasalem@gmail.com";
+
+  if (SMTP_USER && SMTP_PASS) {
     try {
-      const formData = new URLSearchParams({
-        form_type: "contact",
-        utf8: "✓",
-        "contact[name]": safeName,
-        "contact[email]": safeEmail,
-        "contact[body]": messageBody,
+      const transporter = nodemailer.createTransport({
+        host: SMTP_HOST ?? "smtp.gmail.com",
+        port: SMTP_PORT ? parseInt(SMTP_PORT, 10) : 587,
+        secure: SMTP_PORT === "465",
+        auth: { user: SMTP_USER, pass: SMTP_PASS },
       });
 
-      const shopRes = await fetch(`https://${shopDomain}/contact`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: formData.toString(),
-        redirect: "manual",
+      const textLines = [
+        `Ambassador Application`,
+        ``,
+        `Name:      ${safeName}`,
+        `Email:     ${safeEmail}`,
+        safePhone ? `Phone:     ${safePhone}` : "",
+        safeFacebook ? `Facebook:  ${safeFacebook}` : "",
+        safeInstagram ? `Instagram: ${safeInstagram}` : "",
+        safeAbout ? `\nAbout:\n${safeAbout}` : "",
+      ].filter((l) => l !== undefined);
+
+      const htmlLines = [
+        `<h2 style="font-family:sans-serif">Ambassador Application — Moi</h2>`,
+        `<table style="font-family:sans-serif;border-collapse:collapse">`,
+        `<tr><td style="padding:4px 12px 4px 0;color:#666">Name</td><td style="padding:4px 0"><strong>${safeName}</strong></td></tr>`,
+        `<tr><td style="padding:4px 12px 4px 0;color:#666">Email</td><td style="padding:4px 0"><a href="mailto:${safeEmail}">${safeEmail}</a></td></tr>`,
+        safePhone
+          ? `<tr><td style="padding:4px 12px 4px 0;color:#666">Phone</td><td style="padding:4px 0">${safePhone}</td></tr>`
+          : "",
+        safeFacebook
+          ? `<tr><td style="padding:4px 12px 4px 0;color:#666">Facebook</td><td style="padding:4px 0"><a href="${safeFacebook}">${safeFacebook}</a></td></tr>`
+          : "",
+        safeInstagram
+          ? `<tr><td style="padding:4px 12px 4px 0;color:#666">Instagram</td><td style="padding:4px 0"><a href="${safeInstagram}">${safeInstagram}</a></td></tr>`
+          : "",
+        `</table>`,
+        safeAbout
+          ? `<h3 style="font-family:sans-serif;margin-top:20px">About</h3><p style="font-family:sans-serif;white-space:pre-wrap">${safeAbout}</p>`
+          : "",
+      ].filter(Boolean);
+
+      await transporter.sendMail({
+        from: `"Moi Ambassadors" <${SMTP_USER}>`,
+        to: emailTo,
+        replyTo: safeEmail,
+        subject: `Ambassador Application — ${safeName}`,
+        text: textLines.join("\n"),
+        html: htmlLines.join(""),
       });
 
-      req.log.info(
-        { status: shopRes.status },
-        "Shopify contact form response",
-      );
+      req.log.info({ to: emailTo }, "Ambassador email sent");
     } catch (err) {
-      req.log.warn({ err }, "Shopify contact form submission failed — logged only");
+      req.log.error({ err }, "Failed to send ambassador email");
+      res.status(500).json({ error: "Failed to send your application. Please try again." });
+      return;
     }
   } else {
-    req.log.warn("VITE_SHOPIFY_STORE_DOMAIN not set — ambassador form logged only");
+    req.log.warn(
+      { name: safeName, email: safeEmail },
+      "SMTP not configured — ambassador application logged only",
+    );
   }
 
   res.status(200).json({ success: true });
