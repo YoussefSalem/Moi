@@ -109,14 +109,170 @@ export const IMAGES = {
     outer: "Outer shell: 100% Polyester",
     lining: "Lining: 96% Polyester, 4% Elastane",
     ref: "2076/511/400",
+    variants: [
+      {
+        id: "moi-versa-top-ivory-small",
+        title: "Ivory / Small",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Ivory" },
+          { name: "Size", value: "Small" },
+        ],
+      },
+      {
+        id: "moi-versa-top-ivory-medium",
+        title: "Ivory / Medium",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Ivory" },
+          { name: "Size", value: "Medium" },
+        ],
+      },
+      {
+        id: "moi-versa-top-sand-small",
+        title: "Sand / Small",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Sand" },
+          { name: "Size", value: "Small" },
+        ],
+      },
+      {
+        id: "moi-versa-top-sand-medium",
+        title: "Sand / Medium",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Sand" },
+          { name: "Size", value: "Medium" },
+        ],
+      },
+      {
+        id: "moi-versa-top-taupe-small",
+        title: "Taupe / Small",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Taupe" },
+          { name: "Size", value: "Small" },
+        ],
+      },
+      {
+        id: "moi-versa-top-taupe-medium",
+        title: "Taupe / Medium",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Taupe" },
+          { name: "Size", value: "Medium" },
+        ],
+      },
+      {
+        id: "moi-versa-top-espresso-small",
+        title: "Espresso / Small",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Espresso" },
+          { name: "Size", value: "Small" },
+        ],
+      },
+      {
+        id: "moi-versa-top-espresso-medium",
+        title: "Espresso / Medium",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Espresso" },
+          { name: "Size", value: "Medium" },
+        ],
+      },
+      {
+        id: "moi-versa-top-brown-small",
+        title: "Brown / Small",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Brown" },
+          { name: "Size", value: "Small" },
+        ],
+      },
+      {
+        id: "moi-versa-top-brown-medium",
+        title: "Brown / Medium",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Brown" },
+          { name: "Size", value: "Medium" },
+        ],
+      },
+      {
+        id: "moi-versa-top-white-small",
+        title: "White / Small",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "White" },
+          { name: "Size", value: "Small" },
+        ],
+      },
+      {
+        id: "moi-versa-top-white-medium",
+        title: "White / Medium",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "White" },
+          { name: "Size", value: "Medium" },
+        ],
+      },
+      {
+        id: "moi-versa-top-black-small",
+        title: "Black / Small",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Black" },
+          { name: "Size", value: "Small" },
+        ],
+      },
+      {
+        id: "moi-versa-top-black-medium",
+        title: "Black / Medium",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Black" },
+          { name: "Size", value: "Medium" },
+        ],
+      },
+    ],
     defaultInventory: {
-      ivory:    { Small: 10, Medium: 10 },
-      sand:     { Small: 10, Medium: 10 },
-      taupe:    { Small: 10, Medium: 10 },
-      espresso: { Small: 10, Medium: 10 },
-      brown:    { Small: 10, Medium: 10 },
-      white:    { Small: 10, Medium: 10 },
-      black:    { Small: 10, Medium: 10 },
+      ivory:    { Small: 5, Medium: 5 },
+      sand:     { Small: 5, Medium: 5 },
+      taupe:    { Small: 5, Medium: 5 },
+      espresso: { Small: 5, Medium: 5 },
+      brown:    { Small: 5, Medium: 5 },
+      white:    { Small: 5, Medium: 5 },
+      black:    { Small: 5, Medium: 5 },
     },
   },
 
@@ -151,7 +307,7 @@ export interface VariantOption {
   availableForSale: boolean;
   inventoryQuantity?: number;
   price: string;
-  selectedOptions: { name: string; value: string }[];
+  selectedOptions: readonly { name: string; value: string }[];
 }
 
 export interface ProductConfig {
@@ -171,6 +327,6 @@ export interface ProductConfig {
   readonly lining: string;
   readonly ref: string;
   readonly variantId?: string;
-  readonly variants?: VariantOption[];
+  readonly variants?: readonly VariantOption[];
   readonly defaultInventory?: Record<string, Record<string, number>>;
 }
