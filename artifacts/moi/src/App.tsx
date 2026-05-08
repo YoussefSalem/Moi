@@ -157,16 +157,18 @@ function App() {
       <CartProvider>
         <AppContent />
         <Toaster
-          position="bottom-center"
+          position="top-center"
           toastOptions={{
             style: {
               fontFamily: "'Montserrat', sans-serif",
               fontSize: "11px",
               letterSpacing: "0.12em",
               background: "#1e1814",
-              color: "#faf8f5",
+              color: "#ffffff",
               border: "none",
             },
+            className: "text-white",
+            descriptionClassName: "text-white",
           }}
         />
       </CartProvider>
