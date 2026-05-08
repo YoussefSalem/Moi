@@ -5,6 +5,8 @@ import { Bell } from "lucide-react";
 import { useImageColor } from "@/hooks/useImageColor";
 import type { ProductConfig, VariantOption } from "@/config/images";
 import { useCart } from "@/context/CartContext";
+import { useCustomer } from "@/context/CustomerContext";
+import { NotifyMeModal } from "@/components/NotifyMeModal";
 
 interface ProductCardProps {
   product: ProductConfig;
@@ -15,7 +17,9 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const color = useImageColor(product.productShot);
   const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
   const { addToCart } = useCart();
+  const { customer } = useCustomer();
   const [addedFeedback, setAddedFeedback] = useState(false);
+  const [notifyModalOpen, setNotifyModalOpen] = useState(false);
 
   const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
 
@@ -146,23 +150,52 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     setTimeout(() => setAddedFeedback(false), 1800);
   };
 
-  const handleNotifyMe = () => {
-    toast.success("We'll notify you when it's back.", {
-      duration: 2500,
-      position: "top-center",
-      className: "text-white",
-      descriptionClassName: "text-white",
-      style: {
-        backgroundColor: "#302824",
-        color: "#ffffff",
-        border: "1px solid rgba(255,255,255,0.08)",
-        marginTop: "10vh",
-        transform: "translateY(8px)",
-      },
-    });
+  const subscribeToRestock = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    const variantId = selectedVariant?.id ?? product.variantId ?? `${product.name}-fallback`;
+    const variantTitle = selectedVariant
+      ? selectedVariant.selectedOptions.map((o) => o.value).join(" / ")
+      : `${selectedColor} / ${selectedSize}`;
+
+    try {
+      const res = await fetch("/api/restock/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          productHandle: product.handle ?? product.name,
+          variantId,
+          variantTitle,
+          productTitle: product.name,
+        }),
+      });
+      const json = await res.json() as { success?: boolean; error?: string };
+      if (!res.ok || !json.success) return { success: false, error: json.error ?? "Something went wrong." };
+      return { success: true };
+    } catch {
+      return { success: false, error: "Network error. Please try again." };
+    }
+  };
+
+  const handleNotifyMe = async () => {
+    if (customer?.email) {
+      // Logged-in: subscribe silently with their email
+      const result = await subscribeToRestock(customer.email);
+      if (result.success) {
+        toast.success("You're on the list.", {
+          description: `We'll email you when ${product.name} is back.`,
+          duration: 3000,
+        });
+      } else {
+        toast.error(result.error ?? "Could not subscribe. Please try again.");
+      }
+    } else {
+      // Guest: open email-capture modal
+      setNotifyModalOpen(true);
+    }
   };
 
   return (
+    <>
     <section
       className="w-full py-16 md:py-24 overflow-hidden"
       style={{
@@ -359,5 +392,18 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
         </div>
       </motion.div>
     </section>
+
+    <NotifyMeModal
+      open={notifyModalOpen}
+      productTitle={product.name}
+      variantTitle={
+        selectedVariant
+          ? selectedVariant.selectedOptions.map((o) => o.value).join(" / ")
+          : `${selectedColor} / ${selectedSize}`
+      }
+      onClose={() => setNotifyModalOpen(false)}
+      onSubmit={subscribeToRestock}
+    />
+    </>
   );
 }
