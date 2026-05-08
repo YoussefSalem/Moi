@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { db, ambassadorApplications } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -39,59 +40,42 @@ router.post("/ambassador", async (req, res) => {
     "Ambassador application received",
   );
 
-  const body = [
-    `=== MOI AMBASSADOR APPLICATION ===`,
-    ``,
-    `Name: ${safeName}`,
-    `Email: ${safeEmail}`,
-    safePhone ? `Phone: ${safePhone}` : null,
-    safeFacebook ? `Facebook: ${safeFacebook}` : null,
-    safeInstagram ? `Instagram: ${safeInstagram}` : null,
-    ``,
-    `--- About the applicant ---`,
-    safeMessage,
-  ]
-    .filter((line) => line !== null)
-    .join("\n");
-
-  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-
-  if (!storeDomain) {
-    req.log.warn("VITE_SHOPIFY_STORE_DOMAIN not set — skipping Shopify relay");
-    res.status(200).json({ success: true });
-    return;
-  }
-
-  const params = new URLSearchParams({
-    "form_type": "contact",
-    "utf8": "✓",
-    "contact[name]": safeName,
-    "contact[email]": safeEmail,
-    "contact[phone]": safePhone,
-    "contact[body]": body,
-  });
-
   try {
-    const shopifyUrl = `https://${storeDomain}/contact`;
-    const response = await fetch(shopifyUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "application/json",
-      },
-      body: params.toString(),
-      redirect: "manual",
-    });
+    const [application] = await db
+      .insert(ambassadorApplications)
+      .values({
+        name: safeName,
+        email: safeEmail,
+        phone: safePhone,
+        facebook: safeFacebook,
+        instagram: safeInstagram,
+        message: safeMessage,
+      })
+      .returning();
 
     req.log.info(
-      { status: response.status, storeDomain },
-      "Shopify contact form response",
+      { id: application.id, name: safeName },
+      "Ambassador application saved to database",
     );
 
     res.status(200).json({ success: true });
   } catch (err) {
-    req.log.error({ err }, "Shopify contact form request failed");
-    res.status(502).json({ error: "Failed to relay to Shopify." });
+    req.log.error({ err }, "Failed to save ambassador application");
+    res.status(500).json({ error: "Could not save your application. Please try again." });
+  }
+});
+
+router.get("/ambassador/applications", async (req, res) => {
+  try {
+    const applications = await db
+      .select()
+      .from(ambassadorApplications)
+      .orderBy(ambassadorApplications.createdAt);
+
+    res.status(200).json({ applications });
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch ambassador applications");
+    res.status(500).json({ error: "Could not fetch applications." });
   }
 });
 
