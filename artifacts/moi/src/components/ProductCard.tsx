@@ -150,9 +150,10 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     toast.success("We'll notify you when it's back.", {
       description: `${product.name} · ${selectedColor} · ${selectedSize}`,
       duration: 2500,
+      position: "top-center",
       style: {
         backgroundColor: "#302824",
-        color: "#f3ede6",
+        color: "#ffffff",
         border: "1px solid rgba(255,255,255,0.08)",
       },
     });
