@@ -146,7 +146,7 @@ export function CustomerAuthModal() {
                       <button
                         type="button"
                         onClick={() => setShowPassword((v) => !v)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={showPassword ? "Show password" : "Hide password"}
                         className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 hover:bg-black/5 active:scale-95"
                         style={{ color: "#1e1814" }}
                       >
@@ -158,7 +158,7 @@ export function CustomerAuthModal() {
                           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                           className="flex items-center justify-center"
                         >
-                          {showPassword ? <EyeOff size={17} strokeWidth={1.6} /> : <Eye size={17} strokeWidth={1.6} />}
+                          {showPassword ? <Eye size={17} strokeWidth={1.6} /> : <EyeOff size={17} strokeWidth={1.6} />}
                         </motion.span>
                       </button>
                     </div>
