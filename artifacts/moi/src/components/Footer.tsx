@@ -71,14 +71,6 @@ export function Footer() {
                   Elegant support, thoughtful care, and a smooth shopping experience.
                 </p>
               </div>
-              <div className="hidden md:flex gap-4">
-                <a href="#" className="transition-opacity hover:opacity-50" aria-label="Instagram">
-                  <Instagram size={18} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-                </a>
-                <a href="#" className="transition-opacity hover:opacity-50" aria-label="Twitter">
-                  <Twitter size={18} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-                </a>
-              </div>
             </div>
             <div className="space-y-3 rounded-3xl bg-[#ebe6dd] p-4 md:p-5" style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)" }}>
               {accordionSections.map((item) => {
