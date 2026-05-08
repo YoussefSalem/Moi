@@ -61,34 +61,34 @@ export function Footer() {
 
   return (
     <>
-      <footer className="w-full px-6 md:px-12 py-14 md:py-18" style={{ backgroundColor: "#f3f1ec" }}>
+      <footer className="w-full px-6 md:px-12 py-14 md:py-18" style={{ backgroundColor: "#28211d" }}>
         <div className="max-w-6xl mx-auto">
-          <div className="mb-10 border-t border-black/10 pt-8">
+          <div className="mb-10 border-t border-white/10 pt-8">
             <div className="flex items-center justify-between gap-4 mb-8">
               <div>
-                <p className="text-[10px] tracking-[0.35em] uppercase text-black/45">Moi</p>
-                <p className="mt-3 max-w-xl text-sm md:text-base leading-7 text-black/60">
+                <p className="text-[10px] tracking-[0.35em] uppercase text-white/45">Moi</p>
+                <p className="mt-3 max-w-xl text-sm md:text-base leading-7 text-white/65">
                   Elegant support, thoughtful care, and a smooth shopping experience.
                 </p>
               </div>
             </div>
-            <div className="space-y-3 rounded-3xl bg-[#ebe6dd] p-4 md:p-5" style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)" }}>
+            <div className="space-y-3 rounded-3xl bg-[#342b26] p-4 md:p-5" style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)" }}>
               {accordionSections.map((item) => {
                 const isOpen = openSection === item.title.toLowerCase().replace(/\s+/g, "-");
                 const key = item.title.toLowerCase().replace(/\s+/g, "-");
                 return (
-                  <div key={item.title} className="border-b border-black/10 last:border-b-0">
+                  <div key={item.title} className="border-b border-white/10 last:border-b-0">
                     <button
                       type="button"
                       onClick={() => setOpenSection(isOpen ? null : key)}
                       className="w-full flex items-center justify-between py-5 text-left"
                     >
                       <div>
-                        <p className="text-[10px] tracking-[0.28em] uppercase text-black/35">{item.title}</p>
-                        <p className="mt-2 text-sm md:text-base text-black/70">{item.description}</p>
+                        <p className="text-[10px] tracking-[0.28em] uppercase text-white/40">{item.title}</p>
+                        <p className="mt-2 text-sm md:text-base text-white/70">{item.description}</p>
                       </div>
                       <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.28 }}>
-                        <ChevronDown size={18} strokeWidth={1.5} className="text-black/45" />
+                        <ChevronDown size={18} strokeWidth={1.5} className="text-white/45" />
                       </motion.span>
                     </button>
                     <AnimatePresence initial={false}>
@@ -100,7 +100,7 @@ export function Footer() {
                           transition={{ duration: 0.35, ease: [0.76, 0, 0.24, 1] }}
                           className="overflow-hidden"
                         >
-                          <div className="pb-6 text-sm leading-7 text-black/60 max-w-2xl">
+                          <div className="pb-6 text-sm leading-7 text-white/60 max-w-2xl">
                             {item.body}
                           </div>
                         </motion.div>
@@ -112,9 +112,9 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="mt-12 pt-6 border-t border-black/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <p className="text-[10px] tracking-[0.3em] uppercase text-black/35">© 2026 Moi. All rights reserved.</p>
-            <p className="text-[10px] tracking-[0.22em] uppercase text-black/35">Smooth, elegant, minimal.</p>
+          <div className="mt-12 pt-6 border-t border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-white/35">© 2026 Moi. All rights reserved.</p>
+            <p className="text-[10px] tracking-[0.22em] uppercase text-white/35">Smooth, elegant, minimal.</p>
           </div>
         </div>
       </footer>
