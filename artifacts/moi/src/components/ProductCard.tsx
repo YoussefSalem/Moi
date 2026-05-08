@@ -148,7 +148,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   const handleNotifyMe = () => {
     toast.success("We'll notify you when it's back.", {
-      description: `${product.name} · ${selectedColor} · ${selectedSize}`,
       duration: 2500,
       position: "top-center",
       className: "text-white",
@@ -157,6 +156,8 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
         backgroundColor: "#302824",
         color: "#ffffff",
         border: "1px solid rgba(255,255,255,0.08)",
+        marginTop: "10vh",
+        transform: "translateY(8px)",
       },
     });
   };
