@@ -5,6 +5,7 @@ import { HeroVideo } from "@/components/HeroVideo";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductDivider } from "@/components/ProductDivider";
 import { AccessoriesPage } from "@/components/AccessoriesPage";
+import { AmbassadorPage } from "@/components/AmbassadorPage";
 import { LookView } from "@/components/LookView";
 import { Footer } from "@/components/Footer";
 import { CartDrawer } from "@/components/CartDrawer";
@@ -48,7 +49,7 @@ const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
 
 function AppContent() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
-  const [page, setPage] = useState<"home" | "accessories">("home");
+  const [page, setPage] = useState<"home" | "accessories" | "ambassador">("home");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
@@ -59,7 +60,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "hsl(30 15% 95%)" }}>
-      <Header onNavigate={setPage} onSearch={() => setSearchOpen(true)} dark={page === "accessories"} />
+      <Header onNavigate={setPage} onSearch={() => setSearchOpen(true)} dark={page === "accessories" || page === "ambassador"} />
 
       {page === "home" ? (
         <main>
@@ -122,9 +123,14 @@ function AppContent() {
             </div>
           </section>
         </main>
-      ) : (
+      ) : page === "accessories" ? (
         <div>
           <AccessoriesPage />
+          <Footer />
+        </div>
+      ) : (
+        <div>
+          <AmbassadorPage />
           <Footer />
         </div>
       )}

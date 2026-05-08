@@ -5,7 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { useCustomer } from "@/context/CustomerContext";
 
 interface HeaderProps {
-  onNavigate?: (page: "home" | "accessories") => void;
+  onNavigate?: (page: "home" | "accessories" | "ambassador") => void;
   onSearch?: () => void;
   dark?: boolean;
 }
@@ -23,7 +23,7 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
   }, []);
 
   const iconColor = dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff";
-  const navLinks = ["Clothing", "Accessories"];
+  const navLinks = ["Clothing", "Accessories", "Become an Ambassador"];
   const displayName = customer?.firstName ?? null;
 
   return (
@@ -150,12 +150,12 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
                       transition={{ delay: 0.1 + i * 0.07 }}
                     >
                       <a
-                        href={link === "Accessories" ? "#accessories" : "#home"}
+                        href={link === "Accessories" ? "#accessories" : link === "Become an Ambassador" ? "#ambassador" : "#home"}
                         className="block text-2xl font-light tracking-wide hover:opacity-50 transition-opacity"
                         style={{ color: "#1e1814", letterSpacing: "0.08em" }}
                         onClick={() => {
                           setMenuOpen(false);
-                          onNavigate?.(link === "Accessories" ? "accessories" : "home");
+                          onNavigate?.(link === "Accessories" ? "accessories" : link === "Become an Ambassador" ? "ambassador" : "home");
                         }}
                       >
                         {link}
