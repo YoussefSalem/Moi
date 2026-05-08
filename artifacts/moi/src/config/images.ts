@@ -109,6 +109,15 @@ export const IMAGES = {
     outer: "Outer shell: 100% Polyester",
     lining: "Lining: 96% Polyester, 4% Elastane",
     ref: "2076/511/400",
+    defaultInventory: {
+      ivory:    { Small: 10, Medium: 10 },
+      sand:     { Small: 10, Medium: 10 },
+      taupe:    { Small: 10, Medium: 10 },
+      espresso: { Small: 10, Medium: 10 },
+      brown:    { Small: 10, Medium: 10 },
+      white:    { Small: 10, Medium: 10 },
+      black:    { Small: 10, Medium: 10 },
+    },
   },
 
   /**

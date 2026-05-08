@@ -87,7 +87,17 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     }) ?? product.variants[0];
   }, [product.variants, hasShopifyVariants, selectedColor, selectedSize, colorOption, sizeOption]);
 
+  function getDefaultStock(color: string, size: string): number {
+    if (!product.defaultInventory) return -1;
+    const colorKey = color.toLowerCase();
+    const colorInventory = product.defaultInventory[colorKey];
+    if (colorInventory === undefined) return -1;
+    return colorInventory[size] ?? 0;
+  }
+
   function isSizeAvailable(size: string): boolean {
+    const defaultStock = getDefaultStock(selectedColor, size);
+    if (defaultStock >= 0) return defaultStock > 0;
     if (!hasShopifyVariants || !product.variants) return true;
     return product.variants.some((v) => {
       const sizeMatch = v.selectedOptions.some(
@@ -101,7 +111,12 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   }
 
   const effectivePrice = selectedVariant?.price ?? product.price;
-  const isOutOfStock = hasShopifyVariants && selectedVariant ? !selectedVariant.availableForSale : false;
+
+  const isOutOfStock = (() => {
+    const defaultStock = getDefaultStock(selectedColor, selectedSize);
+    if (defaultStock >= 0) return defaultStock <= 0;
+    return hasShopifyVariants && selectedVariant ? !selectedVariant.availableForSale : false;
+  })();
 
   const displayColors = colorOption
     ? colorOption.values.map((name) => ({ name, swatch: swatchFor(name) }))
