@@ -1,8 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, ShoppingBag } from "lucide-react";
-import { useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 
 export function CartDrawer() {
   const {
@@ -10,15 +8,14 @@ export function CartDrawer() {
     localItems,
     cartOpen,
     closeCart,
+    openCheckout,
     removeItem,
     updateQuantity,
-    checkoutUrl,
     formatShopifyLinePrice,
     cartTotal,
     loading,
     isShopify,
   } = useCart();
-  const [checkoutPending, setCheckoutPending] = useState(false);
 
   const hasItems = isShopify
     ? (shopifyCart?.lines.nodes.length ?? 0) > 0
@@ -292,31 +289,17 @@ export function CartDrawer() {
                   className="text-[9px] tracking-[0.2em] uppercase font-light text-center"
                   style={{ color: "rgba(30,24,20,0.35)" }}
                 >
-                  Shipping & taxes calculated at checkout
+                  120 EGP flat shipping · applied at checkout
                 </p>
-                {SHOPIFY_CONFIGURED && checkoutUrl ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCheckoutPending(true);
-                      window.location.assign(checkoutUrl);
-                    }}
-                    className="block text-center py-4 text-[11px] tracking-[0.32em] uppercase font-medium text-white transition-opacity hover:opacity-80"
-                    style={{ backgroundColor: "#1e1814" }}
-                  >
-                    {loading || checkoutPending ? "…" : "Checkout"}
-                  </button>
-                ) : (
-                  <button
-                    className="py-4 text-[11px] tracking-[0.32em] uppercase font-medium text-white transition-opacity hover:opacity-80"
-                    style={{ backgroundColor: "#1e1814" }}
-                    onClick={() => {
-                      alert("Connect your Shopify store to enable checkout.");
-                    }}
-                  >
-                    {loading ? "…" : "Checkout"}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={openCheckout}
+                  disabled={loading}
+                  className="block w-full text-center py-4 text-[11px] tracking-[0.32em] uppercase font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+                  style={{ backgroundColor: "#1e1814" }}
+                >
+                  {loading ? "…" : "Checkout"}
+                </button>
               </motion.div>
             )}
           </motion.aside>

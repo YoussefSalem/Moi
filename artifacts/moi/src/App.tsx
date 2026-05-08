@@ -9,6 +9,7 @@ import { AmbassadorPage } from "@/components/AmbassadorPage";
 import { LookView } from "@/components/LookView";
 import { Footer } from "@/components/Footer";
 import { CartDrawer } from "@/components/CartDrawer";
+import { CheckoutPage } from "@/components/CheckoutPage";
 import { CustomerAuthModal } from "@/components/CustomerAuthModal";
 import { SearchDrawer } from "@/components/SearchDrawer";
 import { CartProvider } from "@/context/CartContext";
@@ -16,7 +17,6 @@ import { CustomerProvider } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 import { useRestockChecker } from "@/hooks/useRestockChecker";
-import { Instagram, Music2 } from "lucide-react";
 
 function ProductSkeleton() {
   return (
@@ -102,6 +102,7 @@ function AppContent() {
 
       <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
       <CartDrawer />
+      <CheckoutPage />
       <CustomerAuthModal />
       <SearchDrawer
         open={searchOpen}

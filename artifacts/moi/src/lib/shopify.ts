@@ -88,11 +88,20 @@ export interface ShopifyCartLine {
   };
 }
 
+export interface ShopifyCartDiscountCode {
+  code: string;
+  applicable: boolean;
+}
+
 export interface ShopifyCart {
   id: string;
   checkoutUrl: string;
   totalQuantity: number;
-  cost: { totalAmount: { amount: string; currencyCode: string } };
+  cost: {
+    totalAmount: { amount: string; currencyCode: string };
+    subtotalAmount: { amount: string; currencyCode: string };
+  };
+  discountCodes: ShopifyCartDiscountCode[];
   lines: { nodes: ShopifyCartLine[] };
 }
 
@@ -122,7 +131,11 @@ const PRODUCT_FRAGMENT = `
 const CART_FRAGMENT = `
   fragment CartFields on Cart {
     id checkoutUrl totalQuantity
-    cost { totalAmount { amount currencyCode } }
+    cost {
+      totalAmount { amount currencyCode }
+      subtotalAmount { amount currencyCode }
+    }
+    discountCodes { code applicable }
     lines(first: 50) {
       nodes {
         id quantity
@@ -280,6 +293,30 @@ export async function getCustomer(
     }
   `, { customerAccessToken: accessToken });
   return data.customer;
+}
+
+export async function cartDiscountCodesUpdate(
+  cartId: string,
+  discountCodes: string[],
+): Promise<ShopifyCart> {
+  const data = await shopifyFetch<{
+    cartDiscountCodesUpdate: {
+      cart: ShopifyCart;
+      userErrors: { field: string[]; message: string }[];
+    };
+  }>(`
+    ${CART_FRAGMENT}
+    mutation CartDiscountCodesUpdate($cartId: ID!, $discountCodes: [String!]) {
+      cartDiscountCodesUpdate(cartId: $cartId, discountCodes: $discountCodes) {
+        cart { ...CartFields }
+        userErrors { field message }
+      }
+    }
+  `, { cartId, discountCodes });
+  if (data.cartDiscountCodesUpdate.userErrors.length) {
+    throw new Error(data.cartDiscountCodesUpdate.userErrors[0].message);
+  }
+  return data.cartDiscountCodesUpdate.cart;
 }
 
 export async function subscribeToNewsletter(email: string): Promise<{ success: boolean; delivered: boolean; note?: string; error?: string }> {

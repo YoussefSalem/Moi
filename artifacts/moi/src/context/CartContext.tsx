@@ -7,6 +7,7 @@ import {
   getCart,
   removeCartLines,
   updateCartLines,
+  cartDiscountCodesUpdate,
   formatMoney,
   SHOPIFY_CONFIGURED,
 } from "@/lib/shopify";
@@ -43,16 +44,22 @@ interface CartContextValue {
   shopifyCart: ShopifyCart | null;
   localItems: LocalCartItem[];
   cartOpen: boolean;
+  checkoutOpen: boolean;
   loading: boolean;
   itemCount: number;
   openCart: () => void;
   closeCart: () => void;
+  openCheckout: () => void;
+  closeCheckout: () => void;
   addToCart: (params: AddToCartParams) => Promise<void>;
   removeItem: (idOrLineId: string) => Promise<void>;
   updateQuantity: (idOrLineId: string, quantity: number) => Promise<void>;
+  applyDiscount: (code: string) => Promise<{ applicable: boolean; code: string }>;
+  clearCart: () => void;
   checkoutUrl: string | null;
   formatShopifyLinePrice: (line: ShopifyCartLine) => string;
   cartTotal: string;
+  cartSubtotal: string;
   isShopify: boolean;
 }
 
@@ -75,6 +82,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [shopifyCart, setShopifyCart] = useState<ShopifyCart | null>(null);
   const [localItems, setLocalItems] = useState<LocalCartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const initRef = useRef(false);
 
@@ -185,6 +193,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [shopifyCart, removeItem]);
 
+  const applyDiscount = useCallback(async (code: string): Promise<{ applicable: boolean; code: string }> => {
+    if (!SHOPIFY_CONFIGURED || !shopifyCart) throw new Error("Cart not available");
+    const updated = await cartDiscountCodesUpdate(shopifyCart.id, [code]);
+    setShopifyCart(updated);
+    const applied = updated.discountCodes.find((d) => d.code === code);
+    return { applicable: applied?.applicable ?? false, code };
+  }, [shopifyCart]);
+
+  const clearCart = useCallback(() => {
+    setShopifyCart(null);
+    setLocalItems([]);
+    localStorage.removeItem(CART_ID_KEY);
+    localStorage.removeItem(LOCAL_CART_KEY);
+    setCheckoutOpen(false);
+    setCartOpen(false);
+  }, []);
+
   const formatShopifyLinePrice = useCallback((line: ShopifyCartLine) => {
     const price = parseFloat(line.merchandise.price.amount) * line.quantity;
     return formatMoney(String(price), line.merchandise.price.currencyCode);
@@ -198,29 +223,39 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const shopifyTotal = shopifyCart
     ? formatMoney(shopifyCart.cost.totalAmount.amount, shopifyCart.cost.totalAmount.currencyCode)
     : "";
+  const shopifySubtotal = shopifyCart
+    ? formatMoney(shopifyCart.cost.subtotalAmount.amount, shopifyCart.cost.subtotalAmount.currencyCode)
+    : "";
   const localTotal = localItems.reduce((sum, i) => sum + i.priceAmount * i.quantity, 0);
   const localCurrency = localItems[0]?.currencyCode ?? "EGP";
   const cartTotal = shopifyActive
     ? shopifyTotal
-    : localItems.length > 0
-      ? formatMoney(String(localTotal), localCurrency)
-      : "";
+    : localItems.length > 0 ? formatMoney(String(localTotal), localCurrency) : "";
+  const cartSubtotal = shopifyActive
+    ? shopifySubtotal
+    : localItems.length > 0 ? formatMoney(String(localTotal), localCurrency) : "";
 
   return (
     <CartContext.Provider value={{
       shopifyCart,
       localItems,
       cartOpen,
+      checkoutOpen,
       loading,
       itemCount,
       openCart: () => setCartOpen(true),
       closeCart: () => setCartOpen(false),
+      openCheckout: () => { setCartOpen(false); setCheckoutOpen(true); },
+      closeCheckout: () => setCheckoutOpen(false),
       addToCart,
       removeItem,
       updateQuantity,
+      applyDiscount,
+      clearCart,
       checkoutUrl: shopifyCart?.checkoutUrl ?? null,
       formatShopifyLinePrice,
       cartTotal,
+      cartSubtotal,
       isShopify: shopifyActive,
     }}>
       {children}
