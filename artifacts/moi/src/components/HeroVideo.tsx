@@ -42,7 +42,10 @@ export function HeroVideo() {
   }, []);
 
   return (
-    <section className="relative w-full h-[100svh] overflow-hidden">
+    <section
+      className="relative w-full overflow-hidden"
+      style={{ height: "clamp(280px, 80vw, 100svh)" }}
+    >
       {/* Ambient edge glow — derived from hero image dominant color */}
       <div
         className="absolute inset-0 pointer-events-none z-10"
@@ -69,10 +72,10 @@ export function HeroVideo() {
         <motion.img
           src={IMAGES.hero.fallbackUrl}
           alt="Moi fashion"
-          className="absolute inset-0 w-full h-full object-cover object-[center_18%] md:object-center"
-          style={{ objectPosition: "center 18%" }}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ objectPosition: "center 22%" }}
           initial={{ scale: 1 }}
-          animate={{ scale: 1.1 }}
+          animate={{ scale: 1.06 }}
           transition={{ duration: 14, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
         />
       )}
