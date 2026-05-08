@@ -315,7 +315,9 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
             <motion.button
               type="button"
               onClick={handleNotifyMe}
-              whileTap={{ scale: 0.98 }}
+              whileHover={{ x: [0, -2, 2, -1, 1, 0] }}
+              whileTap={{ x: [0, -1, 1, 0], scale: 0.98 }}
+              transition={{ duration: 0.35, ease: "easeInOut" }}
               className="min-w-[220px] px-7 py-4 text-[10px] tracking-[0.35em] uppercase font-light border transition-all duration-300 self-center flex items-center justify-center gap-2"
               style={{
                 color: "#f5f0e8",
