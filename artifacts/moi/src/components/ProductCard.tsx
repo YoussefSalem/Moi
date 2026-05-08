@@ -156,6 +156,10 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
       size: selectedSize,
       color: selectedColor,
     });
+    toast.success(`${product.name} added to bag`, {
+      description: `${selectedColor} · ${selectedSize}`,
+      duration: 2500,
+    });
     setAddedFeedback(true);
     setTimeout(() => setAddedFeedback(false), 1800);
   };

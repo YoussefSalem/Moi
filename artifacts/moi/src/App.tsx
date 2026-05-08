@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
 import { ProductCard } from "@/components/ProductCard";
@@ -14,12 +15,40 @@ import { IMAGES, type ProductConfig } from "@/config/images";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 import { Instagram, Music2 } from "lucide-react";
 
+function ProductSkeleton() {
+  return (
+    <section className="w-full py-16 md:py-24 overflow-hidden" style={{ background: "hsl(30 15% 95%)" }}>
+      <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-16 items-center">
+        <div className="flex flex-col gap-4">
+          <div className="h-5 w-36 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.08)" }} />
+          <div className="h-3 w-full rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.06)" }} />
+          <div className="h-3 w-4/5 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.06)" }} />
+        </div>
+        <div className="flex justify-center">
+          <div className="w-64 h-80 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.07)" }} />
+        </div>
+        <div className="flex flex-col gap-4 items-center">
+          <div className="h-3 w-28 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.07)" }} />
+          <div className="flex gap-3">
+            {[0,1,2,3].map((i) => <div key={i} className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.08)" }} />)}
+          </div>
+          <div className="flex gap-3 mt-2">
+            {[0,1].map((i) => <div key={i} className="w-20 h-10 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.07)" }} />)}
+          </div>
+          <div className="h-3 w-20 rounded animate-pulse mt-2" style={{ backgroundColor: "rgba(30,24,20,0.07)" }} />
+          <div className="w-48 h-12 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.1)" }} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
 
 function AppContent() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
   const [page, setPage] = useState<"home" | "accessories">("home");
-  const { products } = useShopifyProducts(FALLBACK_PRODUCTS);
+  const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
 
   const product1 = products[0] ?? IMAGES.product1;
   const product2 = products[1] ?? IMAGES.product2;
@@ -33,18 +62,22 @@ function AppContent() {
           <HeroVideo />
 
           <div id="collection">
-            <ProductCard
-              product={product1}
-              onLookView={setLookProduct}
-            />
+            {loading ? <ProductSkeleton /> : (
+              <ProductCard
+                product={product1}
+                onLookView={setLookProduct}
+              />
+            )}
           </div>
 
           <ProductDivider />
 
-          <ProductCard
-            product={product2}
-            onLookView={setLookProduct}
-          />
+          {loading ? <ProductSkeleton /> : (
+            <ProductCard
+              product={product2}
+              onLookView={setLookProduct}
+            />
+          )}
 
           <section className="py-16 md:py-24 px-6">
             <div className="max-w-3xl mx-auto flex flex-col items-center gap-6 text-center">
@@ -106,6 +139,19 @@ function App() {
     <CustomerProvider>
       <CartProvider>
         <AppContent />
+        <Toaster
+          position="bottom-center"
+          toastOptions={{
+            style: {
+              fontFamily: "'Montserrat', sans-serif",
+              fontSize: "11px",
+              letterSpacing: "0.12em",
+              background: "#1e1814",
+              color: "#faf8f5",
+              border: "none",
+            },
+          }}
+        />
       </CartProvider>
     </CustomerProvider>
   );
