@@ -151,6 +151,8 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
       description: `${product.name} · ${selectedColor} · ${selectedSize}`,
       duration: 2500,
       position: "top-center",
+      className: "text-white",
+      descriptionClassName: "text-white",
       style: {
         backgroundColor: "#302824",
         color: "#ffffff",
