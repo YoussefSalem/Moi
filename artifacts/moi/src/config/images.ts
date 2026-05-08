@@ -46,22 +46,25 @@ const PRODUCT_SHOT_LARGE = cdnImage("02076511400-a15", 1536);  // hero / look vi
 // Unsplash fashion editorial photos used in place of the unavailable CDN model shots.
 // SWAP ME: replace each with the corresponding CDN URL (a1–a14) once they resolve.
 const U = "https://images.unsplash.com/photo";
-// a1 substitute — model in dark outfit
-const FS_A1  = `${U}-1515886657613-9f3515b0c78f?w=900&h=1200&fit=crop&q=85`;
-// a2 substitute — editorial standing pose
-const FS_A2  = `${U}-1469334031218-e382a71b716b?w=900&h=1200&fit=crop&q=85`;
-// a3 substitute — model facing forward
-const FS_A3  = `${U}-1534528741775-53994a69daeb?w=900&h=1200&fit=crop&q=85`;
-// a4 substitute — close-up editorial
-const FS_A4  = `${U}-1507003211169-0a1dd7228f2d?w=900&h=1200&fit=crop&q=85`;
-// a5 substitute — model with accessories
-const FS_A5  = `${U}-1617922001439-4a2e6562f328?w=900&h=1200&fit=crop&q=85`;
-// a6 substitute — street fashion
-const FS_A6  = `${U}-1445205170230-053b83016050?w=900&h=1200&fit=crop&q=85`;
-// a7 substitute — editorial detail
-const FS_A7  = `${U}-1469334031218-e382a71b716b?w=900&h=1200&fit=crop&q=85&sat=-20`;
-// a8 substitute — model full-length
-const FS_A8  = `${U}-1515886657613-9f3515b0c78f?w=900&h=1200&fit=crop&q=85&bri=5`;
+// attached fallback assets — used directly for the first paint
+const ATTACHED_ONE = "@assets/image_1778208832966.png";
+const ATTACHED_TWO = "@assets/image_1778208841709.png";
+// a1 substitute — attached product / variant image
+const FS_A1  = ATTACHED_ONE;
+// a2 substitute — attached product / variant image
+const FS_A2  = ATTACHED_TWO;
+// a3 substitute — attached product / variant image
+const FS_A3  = ATTACHED_ONE;
+// a4 substitute — attached product / variant image
+const FS_A4  = ATTACHED_TWO;
+// a5 substitute — attached product / variant image
+const FS_A5  = ATTACHED_ONE;
+// a6 substitute — attached product / variant image
+const FS_A6  = ATTACHED_TWO;
+// a7 substitute — attached product / variant image
+const FS_A7  = ATTACHED_ONE;
+// a8 substitute — attached product / variant image
+const FS_A8  = ATTACHED_TWO;
 
 // ── Look View: editorial model (a9 substitute) ────────────
 // SWAP ME: replace with CDN a9 once available
