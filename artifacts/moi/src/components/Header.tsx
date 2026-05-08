@@ -169,7 +169,7 @@ export function Header({ onNavigate, dark }: HeaderProps) {
                       <p className="text-sm font-light tracking-wide" style={{ color: "#1e1814" }}>
                         {customer.firstName
                           ? `${customer.firstName}${customer.lastName ? ` ${customer.lastName}` : ""}`
-                          : customer.email}
+                          : "Private customer"}
                       </p>
                       <button
                         className="block text-sm tracking-widest uppercase hover:opacity-50 transition-opacity"
