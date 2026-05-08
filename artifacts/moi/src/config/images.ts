@@ -49,7 +49,7 @@ const U = "https://images.unsplash.com/photo";
 // attached fallback assets — used directly for the first paint
 const ATTACHED_ONE = "@assets/image_1778208832966.png";
 const ATTACHED_TWO = "@assets/image_1778208841709.png";
-const HERO_IMAGE = "@assets/WhatsApp_Image_2026-05-08_at_4.20.06_PM_(3)_1778256292938.jpeg";
+const HERO_IMAGE = `${import.meta.env.BASE_URL}hero-image.jpeg`;
 // a1 substitute — attached product / variant image
 const FS_A1  = ATTACHED_ONE;
 // a2 substitute — attached product / variant image
