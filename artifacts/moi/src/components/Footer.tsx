@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Instagram, Twitter } from "lucide-react";
+import { NewsletterSection } from "@/components/NewsletterSection";
 export function Footer() {
   const [openSection, setOpenSection] = useState<string | null>("return");
 
@@ -111,6 +112,8 @@ export function Footer() {
               })}
             </div>
           </div>
+
+          <NewsletterSection />
 
           <div className="mt-12 pt-6 border-t border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <p className="text-[10px] tracking-[0.3em] uppercase text-white/35">© 2026 Moi. All rights reserved.</p>
