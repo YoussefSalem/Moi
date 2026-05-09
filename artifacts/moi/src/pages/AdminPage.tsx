@@ -443,6 +443,30 @@ function ProofsTab({ token }: { token: string }) {
   );
 }
 
+/** Loads a Bearer-protected image via fetch and renders it from a blob URL. */
+function AuthThumbnail({ proofId, token, orderNumber }: { proofId: number; token: string; orderNumber: number }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let revoked = false;
+    fetch(`/api/admin/instapay-proofs/${proofId}/screenshot`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (r) => {
+        if (!r.ok || revoked) return;
+        const blob = await r.blob();
+        if (!revoked) setSrc(URL.createObjectURL(blob));
+      })
+      .catch(() => {/* thumbnail stays blank */});
+    return () => {
+      revoked = true;
+      setSrc((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+    };
+  }, [proofId, token]);
+  return src
+    ? <img src={src} alt={`Proof ${orderNumber}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+    : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", color: "rgba(30,24,20,0.3)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.15em" }}>Loading…</div>;
+}
+
 function ProofGallery({
   proofs,
   token,
@@ -452,35 +476,41 @@ function ProofGallery({
   token: string;
   onClose: () => void;
 }) {
+  const [lightboxId, setLightboxId] = useState<number | null>(null);
   return (
-    <div className="fixed inset-0 z-[220] flex items-center justify-center" style={{ backgroundColor: "rgba(30,24,20,0.62)", backdropFilter: "blur(5px)" }} onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: "#efe6da", width: "92vw", maxWidth: 1100, maxHeight: "90vh", overflow: "auto", padding: 24 }}>
-        <div className="flex items-center justify-between mb-5">
-          <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700 }}>
-            All Proof Images
-          </p>
-          <button onClick={onClose} style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)" }}>
-            Close
-          </button>
-        </div>
-        {proofs.length === 0 ? (
-          <p style={{ fontSize: "13px", fontFamily: "'Montserrat', sans-serif", color: "rgba(30,24,20,0.6)" }}>No proof images uploaded yet.</p>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {proofs.map((proof) => (
-              <button key={proof.id} onClick={() => window.open(`/api/admin/instapay-proofs/${proof.id}/screenshot`, "_blank", "noopener,noreferrer")} style={{ textAlign: "left" }}>
-                <div style={{ aspectRatio: "1 / 1.2", overflow: "hidden", backgroundColor: "rgba(30,24,20,0.08)", border: "1px solid rgba(30,24,20,0.12)" }}>
-                  <img src={`/api/admin/instapay-proofs/${proof.id}/screenshot`} alt={`Proof ${proof.shopifyOrderNumber}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
-                <p style={{ marginTop: 8, fontSize: "12px", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", letterSpacing: "0.08em" }}>
-                  #{proof.shopifyOrderNumber}
-                </p>
-              </button>
-            ))}
+    <>
+      <div className="fixed inset-0 z-[220] flex items-center justify-center" style={{ backgroundColor: "rgba(30,24,20,0.62)", backdropFilter: "blur(5px)" }} onClick={onClose}>
+        <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: "#efe6da", width: "92vw", maxWidth: 1100, maxHeight: "90vh", overflow: "auto", padding: 24 }}>
+          <div className="flex items-center justify-between mb-5">
+            <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700 }}>
+              All Proof Images
+            </p>
+            <button onClick={onClose} style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)" }}>
+              Close
+            </button>
           </div>
-        )}
+          {proofs.length === 0 ? (
+            <p style={{ fontSize: "13px", fontFamily: "'Montserrat', sans-serif", color: "rgba(30,24,20,0.6)" }}>No proof images uploaded yet.</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {proofs.map((proof) => (
+                <button key={proof.id} onClick={() => setLightboxId(proof.id)} style={{ textAlign: "left" }}>
+                  <div style={{ aspectRatio: "1 / 1.2", overflow: "hidden", backgroundColor: "rgba(30,24,20,0.08)", border: "1px solid rgba(30,24,20,0.12)" }}>
+                    <AuthThumbnail proofId={proof.id} token={token} orderNumber={proof.shopifyOrderNumber} />
+                  </div>
+                  <p style={{ marginTop: 8, fontSize: "12px", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", letterSpacing: "0.08em" }}>
+                    #{proof.shopifyOrderNumber}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+      {lightboxId !== null && (
+        <ScreenshotModal proofId={lightboxId} token={token} onClose={() => setLightboxId(null)} />
+      )}
+    </>
   );
 }
 
