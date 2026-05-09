@@ -30,6 +30,24 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction): void
   next();
 }
 
+// POST /api/admin/login — public, no auth required
+// Returns the admin secret as a bearer token so subsequent requests can use it.
+// Session lifetime: 8 hours (enforced client-side; server always checks ADMIN_SECRET).
+router.post("/admin/login", (req, res) => {
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (!adminSecret) {
+    res.status(503).json({ error: "Admin not configured." });
+    return;
+  }
+  const body = req.body as { secret?: unknown };
+  if (typeof body.secret !== "string" || body.secret !== adminSecret) {
+    res.status(401).json({ error: "Incorrect PIN." });
+    return;
+  }
+  const expiresAt = Date.now() + 8 * 60 * 60 * 1000;
+  res.status(200).json({ token: adminSecret, expiresAt });
+});
+
 router.use("/admin", requireAdminAuth);
 
 // GET /admin/instapay-proofs

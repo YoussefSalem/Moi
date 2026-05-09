@@ -1234,7 +1234,10 @@ interface PaymobIframeProps {
 
 function PaymobIframe({ url, onSuccess, onFail }: PaymobIframeProps) {
   useEffect(() => {
+    const expectedOrigin = window.location.origin;
     function handleMessage(event: MessageEvent) {
+      // Only accept messages from our own origin (the /api/paymob-return relay page)
+      if (event.origin !== expectedOrigin) return;
       const data = event.data as { type?: string; success?: boolean };
       if (data?.type === "PAYMOB_RESULT") {
         if (data.success) {
