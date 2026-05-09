@@ -219,7 +219,7 @@ export async function addShopifyOrderNote(
   noteFragment: string,
 ): Promise<void> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
+  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN;
   if (!storeDomain || !adminToken) return;
 
   let existingNote = "";
@@ -271,7 +271,7 @@ interface ShopifyOrder {
  */
 export async function tagShopifyOrder(orderId: number, tag: string): Promise<void> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
+  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN;
   if (!storeDomain || !adminToken) return;
 
   try {
@@ -309,7 +309,7 @@ export async function findOrderByTrackingNote(
   trackingNumber: string,
 ): Promise<ShopifyOrder | null> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
+  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN;
   if (!storeDomain || !adminToken) return null;
 
   const tag = `bosta-${trackingNumber}`;
@@ -331,7 +331,7 @@ export async function createShopifyFulfillment(
   trackingNumber: string,
 ): Promise<number | null> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
+  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN;
   if (!storeDomain || !adminToken) return null;
 
   try {
@@ -367,7 +367,7 @@ export async function addShopifyFulfillmentEvent(
   status: string,
 ): Promise<void> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
+  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN;
   if (!storeDomain || !adminToken) return;
   await fetch(
     `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/fulfillments/${fulfillmentId}/events.json`,

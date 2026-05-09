@@ -66,7 +66,7 @@ async function createWebhook(
 
 export async function registerRestockWebhooks(): Promise<void> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
+  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN;
   const domains = process.env.REPLIT_DOMAINS;
 
   if (!storeDomain || !adminToken || !domains) {
