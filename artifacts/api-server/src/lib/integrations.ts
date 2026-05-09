@@ -12,43 +12,41 @@ let _shopifyTokenCache: { token: string; expiresAt: number } | null = null;
  *      (required by Partner apps / Headless channel apps)
  */
 export async function getShopifyAdminToken(): Promise<string | null> {
-  const staticToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
-  if (staticToken) return staticToken;
-
-  const clientId = process.env.SHOPIFY_CLIENT_ID;
+  const clientId = process.env.SHOPIFY_CLIENT_ID ?? "13d5094d322a8034b996021917ac8bda";
   const clientSecret = process.env.SHOPIFY_CLIENT_SECRET ?? process.env.SHOPIFY_APP_SHARED_SECRET;
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  if (!clientId || !clientSecret || !storeDomain) return null;
 
-  const now = Date.now();
-  if (_shopifyTokenCache && now < _shopifyTokenCache.expiresAt - 60_000) {
-    return _shopifyTokenCache.token;
-  }
-
-  try {
-    const res = await fetch(`https://${storeDomain}/admin/oauth/access_token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "client_credentials",
-        client_id: clientId,
-        client_secret: clientSecret,
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      logger.error({ status: res.status, body }, "Shopify client credentials grant failed");
-      return null;
+  // Prefer client credentials (Partner/Headless apps — grants scoped tokens).
+  // Falls back to a static SHOPIFY_ADMIN_API_TOKEN if credentials are unavailable.
+  if (clientId && clientSecret && storeDomain) {
+    const now = Date.now();
+    if (_shopifyTokenCache && now < _shopifyTokenCache.expiresAt - 60_000) {
+      return _shopifyTokenCache.token;
     }
-    const data = await res.json() as { access_token: string; expires_in?: number };
-    const expiresIn = data.expires_in ?? 86399;
-    _shopifyTokenCache = { token: data.access_token, expiresAt: now + expiresIn * 1000 };
-    logger.info("Shopify Admin token refreshed via client credentials");
-    return _shopifyTokenCache.token;
-  } catch (err) {
-    logger.error({ err }, "Shopify client credentials grant error");
-    return null;
+    try {
+      const res = await fetch(`https://${storeDomain}/admin/oauth/access_token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: clientId,
+          client_secret: clientSecret,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json() as { access_token: string; expires_in?: number };
+        _shopifyTokenCache = { token: data.access_token, expiresAt: now + (data.expires_in ?? 86399) * 1000 };
+        logger.info("Shopify Admin token refreshed via client credentials");
+        return _shopifyTokenCache.token;
+      }
+      const errBody = await res.text().catch(() => "");
+      logger.warn({ status: res.status, errBody }, "Shopify client credentials grant failed — falling back to static token");
+    } catch (err) {
+      logger.warn({ err }, "Shopify client credentials grant error — falling back to static token");
+    }
   }
+
+  return process.env.SHOPIFY_ADMIN_API_TOKEN ?? null;
 }
 
 export function formatPhone(phone: string): string {
