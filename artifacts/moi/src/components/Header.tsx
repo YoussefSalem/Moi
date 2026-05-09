@@ -24,7 +24,7 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
 
   const iconColor = dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff";
   const navLinks = ["Clothing", "Accessories", "Become an Ambassador"];
-  const displayName = customer?.firstName ?? null;
+  const displayName = customer?.firstName ?? customer?.email?.split("@")[0] ?? null;
 
   return (
     <>
@@ -61,7 +61,6 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
               <Search size={18} strokeWidth={1.5} style={{ color: iconColor }} />
             </button>
 
-            {/* User icon + name when logged in */}
             <button
               aria-label={customer ? "My Account" : "Sign In"}
               className="flex items-center gap-1.5 transition-opacity hover:opacity-60"
@@ -170,7 +169,7 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
                       <p className="text-sm font-light tracking-wide" style={{ color: "#1e1814" }}>
                         {customer.firstName
                           ? `${customer.firstName}${customer.lastName ? ` ${customer.lastName}` : ""}`
-                          : "Private customer"}
+                          : customer.email.split("@")[0]}
                       </p>
                       <button
                         className="block text-sm tracking-widest uppercase hover:opacity-50 transition-opacity"
