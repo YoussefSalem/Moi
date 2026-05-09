@@ -566,7 +566,7 @@ export function CheckoutPage() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label style={labelStyle}>Email Address <span style={{ textTransform: "none", letterSpacing: "0.08em", opacity: 0.7 }}>(optional)</span></label>
+                    <label style={labelStyle}>Email Address</label>
                     <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} style={inputStyle} autoComplete="email" placeholder="your@email.com" className="checkout-input" />
                   </div>
 
@@ -616,7 +616,7 @@ export function CheckoutPage() {
                       </AnimatePresence>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label style={labelStyle}>Postal Code <span style={{ textTransform: "none", letterSpacing: "0.08em", opacity: 0.7 }}>(optional)</span></label>
+                      <label style={labelStyle}>Postal Code <span style={{ textTransform: "none", letterSpacing: "0.08em", opacity: 0.7, fontSize: "11px" }}>(optional)</span></label>
                       <input type="text" value={form.postalCode} onChange={(e) => setForm((f) => ({ ...f, postalCode: e.target.value }))} style={inputStyle} autoComplete="postal-code" className="checkout-input" />
                     </div>
                   </div>
