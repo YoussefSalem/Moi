@@ -61,6 +61,57 @@ const inputStyle: React.CSSProperties = {
   letterSpacing: "0.025em",
 };
 
+const fieldWrapStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "2px",
+};
+
+const selectButtonStyle: React.CSSProperties = {
+  width: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  background: "transparent",
+  border: "none",
+  borderBottom: "1px solid rgba(30,24,20,0.22)",
+  outline: "none",
+  padding: "10px 0",
+  fontSize: "14px",
+  color: "#1e1814",
+  fontWeight: 500,
+  fontFamily: "'Montserrat', sans-serif",
+  letterSpacing: "0.025em",
+  textAlign: "left",
+};
+
+const optionListStyle: React.CSSProperties = {
+  maxHeight: "240px",
+  overflowY: "auto",
+  border: "1px solid rgba(30,24,20,0.16)",
+  backgroundColor: "#efe6da",
+  boxShadow: "0 18px 40px rgba(30,24,20,0.12)",
+};
+
+const optionStyle: React.CSSProperties = {
+  width: "100%",
+  display: "block",
+  padding: "12px 14px",
+  textAlign: "left",
+  fontFamily: "'Montserrat', sans-serif",
+  fontSize: "13px",
+  letterSpacing: "0.02em",
+  color: "#1e1814",
+};
+
+const governorateInputStyle: React.CSSProperties = {
+  ...inputStyle,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "12px",
+};
+
 const labelStyle: React.CSSProperties = {
   display: "block",
   fontSize: "14px",
@@ -92,6 +143,7 @@ export function CheckoutPage() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
   const [submitError, setSubmitError] = useState("");
+  const [governorateOpen, setGovernorateOpen] = useState(false);
 
   const [form, setForm] = useState({
     firstName: "",
@@ -259,6 +311,7 @@ export function CheckoutPage() {
     setOrderResult(null);
     setPromoApplied(null);
     setPromoInput("");
+    setGovernorateOpen(false);
     setForm({ firstName: "", lastName: "", phone: "", email: "", address: "", governorate: "", postalCode: "", city: "" });
     closeCheckout();
   }, [clearCart, closeCheckout]);
@@ -497,52 +550,78 @@ export function CheckoutPage() {
 
                 <div className="space-y-5">
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
+                    <div className="flex flex-col gap-1">
                       <label style={labelStyle}>First Name</label>
                       <input type="text" value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} style={inputStyle} autoComplete="given-name" className="checkout-input" />
                     </div>
-                    <div>
+                    <div className="flex flex-col gap-1">
                       <label style={labelStyle}>Last Name</label>
                       <input type="text" value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} style={inputStyle} autoComplete="family-name" className="checkout-input" />
                     </div>
                   </div>
 
-                  <div>
+                  <div className="flex flex-col gap-1">
                     <label style={labelStyle}>Phone Number</label>
                     <input type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} style={inputStyle} autoComplete="tel" placeholder="01X XXXX XXXX" className="checkout-input" />
                   </div>
 
-                  <div>
+                  <div className="flex flex-col gap-1">
                     <label style={labelStyle}>Email Address <span style={{ textTransform: "none", letterSpacing: "0.08em", opacity: 0.7 }}>(optional)</span></label>
                     <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} style={inputStyle} autoComplete="email" placeholder="your@email.com" className="checkout-input" />
                   </div>
 
-                  <div>
+                  <div className="flex flex-col gap-1">
                     <label style={labelStyle}>Address</label>
                     <input type="text" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} style={inputStyle} autoComplete="street-address" className="checkout-input" />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
+                    <div className="flex flex-col gap-1 relative">
                       <label style={labelStyle}>Governorate</label>
-                      <select value={form.governorate} onChange={(e) => setForm((f) => ({ ...f, governorate: e.target.value }))} style={inputStyle} autoComplete="address-level1" className="checkout-input">
-                        <option value="" disabled>
-                          Select governorate
-                        </option>
-                        {GOVERNORATES.map((governorate) => (
-                          <option key={governorate} value={governorate}>
-                            {governorate}
-                          </option>
-                        ))}
-                      </select>
+                      <button type="button" onClick={() => setGovernorateOpen((o) => !o)} style={governorateInputStyle} className="checkout-input">
+                        <span style={{ color: form.governorate ? "#1e1814" : "rgba(30,24,20,0.42)" }}>
+                          {form.governorate || "Select governorate"}
+                        </span>
+                        <ChevronDown size={14} strokeWidth={1.8} style={{ color: "rgba(30,24,20,0.55)", flexShrink: 0 }} />
+                      </button>
+                      <AnimatePresence>
+                        {governorateOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 8 }}
+                            transition={{ duration: 0.16 }}
+                            style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 40, marginTop: 8 }}
+                          >
+                            <div style={optionListStyle}>
+                              {GOVERNORATES.map((governorate) => (
+                                <button
+                                  key={governorate}
+                                  type="button"
+                                  onClick={() => {
+                                    setForm((f) => ({ ...f, governorate }));
+                                    setGovernorateOpen(false);
+                                  }}
+                                  style={{
+                                    ...optionStyle,
+                                    backgroundColor: form.governorate === governorate ? "rgba(30,24,20,0.06)" : "transparent",
+                                  }}
+                                >
+                                  {governorate}
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    <div>
+                    <div className="flex flex-col gap-1">
                       <label style={labelStyle}>Postal Code <span style={{ textTransform: "none", letterSpacing: "0.08em", opacity: 0.7 }}>(optional)</span></label>
                       <input type="text" value={form.postalCode} onChange={(e) => setForm((f) => ({ ...f, postalCode: e.target.value }))} style={inputStyle} autoComplete="postal-code" className="checkout-input" />
                     </div>
                   </div>
 
-                  <div>
+                  <div className="flex flex-col gap-1">
                     <label style={labelStyle}>City</label>
                     <input type="text" value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} style={inputStyle} autoComplete="address-level2" className="checkout-input" />
                   </div>
