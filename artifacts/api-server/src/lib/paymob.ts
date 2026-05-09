@@ -33,7 +33,7 @@ export async function createPaymobIntention(
   const body = {
     amount: params.amountCents,
     currency: "EGP",
-    payment_methods: [parseInt(config.integrationId, 10)],
+    integration_ids: [parseInt(config.integrationId, 10)],
     merchant_order_id: String(params.shopifyOrderId),
     billing_data: {
       first_name: params.customer.firstName,

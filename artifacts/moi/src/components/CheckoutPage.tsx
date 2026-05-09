@@ -158,43 +158,51 @@ export function CheckoutPage() {
     const params = new URLSearchParams(window.location.search);
     const success = params.get("success");
     const merchantOrderId = params.get("merchant_order_id");
+    // error_occured (Paymob typo) and id are additional Paymob return params
+    const errorOccured = params.get("error_occured");
+    const txnId = params.get("id");
 
-    if (success !== null && merchantOrderId) {
-      history.replaceState({}, "", window.location.pathname);
+    const isPaymobReturn = success !== null && merchantOrderId;
+    if (!isPaymobReturn) return;
 
-      const savedOrderId = sessionStorage.getItem(SESSION_KEYS.orderId);
-      const savedOrderNumber = sessionStorage.getItem(SESSION_KEYS.orderNumber);
-      const savedTotal = sessionStorage.getItem(SESSION_KEYS.total);
+    history.replaceState({}, "", window.location.pathname);
 
-      const savedFormRaw = sessionStorage.getItem(SESSION_KEYS.form);
-      sessionStorage.removeItem(SESSION_KEYS.orderId);
-      sessionStorage.removeItem(SESSION_KEYS.orderNumber);
-      sessionStorage.removeItem(SESSION_KEYS.total);
-      sessionStorage.removeItem(SESSION_KEYS.form);
+    const savedOrderId = sessionStorage.getItem(SESSION_KEYS.orderId);
+    const savedOrderNumber = sessionStorage.getItem(SESSION_KEYS.orderNumber);
+    const savedTotal = sessionStorage.getItem(SESSION_KEYS.total);
+    const savedFormRaw = sessionStorage.getItem(SESSION_KEYS.form);
 
-      const result: OrderResult = {
-        orderNumber: savedOrderNumber ?? merchantOrderId,
-        total: savedTotal ?? "",
-        shopifyOrderId: parseInt(savedOrderId ?? merchantOrderId, 10),
-      };
-      setOrderResult(result);
-      openCheckout();
+    sessionStorage.removeItem(SESSION_KEYS.orderId);
+    sessionStorage.removeItem(SESSION_KEYS.orderNumber);
+    sessionStorage.removeItem(SESSION_KEYS.total);
+    sessionStorage.removeItem(SESSION_KEYS.form);
 
-      if (success === "true") {
-        setStep("card-confirm");
-        clearCart();
-      } else {
-        const prevFailedId = parseInt(savedOrderId ?? merchantOrderId, 10);
-        if (!isNaN(prevFailedId)) setFailedOrderId(prevFailedId);
-        if (savedFormRaw) {
-          try {
-            const savedForm = JSON.parse(savedFormRaw) as typeof form;
-            setForm(savedForm);
-          } catch {}
-        }
-        setPaymentMethod("card");
-        setStep("card-failed");
+    const resolvedOrderId = savedOrderId ?? merchantOrderId;
+    const result: OrderResult = {
+      orderNumber: savedOrderNumber ?? merchantOrderId,
+      total: savedTotal ?? "",
+      shopifyOrderId: parseInt(resolvedOrderId, 10),
+    };
+    setOrderResult(result);
+    openCheckout();
+
+    const isSuccess = success === "true" && errorOccured !== "true";
+    if (isSuccess) {
+      // Store transaction ID for reconciliation if needed
+      if (txnId) sessionStorage.setItem("moi_paymob_last_txn", txnId);
+      setStep("card-confirm");
+      clearCart();
+    } else {
+      const prevFailedId = parseInt(resolvedOrderId, 10);
+      if (!isNaN(prevFailedId)) setFailedOrderId(prevFailedId);
+      if (savedFormRaw) {
+        try {
+          const savedForm = JSON.parse(savedFormRaw) as typeof form;
+          setForm(savedForm);
+        } catch {}
       }
+      setPaymentMethod("card");
+      setStep("card-failed");
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -372,6 +380,14 @@ export function CheckoutPage() {
     setPaymentMethod("card");
   }, [orderResult]);
 
+  const handleChooseDifferent = useCallback(() => {
+    if (orderResult?.shopifyOrderId) {
+      setFailedOrderId(orderResult.shopifyOrderId);
+    }
+    setStep("form");
+    setPaymentMethod("cod");
+  }, [orderResult]);
+
   const isConfirmStep = step === "cod-confirm" || step === "instapay-confirm" || step === "card-confirm" || step === "card-failed";
   const loadingText = paymentMethod === "card" ? "Preparing payment…" : "Placing your order…";
 
@@ -433,6 +449,7 @@ export function CheckoutPage() {
             <CardFailed
               orderResult={orderResult!}
               onRetry={handleRetryCard}
+              onChooseDifferent={handleChooseDifferent}
               onDone={handleDone}
             />
           ) : (
@@ -803,7 +820,17 @@ function CardConfirmation({ orderResult, onDone }: { orderResult: OrderResult; o
   );
 }
 
-function CardFailed({ orderResult, onRetry, onDone }: { orderResult: OrderResult; onRetry: () => void; onDone: () => void }) {
+function CardFailed({
+  orderResult,
+  onRetry,
+  onChooseDifferent,
+  onDone,
+}: {
+  orderResult: OrderResult;
+  onRetry: () => void;
+  onChooseDifferent: () => void;
+  onDone: () => void;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -833,14 +860,21 @@ function CardFailed({ orderResult, onRetry, onDone }: { orderResult: OrderResult
           className="w-full py-4 transition-opacity hover:opacity-80"
           style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
         >
-          Retry Card Payment
+          Try Again with Card
+        </button>
+        <button
+          onClick={onChooseDifferent}
+          className="w-full py-3 transition-opacity hover:opacity-80"
+          style={{ backgroundColor: "transparent", border: "1.5px solid #1e1814", color: "#1e1814", fontSize: "13px", letterSpacing: "0.22em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}
+        >
+          Choose Different Method
         </button>
         <button
           onClick={onDone}
           className="w-full py-3 transition-opacity hover:opacity-60"
           style={{ fontSize: "13px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", border: "1px solid rgba(30,24,20,0.18)" }}
         >
-          Cancel
+          Cancel Order
         </button>
       </div>
     </motion.div>
@@ -1140,7 +1174,7 @@ function InstapayConfirmation({
                     </p>
                   </>
                 )}
-                <input ref={fileRef} type="file" accept="image/*" capture={isTouch ? "environment" : undefined} onChange={handleFileChange} style={{ display: "none" }} />
+                <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
               </div>
             </div>
 

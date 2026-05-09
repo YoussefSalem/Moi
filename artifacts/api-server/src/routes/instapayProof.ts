@@ -64,19 +64,19 @@ router.post("/orders/instapay-proof", upload.single("screenshot"), async (req, r
     return;
   }
 
-  // Upload screenshot to object storage
-  let screenshotKey: string | null = null;
-  if (req.file) {
-    try {
-      const ext = req.file.mimetype === "image/png" ? "png" : "jpg";
-      const key = `instapay-proofs/${shopifyOrderId}-${Date.now()}.${ext}`;
-      const bucket = getBucket();
-      const file = bucket.file(key);
-      await file.save(req.file.buffer, { contentType: req.file.mimetype });
-      screenshotKey = key;
-    } catch (err) {
-      logger.error({ err }, "Screenshot upload to object storage failed");
-    }
+  // Upload screenshot to object storage — fail atomically if storage fails
+  let screenshotKey: string;
+  try {
+    const ext = req.file.mimetype === "image/png" ? "png" : "jpg";
+    const key = `instapay-proofs/${shopifyOrderId}-${Date.now()}.${ext}`;
+    const bucket = getBucket();
+    const file = bucket.file(key);
+    await file.save(req.file.buffer, { contentType: req.file.mimetype });
+    screenshotKey = key;
+  } catch (err) {
+    logger.error({ err }, "Screenshot upload to object storage failed");
+    res.status(500).json({ error: "Failed to upload screenshot. Please try again." });
+    return;
   }
 
   // Insert DB row
