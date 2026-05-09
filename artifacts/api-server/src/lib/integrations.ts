@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { logger } from "./logger";
 
 export function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
@@ -142,14 +143,22 @@ export async function sendWhatsApp(phone: string, message: string): Promise<void
   const token = process.env.WHAPI_API_TOKEN;
   if (!token) return;
   const formatted = formatPhone(phone);
-  await fetch("https://gate.whapi.cloud/messages/text", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ to: `${formatted}@s.whatsapp.net`, body: message }),
-  }).catch(() => {});
+  try {
+    const res = await fetch("https://gate.whapi.cloud/messages/text", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ to: `${formatted}@s.whatsapp.net`, body: message }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.warn({ status: res.status, phone: formatted, body }, "Whapi non-2xx response");
+    }
+  } catch (err) {
+    logger.warn({ err, phone: formatted }, "Whapi fetch error");
+  }
 }
 
 
@@ -248,6 +257,7 @@ interface ShopifyOrder {
   id: number;
   order_number: number;
   note: string | null;
+  tags: string;
   fulfillments: {
     id: number;
     status: string;
@@ -255,6 +265,46 @@ interface ShopifyOrder {
   }[];
 }
 
+/**
+ * Tags a Shopify order by appending a new tag (preserves existing tags).
+ * Used to attach `bosta-{trackingNumber}` for deterministic status-webhook lookup.
+ */
+export async function tagShopifyOrder(orderId: number, tag: string): Promise<void> {
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
+  if (!storeDomain || !adminToken) return;
+
+  try {
+    const getRes = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=tags`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+    let existingTags = "";
+    if (getRes.ok) {
+      const data = await getRes.json() as { order: { tags: string } };
+      existingTags = data.order.tags ?? "";
+    }
+    const combined = existingTags ? `${existingTags}, ${tag}` : tag;
+    await fetch(
+      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": adminToken,
+        },
+        body: JSON.stringify({ order: { id: orderId, tags: combined } }),
+      },
+    );
+  } catch (err) {
+    logger.warn({ err, orderId, tag }, "tagShopifyOrder failed");
+  }
+}
+
+/**
+ * Finds a Shopify order by its `bosta-{trackingNumber}` tag.
+ * O(1) API call — no full order scan needed.
+ */
 export async function findOrderByTrackingNote(
   trackingNumber: string,
 ): Promise<ShopifyOrder | null> {
@@ -262,16 +312,15 @@ export async function findOrderByTrackingNote(
   const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
   if (!storeDomain || !adminToken) return null;
 
+  const tag = `bosta-${trackingNumber}`;
   try {
     const res = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/orders.json?status=any&limit=250&fields=id,order_number,note,fulfillments`,
+      `https://${storeDomain}/admin/api/2024-04/orders.json?status=any&tag=${encodeURIComponent(tag)}&limit=1&fields=id,order_number,note,tags,fulfillments`,
       { headers: { "X-Shopify-Access-Token": adminToken } },
     );
     if (!res.ok) return null;
     const data = await res.json() as { orders: ShopifyOrder[] };
-    return (
-      data.orders.find((o) => o.note?.includes(trackingNumber)) ?? null
-    );
+    return data.orders[0] ?? null;
   } catch {
     return null;
   }

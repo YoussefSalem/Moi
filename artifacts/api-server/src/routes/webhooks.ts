@@ -3,6 +3,7 @@ import {
   sendWhatsApp,
   createBostaShipment,
   addShopifyOrderNote,
+  tagShopifyOrder,
   verifyShopifyHmac,
   findOrderByTrackingNote,
   createShopifyFulfillment,
@@ -120,6 +121,7 @@ router.post("/webhooks/orders-paid", async (req, res) => {
         order.id,
         `Bosta tracking: ${trackingNumber}\nPayment: Instapay (confirmed)`,
       );
+      void tagShopifyOrder(order.id, `bosta-${trackingNumber}`);
 
       // Create a Shopify fulfillment with the Bosta tracking number
       const fulfillmentId = await createShopifyFulfillment(order.id, trackingNumber);

@@ -3,6 +3,7 @@ import {
   sendWhatsApp,
   createBostaShipment,
   addShopifyOrderNote,
+  tagShopifyOrder,
 } from "../lib/integrations";
 
 const router: IRouter = Router();
@@ -336,6 +337,7 @@ router.post("/orders/create", async (req, res) => {
 
       if (trackingNumber) {
         void addShopifyOrderNote(orderId, `Bosta tracking: ${trackingNumber}`);
+        void tagShopifyOrder(orderId, `bosta-${trackingNumber}`);
         req.log.info({ trackingNumber, orderNumber }, "Bosta COD shipment created");
       }
     } else {
