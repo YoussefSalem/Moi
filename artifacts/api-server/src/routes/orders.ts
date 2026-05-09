@@ -9,6 +9,37 @@ import {
 
 const router: IRouter = Router();
 
+const EGYPT_PROVINCE_CODES: Record<string, string> = {
+  "Cairo": "C",
+  "Giza": "GZ",
+  "Alexandria": "ALX",
+  "Dakahlia": "DK",
+  "Red Sea": "BA",
+  "Beheira": "BH",
+  "Fayoum": "FYM",
+  "Gharbia": "GH",
+  "Ismailia": "IS",
+  "Menofia": "MNF",
+  "Minya": "MN",
+  "Qaliubiya": "KB",
+  "New Valley": "WAD",
+  "Suez": "SUZ",
+  "Aswan": "ASN",
+  "Assiut": "AST",
+  "Beni Suef": "BS",
+  "Port Said": "PTS",
+  "Damietta": "DT",
+  "Sharkia": "SHR",
+  "South Sinai": "JS",
+  "Kafr El Sheikh": "KFS",
+  "Matrouh": "MT",
+  "Luxor": "LX",
+  "Qena": "KN",
+  "North Sinai": "SIN",
+  "Sohag": "SHG",
+  "Ain Sokhna": "SUZ",
+};
+
 interface OrderLine {
   variantId: string;
   quantity: number;
@@ -139,6 +170,7 @@ async function createDraftOrder(params: {
       address1: params.customer.address,
       address2: params.customer.governorate,
       city: params.customer.city,
+      province: EGYPT_PROVINCE_CODES[params.customer.governorate] ?? params.customer.governorate,
       zip: params.customer.postalCode ?? "",
       country: "Egypt",
       country_code: "EG",
