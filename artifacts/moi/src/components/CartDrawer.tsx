@@ -51,8 +51,8 @@ export function CartDrawer() {
               <div className="flex items-center gap-3">
                 <ShoppingBag size={17} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                 <span
-                  className="text-[11px] tracking-[0.28em] uppercase font-medium"
-                  style={{ color: "#1e1814" }}
+                  className="text-[11px] tracking-[0.28em] uppercase font-semibold"
+                  style={{ color: "#17120f" }}
                 >
                   Your Bag
                 </span>
@@ -118,14 +118,14 @@ export function CartDrawer() {
                             <div className="flex justify-between items-start gap-2">
                               <div>
                                 <p
-                                  className="text-[12px] tracking-wide font-medium leading-tight"
-                                  style={{ color: "#1e1814" }}
+                                  className="text-[12px] tracking-wide font-semibold leading-tight"
+                                  style={{ color: "#17120f" }}
                                 >
                                   {line.merchandise.product.title}
                                 </p>
                                 <p
                                   className="text-[10px] tracking-[0.15em] uppercase mt-1 font-light"
-                                  style={{ color: "#7a6e64" }}
+                                  style={{ color: "rgba(23,18,15,0.72)" }}
                                 >
                                   {line.merchandise.title !== "Default Title" ? line.merchandise.title : ""}
                                 </p>
@@ -151,8 +151,8 @@ export function CartDrawer() {
                                   <Minus size={11} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                                 <span
-                                  className="w-7 h-7 flex items-center justify-center text-[11px] font-medium"
-                                  style={{ color: "#1e1814" }}
+                                  className="w-7 h-7 flex items-center justify-center text-[11px] font-semibold"
+                                  style={{ color: "#17120f" }}
                                 >
                                   {line.quantity}
                                 </span>
@@ -165,8 +165,8 @@ export function CartDrawer() {
                                 </button>
                               </div>
                               <p
-                                className="text-[12px] font-medium tracking-wide"
-                                style={{ color: "#1e1814" }}
+                                className="text-[12px] font-semibold tracking-wide"
+                                style={{ color: "#17120f" }}
                               >
                                 {formatShopifyLinePrice(line)}
                               </p>
@@ -199,15 +199,15 @@ export function CartDrawer() {
                             <div className="flex justify-between items-start gap-2">
                               <div>
                                 <p
-                                  className="text-[12px] tracking-wide font-medium leading-tight"
-                                  style={{ color: "#1e1814" }}
+                                  className="text-[12px] tracking-wide font-semibold leading-tight"
+                                  style={{ color: "#17120f" }}
                                 >
                                   {item.title}
                                 </p>
                                 {item.size && (
                                   <p
                                     className="text-[10px] tracking-[0.15em] uppercase mt-1 font-light"
-                                    style={{ color: "#7a6e64" }}
+                                    style={{ color: "rgba(23,18,15,0.72)" }}
                                   >
                                     Size: {item.size}
                                   </p>
@@ -234,8 +234,8 @@ export function CartDrawer() {
                                   <Minus size={11} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                                 <span
-                                  className="w-7 h-7 flex items-center justify-center text-[11px] font-medium"
-                                  style={{ color: "#1e1814" }}
+                                  className="w-7 h-7 flex items-center justify-center text-[11px] font-semibold"
+                                  style={{ color: "#17120f" }}
                                 >
                                   {item.quantity}
                                 </span>
@@ -248,8 +248,8 @@ export function CartDrawer() {
                                 </button>
                               </div>
                               <p
-                                className="text-[12px] font-medium tracking-wide"
-                                style={{ color: "#1e1814" }}
+                                className="text-[12px] font-semibold tracking-wide"
+                                style={{ color: "#17120f" }}
                               >
                                 {item.price}
                               </p>
@@ -273,21 +273,21 @@ export function CartDrawer() {
               >
                 <div className="flex justify-between items-baseline">
                   <span
-                    className="text-[10px] tracking-[0.3em] uppercase font-light"
-                    style={{ color: "#7a6e64" }}
+                    className="text-[10px] tracking-[0.3em] uppercase font-medium"
+                    style={{ color: "#17120f" }}
                   >
                     Total
                   </span>
                   <span
-                    className="text-base font-medium tracking-wide"
-                    style={{ color: "#1e1814" }}
+                    className="text-base font-semibold tracking-wide"
+                    style={{ color: "#17120f" }}
                   >
                     {cartTotal}
                   </span>
                 </div>
                 <p
-                  className="text-[9px] tracking-[0.2em] uppercase font-light text-center"
-                  style={{ color: "rgba(30,24,20,0.35)" }}
+                  className="text-[9px] tracking-[0.2em] uppercase font-medium text-center"
+                  style={{ color: "rgba(23,18,15,0.55)" }}
                 >
                   120 EGP flat shipping · applied at checkout
                 </p>
