@@ -107,9 +107,21 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   useEffect(() => {
     if (!sizeOption || !product.variants) return;
-    if (isSizeAvailable(selectedSize)) return;
-    const firstAvail = sizeOption.values.find((s) => isSizeAvailable(s));
-    if (firstAvail) setSelectedSize(firstAvail);
+    // Only auto-switch if the current size doesn't exist at all for this color
+    // (i.e. no variant found, not just out of stock). OOS sizes remain selectable.
+    const sizeExistsForColor = product.variants.some((v) =>
+      v.selectedOptions.some((o) => o.name.toLowerCase() === (sizeOption.optionName.toLowerCase() ?? "size") && o.value === selectedSize) &&
+      (!colorOption || v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === selectedColor))
+    );
+    if (!sizeExistsForColor) {
+      const firstExisting = sizeOption.values.find((s) =>
+        product.variants!.some((v) =>
+          v.selectedOptions.some((o) => o.name.toLowerCase() === (sizeOption.optionName.toLowerCase() ?? "size") && o.value === s) &&
+          (!colorOption || v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === selectedColor))
+        )
+      );
+      if (firstExisting) setSelectedSize(firstExisting);
+    }
   }, [selectedColor, product.variants]);
 
   const effectivePrice = selectedVariant?.price ?? product.price;
@@ -325,21 +337,38 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 return (
                   <button
                     key={size}
-                    onClick={() => { if (available) setSelectedSize(size); }}
+                    onClick={() => setSelectedSize(size)}
                     type="button"
                     aria-pressed={isSelected}
-                    disabled={!available}
-                    title={!available ? "Out of stock" : undefined}
-                    className="min-w-24 px-5 py-3 text-[11px] tracking-[0.22em] uppercase font-medium border transition-all duration-300 relative"
+                    title={!available ? "Out of stock — notify me when available" : undefined}
+                    className="min-w-24 px-5 py-3 text-[11px] tracking-[0.22em] uppercase font-medium border transition-all duration-300 relative overflow-hidden"
                     style={{
-                      color: !available ? "rgba(30,24,20,0.25)" : isSelected ? "#1e1814" : "#7a6e64",
-                      borderColor: isSelected ? "#1e1814" : "rgba(30,24,20,0.14)",
+                      color: !available ? "rgba(30,24,20,0.38)" : isSelected ? "#1e1814" : "#7a6e64",
+                      borderColor: isSelected && !available
+                        ? "rgba(30,24,20,0.45)"
+                        : isSelected
+                        ? "#1e1814"
+                        : "rgba(30,24,20,0.14)",
                       backgroundColor: isSelected ? "rgba(30,24,20,0.04)" : "rgba(250,248,245,0.78)",
                       boxShadow: isSelected ? "inset 0 0 0 1px rgba(30,24,20,0.08)" : "none",
-                      cursor: available ? "pointer" : "not-allowed",
-                      textDecoration: !available ? "line-through" : "none",
+                      cursor: "pointer",
                     }}
                   >
+                    {/* Diagonal line for out-of-stock */}
+                    {!available && (
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          position: "absolute",
+                          top: 0, left: 0, right: 0, bottom: 0,
+                          pointerEvents: "none",
+                        }}
+                      >
+                        <svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0 }}>
+                          <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(30,24,20,0.18)" strokeWidth="1" />
+                        </svg>
+                      </span>
+                    )}
                     {size}
                   </button>
                 );
