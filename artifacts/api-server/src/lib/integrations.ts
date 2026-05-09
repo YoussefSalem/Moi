@@ -1,6 +1,56 @@
 import crypto from "crypto";
 import { logger } from "./logger";
 
+// ─── Shopify Admin Token ─────────────────────────────────────────────────────
+let _shopifyTokenCache: { token: string; expiresAt: number } | null = null;
+
+/**
+ * Returns a valid Shopify Admin API access token.
+ * Priority:
+ *   1. SHOPIFY_ADMIN_API_TOKEN (static token — legacy custom apps)
+ *   2. Client credentials grant via SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET
+ *      (required by Partner apps / Headless channel apps)
+ */
+export async function getShopifyAdminToken(): Promise<string | null> {
+  const staticToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
+  if (staticToken) return staticToken;
+
+  const clientId = process.env.SHOPIFY_CLIENT_ID;
+  const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  if (!clientId || !clientSecret || !storeDomain) return null;
+
+  const now = Date.now();
+  if (_shopifyTokenCache && now < _shopifyTokenCache.expiresAt - 60_000) {
+    return _shopifyTokenCache.token;
+  }
+
+  try {
+    const res = await fetch(`https://${storeDomain}/admin/oauth/access_token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: clientId,
+        client_secret: clientSecret,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error({ status: res.status, body }, "Shopify client credentials grant failed");
+      return null;
+    }
+    const data = await res.json() as { access_token: string; expires_in?: number };
+    const expiresIn = data.expires_in ?? 86399;
+    _shopifyTokenCache = { token: data.access_token, expiresAt: now + expiresIn * 1000 };
+    logger.info("Shopify Admin token refreshed via client credentials");
+    return _shopifyTokenCache.token;
+  } catch (err) {
+    logger.error({ err }, "Shopify client credentials grant error");
+    return null;
+  }
+}
+
 export function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   if (digits.startsWith("20")) return digits;
@@ -219,7 +269,7 @@ export async function addShopifyOrderNote(
   noteFragment: string,
 ): Promise<void> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN;
+  const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return;
 
   let existingNote = "";
@@ -271,7 +321,7 @@ interface ShopifyOrder {
  */
 export async function tagShopifyOrder(orderId: number, tag: string): Promise<void> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN;
+  const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return;
 
   try {
@@ -309,7 +359,7 @@ export async function findOrderByTrackingNote(
   trackingNumber: string,
 ): Promise<ShopifyOrder | null> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN;
+  const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return null;
 
   const tag = `bosta-${trackingNumber}`;
@@ -331,7 +381,7 @@ export async function createShopifyFulfillment(
   trackingNumber: string,
 ): Promise<number | null> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN;
+  const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return null;
 
   try {
@@ -367,7 +417,7 @@ export async function addShopifyFulfillmentEvent(
   status: string,
 ): Promise<void> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN;
+  const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return;
   await fetch(
     `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/fulfillments/${fulfillmentId}/events.json`,

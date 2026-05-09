@@ -1,4 +1,5 @@
 import { logger } from "./logger";
+import { getShopifyAdminToken } from "./integrations";
 
 // Note: inventory_levels/update and products/update require additional
 // Shopify API scopes not available on all plans. The restock check is instead
@@ -66,7 +67,7 @@ async function createWebhook(
 
 export async function registerRestockWebhooks(): Promise<void> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN;
+  const adminToken = await getShopifyAdminToken();
   const domains = process.env.REPLIT_DOMAINS;
 
   if (!storeDomain || !adminToken || !domains) {

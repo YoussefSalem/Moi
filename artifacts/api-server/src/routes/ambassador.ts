@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, ambassadorApplications } from "@workspace/db";
 import nodemailer from "nodemailer";
+import { getShopifyAdminToken } from "../lib/integrations";
 
 const router: IRouter = Router();
 
@@ -168,7 +169,7 @@ router.post("/ambassador", async (req, res) => {
 
   // Notify via Shopify Admin API — creates a tagged customer record
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN;
+  const adminToken = await getShopifyAdminToken();
 
   if (storeDomain && adminToken) {
     try {
