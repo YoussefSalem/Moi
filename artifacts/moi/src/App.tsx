@@ -17,6 +17,9 @@ import { CustomerProvider } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 import { useRestockChecker } from "@/hooks/useRestockChecker";
+import { AdminPage } from "@/pages/AdminPage";
+
+const IS_ADMIN = window.location.pathname.startsWith("/admin");
 
 function ProductSkeleton() {
   return (
@@ -122,6 +125,10 @@ function AppContent() {
 }
 
 function App() {
+  if (IS_ADMIN) {
+    return <AdminPage />;
+  }
+
   return (
     <CustomerProvider>
       <CartProvider>

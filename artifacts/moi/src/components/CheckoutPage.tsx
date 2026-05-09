@@ -1,51 +1,35 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Upload, X, CreditCard } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 
-type PaymentMethod = "cod" | "instapay";
-type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm";
+type PaymentMethod = "cod" | "instapay" | "card";
+type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-confirm" | "card-failed";
+type InstapaySubStep = "instructions" | "upload" | "review";
 
 interface OrderResult {
   orderNumber: string | number;
   total: string;
+  shopifyOrderId?: number;
   instapayAccount?: string;
   instapayNumber?: string;
-  businessWA?: string;
 }
 
 const SHIPPING_EGP = 120;
 const GOVERNORATES = [
-  "Cairo",
-  "Giza",
-  "Alexandria",
-  "Dakahlia",
-  "Red Sea",
-  "Beheira",
-  "Fayoum",
-  "Gharbia",
-  "Ismailia",
-  "Menofia",
-  "Minya",
-  "Qaliubiya",
-  "New Valley",
-  "Suez",
-  "Aswan",
-  "Assiut",
-  "Beni Suef",
-  "Port Said",
-  "Damietta",
-  "Sharkia",
-  "South Sinai",
-  "Kafr El Sheikh",
-  "Matrouh",
-  "Luxor",
-  "Qena",
-  "North Sinai",
-  "Sohag",
-  "Ain Sokhna",
+  "Cairo","Giza","Alexandria","Dakahlia","Red Sea","Beheira","Fayoum","Gharbia",
+  "Ismailia","Menofia","Minya","Qaliubiya","New Valley","Suez","Aswan","Assiut",
+  "Beni Suef","Port Said","Damietta","Sharkia","South Sinai","Kafr El Sheikh",
+  "Matrouh","Luxor","Qena","North Sinai","Sohag","Ain Sokhna",
 ] as const;
+
+const SESSION_KEYS = {
+  orderId: "moi_paymob_order_id",
+  orderNumber: "moi_paymob_order_number",
+  total: "moi_paymob_total",
+  failedOrderId: "moi_paymob_failed_order_id",
+} as const;
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -61,29 +45,6 @@ const inputStyle: React.CSSProperties = {
   letterSpacing: "0.025em",
 };
 
-const fieldWrapStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "2px",
-};
-
-const selectButtonStyle: React.CSSProperties = {
-  width: "100%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  background: "transparent",
-  border: "none",
-  borderBottom: "1px solid rgba(30,24,20,0.22)",
-  outline: "none",
-  padding: "10px 0",
-  fontSize: "14px",
-  color: "#1e1814",
-  fontWeight: 500,
-  fontFamily: "'Montserrat', sans-serif",
-  letterSpacing: "0.025em",
-  textAlign: "left",
-};
 
 const optionListStyle: React.CSSProperties = {
   maxHeight: "240px",
@@ -122,12 +83,33 @@ const labelStyle: React.CSSProperties = {
   fontFamily: "'Montserrat', sans-serif",
 };
 
+async function compressImage(file: File, maxPx = 1400, quality = 0.82): Promise<Blob> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(file); return; }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => resolve(blob ?? file), "image/jpeg", quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
 export function CheckoutPage() {
   const {
     shopifyCart,
     localItems,
     checkoutOpen,
     closeCheckout,
+    openCheckout,
     clearCart,
     isShopify,
     formatShopifyLinePrice,
@@ -144,55 +126,67 @@ export function CheckoutPage() {
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
+  const [failedOrderId, setFailedOrderId] = useState<number | null>(null);
 
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    phone: "",
-    email: "",
-    address: "",
-    governorate: "",
-    postalCode: "",
-    city: "",
+    firstName: "", lastName: "", phone: "", email: "",
+    address: "", governorate: "", postalCode: "", city: "",
   });
 
-  const lines = isShopify && shopifyCart
-    ? shopifyCart.lines.nodes
-    : null;
+  const lines = isShopify && shopifyCart ? shopifyCart.lines.nodes : null;
   const localLines = !isShopify ? localItems : [];
-
   const localSubtotal = localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
-
-  // subtotalAmount: original line-items total before any discount codes
-  const subtotalAmount = shopifyCart
-    ? parseFloat(shopifyCart.cost.subtotalAmount.amount)
-    : localSubtotal;
-
-  // cartDiscountedTotal: after discount codes, before shipping (Shopify cart has no shipping)
-  const cartDiscountedTotal = shopifyCart
-    ? parseFloat(shopifyCart.cost.totalAmount.amount)
-    : localSubtotal;
-
-  // savings: the discount applied by promo codes
+  const subtotalAmount = shopifyCart ? parseFloat(shopifyCart.cost.subtotalAmount.amount) : localSubtotal;
+  const cartDiscountedTotal = shopifyCart ? parseFloat(shopifyCart.cost.totalAmount.amount) : localSubtotal;
   const savings = Math.max(0, subtotalAmount - cartDiscountedTotal);
-
-  // final total the customer pays
   const totalAmount = cartDiscountedTotal + SHIPPING_EGP;
-
   const currencyCode = shopifyCart?.cost.totalAmount.currencyCode ?? localItems[0]?.currencyCode ?? "EGP";
 
   function fmt(amount: number) {
     try {
       return new Intl.NumberFormat("en-EG", {
-        style: "currency",
-        currency: currencyCode,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
+        style: "currency", currency: currencyCode, minimumFractionDigits: 0, maximumFractionDigits: 0,
       }).format(amount);
     } catch {
       return `${amount.toFixed(0)} EGP`;
     }
   }
+
+  // Detect Paymob return (after hosted checkout redirect)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get("success");
+    const merchantOrderId = params.get("merchant_order_id");
+
+    if (success !== null && merchantOrderId) {
+      history.replaceState({}, "", window.location.pathname);
+
+      const savedOrderId = sessionStorage.getItem(SESSION_KEYS.orderId);
+      const savedOrderNumber = sessionStorage.getItem(SESSION_KEYS.orderNumber);
+      const savedTotal = sessionStorage.getItem(SESSION_KEYS.total);
+
+      sessionStorage.removeItem(SESSION_KEYS.orderId);
+      sessionStorage.removeItem(SESSION_KEYS.orderNumber);
+      sessionStorage.removeItem(SESSION_KEYS.total);
+
+      const result: OrderResult = {
+        orderNumber: savedOrderNumber ?? merchantOrderId,
+        total: savedTotal ?? "",
+        shopifyOrderId: parseInt(savedOrderId ?? merchantOrderId, 10),
+      };
+      setOrderResult(result);
+      openCheckout();
+
+      if (success === "true") {
+        setStep("card-confirm");
+        clearCart();
+      } else {
+        const prevFailedId = parseInt(savedOrderId ?? merchantOrderId, 10);
+        if (!isNaN(prevFailedId)) setFailedOrderId(prevFailedId);
+        setStep("card-failed");
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleApplyPromo = useCallback(async () => {
     if (!promoInput.trim()) return;
@@ -240,34 +234,72 @@ export function CheckoutPage() {
     setStep("loading");
 
     const orderLines = isShopify && shopifyCart
-      ? shopifyCart.lines.nodes.map((l) => ({
-          variantId: l.merchandise.id,
-          quantity: l.quantity,
-        }))
-      : localItems.map((i) => ({
-          variantId: i.variantId,
-          quantity: i.quantity,
-        }));
+      ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
+      : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
 
+    const customerPayload = {
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      email: form.email.trim() || undefined,
+      phone: form.phone.trim(),
+      address: form.address.trim(),
+      governorate: form.governorate.trim(),
+      postalCode: form.postalCode.trim() || undefined,
+      city: form.city.trim(),
+    };
+
+    // Card payment: call paymob-init → redirect to Paymob hosted checkout
+    if (paymentMethod === "card") {
+      try {
+        const res = await fetch("/api/orders/paymob-init", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lines: orderLines,
+            customer: customerPayload,
+            cartId: shopifyCart?.id ?? null,
+            discountCode: promoApplied?.code ?? null,
+            cancelPreviousOrderId: failedOrderId ?? undefined,
+          }),
+        });
+
+        const data = await res.json() as {
+          clientSecret?: string;
+          publicKey?: string;
+          shopifyOrderId?: number;
+          shopifyOrderNumber?: number;
+          total?: string;
+          error?: string;
+        };
+
+        if (!res.ok || !data.clientSecret || !data.publicKey) {
+          setStep("form");
+          setSubmitError(data.error ?? "Payment gateway unavailable. Please try again.");
+          return;
+        }
+
+        sessionStorage.setItem(SESSION_KEYS.orderId, String(data.shopifyOrderId ?? ""));
+        sessionStorage.setItem(SESSION_KEYS.orderNumber, String(data.shopifyOrderNumber ?? ""));
+        sessionStorage.setItem(SESSION_KEYS.total, data.total ?? "");
+
+        setFailedOrderId(null);
+        window.location.href = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(data.publicKey)}&clientSecret=${encodeURIComponent(data.clientSecret)}`;
+      } catch {
+        setStep("form");
+        setSubmitError("Network error. Please check your connection and try again.");
+      }
+      return;
+    }
+
+    // COD / InstaPay: call orders/create
     try {
       const res = await fetch("/api/orders/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lines: orderLines,
-          customer: {
-            firstName: form.firstName.trim(),
-            lastName: form.lastName.trim(),
-            email: form.email.trim() || undefined,
-            phone: form.phone.trim(),
-            address: form.address.trim(),
-            governorate: form.governorate.trim(),
-            postalCode: form.postalCode.trim() || undefined,
-            city: form.city.trim(),
-          },
+          customer: customerPayload,
           paymentMethod,
-          // cartId lets the server fetch Shopify's validated cart totals server-side,
-          // so discount eligibility is enforced by Shopify's own engine, not re-derived here.
           cartId: shopifyCart?.id ?? null,
           discountCode: promoApplied?.code ?? null,
         }),
@@ -276,8 +308,11 @@ export function CheckoutPage() {
       const data = await res.json() as {
         success?: boolean;
         orderNumber?: number | string;
+        shopifyOrderId?: number;
         total?: string;
         error?: string;
+        instapayAccount?: string;
+        instapayNumber?: string;
       };
 
       if (!res.ok || !data.success) {
@@ -289,12 +324,13 @@ export function CheckoutPage() {
       setOrderResult({
         orderNumber: data.orderNumber ?? "",
         total: data.total ?? fmt(totalAmount),
-        instapayAccount: (data as Record<string, unknown>).instapayAccount as string | undefined,
-        instapayNumber: (data as Record<string, unknown>).instapayNumber as string | undefined,
-        businessWA: (data as Record<string, unknown>).businessWA as string | undefined,
+        shopifyOrderId: data.shopifyOrderId,
+        instapayAccount: data.instapayAccount,
+        instapayNumber: data.instapayNumber,
       });
 
       if (paymentMethod === "cod") {
+        clearCart();
         setStep("cod-confirm");
       } else {
         setStep("instapay-confirm");
@@ -303,7 +339,7 @@ export function CheckoutPage() {
       setStep("form");
       setSubmitError("Network error. Please check your connection and try again.");
     }
-  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt]);
+  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, failedOrderId, clearCart]);
 
   const handleDone = useCallback(() => {
     clearCart();
@@ -312,10 +348,21 @@ export function CheckoutPage() {
     setPromoApplied(null);
     setPromoInput("");
     setGovernorateOpen(false);
+    setFailedOrderId(null);
     setForm({ firstName: "", lastName: "", phone: "", email: "", address: "", governorate: "", postalCode: "", city: "" });
     closeCheckout();
   }, [clearCart, closeCheckout]);
 
+  const handleRetryCard = useCallback(() => {
+    if (orderResult?.shopifyOrderId) {
+      setFailedOrderId(orderResult.shopifyOrderId);
+    }
+    setStep("form");
+    setPaymentMethod("card");
+  }, [orderResult]);
+
+  const isConfirmStep = step === "cod-confirm" || step === "instapay-confirm" || step === "card-confirm" || step === "card-failed";
+  const loadingText = paymentMethod === "card" ? "Preparing payment…" : "Placing your order…";
 
   return (
     <AnimatePresence>
@@ -335,13 +382,13 @@ export function CheckoutPage() {
             style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}
           >
             <button
-              onClick={step === "form" || step === "loading" ? closeCheckout : handleDone}
+              onClick={isConfirmStep ? handleDone : closeCheckout}
               className="flex items-center gap-2 transition-opacity hover:opacity-50"
               aria-label="Back"
             >
               <ArrowLeft size={16} strokeWidth={1.5} style={{ color: "#1e1814" }} />
               <span style={{ fontSize: "13px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif" }}>
-                {step === "form" || step === "loading" ? "Back" : "Continue shopping"}
+                {isConfirmStep ? "Continue shopping" : "Back"}
               </span>
             </button>
             <span style={{ fontSize: "13px", letterSpacing: "0.4em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
@@ -358,7 +405,7 @@ export function CheckoutPage() {
                 style={{ width: 28, height: 28, border: "1.5px solid rgba(30,24,20,0.32)", borderTopColor: "#1e1814", borderRadius: "50%" }}
               />
               <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}>
-                Placing your order…
+                {loadingText}
               </p>
             </div>
           ) : step === "cod-confirm" ? (
@@ -368,9 +415,14 @@ export function CheckoutPage() {
               orderResult={orderResult!}
               onDone={handleDone}
               fmt={fmt}
-              instapayName={orderResult?.instapayAccount ?? ""}
-              instapayNumber={orderResult?.instapayNumber ?? ""}
-              businessWA={orderResult?.businessWA ?? ""}
+            />
+          ) : step === "card-confirm" ? (
+            <CardConfirmation orderResult={orderResult!} onDone={handleDone} />
+          ) : step === "card-failed" ? (
+            <CardFailed
+              orderResult={orderResult!}
+              onRetry={handleRetryCard}
+              onDone={handleDone}
             />
           ) : (
             <div className="max-w-5xl mx-auto px-6 md:px-10 py-8 md:py-12 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
@@ -380,7 +432,6 @@ export function CheckoutPage() {
                   Order Summary
                 </p>
 
-                {/* Items */}
                 <div style={{ borderTop: "1px solid rgba(30,24,20,0.16)" }}>
                   {lines
                     ? lines.map((line) => (
@@ -421,7 +472,6 @@ export function CheckoutPage() {
                   }
                 </div>
 
-                {/* Totals */}
                 <div className="mt-4 space-y-3">
                   <div className="flex justify-between">
                     <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
@@ -447,7 +497,6 @@ export function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Promo code */}
                 {SHOPIFY_CONFIGURED && (
                   <div className="mt-6">
                     <button
@@ -514,36 +563,36 @@ export function CheckoutPage() {
 
               {/* Right: Payment + Form */}
               <div>
-                {/* Payment method */}
+                {/* Payment method tiles */}
                 <p style={{ fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "16px" }}>
                   Payment Method
                 </p>
-                <div className="grid grid-cols-2 gap-3 mb-8">
-                  {(["cod", "instapay"] as PaymentMethod[]).map((m) => (
+                <div className="grid grid-cols-3 gap-2 mb-8">
+                  {(["cod", "instapay", "card"] as PaymentMethod[]).map((m) => (
                     <button
                       key={m}
                       onClick={() => setPaymentMethod(m)}
                       className="text-left transition-all"
                       style={{
-                        padding: "16px",
+                        padding: "14px 12px",
                         border: paymentMethod === m ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.15)",
                         backgroundColor: paymentMethod === m ? "rgba(30,24,20,0.03)" : "transparent",
                       }}
                     >
-                      <div style={{ fontSize: "18px", marginBottom: "6px" }}>
-                        {m === "cod" ? "🚚" : "📱"}
+                      <div style={{ fontSize: "16px", marginBottom: "5px" }}>
+                        {m === "cod" ? "🚚" : m === "instapay" ? "📱" : "💳"}
                       </div>
-                      <p style={{ fontSize: "13px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
-                        {m === "cod" ? "Cash on Delivery" : "Instapay"}
+                      <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
+                        {m === "cod" ? "Cash on Delivery" : m === "instapay" ? "InstaPay" : "Card"}
                       </p>
-                      <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, marginTop: "4px", lineHeight: 1.5 }}>
-                        {m === "cod" ? "Pay when you receive" : "Bank transfer"}
+                      <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", marginTop: "3px", lineHeight: 1.4 }}>
+                        {m === "cod" ? "Pay on arrival" : m === "instapay" ? "Bank transfer" : "Online payment"}
                       </p>
                     </button>
                   ))}
                 </div>
 
-                {/* Customer details form */}
+                {/* Delivery form */}
                 <p style={{ fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
                   Delivery Details
                 </p>
@@ -598,14 +647,8 @@ export function CheckoutPage() {
                                 <button
                                   key={governorate}
                                   type="button"
-                                  onClick={() => {
-                                    setForm((f) => ({ ...f, governorate }));
-                                    setGovernorateOpen(false);
-                                  }}
-                                  style={{
-                                    ...optionStyle,
-                                    backgroundColor: form.governorate === governorate ? "rgba(30,24,20,0.06)" : "transparent",
-                                  }}
+                                  onClick={() => { setForm((f) => ({ ...f, governorate })); setGovernorateOpen(false); }}
+                                  style={{ ...optionStyle, backgroundColor: form.governorate === governorate ? "rgba(30,24,20,0.06)" : "transparent" }}
                                 >
                                   {governorate}
                                 </button>
@@ -632,9 +675,18 @@ export function CheckoutPage() {
                 )}
 
                 {paymentMethod === "instapay" && (
-                  <div className="mt-5 p-4" style={{ backgroundColor: "rgba(30,24,20,0.08)", border: "1px solid rgba(30,24,20,0.22)" }}>
-                    <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.92)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, letterSpacing: "0.04em" }}>
-                      After placing your order you will receive your order number and payment instructions via WhatsApp.
+                  <div className="mt-5 p-4" style={{ backgroundColor: "rgba(30,24,20,0.05)", border: "1px solid rgba(30,24,20,0.14)" }}>
+                    <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, letterSpacing: "0.04em" }}>
+                      After placing your order, you'll see payment instructions and can upload your transfer screenshot directly on the site.
+                    </p>
+                  </div>
+                )}
+
+                {paymentMethod === "card" && (
+                  <div className="mt-5 p-4 flex items-center gap-3" style={{ backgroundColor: "rgba(30,24,20,0.05)", border: "1px solid rgba(30,24,20,0.14)" }}>
+                    <CreditCard size={16} strokeWidth={1.5} style={{ color: "#1e1814", flexShrink: 0 }} />
+                    <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, letterSpacing: "0.04em" }}>
+                      You'll be redirected to Paymob's secure payment page to complete your card payment.
                     </p>
                   </div>
                 )}
@@ -644,7 +696,7 @@ export function CheckoutPage() {
                   className="w-full mt-8 py-4 transition-opacity hover:opacity-80"
                   style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
                 >
-                  Place Order
+                  {paymentMethod === "card" ? "Continue to Payment" : "Place Order"}
                 </button>
 
                 <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.58)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "14px", letterSpacing: "0.18em" }}>
@@ -669,7 +721,6 @@ function CODConfirmation({ orderResult, onDone, fmt }: { orderResult: OrderResul
       <div style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: "rgba(30,24,20,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Check size={22} strokeWidth={1.5} style={{ color: "#1e1814" }} />
       </div>
-
       <div>
         <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "36px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
           Order Placed.
@@ -678,27 +729,19 @@ function CODConfirmation({ orderResult, onDone, fmt }: { orderResult: OrderResul
           Thank you for shopping with Moi.
         </p>
       </div>
-
       <div style={{ padding: "20px 28px", border: "1px solid rgba(30,24,20,0.22)", width: "100%" }}>
-        <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "6px" }}>
-          Order Number
-        </p>
-        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", color: "#1e1814", fontWeight: 700 }}>
-          #{orderResult.orderNumber}
-        </p>
+        <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "6px" }}>Order Number</p>
+        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", color: "#1e1814", fontWeight: 700 }}>#{orderResult.orderNumber}</p>
       </div>
-
       <div style={{ padding: "16px 20px", backgroundColor: "rgba(30,24,20,0.07)", width: "100%" }}>
         <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.92)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.8, letterSpacing: "0.04em" }}>
           <strong style={{ color: "#1e1814" }}>Cash on Delivery</strong><br />
           Our team will contact you shortly to arrange delivery. Total due on arrival: <strong style={{ color: "#1e1814" }}>{orderResult.total} EGP</strong>
         </p>
       </div>
-
       <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, lineHeight: 1.7 }}>
         A WhatsApp confirmation has been sent to your number.
       </p>
-
       <button
         onClick={onDone}
         className="mt-2 transition-opacity hover:opacity-60"
@@ -710,118 +753,423 @@ function CODConfirmation({ orderResult, onDone, fmt }: { orderResult: OrderResul
   );
 }
 
+function CardConfirmation({ orderResult, onDone }: { orderResult: OrderResult; onDone: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-lg mx-auto px-8 py-16 text-center flex flex-col items-center gap-6"
+    >
+      <div style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: "rgba(30,24,20,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Check size={22} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+      </div>
+      <div>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "36px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
+          Payment Confirmed.
+        </h1>
+        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.06em" }}>
+          Thank you for shopping with Moi.
+        </p>
+      </div>
+      <div style={{ padding: "20px 28px", border: "1px solid rgba(30,24,20,0.22)", width: "100%" }}>
+        <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "6px" }}>Order Number</p>
+        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", color: "#1e1814", fontWeight: 700 }}>#{orderResult.orderNumber}</p>
+      </div>
+      <div style={{ padding: "16px 20px", backgroundColor: "rgba(30,24,20,0.07)", width: "100%" }}>
+        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.92)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.8, letterSpacing: "0.04em" }}>
+          <strong style={{ color: "#1e1814" }}>Card Payment</strong><br />
+          Your order is confirmed and is being prepared. You'll receive a WhatsApp update with your tracking details shortly.
+        </p>
+      </div>
+      <button
+        onClick={onDone}
+        className="mt-2 transition-opacity hover:opacity-60"
+        style={{ fontSize: "13px", letterSpacing: "0.28em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", padding: "12px 32px", border: "1px solid rgba(30,24,20,0.18)" }}
+      >
+        Continue Shopping
+      </button>
+    </motion.div>
+  );
+}
+
+function CardFailed({ orderResult, onRetry, onDone }: { orderResult: OrderResult; onRetry: () => void; onDone: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-lg mx-auto px-8 py-16 text-center flex flex-col items-center gap-6"
+    >
+      <div style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: "rgba(192,57,43,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <X size={22} strokeWidth={1.5} style={{ color: "#c0392b" }} />
+      </div>
+      <div>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "36px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
+          Payment Failed.
+        </h1>
+        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.06em" }}>
+          Your order is still reserved. Please try again.
+        </p>
+      </div>
+      {orderResult.orderNumber && (
+        <div style={{ padding: "14px 20px", border: "1px solid rgba(30,24,20,0.14)", width: "100%" }}>
+          <p style={{ fontSize: "13px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>Reserved Order</p>
+          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "24px", color: "#1e1814", fontWeight: 700 }}>#{orderResult.orderNumber}</p>
+        </div>
+      )}
+      <div className="flex flex-col gap-3 w-full">
+        <button
+          onClick={onRetry}
+          className="w-full py-4 transition-opacity hover:opacity-80"
+          style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+        >
+          Retry Card Payment
+        </button>
+        <button
+          onClick={onDone}
+          className="w-full py-3 transition-opacity hover:opacity-60"
+          style={{ fontSize: "13px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", border: "1px solid rgba(30,24,20,0.18)" }}
+        >
+          Cancel
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 function InstapayConfirmation({
   orderResult,
   onDone,
   fmt,
-  instapayName,
-  instapayNumber,
-  businessWA,
 }: {
   orderResult: OrderResult;
   onDone: () => void;
   fmt: (n: number) => string;
-  instapayName: string;
-  instapayNumber: string;
-  businessWA: string;
 }) {
-  const waLink = businessWA
-    ? `https://wa.me/${businessWA.replace(/\D/g, "")}?text=${encodeURIComponent(`Order #${orderResult.orderNumber} - Payment Screenshot`)}`
-    : "";
+  const [subStep, setSubStep] = useState<InstapaySubStep>("instructions");
+  const [referenceNumber, setReferenceNumber] = useState("");
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState("");
+  const [copied, setCopied] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const instapayAccount = orderResult.instapayAccount ?? import.meta.env.VITE_INSTAPAY_ACCOUNT_NAME ?? "";
+  const instapayNumber = orderResult.instapayNumber ?? import.meta.env.VITE_INSTAPAY_ACCOUNT_NUMBER ?? "";
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    setScreenshotFile(file);
+    setScreenshotPreview(preview);
+    setUploadError("");
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Please upload an image file.");
+      return;
+    }
+    const preview = URL.createObjectURL(file);
+    setScreenshotFile(file);
+    setScreenshotPreview(preview);
+    setUploadError("");
+  }
+
+  function copyToClipboard(text: string, key: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(key);
+      setTimeout(() => setCopied(null), 1800);
+    }).catch(() => {});
+  }
+
+  async function handleSubmitProof() {
+    if (!referenceNumber.trim()) {
+      setUploadError("Please enter the Instapay reference number.");
+      return;
+    }
+
+    setUploadError("");
+    setUploading(true);
+    setUploadProgress(10);
+
+    try {
+      const formData = new FormData();
+      formData.append("orderId", String(orderResult.shopifyOrderId ?? ""));
+      formData.append("orderNumber", String(orderResult.orderNumber));
+      formData.append("amount", orderResult.total);
+      formData.append("referenceNumber", referenceNumber.trim());
+
+      if (screenshotFile) {
+        setUploadProgress(30);
+        const compressed = await compressImage(screenshotFile);
+        formData.append("screenshot", compressed, `proof.jpg`);
+      }
+
+      setUploadProgress(60);
+
+      const res = await fetch("/api/orders/instapay-proof", {
+        method: "POST",
+        body: formData,
+      });
+
+      setUploadProgress(90);
+      const data = await res.json() as { ok?: boolean; alreadySubmitted?: boolean; error?: string };
+
+      if (data.alreadySubmitted) {
+        setSubStep("review");
+        return;
+      }
+
+      if (!res.ok || !data.ok) {
+        setUploadError(data.error ?? "Upload failed. Please try again.");
+        return;
+      }
+
+      setUploadProgress(100);
+      setSubStep("review");
+    } catch {
+      setUploadError("Network error. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-lg mx-auto px-8 py-14 flex flex-col items-center gap-6"
+      className="max-w-lg mx-auto px-6 py-12 flex flex-col items-center gap-6"
     >
-      <div style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: "rgba(30,24,20,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Check size={22} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-      </div>
-
-      <div className="text-center">
-        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "36px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
+      {/* Order number */}
+      <div style={{ textAlign: "center" }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "32px", fontWeight: 700, color: "#1e1814", marginBottom: "6px" }}>
           Order Placed.
         </h1>
-        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.06em" }}>
+        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.06em" }}>
           Complete your payment to confirm.
         </p>
       </div>
 
-      <div style={{ padding: "16px 24px", border: "1px solid rgba(30,24,20,0.22)", width: "100%", textAlign: "center" }}>
-        <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "6px" }}>
-          Order Number
-        </p>
-        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "32px", color: "#1e1814", fontWeight: 700 }}>
-          #{orderResult.orderNumber}
-        </p>
+      <div style={{ padding: "14px 24px", border: "1px solid rgba(30,24,20,0.22)", width: "100%", textAlign: "center" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>Order Number</p>
+        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", color: "#1e1814", fontWeight: 700 }}>#{orderResult.orderNumber}</p>
       </div>
 
-      {/* Payment steps */}
-      <div style={{ width: "100%", border: "1px solid rgba(30,24,20,0.22)" }}>
-        <div style={{ padding: "14px 20px", borderBottom: "1px solid rgba(30,24,20,0.14)" }}>
-          <p style={{ fontSize: "13px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "10px" }}>
-            How to Pay via Instapay
-          </p>
+      {/* Step indicator */}
+      <div className="flex items-center gap-0 w-full" style={{ maxWidth: 320 }}>
+        {(["instructions", "upload", "review"] as InstapaySubStep[]).map((s, i) => (
+          <div key={s} className="flex items-center" style={{ flex: 1 }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+              backgroundColor: subStep === s ? "#1e1814" : (i < ["instructions","upload","review"].indexOf(subStep) ? "#1e1814" : "rgba(30,24,20,0.12)"),
+              flexShrink: 0,
+            }}>
+              {i < ["instructions","upload","review"].indexOf(subStep) ? (
+                <Check size={12} strokeWidth={2.5} style={{ color: "#fff" }} />
+              ) : (
+                <span style={{ fontSize: "11px", color: subStep === s ? "#fff" : "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{i + 1}</span>
+              )}
+            </div>
+            {i < 2 && <div style={{ flex: 1, height: 1, backgroundColor: i < ["instructions","upload","review"].indexOf(subStep) ? "#1e1814" : "rgba(30,24,20,0.18)", marginLeft: 2, marginRight: 2 }} />}
+          </div>
+        ))}
+      </div>
 
-          <div className="space-y-3">
-            {[
-              { n: "1", text: `Open your banking app and send ${orderResult.total} EGP via Instapay to:` },
-              { n: "2", text: `Send your order number (#${orderResult.orderNumber}) + payment screenshot via WhatsApp.` },
-              { n: "3", text: "Your order will be confirmed once payment is received." },
-            ].map((s) => (
-              <div key={s.n} className="flex gap-3 items-start">
-                <span style={{ width: 20, height: 20, backgroundColor: "#1e1814", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "13px", color: "#fff", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
-                  {s.n}
-                </span>
-                <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.94)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, letterSpacing: "0.03em" }}>{s.text}</p>
+      <AnimatePresence mode="wait">
+        {subStep === "instructions" && (
+          <motion.div key="instructions" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} className="w-full flex flex-col gap-4">
+            <div style={{ border: "1px solid rgba(30,24,20,0.22)" }}>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(30,24,20,0.1)", backgroundColor: "rgba(30,24,20,0.03)" }}>
+                <p style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif" }}>How to Pay via Instapay</p>
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="p-4 space-y-3">
+                {[
+                  `Open your banking app and transfer ${orderResult.total} EGP via Instapay.`,
+                  `Send to the account below. Save your reference number.`,
+                  `Return here to upload your payment screenshot.`,
+                ].map((text, i) => (
+                  <div key={i} className="flex gap-3 items-start">
+                    <span style={{ width: 20, height: 20, borderRadius: "50%", backgroundColor: "#1e1814", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "11px", color: "#fff", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
+                      {i + 1}
+                    </span>
+                    <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.88)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.6 }}>{text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-        {(instapayName || instapayNumber) && (
-          <div style={{ padding: "14px 20px", backgroundColor: "rgba(30,24,20,0.07)" }}>
-            <p style={{ fontSize: "13px", letterSpacing: "0.25em", textTransform: "uppercase", color: "rgba(30,24,20,0.94)", fontFamily: "'Montserrat', sans-serif", marginBottom: "6px" }}>
-              Instapay Account
-            </p>
-            {instapayName && <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{instapayName}</p>}
-            {instapayNumber && <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.05em" }}>{instapayNumber}</p>}
-          </div>
+            <div style={{ border: "1px solid rgba(30,24,20,0.22)", backgroundColor: "rgba(30,24,20,0.04)" }}>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(30,24,20,0.1)" }}>
+                <p style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif" }}>Instapay Account</p>
+              </div>
+              <div className="p-4 space-y-3">
+                {instapayAccount && (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>Name</p>
+                      <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{instapayAccount}</p>
+                    </div>
+                    <button onClick={() => copyToClipboard(instapayAccount, "name")} style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: copied === "name" ? "#5a7a5a" : "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", padding: "6px 10px", border: "1px solid rgba(30,24,20,0.16)" }}>
+                      {copied === "name" ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                )}
+                {instapayNumber && (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>Account / Number</p>
+                      <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.04em" }}>{instapayNumber}</p>
+                    </div>
+                    <button onClick={() => copyToClipboard(instapayNumber, "number")} style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: copied === "number" ? "#5a7a5a" : "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", padding: "6px 10px", border: "1px solid rgba(30,24,20,0.16)" }}>
+                      {copied === "number" ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center justify-between pt-1" style={{ borderTop: "1px solid rgba(30,24,20,0.1)" }}>
+                  <div>
+                    <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>Amount</p>
+                    <p style={{ fontSize: "16px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{orderResult.total} EGP</p>
+                  </div>
+                  <button onClick={() => copyToClipboard(orderResult.total, "amount")} style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: copied === "amount" ? "#5a7a5a" : "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", padding: "6px 10px", border: "1px solid rgba(30,24,20,0.16)" }}>
+                    {copied === "amount" ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSubStep("upload")}
+              className="w-full py-4 transition-opacity hover:opacity-80"
+              style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+            >
+              I've Sent the Payment →
+            </button>
+          </motion.div>
         )}
-      </div>
 
-      {businessWA && (
-        <div style={{ textAlign: "center", marginBottom: "-8px" }}>
-          <p style={{ fontSize: "13px", letterSpacing: "0.25em", textTransform: "uppercase", color: "rgba(30,24,20,0.94)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>
-            Business WhatsApp
-          </p>
-          <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em" }}>
-            {businessWA}
-          </p>
-        </div>
-      )}
+        {subStep === "upload" && (
+          <motion.div key="upload" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} className="w-full flex flex-col gap-4">
+            <div>
+              <label style={{ ...labelStyle, marginBottom: "8px" }}>Instapay Reference Number <span style={{ color: "#c0392b" }}>*</span></label>
+              <input
+                type="text"
+                placeholder="e.g. 123456789"
+                value={referenceNumber}
+                onChange={(e) => setReferenceNumber(e.target.value)}
+                style={inputStyle}
+                className="checkout-input"
+              />
+            </div>
 
-      {waLink && (
-        <a
-          href={waLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 w-full justify-center py-4 transition-opacity hover:opacity-80"
-          style={{ backgroundColor: "#25D366", color: "#fff", fontSize: "13px", letterSpacing: "0.28em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, textDecoration: "none" }}
-        >
-          <MessageCircle size={15} strokeWidth={1.5} />
-          Send Payment Screenshot
-        </a>
-      )}
+            <div>
+              <label style={{ ...labelStyle, marginBottom: "8px" }}>Payment Screenshot</label>
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+                onClick={() => fileRef.current?.click()}
+                style={{
+                  border: "1.5px dashed rgba(30,24,20,0.28)",
+                  padding: "24px",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "10px",
+                  backgroundColor: screenshotPreview ? "transparent" : "rgba(30,24,20,0.02)",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                {screenshotPreview ? (
+                  <div style={{ position: "relative", width: "100%" }}>
+                    <img src={screenshotPreview} alt="Screenshot preview" style={{ width: "100%", maxHeight: 200, objectFit: "contain" }} />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setScreenshotFile(null); setScreenshotPreview(null); }}
+                      style={{ position: "absolute", top: 6, right: 6, width: 24, height: 24, borderRadius: "50%", backgroundColor: "rgba(30,24,20,0.7)", display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}
+                    >
+                      <X size={12} strokeWidth={2} style={{ color: "#fff" }} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload size={20} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
+                    <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", lineHeight: 1.6 }}>
+                      Tap to upload or drag & drop<br />
+                      <span style={{ fontSize: "11px", opacity: 0.7 }}>JPG, PNG, HEIC — optional but helps with verification</span>
+                    </p>
+                  </>
+                )}
+                <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
+              </div>
+            </div>
 
-      <button
-        onClick={onDone}
-        className="transition-opacity hover:opacity-60"
-        style={{ fontSize: "13px", letterSpacing: "0.25em", textTransform: "uppercase", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", padding: "10px 24px" }}
-      >
-        I've sent the payment
-      </button>
+            {uploading && (
+              <div style={{ width: "100%", height: 3, backgroundColor: "rgba(30,24,20,0.12)", borderRadius: 2, overflow: "hidden" }}>
+                <motion.div
+                  style={{ height: "100%", backgroundColor: "#1e1814", borderRadius: 2 }}
+                  initial={{ width: "0%" }}
+                  animate={{ width: `${uploadProgress}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+            )}
+
+            {uploadError && (
+              <p style={{ fontSize: "13px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em" }}>{uploadError}</p>
+            )}
+
+            <button
+              onClick={handleSubmitProof}
+              disabled={uploading || !referenceNumber.trim()}
+              className="w-full py-4 transition-opacity hover:opacity-80 disabled:opacity-40"
+              style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+            >
+              {uploading ? "Submitting…" : "Submit Proof"}
+            </button>
+
+            <button
+              onClick={() => setSubStep("instructions")}
+              style={{ fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", textAlign: "center" as const }}
+            >
+              ← Back to Instructions
+            </button>
+          </motion.div>
+        )}
+
+        {subStep === "review" && (
+          <motion.div key="review" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full flex flex-col items-center gap-5 py-4">
+            <div style={{ width: 52, height: 52, borderRadius: "50%", backgroundColor: "rgba(30,24,20,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Check size={24} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
+                Proof Submitted
+              </h2>
+              <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
+                We've received your payment proof for order <strong style={{ color: "#1e1814" }}>#{orderResult.orderNumber}</strong>. Our team will verify and confirm your order via WhatsApp shortly.
+              </p>
+            </div>
+            <div style={{ padding: "14px 18px", backgroundColor: "rgba(30,24,20,0.04)", border: "1px solid rgba(30,24,20,0.12)", width: "100%", textAlign: "center" as const }}>
+              <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", lineHeight: 1.7 }}>
+                Verification is usually completed within a few hours during business hours.
+              </p>
+            </div>
+            <button
+              onClick={onDone}
+              className="mt-2 transition-opacity hover:opacity-60"
+              style={{ fontSize: "13px", letterSpacing: "0.28em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", padding: "12px 32px", border: "1px solid rgba(30,24,20,0.18)" }}
+            >
+              Continue Shopping
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

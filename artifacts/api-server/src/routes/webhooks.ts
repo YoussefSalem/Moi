@@ -103,6 +103,16 @@ router.post("/webhooks/orders-paid", async (req, res) => {
   // COD orders are already confirmed at placement; paid event only fires for Instapay here.
   if (!isInstapay) return;
 
+  // If admin already approved via the /admin/instapay-proofs/:id/approve endpoint,
+  // Bosta and WhatsApp have already been handled there. Skip to prevent duplicates.
+  if (tags.includes("instapay-admin-approved")) {
+    req.log.info(
+      { orderId: order.id, orderNumber: order.order_number },
+      "orders/paid webhook: instapay-admin-approved tag found — skipping (already handled by admin approval)",
+    );
+    return;
+  }
+
   if (phone) {
     void sendWhatsApp(
       phone,

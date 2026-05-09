@@ -29,6 +29,7 @@ app.use(cors());
 
 // Raw body must be captured BEFORE express.json() for webhook HMAC verification.
 // Routes under /api/webhooks and /api/bosta/status-webhook receive a Buffer in req.body.
+// Note: /api/webhooks covers both /api/webhooks/orders-paid and /api/webhooks/paymob.
 app.use("/api/webhooks", express.raw({ type: "application/json" }));
 app.use("/api/bosta/status-webhook", express.raw({ type: "application/json" }));
 

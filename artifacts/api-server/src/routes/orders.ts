@@ -384,21 +384,15 @@ router.post("/orders/create", async (req, res) => {
     } else {
       void sendWhatsApp(
         customer.phone,
-        `🛍 Your Moi order #${orderNumber} is reserved!\n\nTotal: ${total} EGP (includes 120 EGP shipping)\nPayment: Instapay Transfer\n\nTo confirm:\n1️⃣ Open Instapay, send *${total} EGP* to:\n   ${instapayAccount} — ${instapayNumber}\n2️⃣ Reply with order #${orderNumber} + payment screenshot\n\nOrder ships once payment is confirmed. Thank you! 🖤`,
+        `🛍 Your Moi order #${orderNumber} is reserved!\n\nTotal: ${total} EGP (includes 120 EGP shipping)\nPayment: Instapay Transfer\n\nTo confirm:\n1️⃣ Open your banking app and send *${total} EGP* via Instapay to:\n   ${instapayAccount} — ${instapayNumber}\n2️⃣ Return to the site and upload your payment screenshot\n\nOrder ships once payment is verified. Thank you! 🖤`,
       );
-
-      if (businessWA) {
-        void sendWhatsApp(
-          businessWA,
-          `🆕 Instapay order #${orderNumber}\n${customer.firstName} ${customer.lastName} · ${customer.phone}\n${customer.city}\nTotal: ${total} EGP\n\nAwaiting payment.`,
-        );
-      }
     }
 
     const responsePayload: Record<string, unknown> = {
       success: true,
       orderNumber,
       orderId,
+      shopifyOrderId: orderId,
       total,
       paymentMethod,
     };
