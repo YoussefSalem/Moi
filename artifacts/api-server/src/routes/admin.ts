@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db } from "@workspace/db";
 import { instapayProofs } from "@workspace/db/schema";
@@ -17,44 +16,6 @@ import { getMaskedConfig, savePaymobConfig, type PaymobConfig } from "../lib/pay
 
 const router: IRouter = Router();
 
-const TOKEN_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
-
-function signAdminToken(secret: string, issuedAt: number): string {
-  return crypto
-    .createHmac("sha256", secret)
-    .update(`admin:${issuedAt}`)
-    .digest("hex");
-}
-
-function verifyAdminToken(token: string, secret: string): boolean {
-  // Token format: "<issuedAt>.<hmac>"
-  const dot = token.indexOf(".");
-  if (dot === -1) return false;
-  const issuedAt = parseInt(token.slice(0, dot), 10);
-  const hmac = token.slice(dot + 1);
-  if (isNaN(issuedAt)) return false;
-  if (Date.now() - issuedAt > TOKEN_TTL_MS) return false;
-  const expected = signAdminToken(secret, issuedAt);
-  return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(expected));
-}
-
-// POST /admin/login — exchange ADMIN_SECRET for a short-lived session token
-router.post("/admin/login", (req: Request, res: Response) => {
-  const adminSecret = process.env.ADMIN_SECRET;
-  if (!adminSecret) {
-    res.status(503).json({ error: "Admin not configured" });
-    return;
-  }
-  const { secret } = req.body as { secret?: string };
-  if (!secret || secret !== adminSecret) {
-    res.status(401).json({ error: "Invalid credentials" });
-    return;
-  }
-  const issuedAt = Date.now();
-  const token = `${issuedAt}.${signAdminToken(adminSecret, issuedAt)}`;
-  res.json({ token, expiresAt: issuedAt + TOKEN_TTL_MS });
-});
-
 function requireAdminAuth(req: Request, res: Response, next: NextFunction): void {
   const adminSecret = process.env.ADMIN_SECRET;
   if (!adminSecret) {
@@ -62,8 +23,7 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction): void
     return;
   }
   const auth = req.headers.authorization;
-  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
-  if (!token || !verifyAdminToken(token, adminSecret)) {
+  if (!auth || auth !== `Bearer ${adminSecret}`) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
