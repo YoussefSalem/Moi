@@ -267,10 +267,16 @@
   .checkout-input:-webkit-autofill:active {
     -webkit-text-fill-color: #1e1814;
     caret-color: #1e1814;
-    -webkit-box-shadow: 0 0 0 1000px rgba(239, 230, 218, 0.98) inset;
-    box-shadow: 0 0 0 1000px rgba(239, 230, 218, 0.98) inset;
+    -webkit-box-shadow: 0 0 0 1000px #efe6da inset;
+    box-shadow: 0 0 0 1000px #efe6da inset;
+    -webkit-background-clip: text;
+    background-clip: text;
     transition: background-color 9999s ease-out 0s;
     font-weight: 500;
+  }
+
+  .checkout-input {
+    -webkit-tap-highlight-color: transparent;
   }
 
   .checkout-input::placeholder {
