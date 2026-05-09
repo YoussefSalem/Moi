@@ -93,6 +93,10 @@ router.post("/webhooks/orders-paid", async (req, res) => {
   const orderRef = `#${order.order_number ?? order.id}`;
   const total = order.total_price ?? "";
 
+  // Payment-confirmed notification and Bosta shipment are Instapay-only:
+  // COD orders are already confirmed at placement; paid event only fires for Instapay here.
+  if (!isInstapay) return;
+
   if (phone) {
     void sendWhatsApp(
       phone,
@@ -100,8 +104,7 @@ router.post("/webhooks/orders-paid", async (req, res) => {
     );
   }
 
-  // For Instapay orders: payment is now confirmed — create Bosta shipment
-  if (isInstapay && firstName && address && order.id) {
+  if (firstName && address && order.id) {
     const trackingNumber = await createBostaShipment({
       firstName,
       lastName,

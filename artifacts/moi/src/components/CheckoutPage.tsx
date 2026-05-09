@@ -137,6 +137,10 @@ export function CheckoutPage() {
   }, [applyDiscount]);
 
   const handleSubmit = useCallback(async () => {
+    if (!isShopify || !shopifyCart) {
+      setSubmitError("Our store is temporarily unavailable. Please try again later.");
+      return;
+    }
     if (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.address.trim() || !form.city.trim()) {
       setSubmitError("Please fill in all fields.");
       return;
