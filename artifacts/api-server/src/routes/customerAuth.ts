@@ -69,12 +69,9 @@ async function sendOtpEmail(to: string, code: string): Promise<void> {
     subject: `Your Moi sign-in code: ${code}`,
     html: `
       <div style="font-family:'Montserrat',Arial,sans-serif;max-width:520px;margin:0 auto;background:#faf8f5;padding:0;">
-        <!-- Header band -->
         <div style="background:#1e1814;padding:28px 40px;text-align:center;">
           <span style="color:#faf8f5;letter-spacing:0.55em;font-size:13px;font-weight:700;text-transform:uppercase;">M O I</span>
         </div>
-
-        <!-- Body -->
         <div style="padding:52px 48px 44px;text-align:center;border-left:1px solid #e8e4de;border-right:1px solid #e8e4de;">
           <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:32px;font-weight:400;color:#1e1814;margin:0 0 16px;line-height:1.2;letter-spacing:0.03em;">
             Your Sign-In Code
@@ -83,20 +80,15 @@ async function sendOtpEmail(to: string, code: string): Promise<void> {
             Use the code below to sign in to your Moi account.<br>
             It expires in <strong style="color:#1e1814;font-weight:600;">5 minutes</strong>.
           </p>
-
-          <!-- Code display -->
           <div style="margin:0 auto 44px;border-top:1px solid #c8c0b4;border-bottom:1px solid #c8c0b4;padding:28px 0;">
             <span style="font-size:38px;font-weight:700;letter-spacing:0.5em;color:#1e1814;font-family:'Courier New',monospace;padding-left:0.5em;">
               ${code}
             </span>
           </div>
-
           <p style="font-size:11px;color:#7a7068;letter-spacing:0.16em;text-transform:uppercase;margin:0;line-height:1.9;">
             If you did not request this code,<br>you can safely ignore this email.
           </p>
         </div>
-
-        <!-- Footer band -->
         <div style="background:#1e1814;padding:18px 40px;text-align:center;">
           <span style="color:rgba(250,248,245,0.45);font-size:10px;letter-spacing:0.2em;text-transform:uppercase;">moi — premium fashion</span>
         </div>
@@ -156,7 +148,6 @@ async function findOrCreateShopifyCustomer(email: string): Promise<ShopifyAdminC
   return null;
 }
 
-// POST /api/auth/customer/send-otp
 router.post("/auth/customer/send-otp", async (req, res) => {
   const { email } = req.body as { email?: unknown };
   if (typeof email !== "string" || !email.includes("@")) {
@@ -173,7 +164,7 @@ router.post("/auth/customer/send-otp", async (req, res) => {
       .where(and(eq(customerOtpCodes.email, safeEmail), gt(customerOtpCodes.createdAt, tenMinAgo)))
       .limit(4);
     if (recent.length >= 3) {
-      res.status(429).json({ error: "Too many codes requested. Please wait a few minutes before trying again." });
+      res.status(429).json({ error: "You've requested a few codes recently. Please wait a moment and try again." });
       return;
     }
   } catch (err) {
@@ -198,7 +189,6 @@ router.post("/auth/customer/send-otp", async (req, res) => {
   }
 });
 
-// POST /api/auth/customer/verify-otp
 router.post("/auth/customer/verify-otp", async (req, res) => {
   const { email, code } = req.body as { email?: unknown; code?: unknown };
   if (
@@ -265,7 +255,6 @@ router.post("/auth/customer/verify-otp", async (req, res) => {
   });
 });
 
-// GET /api/auth/customer/me — restore session from stored token
 router.get("/auth/customer/me", (req, res) => {
   const auth = req.headers.authorization;
   const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
