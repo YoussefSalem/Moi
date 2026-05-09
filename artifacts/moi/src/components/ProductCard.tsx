@@ -162,7 +162,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
-          productHandle: product.handle ?? product.name,
+          productHandle: product.name,
           variantId,
           variantTitle,
           productTitle: product.name,
