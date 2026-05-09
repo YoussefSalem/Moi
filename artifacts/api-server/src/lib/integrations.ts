@@ -16,7 +16,7 @@ export async function getShopifyAdminToken(): Promise<string | null> {
   if (staticToken) return staticToken;
 
   const clientId = process.env.SHOPIFY_CLIENT_ID;
-  const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
+  const clientSecret = process.env.SHOPIFY_CLIENT_SECRET ?? process.env.SHOPIFY_APP_SHARED_SECRET;
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   if (!clientId || !clientSecret || !storeDomain) return null;
 
