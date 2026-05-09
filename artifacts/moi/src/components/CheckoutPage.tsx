@@ -173,7 +173,9 @@ export function CheckoutPage() {
             city: form.city.trim(),
           },
           paymentMethod,
-          // Only the code is sent — the server validates it via Shopify Admin API
+          // cartId lets the server fetch Shopify's validated cart totals server-side,
+          // so discount eligibility is enforced by Shopify's own engine, not re-derived here.
+          cartId: shopifyCart?.id ?? null,
           discountCode: promoApplied?.code ?? null,
         }),
       });

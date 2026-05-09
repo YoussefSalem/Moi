@@ -3,7 +3,6 @@ import {
   sendWhatsApp,
   createBostaShipment,
   addShopifyOrderNote,
-  validateDiscountCode,
 } from "../lib/integrations";
 
 const router: IRouter = Router();
@@ -27,6 +26,7 @@ interface CreateOrderBody {
   customer?: unknown;
   paymentMethod?: unknown;
   discountCode?: unknown;
+  cartId?: unknown;
 }
 
 function extractVariantId(gid: string): number {
@@ -36,10 +36,84 @@ function extractVariantId(gid: string): number {
   return id;
 }
 
+interface StorefrontCartResult {
+  subtotalAmount: number;
+  totalAmount: number;
+  discountCodes: { code: string; applicable: boolean }[];
+}
+
+/**
+ * Fetches the Shopify Storefront cart server-side.
+ * This is the authoritative source for discount validation — Shopify's engine
+ * has already enforced usage limits, customer eligibility, product targeting,
+ * minimum subtotals, and all other price-rule constraints.
+ */
+async function fetchStorefrontCart(
+  cartId: string,
+): Promise<StorefrontCartResult | null> {
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const storefrontToken = process.env.VITE_SHOPIFY_STOREFRONT_TOKEN;
+  if (!storeDomain || !storefrontToken) return null;
+
+  const query = `
+    query GetCartCost($cartId: ID!) {
+      cart(id: $cartId) {
+        cost {
+          subtotalAmount { amount }
+          totalAmount { amount }
+        }
+        discountCodes {
+          code
+          applicable
+        }
+      }
+    }
+  `;
+
+  try {
+    const res = await fetch(
+      `https://${storeDomain}/api/2024-04/graphql.json`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Storefront-Access-Token": storefrontToken,
+        },
+        body: JSON.stringify({ query, variables: { cartId } }),
+      },
+    );
+    if (!res.ok) return null;
+
+    const data = await res.json() as {
+      data?: {
+        cart?: {
+          cost: {
+            subtotalAmount: { amount: string };
+            totalAmount: { amount: string };
+          };
+          discountCodes: { code: string; applicable: boolean }[];
+        };
+      };
+    };
+
+    const cart = data?.data?.cart;
+    if (!cart) return null;
+
+    return {
+      subtotalAmount: parseFloat(cart.cost.subtotalAmount.amount),
+      totalAmount: parseFloat(cart.cost.totalAmount.amount),
+      discountCodes: cart.discountCodes,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function createDraftOrder(params: {
   lines: OrderLine[];
   customer: CustomerInfo;
   paymentMethod: "cod" | "instapay";
+  cartId?: string;
   discountCode?: string;
 }): Promise<{ orderNumber: number; orderId: number; total: string }> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
@@ -80,15 +154,29 @@ async function createDraftOrder(params: {
 
   if (params.customer.email) draftPayload.email = params.customer.email;
 
-  // Discount: validate server-side via Admin API — never trust client amounts
-  if (params.discountCode) {
-    const discount = await validateDiscountCode(params.discountCode);
-    if (discount) {
-      draftPayload.applied_discount = {
-        title: discount.title,
-        value_type: discount.valueType,
-        value: String(discount.value),
-      };
+  // Discount: fetch the Shopify Storefront cart server-side so Shopify's own
+  // engine (usage limits, eligibility, product targeting, minimum subtotal, etc.)
+  // has already validated the code. We use the cart's confirmed discounted total
+  // as the fixed-amount applied_discount, refusing to trust any client-sent amounts.
+  if (params.cartId) {
+    const cart = await fetchStorefrontCart(params.cartId);
+    if (cart) {
+      const applicableCode = cart.discountCodes.find((d) => d.applicable);
+      const discountAmount = cart.subtotalAmount - cart.totalAmount;
+
+      if (applicableCode && discountAmount > 0) {
+        draftPayload.applied_discount = {
+          title: applicableCode.code,
+          value_type: "fixed_amount",
+          value: discountAmount.toFixed(2),
+        };
+      } else if (params.discountCode && cart.discountCodes.length > 0) {
+        // Code was submitted but Shopify marked it as not applicable
+        // (usage limit reached, eligibility mismatch, etc.) — reject the order
+        throw new Error(
+          `Discount code "${params.discountCode}" is not applicable to this order.`,
+        );
+      }
     }
   }
 
@@ -186,14 +274,22 @@ router.post("/orders/create", async (req, res) => {
     typeof body.discountCode === "string" && body.discountCode.trim()
       ? body.discountCode.trim()
       : undefined;
+  const cartId =
+    typeof body.cartId === "string" && body.cartId.trim()
+      ? body.cartId.trim()
+      : undefined;
 
-  req.log.info({ paymentMethod, lineCount: lines.length, discountCode }, "Creating order");
+  req.log.info(
+    { paymentMethod, lineCount: lines.length, discountCode, cartId },
+    "Creating order",
+  );
 
   try {
     const { orderNumber, orderId, total } = await createDraftOrder({
       lines,
       customer,
       paymentMethod,
+      cartId,
       discountCode,
     });
 
@@ -220,10 +316,9 @@ router.post("/orders/create", async (req, res) => {
       });
 
       if (trackingNumber) {
-        const existingNote = `Payment: Cash on Delivery`;
         void addShopifyOrderNote(
           orderId,
-          `${existingNote}\nBosta tracking: ${trackingNumber}`,
+          `Payment: Cash on Delivery\nBosta tracking: ${trackingNumber}`,
         );
         req.log.info({ trackingNumber, orderNumber }, "Bosta COD shipment created");
       }
@@ -249,7 +344,6 @@ router.post("/orders/create", async (req, res) => {
       paymentMethod,
     };
 
-    // Return Instapay display fields from server env — frontend must not source these from client-side env
     if (paymentMethod === "instapay") {
       responsePayload.instapayAccount = instapayAccount;
       responsePayload.instapayNumber = instapayNumber;
@@ -258,8 +352,14 @@ router.post("/orders/create", async (req, res) => {
 
     res.status(200).json(responsePayload);
   } catch (err) {
+    const message = err instanceof Error ? err.message : "Could not place your order.";
     req.log.error({ err }, "Order creation failed");
-    res.status(500).json({ error: "Could not place your order. Please try again." });
+
+    if (message.includes("not applicable")) {
+      res.status(422).json({ error: message });
+    } else {
+      res.status(500).json({ error: "Could not place your order. Please try again." });
+    }
   }
 });
 
