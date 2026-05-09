@@ -1,7 +1,36 @@
 import { Router, type IRouter } from "express";
-import { createBostaShipment, addShopifyOrderNote } from "../lib/integrations";
+import {
+  createBostaShipment,
+  addShopifyOrderNote,
+  findOrderByTrackingNote,
+  createShopifyFulfillment,
+  addShopifyFulfillmentEvent,
+} from "../lib/integrations";
 
 const router: IRouter = Router();
+
+// Bosta → Shopify fulfillment event status mapping
+const BOSTA_TO_SHOPIFY_STATUS: Record<string, string> = {
+  OUT_FOR_DELIVERY: "out_for_delivery",
+  DELIVERED: "delivered",
+  IN_TRANSIT: "in_transit",
+  RETURNED: "failure",
+  CANCELLED: "failure",
+};
+
+function requireInternalAuth(
+  req: Parameters<Parameters<typeof router.post>[1]>[0],
+  res: Parameters<Parameters<typeof router.post>[1]>[1],
+): boolean {
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret) return true; // no secret configured — skip check
+  const auth = req.headers["x-internal-secret"];
+  if (auth !== secret) {
+    res.status(401).json({ error: "Unauthorized" });
+    return false;
+  }
+  return true;
+}
 
 interface CreateShipmentBody {
   firstName?: unknown;
@@ -15,8 +44,9 @@ interface CreateShipmentBody {
 }
 
 router.post("/bosta/create-shipment", async (req, res) => {
-  const body = req.body as CreateShipmentBody;
+  if (!requireInternalAuth(req, res)) return;
 
+  const body = req.body as CreateShipmentBody;
   const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
   const lastName = typeof body.lastName === "string" ? body.lastName.trim() : "";
   const phone = typeof body.phone === "string" ? body.phone.trim() : "";
@@ -56,7 +86,7 @@ router.post("/bosta/create-shipment", async (req, res) => {
       void addShopifyOrderNote(orderId, `Bosta tracking: ${trackingNumber}`);
     }
 
-    req.log.info({ trackingNumber, orderReference }, "Bosta shipment created");
+    req.log.info({ trackingNumber, orderReference }, "Bosta shipment created via API");
     res.status(200).json({ success: true, trackingNumber });
   } catch (err) {
     req.log.error({ err }, "Bosta shipment creation failed");
@@ -64,16 +94,15 @@ router.post("/bosta/create-shipment", async (req, res) => {
   }
 });
 
-// Bosta delivery status webhook
-// Register this URL in your Bosta dashboard: POST /api/bosta/status-webhook
+// Bosta delivery status webhook — updates Shopify fulfillment status.
+// Register in your Bosta dashboard: POST /api/bosta/status-webhook
+// req.body is a raw Buffer (express.raw applied in app.ts for this path).
 router.post("/bosta/status-webhook", async (req, res) => {
-  // req.body is a Buffer (express.raw applied in app.ts)
   const rawBody = req.body as Buffer;
 
   let payload: {
-    state?: { value?: string; code?: number };
+    state?: { value?: string };
     trackingNumber?: string;
-    orderRef?: string;
   };
 
   try {
@@ -85,55 +114,41 @@ router.post("/bosta/status-webhook", async (req, res) => {
 
   res.status(200).json({ ok: true });
 
-  const state = payload.state?.value ?? "";
+  const bostaState = (payload.state?.value ?? "").toUpperCase();
   const trackingNumber = payload.trackingNumber ?? "";
+  const shopifyStatus = BOSTA_TO_SHOPIFY_STATUS[bostaState];
 
-  req.log.info({ trackingNumber, state }, "Bosta delivery status update");
+  req.log.info({ trackingNumber, bostaState, shopifyStatus }, "Bosta delivery status update");
 
-  // Map Bosta delivery states to human-readable notes
-  const stateMessages: Record<string, string> = {
-    DELIVERED: "Order delivered successfully by Bosta.",
-    RETURNED: "Order returned to sender by Bosta.",
-    CANCELLED: "Bosta shipment was cancelled.",
-    IN_TRANSIT: "Order is in transit with Bosta.",
-    OUT_FOR_DELIVERY: "Order is out for delivery with Bosta.",
-  };
+  if (!shopifyStatus || !trackingNumber) return;
 
-  const note = stateMessages[state.toUpperCase()];
-  if (!note || !trackingNumber) return;
+  const order = await findOrderByTrackingNote(trackingNumber);
+  if (!order) {
+    req.log.warn({ trackingNumber }, "Bosta status webhook: no Shopify order found");
+    return;
+  }
 
-  // Look up the Shopify order by Bosta tracking number stored in note
-  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
-  if (!storeDomain || !adminToken) return;
+  const existingFulfillment = order.fulfillments.find(
+    (f) => f.tracking_number === trackingNumber,
+  );
 
-  try {
-    // Search orders with this tracking in the note
-    const searchRes = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/orders.json?note=${encodeURIComponent(trackingNumber)}&status=any&fields=id,order_number,note`,
-      { headers: { "X-Shopify-Access-Token": adminToken } },
+  if (existingFulfillment) {
+    // Add event to existing fulfillment
+    await addShopifyFulfillmentEvent(order.id, existingFulfillment.id, shopifyStatus);
+    req.log.info(
+      { orderNumber: order.order_number, shopifyStatus, trackingNumber },
+      "Shopify fulfillment event added",
     );
-    if (!searchRes.ok) return;
-
-    const searchData = await searchRes.json() as {
-      orders: { id: number; order_number: number; note?: string }[];
-    };
-
-    for (const order of searchData.orders) {
-      if (order.note?.includes(trackingNumber)) {
-        void addShopifyOrderNote(
-          order.id,
-          `${order.note}\n[${new Date().toISOString()}] ${note}`,
-        );
-        req.log.info(
-          { orderNumber: order.order_number, state, trackingNumber },
-          "Shopify order note updated with Bosta status",
-        );
-        break;
-      }
+  } else {
+    // Create fulfillment and add event
+    const fulfillmentId = await createShopifyFulfillment(order.id, trackingNumber);
+    if (fulfillmentId) {
+      await addShopifyFulfillmentEvent(order.id, fulfillmentId, shopifyStatus);
+      req.log.info(
+        { orderNumber: order.order_number, fulfillmentId, shopifyStatus },
+        "Shopify fulfillment created and event added from Bosta status",
+      );
     }
-  } catch (err) {
-    req.log.error({ err }, "Bosta status webhook: Shopify update failed");
   }
 });
 

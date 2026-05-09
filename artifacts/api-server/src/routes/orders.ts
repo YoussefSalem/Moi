@@ -3,6 +3,7 @@ import {
   sendWhatsApp,
   createBostaShipment,
   addShopifyOrderNote,
+  validateDiscountCode,
 } from "../lib/integrations";
 
 const router: IRouter = Router();
@@ -25,7 +26,6 @@ interface CreateOrderBody {
   lines?: unknown;
   customer?: unknown;
   paymentMethod?: unknown;
-  discountAmount?: unknown;
   discountCode?: unknown;
 }
 
@@ -40,7 +40,6 @@ async function createDraftOrder(params: {
   lines: OrderLine[];
   customer: CustomerInfo;
   paymentMethod: "cod" | "instapay";
-  discountAmount?: number;
   discountCode?: string;
 }): Promise<{ orderNumber: number; orderId: number; total: string }> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
@@ -81,13 +80,16 @@ async function createDraftOrder(params: {
 
   if (params.customer.email) draftPayload.email = params.customer.email;
 
-  if (params.discountAmount && params.discountAmount > 0) {
-    draftPayload.applied_discount = {
-      title: params.discountCode ?? "Promo",
-      value_type: "fixed_amount",
-      value: params.discountAmount.toFixed(2),
-      amount: params.discountAmount.toFixed(2),
-    };
+  // Discount: validate server-side via Admin API — never trust client amounts
+  if (params.discountCode) {
+    const discount = await validateDiscountCode(params.discountCode);
+    if (discount) {
+      draftPayload.applied_discount = {
+        title: discount.title,
+        value_type: discount.valueType,
+        value: String(discount.value),
+      };
+    }
   }
 
   const createRes = await fetch(
@@ -125,9 +127,7 @@ async function createDraftOrder(params: {
 
   if (!completeRes.ok) {
     const text = await completeRes.text();
-    throw new Error(
-      `Shopify draft order completion failed (${completeRes.status}): ${text}`,
-    );
+    throw new Error(`Shopify draft order completion failed (${completeRes.status}): ${text}`);
   }
 
   const completeData = await completeRes.json() as {
@@ -179,21 +179,18 @@ router.post("/orders/create", async (req, res) => {
   }
 
   const lines = body.lines as OrderLine[];
-  const discountAmount =
-    typeof body.discountAmount === "number" && body.discountAmount > 0
-      ? body.discountAmount
-      : undefined;
   const discountCode =
-    typeof body.discountCode === "string" ? body.discountCode : undefined;
+    typeof body.discountCode === "string" && body.discountCode.trim()
+      ? body.discountCode.trim()
+      : undefined;
 
-  req.log.info({ paymentMethod, lineCount: lines.length }, "Creating order");
+  req.log.info({ paymentMethod, lineCount: lines.length, discountCode }, "Creating order");
 
   try {
     const { orderNumber, orderId, total } = await createDraftOrder({
       lines,
       customer,
       paymentMethod,
-      discountAmount,
       discountCode,
     });
 
@@ -206,10 +203,9 @@ router.post("/orders/create", async (req, res) => {
     if (paymentMethod === "cod") {
       void sendWhatsApp(
         customer.phone,
-        `✅ Your Moi order #${orderNumber} has been placed!\n\nTotal: ${total} EGP (includes 120 EGP shipping)\nPayment: Cash on Delivery\n\nOur team will contact you shortly to confirm delivery. Thank you for shopping with Moi. 🖤`,
+        `✅ Your Moi order #${orderNumber} has been placed!\n\nTotal: ${total} EGP (includes 120 EGP shipping)\nPayment: Cash on Delivery\n\nOur team will contact you shortly. Thank you for shopping with Moi. 🖤`,
       );
 
-      // Await Bosta for COD so we can persist the tracking number
       const trackingNumber = await createBostaShipment({
         firstName: customer.firstName,
         lastName: customer.lastName,
@@ -221,38 +217,31 @@ router.post("/orders/create", async (req, res) => {
       });
 
       if (trackingNumber) {
+        const existingNote = `Payment: Cash on Delivery`;
         void addShopifyOrderNote(
           orderId,
-          `Bosta tracking: ${trackingNumber}\nPayment: Cash on Delivery`,
+          `${existingNote}\nBosta tracking: ${trackingNumber}`,
         );
         req.log.info({ trackingNumber, orderNumber }, "Bosta COD shipment created");
       }
     } else {
       void sendWhatsApp(
         customer.phone,
-        `🛍 Your Moi order #${orderNumber} is reserved!\n\nTotal: ${total} EGP (includes 120 EGP shipping)\nPayment: Instapay Transfer\n\nTo confirm, please:\n1️⃣ Open Instapay and send *${total} EGP* to:\n   ${instapayAccount} — ${instapayNumber}\n2️⃣ Reply to this message with order #${orderNumber} + payment screenshot\n\nYour order ships once payment is confirmed. Thank you! 🖤`,
+        `🛍 Your Moi order #${orderNumber} is reserved!\n\nTotal: ${total} EGP (includes 120 EGP shipping)\nPayment: Instapay Transfer\n\nTo confirm:\n1️⃣ Open Instapay, send *${total} EGP* to:\n   ${instapayAccount} — ${instapayNumber}\n2️⃣ Reply with order #${orderNumber} + payment screenshot\n\nOrder ships once payment is confirmed. Thank you! 🖤`,
       );
 
       if (businessWA) {
         void sendWhatsApp(
           businessWA,
-          `🆕 Instapay order #${orderNumber}\n${customer.firstName} ${customer.lastName} · ${customer.phone}\n${customer.city}\nTotal: ${total} EGP\n\nAwaiting payment confirmation.`,
+          `🆕 Instapay order #${orderNumber}\n${customer.firstName} ${customer.lastName} · ${customer.phone}\n${customer.city}\nTotal: ${total} EGP\n\nAwaiting payment.`,
         );
       }
     }
 
-    res.status(200).json({
-      success: true,
-      orderNumber,
-      orderId,
-      total,
-      paymentMethod,
-    });
+    res.status(200).json({ success: true, orderNumber, orderId, total, paymentMethod });
   } catch (err) {
     req.log.error({ err }, "Order creation failed");
-    res.status(500).json({
-      error: "Could not place your order. Please try again.",
-    });
+    res.status(500).json({ error: "Could not place your order. Please try again." });
   }
 });
 

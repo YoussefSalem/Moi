@@ -51,6 +51,7 @@ externalPort = 4200
 
 [userenv.shared]
 AMBASSADOR_EMAIL_TO = "youssefasalem@gmail.com"
+INTERNAL_API_SECRET = "a678fce59ffeddbbcc83cfa8576410dce4c1ffbea75c86afc929a793636d6dd8"
 
 [nix]
 channel = "stable-25_05"

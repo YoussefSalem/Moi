@@ -4,29 +4,41 @@ import {
   createBostaShipment,
   addShopifyOrderNote,
   verifyShopifyHmac,
+  findOrderByTrackingNote,
+  createShopifyFulfillment,
+  addShopifyFulfillmentEvent,
 } from "../lib/integrations";
 
 const router: IRouter = Router();
 
-// Note: req.body is a raw Buffer here because app.ts applies express.raw()
-// for /api/webhooks BEFORE express.json(). Do not call express.json() again.
+// Note: req.body is a raw Buffer for this route because app.ts applies
+// express.raw({ type: "application/json" }) for /api/webhooks before express.json().
 
 router.post("/webhooks/orders-paid", async (req, res) => {
-  const rawBody = req.body as Buffer;
-
   const webhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET;
-  if (webhookSecret) {
-    const hmacHeader = req.headers["x-shopify-hmac-sha256"] as string | undefined;
-    if (!hmacHeader) {
-      req.log.warn("orders/paid webhook: missing HMAC header");
-      res.status(401).json({ error: "Missing HMAC" });
-      return;
-    }
-    if (!verifyShopifyHmac(rawBody, hmacHeader, webhookSecret)) {
-      req.log.warn("orders/paid webhook: HMAC mismatch");
-      res.status(401).json({ error: "Invalid HMAC" });
-      return;
-    }
+
+  // Require the secret to be configured — reject ambiguous requests otherwise
+  if (!webhookSecret) {
+    req.log.error("SHOPIFY_WEBHOOK_SECRET is not set; rejecting webhook");
+    res.status(503).json({
+      error: "Webhook verification not configured on this server.",
+    });
+    return;
+  }
+
+  const rawBody = req.body as Buffer;
+  const hmacHeader = req.headers["x-shopify-hmac-sha256"] as string | undefined;
+
+  if (!hmacHeader) {
+    req.log.warn("orders/paid webhook: missing HMAC header");
+    res.status(401).json({ error: "Missing HMAC header" });
+    return;
+  }
+
+  if (!verifyShopifyHmac(rawBody, hmacHeader, webhookSecret)) {
+    req.log.warn("orders/paid webhook: HMAC verification failed");
+    res.status(401).json({ error: "Invalid HMAC" });
+    return;
   }
 
   let order: {
@@ -55,7 +67,7 @@ router.post("/webhooks/orders-paid", async (req, res) => {
 
   req.log.info(
     { orderId: order.id, orderNumber: order.order_number },
-    "orders/paid webhook received",
+    "orders/paid webhook verified and received",
   );
 
   // Respond immediately — Shopify requires a fast 200
@@ -88,8 +100,8 @@ router.post("/webhooks/orders-paid", async (req, res) => {
     );
   }
 
-  // For Instapay orders, create Bosta shipment now that payment is confirmed
-  if (isInstapay && firstName && address) {
+  // For Instapay orders: payment is now confirmed — create Bosta shipment
+  if (isInstapay && firstName && address && order.id) {
     const trackingNumber = await createBostaShipment({
       firstName,
       lastName,
@@ -100,16 +112,22 @@ router.post("/webhooks/orders-paid", async (req, res) => {
       codAmount: 0,
     });
 
-    if (trackingNumber && order.id) {
+    if (trackingNumber) {
       const existingNote = order.note ?? "";
       void addShopifyOrderNote(
         order.id,
         `${existingNote ? existingNote + "\n" : ""}Bosta tracking: ${trackingNumber}\nPayment: Instapay (confirmed)`,
       );
-      req.log.info(
-        { trackingNumber, orderNumber: order.order_number },
-        "Bosta Instapay shipment created after payment",
-      );
+
+      // Create a Shopify fulfillment with the Bosta tracking number
+      const fulfillmentId = await createShopifyFulfillment(order.id, trackingNumber);
+      if (fulfillmentId) {
+        void addShopifyFulfillmentEvent(order.id, fulfillmentId, "in_transit");
+        req.log.info(
+          { trackingNumber, fulfillmentId, orderNumber: order.order_number },
+          "Bosta Instapay shipment created and Shopify fulfillment opened",
+        );
+      }
     }
   }
 });

@@ -156,8 +156,8 @@ export function CheckoutPage() {
           quantity: i.quantity,
         }));
 
-    // savings is already computed at render time from the Shopify cart cost fields
-    const discountAmt = savings;
+    // discountAmt kept for reference but not sent — server validates discount code independently
+    void savings;
 
     try {
       const res = await fetch("/api/orders/create", {
@@ -173,8 +173,8 @@ export function CheckoutPage() {
             city: form.city.trim(),
           },
           paymentMethod,
-          discountAmount: discountAmt > 0 ? discountAmt : 0,
-          discountCode: promoApplied?.code,
+          // Only the code is sent — the server validates it via Shopify Admin API
+          discountCode: promoApplied?.code ?? null,
         }),
       });
 
