@@ -261,6 +261,24 @@
     @apply hidden;
   }
 
+  .checkout-input:-webkit-autofill,
+  .checkout-input:-webkit-autofill:hover,
+  .checkout-input:-webkit-autofill:focus,
+  .checkout-input:-webkit-autofill:active {
+    -webkit-text-fill-color: #1e1814;
+    caret-color: #1e1814;
+    -webkit-box-shadow: 0 0 0 1000px rgba(239, 230, 218, 0.98) inset;
+    box-shadow: 0 0 0 1000px rgba(239, 230, 218, 0.98) inset;
+    transition: background-color 9999s ease-out 0s;
+    font-weight: 500;
+  }
+
+  .checkout-input::placeholder {
+    color: rgba(30,24,20,0.42);
+    opacity: 1;
+    font-weight: 500;
+  }
+
   [contenteditable][data-placeholder]:empty::before {
     content: attr(data-placeholder);
     color: hsl(var(--muted-foreground));
