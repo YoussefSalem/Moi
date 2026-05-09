@@ -110,7 +110,25 @@ router.post(
       return;
     }
 
-    // 1. Create Shopify draft order tagged as pending-verification
+    // 1. Duplicate-proof check — BEFORE creating any order
+    //    Guard against the same Instapay reference being submitted twice.
+    const existing = await db
+      .select({ id: instapayProofs.id, shopifyOrderId: instapayProofs.shopifyOrderId, shopifyOrderNumber: instapayProofs.shopifyOrderNumber, amount: instapayProofs.amount })
+      .from(instapayProofs)
+      .where(
+        and(
+          eq(instapayProofs.referenceNumber, referenceNumber.trim()),
+          or(eq(instapayProofs.status, "pending"), eq(instapayProofs.status, "approved")),
+        ),
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      res.status(200).json({ ok: true, alreadySubmitted: true, orderNumber: existing[0].shopifyOrderNumber, shopifyOrderId: existing[0].shopifyOrderId, total: existing[0].amount ?? "" });
+      return;
+    }
+
+    // 2. Create Shopify draft order tagged as pending-verification
     let shopifyOrderId: number;
     let shopifyOrderNumber: number;
     let total: string;
@@ -135,23 +153,6 @@ router.post(
       } else {
         res.status(500).json({ error: "Could not place your order. Please try again." });
       }
-      return;
-    }
-
-    // 2. Duplicate-proof check (idempotent — should not happen, but guard anyway)
-    const existing = await db
-      .select({ id: instapayProofs.id })
-      .from(instapayProofs)
-      .where(
-        and(
-          eq(instapayProofs.shopifyOrderId, shopifyOrderId),
-          or(eq(instapayProofs.status, "pending"), eq(instapayProofs.status, "approved")),
-        ),
-      )
-      .limit(1);
-
-    if (existing.length > 0) {
-      res.status(200).json({ ok: true, alreadySubmitted: true, orderNumber: shopifyOrderNumber, shopifyOrderId, total });
       return;
     }
 

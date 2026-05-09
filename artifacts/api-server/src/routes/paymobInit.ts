@@ -98,7 +98,6 @@ router.post("/orders/paymob-init", async (req, res) => {
     cartId?: unknown;
     discountCode?: unknown;
     cancelPreviousOrderId?: unknown;
-    siteOrigin?: unknown;
   };
 
   if (!Array.isArray(body.lines) || body.lines.length === 0) {
@@ -132,7 +131,9 @@ router.post("/orders/paymob-init", async (req, res) => {
   const discountCode = typeof body.discountCode === "string" && body.discountCode.trim() ? body.discountCode.trim() : undefined;
   const cartId = typeof body.cartId === "string" && body.cartId.trim() ? body.cartId.trim() : undefined;
   const cancelPreviousOrderId = typeof body.cancelPreviousOrderId === "number" ? body.cancelPreviousOrderId : undefined;
-  const siteOrigin = typeof body.siteOrigin === "string" && body.siteOrigin.trim() ? body.siteOrigin.trim() : undefined;
+  // Build return URL from server-trusted env vars only — never from client-supplied origin
+  const replitDomain = (process.env.REPLIT_DOMAINS ?? "").split(",")[0]?.trim();
+  const siteOrigin = replitDomain ? `https://${replitDomain}` : (process.env.SITE_URL ?? "");
 
   req.log.info({ lineCount: lines.length, cancelPreviousOrderId }, "Paymob init started");
 
