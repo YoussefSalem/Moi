@@ -54,6 +54,7 @@ router.post("/webhooks/orders-paid", async (req, res) => {
       phone?: string;
       address1?: string;
       city?: string;
+      province?: string;
     };
     note?: string;
     note_attributes?: { name: string; value: string }[];
@@ -91,6 +92,10 @@ router.post("/webhooks/orders-paid", async (req, res) => {
     order.shipping_address?.last_name ?? order.customer?.last_name ?? "";
   const address = order.shipping_address?.address1 ?? "";
   const city = order.shipping_address?.city ?? "";
+  const governorate =
+    order.note_attributes?.find((a) => a.name === "governorate")?.value ??
+    order.shipping_address?.province ??
+    "";
   const orderRef = `#${order.order_number ?? order.id}`;
   const total = order.total_price ?? "";
 

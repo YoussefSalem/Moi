@@ -156,6 +156,8 @@ async function createDraftOrder(params: {
     note_attributes: [
       { name: "payment_method", value: params.paymentMethod },
       { name: "customer_phone", value: params.customer.phone },
+      { name: "governorate", value: params.customer.governorate },
+      ...(params.customer.postalCode ? [{ name: "postal_code", value: params.customer.postalCode }] : []),
     ],
   };
 
