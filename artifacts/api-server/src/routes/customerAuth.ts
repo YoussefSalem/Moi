@@ -8,8 +8,6 @@ import { getShopifyAdminToken } from "../lib/integrations";
 
 const router: IRouter = Router();
 
-// ── Token helpers (HMAC-signed, no external package needed) ──────────────────
-
 interface CustomerPayload {
   shopifyId: string;
   email: string;
@@ -43,8 +41,6 @@ export function verifyCustomerToken(token: string): CustomerPayload | null {
   }
 }
 
-// ── OTP helpers ──────────────────────────────────────────────────────────────
-
 function generateOtp(): string {
   return (100000 + crypto.randomInt(0, 900000)).toString();
 }
@@ -72,16 +68,18 @@ async function sendOtpEmail(to: string, code: string): Promise<void> {
     to,
     subject: `Your Moi sign-in code: ${code}`,
     html: `
-      <div style="font-family:'Montserrat',sans-serif;max-width:480px;margin:0 auto;color:#1e1814;background:#faf8f5;padding:0 24px 48px;">
-        <div style="padding:48px 0 24px;letter-spacing:0.4em;font-size:14px;font-weight:700;text-transform:uppercase;">MOI</div>
-        <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:34px;font-weight:300;margin:0 0 20px;line-height:1.15;letter-spacing:0.02em;">
+      <div style="font-family:'Montserrat',sans-serif;max-width:480px;margin:0 auto;color:#1e1814;background:#faf8f5;padding:0 24px 48px;text-align:center;">
+        <div style="padding:48px 0 28px;letter-spacing:0.4em;font-size:14px;font-weight:700;text-transform:uppercase;text-align:left;">MOI</div>
+        <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:34px;font-weight:300;margin:0 0 18px;line-height:1.15;letter-spacing:0.02em;text-align:left;">
           Your Sign-In Code
         </h1>
-        <p style="font-size:13px;line-height:1.9;color:#5a5048;margin:0 0 32px;">
+        <p style="font-size:13px;line-height:1.9;color:#5a5048;margin:0 0 34px;text-align:left;">
           Use the code below to sign in to your Moi account.<br/>It expires in <strong style="color:#1e1814;">5 minutes</strong>.
         </p>
-        <div style="display:inline-block;padding:22px 48px;background:#1e1814;color:#faf8f5;font-size:30px;font-weight:700;letter-spacing:0.35em;margin:0 0 36px;font-family:'Montserrat',sans-serif;">
-          ${code}
+        <div style="display:flex;justify-content:center;margin:0 0 34px;">
+          <div style="display:inline-flex;align-items:center;justify-content:center;min-width:220px;padding:16px 12px;background:transparent;color:#1e1814;font-size:30px;font-weight:600;letter-spacing:0.48em;font-family:'Montserrat',sans-serif;line-height:1;">
+            ${code}
+          </div>
         </div>
         <p style="font-size:11px;color:rgba(30,24,20,0.35);letter-spacing:0.18em;text-transform:uppercase;margin:0;line-height:1.8;">
           If you did not request this code, you can safely ignore this email.
@@ -91,8 +89,6 @@ async function sendOtpEmail(to: string, code: string): Promise<void> {
     text: `Your Moi sign-in code is: ${code}\n\nIt expires in 5 minutes.\n\nIf you didn't request this, ignore this email.`,
   });
 }
-
-// ── Shopify Admin: look up or create customer ─────────────────────────────────
 
 interface ShopifyAdminCustomer {
   id: number;
@@ -144,8 +140,6 @@ async function findOrCreateShopifyCustomer(email: string): Promise<ShopifyAdminC
   return null;
 }
 
-// ── Routes ───────────────────────────────────────────────────────────────────
-
 // POST /api/auth/customer/send-otp
 router.post("/auth/customer/send-otp", async (req, res) => {
   const { email } = req.body as { email?: unknown };
@@ -155,7 +149,6 @@ router.post("/auth/customer/send-otp", async (req, res) => {
   }
   const safeEmail = email.trim().toLowerCase();
 
-  // Rate-limit: max 3 codes per email in last 10 minutes
   const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
   try {
     const recent = await db
@@ -179,7 +172,6 @@ router.post("/auth/customer/send-otp", async (req, res) => {
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
   try {
-    // Send email first — only persist to DB if delivery succeeds
     await sendOtpEmail(safeEmail, otp);
     await db.insert(customerOtpCodes).values({ email: safeEmail, hashedCode, salt, expiresAt });
     req.log.info({ email: safeEmail }, "OTP sent");
@@ -236,14 +228,12 @@ router.post("/auth/customer/verify-otp", async (req, res) => {
     return;
   }
 
-  // Mark as used
   try {
     await db.update(customerOtpCodes).set({ used: true }).where(eq(customerOtpCodes.id, record.id));
   } catch (err) {
     req.log.error({ err }, "Failed to mark OTP used");
   }
 
-  // Find or create Shopify customer
   const shopifyCustomer = await findOrCreateShopifyCustomer(safeEmail);
   const shopifyId = shopifyCustomer
     ? `gid://shopify/Customer/${shopifyCustomer.id}`
