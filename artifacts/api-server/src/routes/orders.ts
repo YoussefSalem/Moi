@@ -251,6 +251,25 @@ router.post("/orders/create", async (req, res) => {
     return;
   }
 
+  for (const raw of body.lines as unknown[]) {
+    const l = raw as Record<string, unknown>;
+    if (
+      typeof l.variantId !== "string" ||
+      !/^gid:\/\/shopify\/ProductVariant\/\d+$/.test(l.variantId)
+    ) {
+      res.status(400).json({ error: "Invalid variant ID in order lines." });
+      return;
+    }
+    if (
+      typeof l.quantity !== "number" ||
+      !Number.isInteger(l.quantity) ||
+      l.quantity < 1
+    ) {
+      res.status(400).json({ error: "Each line item must have a quantity of at least 1." });
+      return;
+    }
+  }
+
   const customer = body.customer as CustomerInfo | undefined;
   if (
     !customer?.firstName?.trim() ||

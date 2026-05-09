@@ -195,7 +195,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const applyDiscount = useCallback(async (code: string): Promise<{ applicable: boolean; code: string }> => {
     if (!SHOPIFY_CONFIGURED || !shopifyCart) throw new Error("Cart not available");
-    const updated = await cartDiscountCodesUpdate(shopifyCart.id, [code]);
+    // Pass [] to clear all codes — Shopify rejects [""] as an invalid code
+    const codes = code.trim() ? [code] : [];
+    const updated = await cartDiscountCodesUpdate(shopifyCart.id, codes);
     setShopifyCart(updated);
     const applied = updated.discountCodes.find((d) => d.code === code);
     return { applicable: applied?.applicable ?? false, code };

@@ -645,6 +645,17 @@ function InstapayConfirmation({
         )}
       </div>
 
+      {businessWA && (
+        <div style={{ textAlign: "center", marginBottom: "-8px" }}>
+          <p style={{ fontSize: "9px", letterSpacing: "0.25em", textTransform: "uppercase", color: "rgba(30,24,20,0.35)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>
+            Business WhatsApp
+          </p>
+          <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em" }}>
+            {businessWA}
+          </p>
+        </div>
+      )}
+
       {waLink && (
         <a
           href={waLink}
