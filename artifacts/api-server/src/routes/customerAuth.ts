@@ -68,22 +68,38 @@ async function sendOtpEmail(to: string, code: string): Promise<void> {
     to,
     subject: `Your Moi sign-in code: ${code}`,
     html: `
-      <div style="font-family:'Montserrat',sans-serif;max-width:480px;margin:0 auto;color:#1e1814;background:#faf8f5;padding:0 24px 48px;text-align:center;">
-        <div style="padding:48px 0 28px;letter-spacing:0.4em;font-size:14px;font-weight:700;text-transform:uppercase;text-align:left;">MOI</div>
-        <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:34px;font-weight:300;margin:0 0 18px;line-height:1.15;letter-spacing:0.02em;text-align:left;">
-          Your Sign-In Code
-        </h1>
-        <p style="font-size:13px;line-height:1.9;color:#5a5048;margin:0 0 34px;text-align:left;">
-          Use the code below to sign in to your Moi account.<br/>It expires in <strong style="color:#1e1814;">5 minutes</strong>.
-        </p>
-        <div style="display:flex;justify-content:center;margin:0 0 34px;">
-          <div style="display:inline-flex;align-items:center;justify-content:center;min-width:220px;padding:16px 12px;background:transparent;color:#1e1814;font-size:30px;font-weight:600;letter-spacing:0.48em;font-family:'Montserrat',sans-serif;line-height:1;">
-            ${code}
-          </div>
+      <div style="font-family:'Montserrat',Arial,sans-serif;max-width:520px;margin:0 auto;background:#faf8f5;padding:0;">
+        <!-- Header band -->
+        <div style="background:#1e1814;padding:28px 40px;text-align:center;">
+          <span style="color:#faf8f5;letter-spacing:0.55em;font-size:13px;font-weight:700;text-transform:uppercase;">M O I</span>
         </div>
-        <p style="font-size:11px;color:rgba(30,24,20,0.35);letter-spacing:0.18em;text-transform:uppercase;margin:0;line-height:1.8;">
-          If you did not request this code, you can safely ignore this email.
-        </p>
+
+        <!-- Body -->
+        <div style="padding:52px 48px 44px;text-align:center;border-left:1px solid #e8e4de;border-right:1px solid #e8e4de;">
+          <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:32px;font-weight:400;color:#1e1814;margin:0 0 16px;line-height:1.2;letter-spacing:0.03em;">
+            Your Sign-In Code
+          </h1>
+          <p style="font-size:13px;line-height:1.8;color:#5a5048;margin:0 0 40px;font-weight:400;">
+            Use the code below to sign in to your Moi account.<br>
+            It expires in <strong style="color:#1e1814;font-weight:600;">5 minutes</strong>.
+          </p>
+
+          <!-- Code display -->
+          <div style="margin:0 auto 44px;border-top:1px solid #c8c0b4;border-bottom:1px solid #c8c0b4;padding:28px 0;">
+            <span style="font-size:38px;font-weight:700;letter-spacing:0.5em;color:#1e1814;font-family:'Courier New',monospace;padding-left:0.5em;">
+              ${code}
+            </span>
+          </div>
+
+          <p style="font-size:11px;color:#7a7068;letter-spacing:0.16em;text-transform:uppercase;margin:0;line-height:1.9;">
+            If you did not request this code,<br>you can safely ignore this email.
+          </p>
+        </div>
+
+        <!-- Footer band -->
+        <div style="background:#1e1814;padding:18px 40px;text-align:center;">
+          <span style="color:rgba(250,248,245,0.45);font-size:10px;letter-spacing:0.2em;text-transform:uppercase;">moi — premium fashion</span>
+        </div>
       </div>
     `,
     text: `Your Moi sign-in code is: ${code}\n\nIt expires in 5 minutes.\n\nIf you didn't request this, ignore this email.`,
