@@ -23,7 +23,10 @@ function requireInternalAuth(
   res: Parameters<Parameters<typeof router.post>[1]>[1],
 ): boolean {
   const secret = process.env.INTERNAL_API_SECRET;
-  if (!secret) return true; // no secret configured — skip check
+  if (!secret) {
+    res.status(503).json({ error: "Internal auth not configured." });
+    return false;
+  }
   const auth = req.headers["x-internal-secret"];
   if (auth !== secret) {
     res.status(401).json({ error: "Unauthorized" });
@@ -52,12 +55,15 @@ router.post("/bosta/create-shipment", async (req, res) => {
   const phone = typeof body.phone === "string" ? body.phone.trim() : "";
   const address = typeof body.address === "string" ? body.address.trim() : "";
   const city = typeof body.city === "string" ? body.city.trim() : "";
-  const orderReference = typeof body.orderReference === "string" ? body.orderReference.trim() : "";
+  const orderReference =
+    typeof body.orderReference === "string" ? body.orderReference.trim() : "";
   const codAmount = typeof body.codAmount === "number" ? body.codAmount : 0;
   const orderId = typeof body.orderId === "number" ? body.orderId : null;
 
   if (!firstName || !phone || !address || !city) {
-    res.status(400).json({ error: "firstName, phone, address, and city are required." });
+    res
+      .status(400)
+      .json({ error: "firstName, phone, address, and city are required." });
     return;
   }
 
@@ -94,10 +100,26 @@ router.post("/bosta/create-shipment", async (req, res) => {
   }
 });
 
-// Bosta delivery status webhook — updates Shopify fulfillment status.
-// Register in your Bosta dashboard: POST /api/bosta/status-webhook
+// Bosta delivery-status webhook — updates Shopify fulfillment state.
+// Register in your Bosta dashboard:
+//   POST /api/bosta/status-webhook?secret=<BOSTA_WEBHOOK_SECRET>
 // req.body is a raw Buffer (express.raw applied in app.ts for this path).
 router.post("/bosta/status-webhook", async (req, res) => {
+  const webhookSecret = process.env.BOSTA_WEBHOOK_SECRET;
+  if (webhookSecret) {
+    const provided = req.query["secret"] as string | undefined;
+    if (!provided || provided !== webhookSecret) {
+      req.log.warn("Bosta status webhook: invalid or missing secret query param");
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+  } else {
+    // Secret not configured — reject to avoid unauthenticated fulfillment mutations
+    req.log.error("BOSTA_WEBHOOK_SECRET is not set; rejecting Bosta status webhook");
+    res.status(503).json({ error: "Webhook secret not configured." });
+    return;
+  }
+
   const rawBody = req.body as Buffer;
 
   let payload: {
@@ -112,13 +134,17 @@ router.post("/bosta/status-webhook", async (req, res) => {
     return;
   }
 
+  // Respond quickly; Bosta expects a fast 200
   res.status(200).json({ ok: true });
 
   const bostaState = (payload.state?.value ?? "").toUpperCase();
   const trackingNumber = payload.trackingNumber ?? "";
   const shopifyStatus = BOSTA_TO_SHOPIFY_STATUS[bostaState];
 
-  req.log.info({ trackingNumber, bostaState, shopifyStatus }, "Bosta delivery status update");
+  req.log.info(
+    { trackingNumber, bostaState, shopifyStatus },
+    "Bosta delivery status update",
+  );
 
   if (!shopifyStatus || !trackingNumber) return;
 
@@ -133,20 +159,22 @@ router.post("/bosta/status-webhook", async (req, res) => {
   );
 
   if (existingFulfillment) {
-    // Add event to existing fulfillment
-    await addShopifyFulfillmentEvent(order.id, existingFulfillment.id, shopifyStatus);
+    await addShopifyFulfillmentEvent(
+      order.id,
+      existingFulfillment.id,
+      shopifyStatus,
+    );
     req.log.info(
       { orderNumber: order.order_number, shopifyStatus, trackingNumber },
-      "Shopify fulfillment event added",
+      "Shopify fulfillment event added from Bosta",
     );
   } else {
-    // Create fulfillment and add event
     const fulfillmentId = await createShopifyFulfillment(order.id, trackingNumber);
     if (fulfillmentId) {
       await addShopifyFulfillmentEvent(order.id, fulfillmentId, shopifyStatus);
       req.log.info(
         { orderNumber: order.order_number, fulfillmentId, shopifyStatus },
-        "Shopify fulfillment created and event added from Bosta status",
+        "Shopify fulfillment created + event added from Bosta status",
       );
     }
   }
