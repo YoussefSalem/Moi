@@ -174,7 +174,8 @@ router.post(
     const customerName = body.customerName?.trim() ||
       `${customer.firstName} ${customer.lastName}`.trim();
     const customerPhone = body.customerPhone?.trim() || customer.phone;
-    const amountDisplay = body.amount?.trim() || total;
+    // Always use the server-derived order total — never trust client-supplied amount
+    const amountDisplay = total;
 
     // 4. Insert DB row
     await db.insert(instapayProofs).values({

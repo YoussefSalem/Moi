@@ -83,7 +83,8 @@ router.post("/webhooks/paymob", async (req, res) => {
       };
       const order = tagData.order;
 
-      if (order.tags.includes(idempotencyTag)) {
+      const tagSet = new Set(order.tags.split(",").map((t) => t.trim()));
+      if (tagSet.has(idempotencyTag)) {
         req.log.info({ shopifyOrderId, paymobTxnId }, "Paymob webhook: already processed (idempotent), skipping");
         return;
       }

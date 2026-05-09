@@ -754,31 +754,11 @@ export function CheckoutPage() {
                 )}
 
                 {paymentMethod === "card" && (
-                  <div className="mt-5 p-4" style={{ backgroundColor: "rgba(30,24,20,0.05)", border: "1px solid rgba(30,24,20,0.14)" }}>
-                    <div className="flex items-center gap-3 mb-4">
-                      <CreditCard size={16} strokeWidth={1.5} style={{ color: "#1e1814", flexShrink: 0 }} />
-                      <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, letterSpacing: "0.04em" }}>
-                        Card Number · Expiration Date · CVV · Cardholder Name
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="flex flex-col gap-1 md:col-span-2">
-                        <label style={labelStyle}>Card Number</label>
-                        <input type="text" inputMode="numeric" autoComplete="cc-number" placeholder="1234 5678 9012 3456" style={inputStyle} className="checkout-input" />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label style={labelStyle}>Expiration Date</label>
-                        <input type="text" inputMode="numeric" autoComplete="cc-exp" placeholder="MM / YY" style={inputStyle} className="checkout-input" />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label style={labelStyle}>CVV</label>
-                        <input type="password" inputMode="numeric" autoComplete="cc-csc" placeholder="123" style={inputStyle} className="checkout-input" />
-                      </div>
-                      <div className="flex flex-col gap-1 md:col-span-2">
-                        <label style={labelStyle}>Cardholder Name</label>
-                        <input type="text" autoComplete="cc-name" placeholder="Name on card" style={inputStyle} className="checkout-input" />
-                      </div>
-                    </div>
+                  <div className="mt-5 p-4 flex items-start gap-3" style={{ backgroundColor: "rgba(30,24,20,0.05)", border: "1px solid rgba(30,24,20,0.14)" }}>
+                    <CreditCard size={15} strokeWidth={1.5} style={{ color: "#1e1814", flexShrink: 0, marginTop: 2 }} />
+                    <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.8, letterSpacing: "0.04em" }}>
+                      You'll enter your card details securely on the next screen. No card information is collected here.
+                    </p>
                   </div>
                 )}
 

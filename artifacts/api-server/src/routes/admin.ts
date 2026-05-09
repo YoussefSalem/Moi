@@ -59,17 +59,19 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction): void
 }
 
 // POST /api/admin/login — public, no auth required.
-// Validates the supplied PIN against ADMIN_SECRET. On success returns a
-// short-lived derived session token (HMAC of the secret); the raw secret
-// itself is never transmitted to the browser.
+// Validates the supplied PIN against ADMIN_PIN (a server-only env var separate
+// from ADMIN_SECRET). On success returns a derived session token (HMAC of
+// ADMIN_SECRET); the raw secret is never transmitted to the browser and the PIN
+// is never used for signing — the two concerns are deliberately separate.
 router.post("/admin/login", (req, res) => {
   const adminSecret = process.env.ADMIN_SECRET;
-  if (!adminSecret) {
+  const adminPin = process.env.ADMIN_PIN ?? process.env.VITE_ADMIN_PIN;
+  if (!adminSecret || !adminPin) {
     res.status(503).json({ error: "Admin not configured." });
     return;
   }
   const body = req.body as { secret?: unknown };
-  if (typeof body.secret !== "string" || body.secret !== adminSecret) {
+  if (typeof body.secret !== "string" || body.secret !== adminPin) {
     res.status(401).json({ error: "Incorrect PIN." });
     return;
   }
