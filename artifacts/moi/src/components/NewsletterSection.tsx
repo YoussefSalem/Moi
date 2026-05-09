@@ -83,7 +83,7 @@ export function NewsletterSection() {
                           onChange={(e) => setEmail(e.target.value)}
                           disabled={status === "loading" || status === "success" || isLoggedIn}
                           autoComplete="email"
-                          className="mt-1 w-full bg-transparent text-sm md:text-base font-light outline-none placeholder:text-[rgba(30,24,20,0.35)]"
+                          className="checkout-input mt-1 w-full bg-transparent text-sm md:text-base font-light outline-none placeholder:text-[rgba(30,24,20,0.35)]"
                           style={{ color: "#1e1814" }}
                         />
                       </div>
