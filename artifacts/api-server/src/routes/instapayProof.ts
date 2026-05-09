@@ -6,6 +6,11 @@ import { eq, and, or } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
 import { addShopifyOrderNote, tagShopifyOrder, sendWhatsApp } from "../lib/integrations";
 import { logger } from "../lib/logger";
+import {
+  createDraftOrder,
+  type OrderLine,
+  type CustomerInfo,
+} from "../lib/shopifyOrder";
 
 const router: IRouter = Router();
 
@@ -31,7 +36,23 @@ function getBucket() {
   return objectStorageClient.bucket(bucketId);
 }
 
-// Multer error handler — invalid file type or size → 400
+/**
+ * POST /api/orders/instapay-proof
+ *
+ * Creates the Shopify order AND records proof atomically.
+ * The order is only created here — at proof submission time — never before.
+ *
+ * Form fields (multipart/form-data):
+ *   lines         — JSON array of { variantId, quantity }
+ *   customer      — JSON object with customer fields
+ *   cartId        — (optional) Shopify Storefront cart ID
+ *   discountCode  — (optional) discount code
+ *   referenceNumber — Instapay reference number
+ *   customerName  — display name (optional, derived from customer if omitted)
+ *   customerPhone — phone (optional, derived from customer if omitted)
+ *   amount        — display total string (optional, used for WhatsApp message)
+ *   screenshot    — image file (required)
+ */
 router.post(
   "/orders/instapay-proof",
   (req: Request, res: Response, next: NextFunction) => {
@@ -48,80 +69,146 @@ router.post(
     });
   },
   async (req, res) => {
-  const { orderId, orderNumber, customerName, customerPhone, amount, referenceNumber } = req.body as Record<string, string>;
+    const body = req.body as Record<string, string>;
+    const { referenceNumber, cartId, discountCode } = body;
 
-  const shopifyOrderId = parseInt(orderId, 10);
-  const shopifyOrderNumber = parseInt(orderNumber, 10);
+    if (!referenceNumber?.trim()) {
+      res.status(400).json({ error: "referenceNumber is required." });
+      return;
+    }
 
-  if (!shopifyOrderId || isNaN(shopifyOrderId) || !referenceNumber?.trim()) {
-    res.status(400).json({ error: "orderId and referenceNumber are required." });
-    return;
-  }
+    if (!req.file) {
+      res.status(400).json({ error: "Payment screenshot is required." });
+      return;
+    }
 
-  if (!req.file) {
-    res.status(400).json({ error: "Payment screenshot is required." });
-    return;
-  }
+    // Parse lines and customer from JSON form fields
+    let lines: OrderLine[];
+    let customer: CustomerInfo;
+    try {
+      lines = JSON.parse(body.lines ?? "[]") as OrderLine[];
+      customer = JSON.parse(body.customer ?? "{}") as CustomerInfo;
+    } catch {
+      res.status(400).json({ error: "Invalid order data." });
+      return;
+    }
 
-  // Duplicate check
-  const existing = await db
-    .select({ id: instapayProofs.id })
-    .from(instapayProofs)
-    .where(
-      and(
-        eq(instapayProofs.shopifyOrderId, shopifyOrderId),
-        or(eq(instapayProofs.status, "pending"), eq(instapayProofs.status, "approved")),
-      ),
-    )
-    .limit(1);
+    if (!Array.isArray(lines) || lines.length === 0) {
+      res.status(400).json({ error: "No items in order." });
+      return;
+    }
 
-  if (existing.length > 0) {
-    res.status(200).json({ ok: false, alreadySubmitted: true });
-    return;
-  }
+    if (
+      !customer?.firstName?.trim() ||
+      !customer?.lastName?.trim() ||
+      !customer?.phone?.trim() ||
+      !customer?.address?.trim() ||
+      !customer?.governorate?.trim() ||
+      !customer?.city?.trim()
+    ) {
+      res.status(400).json({ error: "Customer information is incomplete." });
+      return;
+    }
 
-  // Upload screenshot to object storage — fail atomically if storage fails
-  let screenshotKey: string;
-  try {
-    const ext = req.file.mimetype === "image/png" ? "png" : "jpg";
-    const key = `instapay-proofs/${shopifyOrderId}-${Date.now()}.${ext}`;
-    const bucket = getBucket();
-    const file = bucket.file(key);
-    await file.save(req.file.buffer, { contentType: req.file.mimetype });
-    screenshotKey = key;
-  } catch (err) {
-    logger.error({ err }, "Screenshot upload to object storage failed");
-    res.status(500).json({ error: "Failed to upload screenshot. Please try again." });
-    return;
-  }
+    // 1. Create Shopify draft order tagged as pending-verification
+    let shopifyOrderId: number;
+    let shopifyOrderNumber: number;
+    let total: string;
 
-  // Insert DB row
-  await db.insert(instapayProofs).values({
-    shopifyOrderId,
-    shopifyOrderNumber: isNaN(shopifyOrderNumber) ? shopifyOrderId : shopifyOrderNumber,
-    customerPhone: customerPhone ?? null,
-    customerName: customerName ?? null,
-    amount: amount ?? null,
-    referenceNumber: referenceNumber.trim(),
-    screenshotKey,
-    status: "pending",
-  });
+    try {
+      const result = await createDraftOrder({
+        lines,
+        customer,
+        paymentMethod: "instapay",
+        cartId: cartId?.trim() || undefined,
+        discountCode: discountCode?.trim() || undefined,
+        extraTags: "instapay-pending-verification",
+      });
+      shopifyOrderId = result.orderId;
+      shopifyOrderNumber = result.orderNumber;
+      total = result.total;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Order creation failed";
+      logger.error({ err }, "Instapay proof — Shopify order creation failed");
+      if (message.includes("not applicable")) {
+        res.status(422).json({ error: message });
+      } else {
+        res.status(500).json({ error: "Could not place your order. Please try again." });
+      }
+      return;
+    }
 
-  // Shopify note + tag (fire-and-forget)
-  void addShopifyOrderNote(shopifyOrderId, `InstaPay proof submitted — ref: ${referenceNumber.trim()}`);
-  void tagShopifyOrder(shopifyOrderId, "instapay-proof-submitted");
+    // 2. Duplicate-proof check (idempotent — should not happen, but guard anyway)
+    const existing = await db
+      .select({ id: instapayProofs.id })
+      .from(instapayProofs)
+      .where(
+        and(
+          eq(instapayProofs.shopifyOrderId, shopifyOrderId),
+          or(eq(instapayProofs.status, "pending"), eq(instapayProofs.status, "approved")),
+        ),
+      )
+      .limit(1);
 
-  // WhatsApp to business owner
-  const businessWA = process.env.BUSINESS_WHATSAPP_NUMBER ?? "";
-  const siteUrl = process.env.SITE_URL ?? "";
-  if (businessWA) {
+    if (existing.length > 0) {
+      res.status(200).json({ ok: true, alreadySubmitted: true, orderNumber: shopifyOrderNumber, shopifyOrderId, total });
+      return;
+    }
+
+    // 3. Upload screenshot to object storage
+    let screenshotKey: string;
+    try {
+      const ext = req.file.mimetype === "image/png" ? "png" : "jpg";
+      const key = `instapay-proofs/${shopifyOrderId}-${Date.now()}.${ext}`;
+      const bucket = getBucket();
+      const file = bucket.file(key);
+      await file.save(req.file.buffer, { contentType: req.file.mimetype });
+      screenshotKey = key;
+    } catch (err) {
+      logger.error({ err }, "Screenshot upload to object storage failed");
+      res.status(500).json({ error: "Failed to upload screenshot. Please try again." });
+      return;
+    }
+
+    const customerName = body.customerName?.trim() ||
+      `${customer.firstName} ${customer.lastName}`.trim();
+    const customerPhone = body.customerPhone?.trim() || customer.phone;
+    const amountDisplay = body.amount?.trim() || total;
+
+    // 4. Insert DB row
+    await db.insert(instapayProofs).values({
+      shopifyOrderId,
+      shopifyOrderNumber,
+      customerPhone: customerPhone ?? null,
+      customerName: customerName ?? null,
+      amount: amountDisplay ?? null,
+      referenceNumber: referenceNumber.trim(),
+      screenshotKey,
+      status: "pending",
+    });
+
+    // 5. Shopify note + tag (fire-and-forget)
+    void addShopifyOrderNote(shopifyOrderId, `InstaPay proof submitted — ref: ${referenceNumber.trim()}`);
+    void tagShopifyOrder(shopifyOrderId, "instapay-proof-submitted");
+
+    // 6. WhatsApp to business owner
+    const businessWA = process.env.BUSINESS_WHATSAPP_NUMBER ?? "";
+    const siteUrl = process.env.SITE_URL ?? "";
+    if (businessWA) {
+      void sendWhatsApp(
+        businessWA,
+        `📋 InstaPay proof — order #${shopifyOrderNumber}\nRef: ${referenceNumber.trim()}\nAmount: ${amountDisplay} EGP\nCustomer: ${customerName} · ${customerPhone}\nReview: ${siteUrl}/admin`,
+      );
+    }
+
+    // 7. WhatsApp to customer
     void sendWhatsApp(
-      businessWA,
-      `📋 InstaPay proof — order #${shopifyOrderNumber}\nRef: ${referenceNumber.trim()}\nAmount: ${amount ?? "?"} EGP\nCustomer: ${customerName ?? "?"} · ${customerPhone ?? "?"}\nReview: ${siteUrl}/admin`,
+      customerPhone,
+      `🎉 Your Moi order #${shopifyOrderNumber} is being verified!\n\nRef: ${referenceNumber.trim()}\nTotal: ${amountDisplay} EGP\n\nOur team will confirm your order via WhatsApp once payment is verified. Thank you! 🖤`,
     );
-  }
 
-  res.status(200).json({ ok: true });
-});
+    res.status(200).json({ ok: true, orderNumber: shopifyOrderNumber, shopifyOrderId, total });
+  },
+);
 
 export default router;

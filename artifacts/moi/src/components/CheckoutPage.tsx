@@ -8,6 +8,22 @@ type PaymentMethod = "cod" | "instapay" | "card";
 type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
 type InstapaySubStep = "instructions" | "upload" | "review";
 
+interface InstapayOrderData {
+  lines: { variantId: string; quantity: number }[];
+  customer: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email?: string;
+    address: string;
+    governorate: string;
+    postalCode?: string;
+    city: string;
+  };
+  cartId?: string;
+  discountCode?: string;
+}
+
 interface OrderResult {
   orderNumber: string | number;
   total: string;
@@ -16,6 +32,7 @@ interface OrderResult {
   instapayNumber?: string;
   customerName?: string;
   customerPhone?: string;
+  instapayOrderData?: InstapayOrderData;
 }
 
 const SHIPPING_EGP = 120;
@@ -258,7 +275,56 @@ export function CheckoutPage() {
       return;
     }
 
-    // COD / InstaPay: call orders/create
+    // InstaPay: validate cart + get account info — order is created only at proof upload
+    if (paymentMethod === "instapay") {
+      try {
+        const res = await fetch("/api/orders/instapay-init", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lines: orderLines,
+            customer: customerPayload,
+            cartId: shopifyCart?.id ?? null,
+            discountCode: promoApplied?.code ?? null,
+          }),
+        });
+
+        const data = await res.json() as {
+          success?: boolean;
+          instapayAccount?: string;
+          instapayNumber?: string;
+          error?: string;
+        };
+
+        if (!res.ok || !data.success) {
+          setStep("form");
+          setSubmitError(data.error ?? "Something went wrong. Please try again.");
+          return;
+        }
+
+        setOrderResult({
+          orderNumber: "",
+          total: fmt(totalAmount),
+          instapayAccount: data.instapayAccount,
+          instapayNumber: data.instapayNumber,
+          customerName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+          customerPhone: form.phone.trim(),
+          instapayOrderData: {
+            lines: orderLines,
+            customer: customerPayload,
+            cartId: shopifyCart?.id ?? undefined,
+            discountCode: promoApplied?.code ?? undefined,
+          },
+        });
+        setStep("instapay-confirm");
+      } catch {
+        setStep("form");
+        setSubmitError("Network error. Please check your connection and try again.");
+      }
+      return;
+    }
+
+    // COD: call orders/create
     try {
       const res = await fetch("/api/orders/create", {
         method: "POST",
@@ -266,7 +332,7 @@ export function CheckoutPage() {
         body: JSON.stringify({
           lines: orderLines,
           customer: customerPayload,
-          paymentMethod,
+          paymentMethod: "cod",
           cartId: shopifyCart?.id ?? null,
           discountCode: promoApplied?.code ?? null,
         }),
@@ -278,8 +344,6 @@ export function CheckoutPage() {
         shopifyOrderId?: number;
         total?: string;
         error?: string;
-        instapayAccount?: string;
-        instapayNumber?: string;
       };
 
       if (!res.ok || !data.success) {
@@ -292,18 +356,12 @@ export function CheckoutPage() {
         orderNumber: data.orderNumber ?? "",
         total: data.total ?? fmt(totalAmount),
         shopifyOrderId: data.shopifyOrderId,
-        instapayAccount: data.instapayAccount,
-        instapayNumber: data.instapayNumber,
         customerName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
         customerPhone: form.phone.trim(),
       });
 
-      if (paymentMethod === "cod") {
-        clearCart();
-        setStep("cod-confirm");
-      } else {
-        setStep("instapay-confirm");
-      }
+      clearCart();
+      setStep("cod-confirm");
     } catch {
       setStep("form");
       setSubmitError("Network error. Please check your connection and try again.");
@@ -422,6 +480,10 @@ export function CheckoutPage() {
             <InstapayConfirmation
               orderResult={orderResult!}
               onDone={handleDone}
+              onProofSubmitted={(orderNumber, shopifyOrderId, total) => {
+                setOrderResult((prev) => prev ? { ...prev, orderNumber, shopifyOrderId, total } : prev);
+                clearCart();
+              }}
               fmt={fmt}
             />
           ) : step === "card-confirm" ? (
@@ -865,10 +927,12 @@ function CardFailed({
 function InstapayConfirmation({
   orderResult,
   onDone,
+  onProofSubmitted,
   fmt,
 }: {
   orderResult: OrderResult;
   onDone: () => void;
+  onProofSubmitted: (orderNumber: string | number, shopifyOrderId: number, total: string) => void;
   fmt: (n: number) => string;
 }) {
   const [subStep, setSubStep] = useState<InstapaySubStep>("instructions");
@@ -879,6 +943,7 @@ function InstapayConfirmation({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
+  const [confirmedOrderNumber, setConfirmedOrderNumber] = useState<string | number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const isTouch = typeof window !== "undefined" && window.matchMedia("(hover: none)").matches;
@@ -941,16 +1006,27 @@ function InstapayConfirmation({
       const compressed = await compressImage(screenshotFile);
       setUploadProgress(20);
 
+      const orderData = orderResult.instapayOrderData;
+
       const formData = new FormData();
-      formData.append("orderId", String(orderResult.shopifyOrderId ?? ""));
-      formData.append("orderNumber", String(orderResult.orderNumber));
-      formData.append("amount", orderResult.total);
+      formData.append("lines", JSON.stringify(orderData?.lines ?? []));
+      formData.append("customer", JSON.stringify(orderData?.customer ?? {}));
+      if (orderData?.cartId) formData.append("cartId", orderData.cartId);
+      if (orderData?.discountCode) formData.append("discountCode", orderData.discountCode);
       formData.append("referenceNumber", referenceNumber.trim());
       if (orderResult.customerName) formData.append("customerName", orderResult.customerName);
       if (orderResult.customerPhone) formData.append("customerPhone", orderResult.customerPhone);
+      formData.append("amount", orderResult.total);
       formData.append("screenshot", compressed, "proof.jpg");
 
-      const data = await new Promise<{ ok?: boolean; alreadySubmitted?: boolean; error?: string }>((resolve, reject) => {
+      const data = await new Promise<{
+        ok?: boolean;
+        alreadySubmitted?: boolean;
+        error?: string;
+        orderNumber?: string | number;
+        shopifyOrderId?: number;
+        total?: string;
+      }>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", "/api/orders/instapay-proof");
         xhr.upload.onprogress = (ev) => {
@@ -959,7 +1035,12 @@ function InstapayConfirmation({
           }
         };
         xhr.onload = () => {
-          try { resolve(JSON.parse(xhr.responseText) as { ok?: boolean; alreadySubmitted?: boolean; error?: string }); }
+          try {
+            resolve(JSON.parse(xhr.responseText) as {
+              ok?: boolean; alreadySubmitted?: boolean; error?: string;
+              orderNumber?: string | number; shopifyOrderId?: number; total?: string;
+            });
+          }
           catch { reject(new Error("Invalid response")); }
         };
         xhr.onerror = () => reject(new Error("Network error"));
@@ -968,13 +1049,14 @@ function InstapayConfirmation({
 
       setUploadProgress(95);
 
-      if (data.alreadySubmitted) {
-        setSubStep("review");
-        return;
-      }
-      if (!data.ok) {
+      if (!data.ok && !data.alreadySubmitted) {
         setUploadError(data.error ?? "Upload failed. Please try again.");
         return;
+      }
+
+      if (data.orderNumber != null && data.shopifyOrderId != null) {
+        setConfirmedOrderNumber(data.orderNumber);
+        onProofSubmitted(data.orderNumber, data.shopifyOrderId, data.total ?? orderResult.total);
       }
 
       setUploadProgress(100);
@@ -992,20 +1074,25 @@ function InstapayConfirmation({
       animate={{ opacity: 1, y: 0 }}
       className="max-w-lg mx-auto px-6 py-12 flex flex-col items-center gap-6"
     >
-      {/* Order number */}
+      {/* Heading — changes once order is confirmed */}
       <div style={{ textAlign: "center" }}>
         <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "32px", fontWeight: 700, color: "#1e1814", marginBottom: "6px" }}>
-          Order Placed.
+          {subStep === "review" ? "Order Confirmed." : "Payment Instructions"}
         </h1>
         <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.06em" }}>
-          Complete your payment to confirm.
+          {subStep === "review"
+            ? "We'll verify your payment and contact you shortly."
+            : "Complete the steps below to place your order."}
         </p>
       </div>
 
-      <div style={{ padding: "14px 24px", border: "1px solid rgba(30,24,20,0.22)", width: "100%", textAlign: "center" }}>
-        <p style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>Order Number</p>
-        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", color: "#1e1814", fontWeight: 700 }}>#{orderResult.orderNumber}</p>
-      </div>
+      {/* Order number — only shown once proof is submitted */}
+      {confirmedOrderNumber != null && (
+        <div style={{ padding: "14px 24px", border: "1px solid rgba(30,24,20,0.22)", width: "100%", textAlign: "center" }}>
+          <p style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>Order Number</p>
+          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", color: "#1e1814", fontWeight: 700 }}>#{confirmedOrderNumber}</p>
+        </div>
+      )}
 
       {/* Step indicator */}
       <div className="flex items-center gap-0 w-full" style={{ maxWidth: 320 }}>
@@ -1204,7 +1291,9 @@ function InstapayConfirmation({
                 Proof Submitted
               </h2>
               <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
-                We've received your payment proof for order <strong style={{ color: "#1e1814" }}>#{orderResult.orderNumber}</strong>. Our team will verify and confirm your order via WhatsApp shortly.
+                {confirmedOrderNumber != null
+                  ? <>We've received your payment proof for order <strong style={{ color: "#1e1814" }}>#{confirmedOrderNumber}</strong>. Our team will verify and confirm your order via WhatsApp shortly.</>
+                  : <>We've received your payment proof. Our team will verify and confirm your order via WhatsApp shortly.</>}
               </p>
             </div>
             <div style={{ padding: "14px 18px", backgroundColor: "rgba(30,24,20,0.04)", border: "1px solid rgba(30,24,20,0.12)", width: "100%", textAlign: "center" as const }}>
