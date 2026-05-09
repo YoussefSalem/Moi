@@ -1,112 +1,40 @@
 import { Router, type IRouter } from "express";
-import crypto from "crypto";
+import {
+  sendWhatsApp,
+  createBostaShipment,
+  addShopifyOrderNote,
+  verifyShopifyHmac,
+} from "../lib/integrations";
 
 const router: IRouter = Router();
 
-function formatPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.startsWith("20")) return digits;
-  if (digits.startsWith("0")) return "2" + digits;
-  return "20" + digits;
-}
-
-async function sendWhatsApp(phone: string, message: string): Promise<void> {
-  const token = process.env.WHAPI_API_TOKEN;
-  if (!token) return;
-  const formatted = formatPhone(phone);
-  await fetch("https://gate.whapi.cloud/messages/text", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ to: formatted + "@s.whatsapp.net", body: message }),
-  }).catch(() => {});
-}
-
-async function createBostaShipment(params: {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  address: string;
-  city: string;
-  orderReference: string;
-}): Promise<string | null> {
-  const apiKey = process.env.BOSTA_API_KEY;
-  if (!apiKey) return null;
-  const formatted = formatPhone(params.phone);
-  try {
-    const res = await fetch("https://app.bosta.co/api/v2/deliveries", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: apiKey,
-      },
-      body: JSON.stringify({
-        type: 10,
-        specs: { packageType: "Parcel", size: "SMALL" },
-        receiver: {
-          firstName: params.firstName,
-          lastName: params.lastName,
-          phone: formatted,
-          address: { city: params.city, firstLine: params.address },
-        },
-        notes: `Moi Order ${params.orderReference}`,
-        cod: 0,
-      }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json() as { data?: { trackingNumber?: string; _id?: string } };
-    return data?.data?.trackingNumber ?? data?.data?._id ?? null;
-  } catch {
-    return null;
-  }
-}
-
-async function addOrderNote(orderId: string, note: string): Promise<void> {
-  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
-  if (!storeDomain || !adminToken) return;
-  await fetch(`https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Shopify-Access-Token": adminToken,
-    },
-    body: JSON.stringify({ order: { id: orderId, note } }),
-  }).catch(() => {});
-}
+// Note: req.body is a raw Buffer here because app.ts applies express.raw()
+// for /api/webhooks BEFORE express.json(). Do not call express.json() again.
 
 router.post("/webhooks/orders-paid", async (req, res) => {
-  const webhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET;
+  const rawBody = req.body as Buffer;
 
+  const webhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET;
   if (webhookSecret) {
     const hmacHeader = req.headers["x-shopify-hmac-sha256"] as string | undefined;
     if (!hmacHeader) {
+      req.log.warn("orders/paid webhook: missing HMAC header");
       res.status(401).json({ error: "Missing HMAC" });
       return;
     }
-    const body = JSON.stringify(req.body);
-    const hash = crypto
-      .createHmac("sha256", webhookSecret)
-      .update(body, "utf8")
-      .digest("base64");
-    if (hash !== hmacHeader) {
+    if (!verifyShopifyHmac(rawBody, hmacHeader, webhookSecret)) {
+      req.log.warn("orders/paid webhook: HMAC mismatch");
       res.status(401).json({ error: "Invalid HMAC" });
       return;
     }
   }
 
-  const order = req.body as {
+  let order: {
     id?: number;
     order_number?: number;
     tags?: string;
     total_price?: string;
-    customer?: {
-      first_name?: string;
-      last_name?: string;
-      phone?: string;
-    };
+    customer?: { first_name?: string; last_name?: string; phone?: string };
     shipping_address?: {
       first_name?: string;
       last_name?: string;
@@ -114,11 +42,23 @@ router.post("/webhooks/orders-paid", async (req, res) => {
       address1?: string;
       city?: string;
     };
+    note?: string;
     note_attributes?: { name: string; value: string }[];
   };
 
-  req.log.info({ orderId: order.id, orderNumber: order.order_number }, "orders/paid webhook received");
+  try {
+    order = JSON.parse(rawBody.toString("utf8"));
+  } catch {
+    res.status(400).json({ error: "Invalid JSON body" });
+    return;
+  }
 
+  req.log.info(
+    { orderId: order.id, orderNumber: order.order_number },
+    "orders/paid webhook received",
+  );
+
+  // Respond immediately — Shopify requires a fast 200
   res.status(200).json({ ok: true });
 
   const tags = order.tags ?? "";
@@ -132,7 +72,6 @@ router.post("/webhooks/orders-paid", async (req, res) => {
     order.shipping_address?.phone ??
     order.customer?.phone ??
     "";
-
   const firstName =
     order.shipping_address?.first_name ?? order.customer?.first_name ?? "";
   const lastName =
@@ -145,11 +84,12 @@ router.post("/webhooks/orders-paid", async (req, res) => {
   if (phone) {
     void sendWhatsApp(
       phone,
-      `✅ Payment confirmed for your Moi order ${orderRef}!\n\nTotal: ${total} EGP\n\nYour order is now being prepared for shipping. You will receive a tracking update soon. Thank you for shopping with Moi. 🖤`,
+      `✅ Payment confirmed for Moi order ${orderRef}!\n\nTotal: ${total} EGP\n\nYour order is being prepared. You'll receive a tracking update soon. Thank you for shopping with Moi. 🖤`,
     );
   }
 
-  if (isInstapay && firstName) {
+  // For Instapay orders, create Bosta shipment now that payment is confirmed
+  if (isInstapay && firstName && address) {
     const trackingNumber = await createBostaShipment({
       firstName,
       lastName,
@@ -157,11 +97,18 @@ router.post("/webhooks/orders-paid", async (req, res) => {
       address,
       city,
       orderReference: orderRef,
+      codAmount: 0,
     });
+
     if (trackingNumber && order.id) {
-      void addOrderNote(
-        String(order.id),
-        `Bosta tracking: ${trackingNumber}`,
+      const existingNote = order.note ?? "";
+      void addShopifyOrderNote(
+        order.id,
+        `${existingNote ? existingNote + "\n" : ""}Bosta tracking: ${trackingNumber}\nPayment: Instapay (confirmed)`,
+      );
+      req.log.info(
+        { trackingNumber, orderNumber: order.order_number },
+        "Bosta Instapay shipment created after payment",
       );
     }
   }

@@ -1,4 +1,9 @@
 import { Router, type IRouter } from "express";
+import {
+  sendWhatsApp,
+  createBostaShipment,
+  addShopifyOrderNote,
+} from "../lib/integrations";
 
 const router: IRouter = Router();
 
@@ -29,71 +34,6 @@ function extractVariantId(gid: string): number {
   const id = parseInt(parts[parts.length - 1], 10);
   if (isNaN(id)) throw new Error(`Invalid variant GID: ${gid}`);
   return id;
-}
-
-function formatPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.startsWith("20")) return digits;
-  if (digits.startsWith("0")) return "2" + digits;
-  return "20" + digits;
-}
-
-async function sendWhatsApp(phone: string, message: string): Promise<void> {
-  const token = process.env.WHAPI_API_TOKEN;
-  if (!token) return;
-  const formatted = formatPhone(phone);
-  await fetch("https://gate.whapi.cloud/messages/text", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ to: formatted + "@s.whatsapp.net", body: message }),
-  }).catch(() => {});
-}
-
-async function createBostaShipment(params: {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  address: string;
-  city: string;
-  orderReference: string;
-  codAmount: number;
-}): Promise<string | null> {
-  const apiKey = process.env.BOSTA_API_KEY;
-  if (!apiKey) return null;
-  const formatted = formatPhone(params.phone);
-  const body = {
-    type: 10,
-    specs: { packageType: "Parcel", size: "SMALL" },
-    receiver: {
-      firstName: params.firstName,
-      lastName: params.lastName,
-      phone: formatted,
-      address: {
-        city: params.city,
-        firstLine: params.address,
-      },
-    },
-    notes: `Moi Order ${params.orderReference}`,
-    cod: params.codAmount,
-  };
-  try {
-    const res = await fetch("https://app.bosta.co/api/v2/deliveries", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: apiKey,
-      },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) return null;
-    const data = await res.json() as { data?: { _id?: string; trackingNumber?: string } };
-    return data?.data?.trackingNumber ?? data?.data?._id ?? null;
-  } catch {
-    return null;
-  }
 }
 
 async function createDraftOrder(params: {
@@ -128,7 +68,10 @@ async function createDraftOrder(params: {
       title: "Standard Delivery",
       custom: true,
     },
-    tags: params.paymentMethod === "cod" ? "cod,moi-checkout" : "instapay,moi-checkout",
+    tags:
+      params.paymentMethod === "cod"
+        ? "cod,moi-checkout"
+        : "instapay,moi-checkout",
     note: `Payment: ${params.paymentMethod === "cod" ? "Cash on Delivery" : "Instapay Transfer"}`,
     note_attributes: [
       { name: "payment_method", value: params.paymentMethod },
@@ -164,7 +107,9 @@ async function createDraftOrder(params: {
     throw new Error(`Shopify draft order failed (${createRes.status}): ${text}`);
   }
 
-  const createData = await createRes.json() as { draft_order: { id: number; total_price: string } };
+  const createData = await createRes.json() as {
+    draft_order: { id: number; total_price: string };
+  };
   const draftId = createData.draft_order.id;
 
   const completeRes = await fetch(
@@ -180,7 +125,9 @@ async function createDraftOrder(params: {
 
   if (!completeRes.ok) {
     const text = await completeRes.text();
-    throw new Error(`Shopify draft order completion failed (${completeRes.status}): ${text}`);
+    throw new Error(
+      `Shopify draft order completion failed (${completeRes.status}): ${text}`,
+    );
   }
 
   const completeData = await completeRes.json() as {
@@ -191,14 +138,14 @@ async function createDraftOrder(params: {
 
   const orderRes = await fetch(
     `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=order_number`,
-    {
-      headers: { "X-Shopify-Access-Token": adminToken },
-    },
+    { headers: { "X-Shopify-Access-Token": adminToken } },
   );
 
   let orderNumber = orderId;
   if (orderRes.ok) {
-    const orderData = await orderRes.json() as { order: { order_number: number } };
+    const orderData = await orderRes.json() as {
+      order: { order_number: number };
+    };
     orderNumber = orderData.order.order_number ?? orderId;
   }
 
@@ -215,12 +162,11 @@ router.post("/orders/create", async (req, res) => {
 
   const customer = body.customer as CustomerInfo | undefined;
   if (
-    !customer ||
-    !customer.firstName?.trim() ||
-    !customer.lastName?.trim() ||
-    !customer.phone?.trim() ||
-    !customer.address?.trim() ||
-    !customer.city?.trim()
+    !customer?.firstName?.trim() ||
+    !customer?.lastName?.trim() ||
+    !customer?.phone?.trim() ||
+    !customer?.address?.trim() ||
+    !customer?.city?.trim()
   ) {
     res.status(400).json({ error: "All customer fields are required." });
     return;
@@ -233,8 +179,12 @@ router.post("/orders/create", async (req, res) => {
   }
 
   const lines = body.lines as OrderLine[];
-  const discountAmount = typeof body.discountAmount === "number" ? body.discountAmount : 0;
-  const discountCode = typeof body.discountCode === "string" ? body.discountCode : undefined;
+  const discountAmount =
+    typeof body.discountAmount === "number" && body.discountAmount > 0
+      ? body.discountAmount
+      : undefined;
+  const discountCode =
+    typeof body.discountCode === "string" ? body.discountCode : undefined;
 
   req.log.info({ paymentMethod, lineCount: lines.length }, "Creating order");
 
@@ -249,16 +199,18 @@ router.post("/orders/create", async (req, res) => {
 
     req.log.info({ orderNumber, orderId }, "Order created");
 
-    const businessWhatsApp = process.env.BUSINESS_WHATSAPP_NUMBER ?? "";
     const instapayAccount = process.env.INSTAPAY_ACCOUNT_NAME ?? "";
     const instapayNumber = process.env.INSTAPAY_ACCOUNT_NUMBER ?? "";
+    const businessWA = process.env.BUSINESS_WHATSAPP_NUMBER ?? "";
 
     if (paymentMethod === "cod") {
       void sendWhatsApp(
         customer.phone,
-        `✅ Your Moi order #${orderNumber} has been placed successfully!\n\nTotal: ${total} EGP (includes 120 EGP shipping)\nPayment: Cash on Delivery\n\nOur team will contact you shortly to arrange delivery. Thank you for shopping with Moi. 🖤`,
+        `✅ Your Moi order #${orderNumber} has been placed!\n\nTotal: ${total} EGP (includes 120 EGP shipping)\nPayment: Cash on Delivery\n\nOur team will contact you shortly to confirm delivery. Thank you for shopping with Moi. 🖤`,
       );
-      void createBostaShipment({
+
+      // Await Bosta for COD so we can persist the tracking number
+      const trackingNumber = await createBostaShipment({
         firstName: customer.firstName,
         lastName: customer.lastName,
         phone: customer.phone,
@@ -267,16 +219,24 @@ router.post("/orders/create", async (req, res) => {
         orderReference: `#${orderNumber}`,
         codAmount: parseFloat(total),
       });
+
+      if (trackingNumber) {
+        void addShopifyOrderNote(
+          orderId,
+          `Bosta tracking: ${trackingNumber}\nPayment: Cash on Delivery`,
+        );
+        req.log.info({ trackingNumber, orderNumber }, "Bosta COD shipment created");
+      }
     } else {
       void sendWhatsApp(
         customer.phone,
-        `🛍 Your Moi order #${orderNumber} is reserved!\n\nTotal: ${total} EGP (includes 120 EGP shipping)\nPayment: Instapay Transfer\n\nTo confirm your order, please:\n1️⃣ Open Instapay and send *${total} EGP* to:\n   ${instapayAccount} — ${instapayNumber}\n2️⃣ Reply to this message with your order number (${orderNumber}) + payment screenshot\n\nYour order will be processed once payment is confirmed. Thank you! 🖤`,
+        `🛍 Your Moi order #${orderNumber} is reserved!\n\nTotal: ${total} EGP (includes 120 EGP shipping)\nPayment: Instapay Transfer\n\nTo confirm, please:\n1️⃣ Open Instapay and send *${total} EGP* to:\n   ${instapayAccount} — ${instapayNumber}\n2️⃣ Reply to this message with order #${orderNumber} + payment screenshot\n\nYour order ships once payment is confirmed. Thank you! 🖤`,
       );
 
-      if (businessWhatsApp) {
+      if (businessWA) {
         void sendWhatsApp(
-          businessWhatsApp,
-          `🆕 New Instapay order #${orderNumber}\nCustomer: ${customer.firstName} ${customer.lastName}\nPhone: ${customer.phone}\nCity: ${customer.city}\nTotal: ${total} EGP\n\nWaiting for payment confirmation.`,
+          businessWA,
+          `🆕 Instapay order #${orderNumber}\n${customer.firstName} ${customer.lastName} · ${customer.phone}\n${customer.city}\nTotal: ${total} EGP\n\nAwaiting payment confirmation.`,
         );
       }
     }
@@ -290,7 +250,9 @@ router.post("/orders/create", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Order creation failed");
-    res.status(500).json({ error: "Could not place your order. Please try again." });
+    res.status(500).json({
+      error: "Could not place your order. Please try again.",
+    });
   }
 });
 

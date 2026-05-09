@@ -72,11 +72,23 @@ export function CheckoutPage() {
     : null;
   const localLines = !isShopify ? localItems : [];
 
+  const localSubtotal = localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
+
+  // subtotalAmount: original line-items total before any discount codes
   const subtotalAmount = shopifyCart
     ? parseFloat(shopifyCart.cost.subtotalAmount.amount)
-    : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
+    : localSubtotal;
 
-  const totalAmount = subtotalAmount + SHIPPING_EGP;
+  // cartDiscountedTotal: after discount codes, before shipping (Shopify cart has no shipping)
+  const cartDiscountedTotal = shopifyCart
+    ? parseFloat(shopifyCart.cost.totalAmount.amount)
+    : localSubtotal;
+
+  // savings: the discount applied by promo codes
+  const savings = Math.max(0, subtotalAmount - cartDiscountedTotal);
+
+  // final total the customer pays
+  const totalAmount = cartDiscountedTotal + SHIPPING_EGP;
 
   const currencyCode = shopifyCart?.cost.totalAmount.currencyCode ?? localItems[0]?.currencyCode ?? "EGP";
 
@@ -144,9 +156,8 @@ export function CheckoutPage() {
           quantity: i.quantity,
         }));
 
-    const discountAmt = shopifyCart
-      ? Math.max(0, parseFloat(shopifyCart.cost.subtotalAmount.amount) - parseFloat(shopifyCart.cost.totalAmount.amount) + SHIPPING_EGP)
-      : 0;
+    // savings is already computed at render time from the Shopify cart cost fields
+    const discountAmt = savings;
 
     try {
       const res = await fetch("/api/orders/create", {
@@ -320,10 +331,14 @@ export function CheckoutPage() {
                     <span style={{ fontSize: "11px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
                     <span style={{ fontSize: "11px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(subtotalAmount)}</span>
                   </div>
-                  {promoApplied && (
+                  {savings > 0 && (
                     <div className="flex justify-between">
-                      <span style={{ fontSize: "11px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Discount ({promoApplied.code})</span>
-                      <span style={{ fontSize: "11px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif" }}>Applied ✓</span>
+                      <span style={{ fontSize: "11px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>
+                        Discount{promoApplied ? ` (${promoApplied.code})` : ""}
+                      </span>
+                      <span style={{ fontSize: "11px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif" }}>
+                        −{fmt(savings)}
+                      </span>
                     </div>
                   )}
                   <div className="flex justify-between">
