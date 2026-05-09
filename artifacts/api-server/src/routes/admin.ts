@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db } from "@workspace/db";
 import { instapayProofs } from "@workspace/db/schema";
@@ -16,6 +17,18 @@ import { getMaskedConfig, savePaymobConfig, type PaymobConfig } from "../lib/pay
 
 const router: IRouter = Router();
 
+/**
+ * Derives a scoped session token from ADMIN_SECRET using HMAC-SHA256.
+ * The raw secret never leaves the server — only this derived token is
+ * sent to the browser as the bearer credential.
+ */
+function deriveSessionToken(adminSecret: string): string {
+  return crypto
+    .createHmac("sha256", adminSecret)
+    .update("moi-admin-session-v1")
+    .digest("base64url");
+}
+
 function requireAdminAuth(req: Request, res: Response, next: NextFunction): void {
   const adminSecret = process.env.ADMIN_SECRET;
   if (!adminSecret) {
@@ -23,16 +36,32 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction): void
     return;
   }
   const auth = req.headers.authorization;
-  if (!auth || auth !== `Bearer ${adminSecret}`) {
+  const expectedToken = deriveSessionToken(adminSecret);
+  const provided = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!provided) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    const ok = crypto.timingSafeEqual(
+      Buffer.from(provided),
+      Buffer.from(expectedToken),
+    );
+    if (!ok) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+  } catch {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
   next();
 }
 
-// POST /api/admin/login — public, no auth required
-// Returns the admin secret as a bearer token so subsequent requests can use it.
-// Session lifetime: 8 hours (enforced client-side; server always checks ADMIN_SECRET).
+// POST /api/admin/login — public, no auth required.
+// Validates the supplied PIN against ADMIN_SECRET. On success returns a
+// short-lived derived session token (HMAC of the secret); the raw secret
+// itself is never transmitted to the browser.
 router.post("/admin/login", (req, res) => {
   const adminSecret = process.env.ADMIN_SECRET;
   if (!adminSecret) {
@@ -44,8 +73,9 @@ router.post("/admin/login", (req, res) => {
     res.status(401).json({ error: "Incorrect PIN." });
     return;
   }
+  const token = deriveSessionToken(adminSecret);
   const expiresAt = Date.now() + 8 * 60 * 60 * 1000;
-  res.status(200).json({ token: adminSecret, expiresAt });
+  res.status(200).json({ token, expiresAt });
 });
 
 router.use("/admin", requireAdminAuth);
