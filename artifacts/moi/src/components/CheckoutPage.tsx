@@ -16,6 +16,36 @@ interface OrderResult {
 }
 
 const SHIPPING_EGP = 120;
+const GOVERNORATES = [
+  "Cairo",
+  "Giza",
+  "Alexandria",
+  "Dakahlia",
+  "Red Sea",
+  "Beheira",
+  "Fayoum",
+  "Gharbia",
+  "Ismailia",
+  "Menofia",
+  "Minya",
+  "Qaliubiya",
+  "New Valley",
+  "Suez",
+  "Aswan",
+  "Assiut",
+  "Beni Suef",
+  "Port Said",
+  "Damietta",
+  "Sharkia",
+  "South Sinai",
+  "Kafr El Sheikh",
+  "Matrouh",
+  "Luxor",
+  "Qena",
+  "North Sinai",
+  "Sohag",
+  "Ain Sokhna",
+] as const;
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -67,7 +97,10 @@ export function CheckoutPage() {
     firstName: "",
     lastName: "",
     phone: "",
+    email: "",
     address: "",
+    governorate: "",
+    postalCode: "",
     city: "",
   });
 
@@ -142,7 +175,7 @@ export function CheckoutPage() {
       setSubmitError("Our store is temporarily unavailable. Please try again later.");
       return;
     }
-    if (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.address.trim() || !form.city.trim()) {
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.address.trim() || !form.city.trim() || !form.governorate.trim()) {
       setSubmitError("Please fill in all fields.");
       return;
     }
@@ -173,8 +206,11 @@ export function CheckoutPage() {
           customer: {
             firstName: form.firstName.trim(),
             lastName: form.lastName.trim(),
+            email: form.email.trim() || undefined,
             phone: form.phone.trim(),
             address: form.address.trim(),
+            governorate: form.governorate.trim(),
+            postalCode: form.postalCode.trim() || undefined,
             city: form.city.trim(),
           },
           paymentMethod,
@@ -223,7 +259,7 @@ export function CheckoutPage() {
     setOrderResult(null);
     setPromoApplied(null);
     setPromoInput("");
-    setForm({ firstName: "", lastName: "", phone: "", address: "", city: "" });
+    setForm({ firstName: "", lastName: "", phone: "", email: "", address: "", governorate: "", postalCode: "", city: "" });
     closeCheckout();
   }, [clearCart, closeCheckout]);
 
@@ -477,8 +513,33 @@ export function CheckoutPage() {
                   </div>
 
                   <div>
+                    <label style={labelStyle}>Email Address <span style={{ textTransform: "none", letterSpacing: "0.08em", opacity: 0.7 }}>(optional)</span></label>
+                    <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} style={inputStyle} autoComplete="email" placeholder="your@email.com" className="checkout-input" />
+                  </div>
+
+                  <div>
                     <label style={labelStyle}>Address</label>
                     <input type="text" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} style={inputStyle} autoComplete="street-address" className="checkout-input" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label style={labelStyle}>Governorate</label>
+                      <select value={form.governorate} onChange={(e) => setForm((f) => ({ ...f, governorate: e.target.value }))} style={inputStyle} autoComplete="address-level1" className="checkout-input">
+                        <option value="" disabled>
+                          Select governorate
+                        </option>
+                        {GOVERNORATES.map((governorate) => (
+                          <option key={governorate} value={governorate}>
+                            {governorate}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Postal Code <span style={{ textTransform: "none", letterSpacing: "0.08em", opacity: 0.7 }}>(optional)</span></label>
+                      <input type="text" value={form.postalCode} onChange={(e) => setForm((f) => ({ ...f, postalCode: e.target.value }))} style={inputStyle} autoComplete="postal-code" className="checkout-input" />
+                    </div>
                   </div>
 
                   <div>

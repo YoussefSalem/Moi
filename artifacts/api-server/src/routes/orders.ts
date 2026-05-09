@@ -18,9 +18,11 @@ interface CustomerInfo {
   firstName: string;
   lastName: string;
   phone: string;
-  address: string;
-  city: string;
   email?: string;
+  address: string;
+  governorate: string;
+  postalCode?: string;
+  city: string;
 }
 
 interface CreateOrderBody {
@@ -132,11 +134,14 @@ async function createDraftOrder(params: {
     shipping_address: {
       first_name: params.customer.firstName,
       last_name: params.customer.lastName,
+      email: params.customer.email,
       phone: params.customer.phone,
       address1: params.customer.address,
+      address2: params.customer.postalCode ?? params.customer.governorate,
       city: params.customer.city,
       country: "Egypt",
       country_code: "EG",
+      province: params.customer.governorate,
     },
     shipping_line: {
       price: "120.00",
@@ -278,6 +283,7 @@ router.post("/orders/create", async (req, res) => {
     !customer?.lastName?.trim() ||
     !customer?.phone?.trim() ||
     !customer?.address?.trim() ||
+    !customer?.governorate?.trim() ||
     !customer?.city?.trim()
   ) {
     res.status(400).json({ error: "All customer fields are required." });
