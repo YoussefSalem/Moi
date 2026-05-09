@@ -15,6 +15,7 @@ export interface CreateIntentionParams {
   amountCents: number;
   shopifyOrderId: number;
   customer: PaymobCustomer;
+  redirectionUrl?: string;
 }
 
 export interface PaymobIntentionResult {
@@ -30,11 +31,12 @@ export async function createPaymobIntention(
     throw new Error("Paymob credentials are not configured");
   }
 
-  const body = {
+  const body: Record<string, unknown> = {
     amount: params.amountCents,
     currency: "EGP",
     integration_ids: [parseInt(config.integrationId, 10)],
     merchant_order_id: String(params.shopifyOrderId),
+    ...(params.redirectionUrl ? { redirection_url: params.redirectionUrl } : {}),
     billing_data: {
       first_name: params.customer.firstName,
       last_name: params.customer.lastName,

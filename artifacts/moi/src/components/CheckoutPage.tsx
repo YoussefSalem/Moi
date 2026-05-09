@@ -5,7 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 
 type PaymentMethod = "cod" | "instapay" | "card";
-type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-confirm" | "card-failed";
+type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
 type InstapaySubStep = "instructions" | "upload" | "review";
 
 interface OrderResult {
@@ -26,13 +26,6 @@ const GOVERNORATES = [
   "Matrouh","Luxor","Qena","North Sinai","Sohag","Ain Sokhna",
 ] as const;
 
-const SESSION_KEYS = {
-  orderId: "moi_paymob_order_id",
-  orderNumber: "moi_paymob_order_number",
-  total: "moi_paymob_total",
-  failedOrderId: "moi_paymob_failed_order_id",
-  form: "moi_paymob_form",
-} as const;
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -130,6 +123,7 @@ export function CheckoutPage() {
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
   const [failedOrderId, setFailedOrderId] = useState<number | null>(null);
+  const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", phone: "", email: "",
@@ -155,58 +149,6 @@ export function CheckoutPage() {
     }
   }
 
-  // Detect Paymob return (after hosted checkout redirect)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const success = params.get("success");
-    const merchantOrderId = params.get("merchant_order_id");
-    // error_occured (Paymob typo) and id are additional Paymob return params
-    const errorOccured = params.get("error_occured");
-    const txnId = params.get("id");
-
-    const isPaymobReturn = success !== null && merchantOrderId;
-    if (!isPaymobReturn) return;
-
-    history.replaceState({}, "", window.location.pathname);
-
-    const savedOrderId = sessionStorage.getItem(SESSION_KEYS.orderId);
-    const savedOrderNumber = sessionStorage.getItem(SESSION_KEYS.orderNumber);
-    const savedTotal = sessionStorage.getItem(SESSION_KEYS.total);
-    const savedFormRaw = sessionStorage.getItem(SESSION_KEYS.form);
-
-    sessionStorage.removeItem(SESSION_KEYS.orderId);
-    sessionStorage.removeItem(SESSION_KEYS.orderNumber);
-    sessionStorage.removeItem(SESSION_KEYS.total);
-    sessionStorage.removeItem(SESSION_KEYS.form);
-
-    const resolvedOrderId = savedOrderId ?? merchantOrderId;
-    const result: OrderResult = {
-      orderNumber: savedOrderNumber ?? merchantOrderId,
-      total: savedTotal ?? "",
-      shopifyOrderId: parseInt(resolvedOrderId, 10),
-    };
-    setOrderResult(result);
-    openCheckout();
-
-    const isSuccess = success === "true" && errorOccured !== "true";
-    if (isSuccess) {
-      // Store transaction ID for reconciliation if needed
-      if (txnId) sessionStorage.setItem("moi_paymob_last_txn", txnId);
-      setStep("card-confirm");
-      clearCart();
-    } else {
-      const prevFailedId = parseInt(resolvedOrderId, 10);
-      if (!isNaN(prevFailedId)) setFailedOrderId(prevFailedId);
-      if (savedFormRaw) {
-        try {
-          const savedForm = JSON.parse(savedFormRaw) as typeof form;
-          setForm(savedForm);
-        } catch {}
-      }
-      setPaymentMethod("card");
-      setStep("card-failed");
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleApplyPromo = useCallback(async () => {
     if (!promoInput.trim()) return;
@@ -268,7 +210,7 @@ export function CheckoutPage() {
       city: form.city.trim(),
     };
 
-    // Card payment: call paymob-init → redirect to Paymob hosted checkout
+    // Card payment: call paymob-init → embed Paymob checkout in-page via iframe
     if (paymentMethod === "card") {
       try {
         const res = await fetch("/api/orders/paymob-init", {
@@ -280,6 +222,7 @@ export function CheckoutPage() {
             cartId: shopifyCart?.id ?? null,
             discountCode: promoApplied?.code ?? null,
             cancelPreviousOrderId: failedOrderId ?? undefined,
+            siteOrigin: window.location.origin,
           }),
         });
 
@@ -298,13 +241,16 @@ export function CheckoutPage() {
           return;
         }
 
-        sessionStorage.setItem(SESSION_KEYS.orderId, String(data.shopifyOrderId ?? ""));
-        sessionStorage.setItem(SESSION_KEYS.orderNumber, String(data.shopifyOrderNumber ?? ""));
-        sessionStorage.setItem(SESSION_KEYS.total, data.total ?? "");
-        sessionStorage.setItem(SESSION_KEYS.form, JSON.stringify(form));
-
+        setOrderResult({
+          orderNumber: data.shopifyOrderNumber ?? data.shopifyOrderId ?? "",
+          total: data.total ?? fmt(totalAmount),
+          shopifyOrderId: data.shopifyOrderId,
+        });
         setFailedOrderId(null);
-        window.location.href = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(data.publicKey)}&clientSecret=${encodeURIComponent(data.clientSecret)}`;
+        setPaymobIframeUrl(
+          `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(data.publicKey)}&clientSecret=${encodeURIComponent(data.clientSecret)}`
+        );
+        setStep("card-checkout");
       } catch {
         setStep("form");
         setSubmitError("Network error. Please check your connection and try again.");
@@ -368,6 +314,7 @@ export function CheckoutPage() {
     clearCart();
     setStep("form");
     setOrderResult(null);
+    setPaymobIframeUrl(null);
     setPromoApplied(null);
     setPromoInput("");
     setGovernorateOpen(false);
@@ -375,6 +322,29 @@ export function CheckoutPage() {
     setForm({ firstName: "", lastName: "", phone: "", email: "", address: "", governorate: "", postalCode: "", city: "" });
     closeCheckout();
   }, [clearCart, closeCheckout]);
+
+  const handleIframeSuccess = useCallback(() => {
+    setPaymobIframeUrl(null);
+    setStep("card-confirm");
+    clearCart();
+  }, [clearCart]);
+
+  const handleIframeFail = useCallback(() => {
+    setPaymobIframeUrl(null);
+    if (orderResult?.shopifyOrderId) {
+      setFailedOrderId(orderResult.shopifyOrderId);
+    }
+    setStep("card-failed");
+  }, [orderResult]);
+
+  const handleCancelCardCheckout = useCallback(() => {
+    if (orderResult?.shopifyOrderId) {
+      setFailedOrderId(orderResult.shopifyOrderId);
+    }
+    setPaymobIframeUrl(null);
+    setStep("form");
+    setPaymentMethod("card");
+  }, [orderResult]);
 
   const handleRetryCard = useCallback(() => {
     if (orderResult?.shopifyOrderId) {
@@ -393,6 +363,7 @@ export function CheckoutPage() {
   }, [orderResult]);
 
   const isConfirmStep = step === "cod-confirm" || step === "instapay-confirm" || step === "card-confirm" || step === "card-failed";
+  const isCardCheckoutStep = step === "card-checkout";
   const loadingText = paymentMethod === "card" ? "Preparing payment…" : "Placing your order…";
 
   return (
@@ -413,13 +384,13 @@ export function CheckoutPage() {
             style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}
           >
             <button
-              onClick={isConfirmStep ? handleDone : closeCheckout}
+              onClick={isConfirmStep ? handleDone : isCardCheckoutStep ? handleCancelCardCheckout : closeCheckout}
               className="flex items-center gap-2 transition-opacity hover:opacity-50"
               aria-label="Back"
             >
               <ArrowLeft size={16} strokeWidth={1.5} style={{ color: "#1e1814" }} />
               <span style={{ fontSize: "13px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif" }}>
-                {isConfirmStep ? "Continue shopping" : "Back"}
+                {isConfirmStep ? "Continue shopping" : isCardCheckoutStep ? "Cancel" : "Back"}
               </span>
             </button>
             <span style={{ fontSize: "13px", letterSpacing: "0.4em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
@@ -428,7 +399,13 @@ export function CheckoutPage() {
             <div style={{ width: 80 }} />
           </div>
 
-          {step === "loading" ? (
+          {step === "card-checkout" && paymobIframeUrl ? (
+            <PaymobIframe
+              url={paymobIframeUrl}
+              onSuccess={handleIframeSuccess}
+              onFail={handleIframeFail}
+            />
+          ) : step === "loading" ? (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5">
               <motion.div
                 animate={{ rotate: 360 }}
@@ -718,7 +695,7 @@ export function CheckoutPage() {
                   <div className="mt-5 p-4 flex items-center gap-3" style={{ backgroundColor: "rgba(30,24,20,0.05)", border: "1px solid rgba(30,24,20,0.14)" }}>
                     <CreditCard size={16} strokeWidth={1.5} style={{ color: "#1e1814", flexShrink: 0 }} />
                     <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, letterSpacing: "0.04em" }}>
-                      You'll be redirected to Paymob's secure payment page to complete your card payment.
+                      Paymob's secure card form will open right here — no redirects.
                     </p>
                   </div>
                 )}
@@ -1246,5 +1223,42 @@ function InstapayConfirmation({
         )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+interface PaymobIframeProps {
+  url: string;
+  onSuccess: () => void;
+  onFail: () => void;
+}
+
+function PaymobIframe({ url, onSuccess, onFail }: PaymobIframeProps) {
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      const data = event.data as { type?: string; success?: boolean };
+      if (data?.type === "PAYMOB_RESULT") {
+        if (data.success) {
+          onSuccess();
+        } else {
+          onFail();
+        }
+      }
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [onSuccess, onFail]);
+
+  return (
+    <iframe
+      src={url}
+      title="Secure Card Payment"
+      allow="payment"
+      style={{
+        width: "100%",
+        height: "calc(100vh - 73px)",
+        border: "none",
+        display: "block",
+      }}
+    />
   );
 }

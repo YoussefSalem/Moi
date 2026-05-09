@@ -98,6 +98,7 @@ router.post("/orders/paymob-init", async (req, res) => {
     cartId?: unknown;
     discountCode?: unknown;
     cancelPreviousOrderId?: unknown;
+    siteOrigin?: unknown;
   };
 
   if (!Array.isArray(body.lines) || body.lines.length === 0) {
@@ -131,6 +132,7 @@ router.post("/orders/paymob-init", async (req, res) => {
   const discountCode = typeof body.discountCode === "string" && body.discountCode.trim() ? body.discountCode.trim() : undefined;
   const cartId = typeof body.cartId === "string" && body.cartId.trim() ? body.cartId.trim() : undefined;
   const cancelPreviousOrderId = typeof body.cancelPreviousOrderId === "number" ? body.cancelPreviousOrderId : undefined;
+  const siteOrigin = typeof body.siteOrigin === "string" && body.siteOrigin.trim() ? body.siteOrigin.trim() : undefined;
 
   req.log.info({ lineCount: lines.length, cancelPreviousOrderId }, "Paymob init started");
 
@@ -257,6 +259,7 @@ router.post("/orders/paymob-init", async (req, res) => {
         address: customer.address,
         city: customer.city,
       },
+      redirectionUrl: siteOrigin ? `${siteOrigin}/api/paymob-return` : undefined,
     });
   } catch (err) {
     req.log.error({ err, shopifyOrderId }, "Paymob intention creation failed — cancelling Shopify order");
