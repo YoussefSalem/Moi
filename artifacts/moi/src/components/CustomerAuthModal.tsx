@@ -222,7 +222,7 @@ export function CustomerAuthModal() {
                           autoComplete="one-time-code"
                           required
                           maxLength={6}
-                          placeholder="000000"
+                          placeholder="– – – – – –"
                           value={code}
                           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                           style={{
