@@ -335,10 +335,7 @@ router.post("/orders/create", async (req, res) => {
       });
 
       if (trackingNumber) {
-        void addShopifyOrderNote(
-          orderId,
-          `Payment: Cash on Delivery\nBosta tracking: ${trackingNumber}`,
-        );
+        void addShopifyOrderNote(orderId, `Bosta tracking: ${trackingNumber}`);
         req.log.info({ trackingNumber, orderNumber }, "Bosta COD shipment created");
       }
     } else {

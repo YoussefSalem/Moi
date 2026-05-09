@@ -201,13 +201,36 @@ export async function createBostaShipment(params: {
   }
 }
 
+/**
+ * Appends `noteFragment` to the existing Shopify order note.
+ * Always fetches the current note first to prevent overwriting prior content.
+ */
 export async function addShopifyOrderNote(
   orderId: number,
-  note: string,
+  noteFragment: string,
 ): Promise<void> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
   if (!storeDomain || !adminToken) return;
+
+  let existingNote = "";
+  try {
+    const getRes = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=note`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+    if (getRes.ok) {
+      const data = await getRes.json() as { order: { note: string | null } };
+      existingNote = data.order.note ?? "";
+    }
+  } catch {
+    // proceed with empty existing note
+  }
+
+  const combined = existingNote
+    ? `${existingNote}\n${noteFragment}`
+    : noteFragment;
+
   await fetch(
     `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json`,
     {
@@ -216,7 +239,7 @@ export async function addShopifyOrderNote(
         "Content-Type": "application/json",
         "X-Shopify-Access-Token": adminToken,
       },
-      body: JSON.stringify({ order: { id: orderId, note } }),
+      body: JSON.stringify({ order: { id: orderId, note: combined } }),
     },
   ).catch(() => {});
 }

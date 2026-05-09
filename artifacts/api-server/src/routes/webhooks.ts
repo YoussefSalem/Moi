@@ -116,10 +116,9 @@ router.post("/webhooks/orders-paid", async (req, res) => {
     });
 
     if (trackingNumber) {
-      const existingNote = order.note ?? "";
       void addShopifyOrderNote(
         order.id,
-        `${existingNote ? existingNote + "\n" : ""}Bosta tracking: ${trackingNumber}\nPayment: Instapay (confirmed)`,
+        `Bosta tracking: ${trackingNumber}\nPayment: Instapay (confirmed)`,
       );
 
       // Create a Shopify fulfillment with the Bosta tracking number
