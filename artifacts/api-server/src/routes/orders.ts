@@ -137,11 +137,11 @@ async function createDraftOrder(params: {
       email: params.customer.email,
       phone: params.customer.phone,
       address1: params.customer.address,
-      address2: params.customer.postalCode ?? params.customer.governorate,
+      address2: params.customer.governorate,
       city: params.customer.city,
+      zip: params.customer.postalCode ?? "",
       country: "Egypt",
       country_code: "EG",
-      province: params.customer.governorate,
     },
     shipping_line: {
       price: "120.00",
