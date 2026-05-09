@@ -1,5 +1,5 @@
-import { Router, type IRouter } from "express";
-import multer from "multer";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import multer, { MulterError } from "multer";
 import { db } from "@workspace/db";
 import { instapayProofs } from "@workspace/db/schema";
 import { eq, and, or } from "drizzle-orm";
@@ -31,7 +31,23 @@ function getBucket() {
   return objectStorageClient.bucket(bucketId);
 }
 
-router.post("/orders/instapay-proof", upload.single("screenshot"), async (req, res) => {
+// Multer error handler — invalid file type or size → 400
+router.post(
+  "/orders/instapay-proof",
+  (req: Request, res: Response, next: NextFunction) => {
+    upload.single("screenshot")(req, res, (err) => {
+      if (err) {
+        if (err instanceof MulterError && err.code === "LIMIT_FILE_SIZE") {
+          res.status(400).json({ error: "File too large. Maximum size is 10 MB." });
+          return;
+        }
+        res.status(400).json({ error: err instanceof Error ? err.message : "Invalid file." });
+        return;
+      }
+      next();
+    });
+  },
+  async (req, res) => {
   const { orderId, orderNumber, customerName, customerPhone, amount, referenceNumber } = req.body as Record<string, string>;
 
   const shopifyOrderId = parseInt(orderId, 10);

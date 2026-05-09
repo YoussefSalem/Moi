@@ -14,6 +14,8 @@ interface OrderResult {
   shopifyOrderId?: number;
   instapayAccount?: string;
   instapayNumber?: string;
+  customerName?: string;
+  customerPhone?: string;
 }
 
 const SHIPPING_EGP = 120;
@@ -346,6 +348,8 @@ export function CheckoutPage() {
         shopifyOrderId: data.shopifyOrderId,
         instapayAccount: data.instapayAccount,
         instapayNumber: data.instapayNumber,
+        customerName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+        customerPhone: form.phone.trim(),
       });
 
       if (paymentMethod === "cod") {
@@ -965,6 +969,8 @@ function InstapayConfirmation({
       formData.append("orderNumber", String(orderResult.orderNumber));
       formData.append("amount", orderResult.total);
       formData.append("referenceNumber", referenceNumber.trim());
+      if (orderResult.customerName) formData.append("customerName", orderResult.customerName);
+      if (orderResult.customerPhone) formData.append("customerPhone", orderResult.customerPhone);
       formData.append("screenshot", compressed, "proof.jpg");
 
       const data = await new Promise<{ ok?: boolean; alreadySubmitted?: boolean; error?: string }>((resolve, reject) => {

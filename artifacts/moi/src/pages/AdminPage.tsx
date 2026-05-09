@@ -4,6 +4,7 @@ import { Check, X, Eye, RefreshCw, ChevronDown, ChevronUp, LogOut } from "lucide
 
 const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN as string | undefined;
 const SESSION_KEY = "moi_admin_token";
+const SESSION_EXPIRY_KEY = "moi_admin_token_expiry";
 
 interface Proof {
   id: number;
@@ -65,19 +66,41 @@ const btn: React.CSSProperties = {
 function PinGate({ onAuth }: { onAuth: (token: string) => void }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!ADMIN_PIN) {
       setError("Admin panel not configured (VITE_ADMIN_PIN not set).");
       return;
     }
-    if (pin === ADMIN_PIN) {
-      sessionStorage.setItem(SESSION_KEY, pin);
-      onAuth(pin);
-    } else {
+    // Client-side PIN check first to avoid unnecessary API calls
+    if (pin !== ADMIN_PIN) {
       setError("Incorrect PIN.");
       setPin("");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret: pin }),
+      });
+      const data = await res.json() as { token?: string; expiresAt?: number; error?: string };
+      if (!res.ok || !data.token) {
+        setError(data.error ?? "Login failed. Please try again.");
+        setPin("");
+        return;
+      }
+      sessionStorage.setItem(SESSION_KEY, data.token);
+      if (data.expiresAt) sessionStorage.setItem(SESSION_EXPIRY_KEY, String(data.expiresAt));
+      onAuth(data.token);
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -109,9 +132,10 @@ function PinGate({ onAuth }: { onAuth: (token: string) => void }) {
           {error && <p style={{ fontSize: "12px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>}
           <button
             type="submit"
-            style={{ ...btn, backgroundColor: "#1e1814", color: "#fff", padding: "12px" }}
+            disabled={loading}
+            style={{ ...btn, backgroundColor: "#1e1814", color: "#fff", padding: "12px", opacity: loading ? 0.6 : 1 }}
           >
-            Enter
+            {loading ? "Verifying…" : "Enter"}
           </button>
         </form>
       </motion.div>
@@ -490,8 +514,20 @@ function SettingsTab({ token }: { token: string }) {
   );
 }
 
+function getStoredToken(): string | null {
+  const token = sessionStorage.getItem(SESSION_KEY);
+  if (!token) return null;
+  const expiry = sessionStorage.getItem(SESSION_EXPIRY_KEY);
+  if (expiry && Date.now() > parseInt(expiry, 10)) {
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_EXPIRY_KEY);
+    return null;
+  }
+  return token;
+}
+
 export function AdminPage() {
-  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem(SESSION_KEY));
+  const [token, setToken] = useState<string | null>(() => getStoredToken());
   const [tab, setTab] = useState<"proofs" | "settings">("proofs");
 
   if (!token) {
@@ -507,7 +543,7 @@ export function AdminPage() {
           <span style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(255,255,255,0.5)", fontFamily: "'Montserrat', sans-serif", marginLeft: 12 }}>Admin</span>
         </div>
         <button
-          onClick={() => { sessionStorage.removeItem(SESSION_KEY); setToken(null); }}
+          onClick={() => { sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_EXPIRY_KEY); setToken(null); }}
           style={{ display: "flex", alignItems: "center", gap: 6, ...btn, backgroundColor: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)", padding: "6px 12px" }}
         >
           <LogOut size={12} strokeWidth={2} />
