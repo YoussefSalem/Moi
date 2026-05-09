@@ -241,7 +241,22 @@ router.post("/orders/create", async (req, res) => {
       }
     }
 
-    res.status(200).json({ success: true, orderNumber, orderId, total, paymentMethod });
+    const responsePayload: Record<string, unknown> = {
+      success: true,
+      orderNumber,
+      orderId,
+      total,
+      paymentMethod,
+    };
+
+    // Return Instapay display fields from server env — frontend must not source these from client-side env
+    if (paymentMethod === "instapay") {
+      responsePayload.instapayAccount = instapayAccount;
+      responsePayload.instapayNumber = instapayNumber;
+      responsePayload.businessWA = businessWA;
+    }
+
+    res.status(200).json(responsePayload);
   } catch (err) {
     req.log.error({ err }, "Order creation failed");
     res.status(500).json({ error: "Could not place your order. Please try again." });

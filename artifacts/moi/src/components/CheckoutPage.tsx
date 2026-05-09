@@ -10,6 +10,9 @@ type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm";
 interface OrderResult {
   orderNumber: string | number;
   total: string;
+  instapayAccount?: string;
+  instapayNumber?: string;
+  businessWA?: string;
 }
 
 const SHIPPING_EGP = 120;
@@ -191,6 +194,9 @@ export function CheckoutPage() {
       setOrderResult({
         orderNumber: data.orderNumber ?? "",
         total: data.total ?? fmt(totalAmount),
+        instapayAccount: (data as Record<string, unknown>).instapayAccount as string | undefined,
+        instapayNumber: (data as Record<string, unknown>).instapayNumber as string | undefined,
+        businessWA: (data as Record<string, unknown>).businessWA as string | undefined,
       });
 
       if (paymentMethod === "cod") {
@@ -214,9 +220,6 @@ export function CheckoutPage() {
     closeCheckout();
   }, [clearCart, closeCheckout]);
 
-  const instapayName = (import.meta.env.VITE_INSTAPAY_ACCOUNT_NAME as string | undefined) ?? "";
-  const instapayNumber = (import.meta.env.VITE_INSTAPAY_ACCOUNT_NUMBER as string | undefined) ?? "";
-  const businessWA = (import.meta.env.VITE_BUSINESS_WHATSAPP_NUMBER as string | undefined) ?? "";
 
   return (
     <AnimatePresence>
@@ -269,9 +272,9 @@ export function CheckoutPage() {
               orderResult={orderResult!}
               onDone={handleDone}
               fmt={fmt}
-              instapayName={instapayName}
-              instapayNumber={instapayNumber}
-              businessWA={businessWA}
+              instapayName={orderResult?.instapayAccount ?? ""}
+              instapayNumber={orderResult?.instapayNumber ?? ""}
+              businessWA={orderResult?.businessWA ?? ""}
             />
           ) : (
             <div className="max-w-5xl mx-auto px-6 md:px-10 py-8 md:py-12 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
