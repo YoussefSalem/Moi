@@ -241,6 +241,7 @@ function ProofsTab({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [screenshotId, setScreenshotId] = useState<number | null>(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [rejectId, setRejectId] = useState<number | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -292,6 +293,9 @@ function ProofsTab({ token }: { token: string }) {
       {screenshotId !== null && (
         <ScreenshotModal proofId={screenshotId} token={token} onClose={() => setScreenshotId(null)} />
       )}
+      {galleryOpen && (
+        <ProofGallery proofs={proofs.filter((proof) => proof.hasScreenshot)} token={token} onClose={() => setGalleryOpen(false)} />
+      )}
       {rejectId !== null && (
         <RejectDialog onConfirm={(r) => reject(rejectId, r)} onCancel={() => setRejectId(null)} />
       )}
@@ -312,6 +316,21 @@ function ProofsTab({ token }: { token: string }) {
           Refresh
         </button>
       </div>
+
+      <button
+        onClick={() => setGalleryOpen(true)}
+        disabled={proofs.filter((proof) => proof.hasScreenshot).length === 0}
+        style={{
+          ...btn,
+          backgroundColor: "#1e1814",
+          color: "#fff",
+          padding: "8px 12px",
+          marginBottom: 18,
+          opacity: proofs.filter((proof) => proof.hasScreenshot).length === 0 ? 0.4 : 1,
+        }}
+      >
+        View all proof images
+      </button>
 
       {/* Filter tabs */}
       <div className="flex gap-2 mb-5">
@@ -419,6 +438,47 @@ function ProofsTab({ token }: { token: string }) {
             </AnimatePresence>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function ProofGallery({
+  proofs,
+  token,
+  onClose,
+}: {
+  proofs: Proof[];
+  token: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[220] flex items-center justify-center" style={{ backgroundColor: "rgba(30,24,20,0.62)", backdropFilter: "blur(5px)" }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: "#efe6da", width: "92vw", maxWidth: 1100, maxHeight: "90vh", overflow: "auto", padding: 24 }}>
+        <div className="flex items-center justify-between mb-5">
+          <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700 }}>
+            All Proof Images
+          </p>
+          <button onClick={onClose} style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)" }}>
+            Close
+          </button>
+        </div>
+        {proofs.length === 0 ? (
+          <p style={{ fontSize: "13px", fontFamily: "'Montserrat', sans-serif", color: "rgba(30,24,20,0.6)" }}>No proof images uploaded yet.</p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {proofs.map((proof) => (
+              <button key={proof.id} onClick={() => window.open(`/api/admin/instapay-proofs/${proof.id}/screenshot`, "_blank", "noopener,noreferrer")} style={{ textAlign: "left" }}>
+                <div style={{ aspectRatio: "1 / 1.2", overflow: "hidden", backgroundColor: "rgba(30,24,20,0.08)", border: "1px solid rgba(30,24,20,0.12)" }}>
+                  <img src={`/api/admin/instapay-proofs/${proof.id}/screenshot`} alt={`Proof ${proof.shopifyOrderNumber}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+                <p style={{ marginTop: 8, fontSize: "12px", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", letterSpacing: "0.08em" }}>
+                  #{proof.shopifyOrderNumber}
+                </p>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
