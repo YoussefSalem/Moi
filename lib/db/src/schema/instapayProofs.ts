@@ -1,11 +1,11 @@
-import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, bigint, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const instapayProofs = pgTable("instapay_proofs", {
   id: serial("id").primaryKey(),
-  shopifyOrderId: integer("shopify_order_id").notNull(),
-  shopifyOrderNumber: integer("shopify_order_number").notNull(),
+  shopifyOrderId: bigint("shopify_order_id", { mode: "number" }).notNull(),
+  shopifyOrderNumber: bigint("shopify_order_number", { mode: "number" }).notNull(),
   customerPhone: text("customer_phone"),
   customerName: text("customer_name"),
   amount: text("amount"),

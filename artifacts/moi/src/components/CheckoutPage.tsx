@@ -695,7 +695,7 @@ export function CheckoutPage() {
                   <div className="mt-5 p-4 flex items-center gap-3" style={{ backgroundColor: "rgba(30,24,20,0.05)", border: "1px solid rgba(30,24,20,0.14)" }}>
                     <CreditCard size={16} strokeWidth={1.5} style={{ color: "#1e1814", flexShrink: 0 }} />
                     <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, letterSpacing: "0.04em" }}>
-                      Paymob's secure card form will open right here — no redirects.
+                      Secure card fields will appear right here — no redirects, no new tabs.
                     </p>
                   </div>
                 )}
@@ -705,7 +705,7 @@ export function CheckoutPage() {
                   className="w-full mt-8 py-4 transition-opacity hover:opacity-80"
                   style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
                 >
-                  {paymentMethod === "card" ? "Continue to Payment" : "Place Order"}
+                  Place Order
                 </button>
 
                 <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.58)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "14px", letterSpacing: "0.18em" }}>
