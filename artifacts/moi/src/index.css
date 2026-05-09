@@ -267,16 +267,33 @@
   .checkout-input:-webkit-autofill:active {
     -webkit-text-fill-color: #1e1814;
     caret-color: #1e1814;
-    -webkit-box-shadow: 0 0 0 1000px #efe6da inset;
-    box-shadow: 0 0 0 1000px #efe6da inset;
-    -webkit-background-clip: text;
-    background-clip: text;
+    -webkit-box-shadow: 0 0 0 1000px transparent inset;
+    box-shadow: 0 0 0 1000px transparent inset;
+    -webkit-background-clip: padding-box;
+    background-clip: padding-box;
+    background-color: transparent;
+    transition: background-color 9999s ease-out 0s;
+    font-weight: 500;
+  }
+
+  .newsletter-input:-webkit-autofill,
+  .newsletter-input:-webkit-autofill:hover,
+  .newsletter-input:-webkit-autofill:focus,
+  .newsletter-input:-webkit-autofill:active {
+    -webkit-text-fill-color: #1e1814;
+    caret-color: #1e1814;
+    -webkit-box-shadow: 0 0 0 1000px transparent inset;
+    box-shadow: 0 0 0 1000px transparent inset;
+    -webkit-background-clip: padding-box;
+    background-clip: padding-box;
+    background-color: transparent;
     transition: background-color 9999s ease-out 0s;
     font-weight: 500;
   }
 
   .checkout-input {
     -webkit-tap-highlight-color: transparent;
+    background-color: transparent !important;
   }
 
   .checkout-input::placeholder {
