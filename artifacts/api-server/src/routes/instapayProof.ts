@@ -42,6 +42,11 @@ router.post("/orders/instapay-proof", upload.single("screenshot"), async (req, r
     return;
   }
 
+  if (!req.file) {
+    res.status(400).json({ error: "Payment screenshot is required." });
+    return;
+  }
+
   // Duplicate check
   const existing = await db
     .select({ id: instapayProofs.id })

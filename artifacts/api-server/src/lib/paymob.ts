@@ -122,6 +122,9 @@ export function verifyPaymobHmac(
       val = (val as Record<string, unknown>)?.[part];
     }
     if (val === undefined || val === null) return "";
+    // Paymob sends order/owner as plain integer IDs — stringify them directly.
+    // Nested objects must not be serialised as "[object Object]".
+    if (typeof val === "object") return "";
     return String(val);
   }).join("");
 

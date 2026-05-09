@@ -29,6 +29,7 @@ const SESSION_KEYS = {
   orderNumber: "moi_paymob_order_number",
   total: "moi_paymob_total",
   failedOrderId: "moi_paymob_failed_order_id",
+  form: "moi_paymob_form",
 } as const;
 
 const inputStyle: React.CSSProperties = {
@@ -165,9 +166,11 @@ export function CheckoutPage() {
       const savedOrderNumber = sessionStorage.getItem(SESSION_KEYS.orderNumber);
       const savedTotal = sessionStorage.getItem(SESSION_KEYS.total);
 
+      const savedFormRaw = sessionStorage.getItem(SESSION_KEYS.form);
       sessionStorage.removeItem(SESSION_KEYS.orderId);
       sessionStorage.removeItem(SESSION_KEYS.orderNumber);
       sessionStorage.removeItem(SESSION_KEYS.total);
+      sessionStorage.removeItem(SESSION_KEYS.form);
 
       const result: OrderResult = {
         orderNumber: savedOrderNumber ?? merchantOrderId,
@@ -183,6 +186,13 @@ export function CheckoutPage() {
       } else {
         const prevFailedId = parseInt(savedOrderId ?? merchantOrderId, 10);
         if (!isNaN(prevFailedId)) setFailedOrderId(prevFailedId);
+        if (savedFormRaw) {
+          try {
+            const savedForm = JSON.parse(savedFormRaw) as typeof form;
+            setForm(savedForm);
+          } catch {}
+        }
+        setPaymentMethod("card");
         setStep("card-failed");
       }
     }
@@ -281,6 +291,7 @@ export function CheckoutPage() {
         sessionStorage.setItem(SESSION_KEYS.orderId, String(data.shopifyOrderId ?? ""));
         sessionStorage.setItem(SESSION_KEYS.orderNumber, String(data.shopifyOrderNumber ?? ""));
         sessionStorage.setItem(SESSION_KEYS.total, data.total ?? "");
+        sessionStorage.setItem(SESSION_KEYS.form, JSON.stringify(form));
 
         setFailedOrderId(null);
         window.location.href = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(data.publicKey)}&clientSecret=${encodeURIComponent(data.clientSecret)}`;
@@ -567,7 +578,7 @@ export function CheckoutPage() {
                 <p style={{ fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "16px" }}>
                   Payment Method
                 </p>
-                <div className="grid grid-cols-3 gap-2 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-8">
                   {(["cod", "instapay", "card"] as PaymentMethod[]).map((m) => (
                     <button
                       key={m}
@@ -854,31 +865,40 @@ function InstapayConfirmation({
   const [uploadError, setUploadError] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+  const isTouch = typeof window !== "undefined" && window.matchMedia("(hover: none)").matches;
 
   const instapayAccount = orderResult.instapayAccount ?? import.meta.env.VITE_INSTAPAY_ACCOUNT_NAME ?? "";
   const instapayNumber = orderResult.instapayNumber ?? import.meta.env.VITE_INSTAPAY_ACCOUNT_NUMBER ?? "";
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const preview = URL.createObjectURL(file);
-    setScreenshotFile(file);
-    setScreenshotPreview(preview);
-    setUploadError("");
-  }
-
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
+  function applyFile(file: File) {
     if (!file.type.startsWith("image/")) {
-      setUploadError("Please upload an image file.");
+      setUploadError("Please upload an image file (JPG, PNG, HEIC).");
       return;
     }
     const preview = URL.createObjectURL(file);
     setScreenshotFile(file);
     setScreenshotPreview(preview);
     setUploadError("");
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) applyFile(file);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) applyFile(file);
+  }
+
+  function handlePaste(e: React.ClipboardEvent) {
+    const item = Array.from(e.clipboardData.items).find((i) => i.type.startsWith("image/"));
+    if (item) {
+      const file = item.getAsFile();
+      if (file) applyFile(file);
+    }
   }
 
   function copyToClipboard(text: string, key: string) {
@@ -893,40 +913,49 @@ function InstapayConfirmation({
       setUploadError("Please enter the Instapay reference number.");
       return;
     }
+    if (!screenshotFile) {
+      setUploadError("Please upload your payment screenshot to continue.");
+      return;
+    }
 
     setUploadError("");
     setUploading(true);
-    setUploadProgress(10);
+    setUploadProgress(5);
 
     try {
+      const compressed = await compressImage(screenshotFile);
+      setUploadProgress(20);
+
       const formData = new FormData();
       formData.append("orderId", String(orderResult.shopifyOrderId ?? ""));
       formData.append("orderNumber", String(orderResult.orderNumber));
       formData.append("amount", orderResult.total);
       formData.append("referenceNumber", referenceNumber.trim());
+      formData.append("screenshot", compressed, "proof.jpg");
 
-      if (screenshotFile) {
-        setUploadProgress(30);
-        const compressed = await compressImage(screenshotFile);
-        formData.append("screenshot", compressed, `proof.jpg`);
-      }
-
-      setUploadProgress(60);
-
-      const res = await fetch("/api/orders/instapay-proof", {
-        method: "POST",
-        body: formData,
+      const data = await new Promise<{ ok?: boolean; alreadySubmitted?: boolean; error?: string }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/orders/instapay-proof");
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) {
+            setUploadProgress(20 + Math.round((ev.loaded / ev.total) * 70));
+          }
+        };
+        xhr.onload = () => {
+          try { resolve(JSON.parse(xhr.responseText) as { ok?: boolean; alreadySubmitted?: boolean; error?: string }); }
+          catch { reject(new Error("Invalid response")); }
+        };
+        xhr.onerror = () => reject(new Error("Network error"));
+        xhr.send(formData);
       });
 
-      setUploadProgress(90);
-      const data = await res.json() as { ok?: boolean; alreadySubmitted?: boolean; error?: string };
+      setUploadProgress(95);
 
       if (data.alreadySubmitted) {
         setSubStep("review");
         return;
       }
-
-      if (!res.ok || !data.ok) {
+      if (!data.ok) {
         setUploadError(data.error ?? "Upload failed. Please try again.");
         return;
       }
@@ -1068,11 +1097,16 @@ function InstapayConfirmation({
             </div>
 
             <div>
-              <label style={{ ...labelStyle, marginBottom: "8px" }}>Payment Screenshot</label>
+              <label style={{ ...labelStyle, marginBottom: "8px" }}>
+                Payment Screenshot <span style={{ color: "#c0392b" }}>*</span>
+              </label>
               <div
+                ref={dropZoneRef}
                 onDrop={handleDrop}
                 onDragOver={(e) => e.preventDefault()}
+                onPaste={handlePaste}
                 onClick={() => fileRef.current?.click()}
+                tabIndex={0}
                 style={{
                   border: "1.5px dashed rgba(30,24,20,0.28)",
                   padding: "24px",
@@ -1084,6 +1118,7 @@ function InstapayConfirmation({
                   backgroundColor: screenshotPreview ? "transparent" : "rgba(30,24,20,0.02)",
                   position: "relative",
                   overflow: "hidden",
+                  outline: "none",
                 }}
               >
                 {screenshotPreview ? (
@@ -1100,12 +1135,12 @@ function InstapayConfirmation({
                   <>
                     <Upload size={20} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
                     <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", lineHeight: 1.6 }}>
-                      Tap to upload or drag & drop<br />
-                      <span style={{ fontSize: "11px", opacity: 0.7 }}>JPG, PNG, HEIC — optional but helps with verification</span>
+                      {isTouch ? "Tap to upload your screenshot" : "Drag & drop, paste, or click to upload"}<br />
+                      <span style={{ fontSize: "11px", opacity: 0.7 }}>JPG, PNG, HEIC accepted</span>
                     </p>
                   </>
                 )}
-                <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
+                <input ref={fileRef} type="file" accept="image/*" capture={isTouch ? "environment" : undefined} onChange={handleFileChange} style={{ display: "none" }} />
               </div>
             </div>
 
