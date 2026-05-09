@@ -84,8 +84,58 @@ const BOSTA_CITY_MAP: Record<string, string> = {
   "السويس": "Suez",
 };
 
-export function normalizeBostCity(city: string): string {
+export function normalizeCityName(city: string): string {
   return BOSTA_CITY_MAP[city.toLowerCase().trim()] ?? city;
+}
+
+interface BostaCity {
+  _id: string;
+  name: string;
+  nameAr?: string;
+}
+
+let _bostaCityCache: BostaCity[] | null = null;
+
+async function fetchBostaCities(apiKey: string): Promise<BostaCity[]> {
+  if (_bostaCityCache) return _bostaCityCache;
+  try {
+    const res = await fetch("https://app.bosta.co/api/v2/cities", {
+      headers: { Authorization: apiKey },
+    });
+    if (!res.ok) return [];
+    const data = await res.json() as { data?: BostaCity[] };
+    _bostaCityCache = data?.data ?? [];
+    return _bostaCityCache;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Resolves a user-entered city string to the exact Bosta city name.
+ * First normalises via the static map, then validates against Bosta's live city list.
+ * Falls back to the normalised name if the API is unavailable.
+ */
+export async function resolveBostaCityName(
+  cityInput: string,
+  apiKey: string,
+): Promise<string> {
+  const normalised = normalizeCityName(cityInput);
+  const cities = await fetchBostaCities(apiKey);
+  if (cities.length === 0) return normalised;
+
+  // Exact match first
+  const exact = cities.find(
+    (c) => c.name.toLowerCase() === normalised.toLowerCase(),
+  );
+  if (exact) return exact.name;
+
+  // Partial match fallback
+  const partial = cities.find((c) =>
+    c.name.toLowerCase().includes(normalised.toLowerCase()) ||
+    normalised.toLowerCase().includes(c.name.toLowerCase()),
+  );
+  return partial?.name ?? normalised;
 }
 
 export async function sendWhatsApp(phone: string, message: string): Promise<void> {
@@ -171,7 +221,7 @@ export async function createBostaShipment(params: {
   const apiKey = process.env.BOSTA_API_KEY;
   if (!apiKey) return null;
 
-  const normalizedCity = normalizeBostCity(params.city);
+  const resolvedCity = await resolveBostaCityName(params.city, apiKey);
   const formatted = formatPhone(params.phone);
 
   try {
@@ -188,7 +238,7 @@ export async function createBostaShipment(params: {
           firstName: params.firstName,
           lastName: params.lastName,
           phone: formatted,
-          address: { city: normalizedCity, firstLine: params.address },
+          address: { city: resolvedCity, firstLine: params.address },
         },
         notes: `Moi Order ${params.orderReference}`,
         cod: params.codAmount ?? 0,

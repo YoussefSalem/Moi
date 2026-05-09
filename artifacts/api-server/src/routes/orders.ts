@@ -114,8 +114,11 @@ async function createDraftOrder(params: {
   };
   const draftId = createData.draft_order.id;
 
+  // COD: complete immediately — cash collected at door, no pending state.
+  // Instapay: complete with payment_pending=true — awaits bank transfer confirmation.
+  const paymentPending = params.paymentMethod === "instapay";
   const completeRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?payment_pending=true`,
+    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json${paymentPending ? "?payment_pending=true" : ""}`,
     {
       method: "PUT",
       headers: {

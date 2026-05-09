@@ -156,9 +156,6 @@ export function CheckoutPage() {
           quantity: i.quantity,
         }));
 
-    // discountAmt kept for reference but not sent — server validates discount code independently
-    void savings;
-
     try {
       const res = await fetch("/api/orders/create", {
         method: "POST",
