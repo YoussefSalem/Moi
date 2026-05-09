@@ -152,62 +152,6 @@ export async function sendWhatsApp(phone: string, message: string): Promise<void
   }).catch(() => {});
 }
 
-export interface ValidatedDiscount {
-  valueType: "percentage" | "fixed_amount";
-  value: number;
-  title: string;
-}
-
-/**
- * Validates a discount code via the Shopify Admin API.
- * Returns null if the code does not exist or has expired.
- * The returned value and valueType should be passed directly to the draft order.
- */
-export async function validateDiscountCode(
-  code: string,
-): Promise<ValidatedDiscount | null> {
-  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
-  if (!storeDomain || !adminToken || !code.trim()) return null;
-
-  try {
-    const lookupRes = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/discount_codes/lookup.json?code=${encodeURIComponent(code)}`,
-      { headers: { "X-Shopify-Access-Token": adminToken } },
-    );
-    if (!lookupRes.ok) return null;
-
-    const lookupData = await lookupRes.json() as {
-      discount_code: { price_rule_id: number };
-    };
-    const priceRuleId = lookupData.discount_code.price_rule_id;
-
-    const ruleRes = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/price_rules/${priceRuleId}.json`,
-      { headers: { "X-Shopify-Access-Token": adminToken } },
-    );
-    if (!ruleRes.ok) return null;
-
-    const ruleData = await ruleRes.json() as {
-      price_rule: {
-        value_type: string;
-        value: string;
-        ends_at: string | null;
-      };
-    };
-    const rule = ruleData.price_rule;
-
-    if (rule.ends_at && new Date(rule.ends_at) < new Date()) return null;
-
-    return {
-      valueType: rule.value_type === "percentage" ? "percentage" : "fixed_amount",
-      value: Math.abs(parseFloat(rule.value)),
-      title: code.toUpperCase(),
-    };
-  } catch {
-    return null;
-  }
-}
 
 export async function createBostaShipment(params: {
   firstName: string;
