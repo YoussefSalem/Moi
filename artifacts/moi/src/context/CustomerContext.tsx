@@ -1,15 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import {
-  customerAccessTokenCreate,
-  customerCreate,
-  getCustomer,
-  SHOPIFY_CONFIGURED,
-} from "@/lib/shopify";
 
 const TOKEN_KEY = "moi_customer_token";
+const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
 interface Customer {
-  id: string;
+  shopifyId: string;
   firstName: string | null;
   lastName: string | null;
   email: string;
@@ -21,8 +16,8 @@ interface CustomerContextValue {
   authOpen: boolean;
   openAuth: () => void;
   closeAuth: () => void;
-  signIn: (email: string, password: string) => Promise<string | null>;
-  signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<string | null>;
+  sendOtp: (email: string) => Promise<string | null>;
+  verifyOtp: (email: string, code: string) => Promise<string | null>;
   signOut: () => void;
 }
 
@@ -34,44 +29,63 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
   const [authOpen, setAuthOpen] = useState(false);
   const initRef = useRef(false);
 
+  // Restore session on mount
   useEffect(() => {
-    if (initRef.current || !SHOPIFY_CONFIGURED) return;
+    if (initRef.current) return;
     initRef.current = true;
     const token = localStorage.getItem(TOKEN_KEY);
-    if (token) {
-      getCustomer(token)
-        .then((c) => { if (c) setCustomer(c); else localStorage.removeItem(TOKEN_KEY); })
-        .catch(() => localStorage.removeItem(TOKEN_KEY));
-    }
+    if (!token) return;
+    fetch(`${BASE}/api/auth/customer/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { customer: Customer } | null) => {
+        if (data?.customer) setCustomer(data.customer);
+        else localStorage.removeItem(TOKEN_KEY);
+      })
+      .catch(() => localStorage.removeItem(TOKEN_KEY));
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string): Promise<string | null> => {
-    if (!SHOPIFY_CONFIGURED) return "Shopify not configured";
+  const sendOtp = useCallback(async (email: string): Promise<string | null> => {
     setLoading(true);
     try {
-      const result = await customerAccessTokenCreate(email, password);
-      if ("error" in result) return result.error;
-      localStorage.setItem(TOKEN_KEY, result.accessToken);
-      const c = await getCustomer(result.accessToken);
-      if (c) setCustomer(c);
-      setAuthOpen(false);
+      const res = await fetch(`${BASE}/api/auth/customer/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json() as { success?: boolean; error?: string };
+      if (!res.ok) return data.error ?? "Failed to send code.";
       return null;
+    } catch {
+      return "Network error. Please try again.";
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, firstName?: string, lastName?: string): Promise<string | null> => {
-    if (!SHOPIFY_CONFIGURED) return "Shopify not configured";
+  const verifyOtp = useCallback(async (email: string, code: string): Promise<string | null> => {
     setLoading(true);
     try {
-      const result = await customerCreate(email, password, firstName, lastName, true);
-      if ("error" in result) return result.error;
-      return await signIn(email, password);
+      const res = await fetch(`${BASE}/api/auth/customer/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code }),
+      });
+      const data = await res.json() as { token?: string; customer?: Customer; error?: string };
+      if (!res.ok) return data.error ?? "Verification failed.";
+      if (data.token && data.customer) {
+        localStorage.setItem(TOKEN_KEY, data.token);
+        setCustomer(data.customer);
+        setAuthOpen(false);
+      }
+      return null;
+    } catch {
+      return "Network error. Please try again.";
     } finally {
       setLoading(false);
     }
-  }, [signIn]);
+  }, []);
 
   const signOut = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
@@ -79,16 +93,18 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <CustomerContext.Provider value={{
-      customer,
-      loading,
-      authOpen,
-      openAuth: () => setAuthOpen(true),
-      closeAuth: () => setAuthOpen(false),
-      signIn,
-      signUp,
-      signOut,
-    }}>
+    <CustomerContext.Provider
+      value={{
+        customer,
+        loading,
+        authOpen,
+        openAuth: () => setAuthOpen(true),
+        closeAuth: () => setAuthOpen(false),
+        sendOtp,
+        verifyOtp,
+        signOut,
+      }}
+    >
       {children}
     </CustomerContext.Provider>
   );

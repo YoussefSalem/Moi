@@ -11,6 +11,7 @@ import paymobInitRouter from "./paymobInit";
 import paymobReturnRouter from "./paymobReturn";
 import instapayProofRouter from "./instapayProof";
 import adminRouter from "./admin";
+import customerAuthRouter from "./customerAuth";
 import whatsappRouter from "./whatsapp";
 import bostaRouter from "./bosta";
 
@@ -26,6 +27,7 @@ router.use(paymobInitRouter);
 router.use(paymobReturnRouter);
 router.use(instapayProofRouter);
 router.use(adminRouter);
+router.use(customerAuthRouter);
 router.use(webhooksRouter);
 router.use(paymobWebhookRouter);
 router.use(whatsappRouter);

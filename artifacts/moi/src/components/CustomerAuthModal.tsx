@@ -1,44 +1,89 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, X } from "lucide-react";
+import { X, ArrowLeft, Mail } from "lucide-react";
 import { useCustomer } from "@/context/CustomerContext";
-import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 
-type Mode = "signin" | "signup";
+type Step = "email" | "code";
 
 export function CustomerAuthModal() {
-  const { authOpen, closeAuth, signIn, signUp, customer, signOut, loading } = useCustomer();
-  const [mode, setMode] = useState<Mode>("signin");
+  const { authOpen, closeAuth, sendOtp, verifyOtp, customer, signOut, loading } = useCustomer();
+  const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const codeInputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
-    setEmail(""); setPassword(""); setFirstName(""); setLastName(""); setShowPassword(false);
-    setError(null); setSuccess(false);
+    setStep("email");
+    setEmail("");
+    setCode("");
+    setError(null);
+    setCountdown(0);
+    if (timerRef.current) clearInterval(timerRef.current);
   };
 
   const handleClose = () => { reset(); closeAuth(); };
-  const switchMode = (m: Mode) => { setMode(m); setError(null); setSuccess(false); };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Focus code input when step changes
+  useEffect(() => {
+    if (step === "code") {
+      setTimeout(() => codeInputRef.current?.focus(), 120);
+    }
+  }, [step]);
+
+  // Cleanup timer on unmount
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+
+  function startCountdown(seconds = 60) {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setCountdown(seconds);
+    timerRef.current = setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) { clearInterval(timerRef.current!); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+  }
+
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!SHOPIFY_CONFIGURED) { setError("Shopify is not connected yet."); return; }
     setError(null);
-    const err = mode === "signin"
-      ? await signIn(email, password)
-      : await signUp(email, password, firstName, lastName);
-    if (err) { setError(err); } else { setSuccess(true); setTimeout(handleClose, 900); }
+    const err = await sendOtp(email);
+    if (err) { setError(err); return; }
+    setStep("code");
+    startCountdown(60);
   };
 
-  const inputClass = "w-full px-4 py-3 text-sm font-light tracking-wide bg-transparent outline-none placeholder:text-[rgba(30,24,20,0.3)] transition-colors";
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const err = await verifyOtp(email, code);
+    if (err) { setError(err); return; }
+    // success — context closes modal and sets customer
+  };
+
+  const handleResend = async () => {
+    if (countdown > 0) return;
+    setError(null);
+    setCode("");
+    const err = await sendOtp(email);
+    if (err) { setError(err); return; }
+    startCountdown(60);
+  };
+
   const inputStyle: React.CSSProperties = {
     color: "#1e1814",
     border: "1px solid rgba(30,24,20,0.14)",
+    width: "100%",
+    padding: "12px 16px",
+    fontSize: "14px",
+    fontWeight: 300,
+    letterSpacing: "0.04em",
+    backgroundColor: "transparent",
+    outline: "none",
+    fontFamily: "'Montserrat', sans-serif",
   };
 
   return (
@@ -66,27 +111,40 @@ export function CustomerAuthModal() {
               className="relative w-full max-w-sm pointer-events-auto flex flex-col"
               style={{ backgroundColor: "#faf8f5" }}
             >
+              {/* Header */}
               <div
                 className="flex items-center justify-between px-8 py-6"
                 style={{ borderBottom: "1px solid rgba(30,24,20,0.08)" }}
               >
-                <span
-                  className="text-[11px] tracking-[0.32em] uppercase font-medium"
-                  style={{ color: "#1e1814" }}
-                >
-                  {customer ? "My Account" : mode === "signin" ? "Sign In" : "Create Account"}
-                </span>
+                <div className="flex items-center gap-3">
+                  {step === "code" && !customer && (
+                    <button
+                      onClick={() => { setStep("email"); setCode(""); setError(null); }}
+                      className="transition-opacity hover:opacity-50 mr-1"
+                      aria-label="Back"
+                    >
+                      <ArrowLeft size={16} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                    </button>
+                  )}
+                  <span
+                    className="text-[11px] tracking-[0.32em] uppercase font-medium"
+                    style={{ color: "#1e1814" }}
+                  >
+                    {customer ? "My Account" : step === "email" ? "Sign In" : "Enter Code"}
+                  </span>
+                </div>
                 <button onClick={handleClose} className="transition-opacity hover:opacity-50" aria-label="Close">
                   <X size={18} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                 </button>
               </div>
 
               <div className="px-8 py-8">
+                {/* Signed-in view */}
                 {customer ? (
                   <div className="flex flex-col gap-6">
                     <div>
                       <p className="text-sm font-light" style={{ color: "#1e1814" }}>
-                        {customer.firstName ? `Welcome back, ${customer.firstName}.` : `Welcome back.`}
+                        {customer.firstName ? `Welcome back, ${customer.firstName}.` : "Welcome back."}
                       </p>
                       <p className="text-[11px] tracking-wide mt-1" style={{ color: "#7a6e64" }}>
                         {customer.email}
@@ -101,110 +159,117 @@ export function CustomerAuthModal() {
                     </button>
                   </div>
                 ) : (
-                  <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                    {mode === "signup" && (
-                      <div className="flex gap-3">
-                        <input
-                          className={inputClass}
-                          style={inputStyle}
-                          placeholder="First name"
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                          autoComplete="given-name"
-                        />
-                        <input
-                          className={inputClass}
-                          style={inputStyle}
-                          placeholder="Last name"
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                          autoComplete="family-name"
-                        />
-                      </div>
-                    )}
-                    <input
-                      type="email"
-                      required
-                      className={inputClass}
-                      style={inputStyle}
-                      placeholder="Email address"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                    />
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        required
-                        className={`${inputClass} pr-12`}
-                        style={inputStyle}
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((v) => !v)}
-                        aria-label={showPassword ? "Show password" : "Hide password"}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 hover:bg-black/5 active:scale-95"
-                        style={{ color: "#1e1814" }}
+                  <AnimatePresence mode="wait">
+                    {/* Step 1 — Email */}
+                    {step === "email" && (
+                      <motion.form
+                        key="email-step"
+                        initial={{ opacity: 0, x: -18 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -18 }}
+                        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                        onSubmit={handleSendOtp}
+                        className="flex flex-col gap-4"
                       >
-                        <motion.span
-                          key={showPassword ? "hide" : "show"}
-                          initial={{ opacity: 0, scale: 0.8, rotate: -12 }}
-                          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                          exit={{ opacity: 0, scale: 0.8, rotate: 12 }}
-                          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                          className="flex items-center justify-center"
-                        >
-                          {showPassword ? <Eye size={17} strokeWidth={1.6} /> : <EyeOff size={17} strokeWidth={1.6} />}
-                        </motion.span>
-                      </button>
-                    </div>
+                        <p className="text-[12px] leading-relaxed" style={{ color: "#7a6e64", letterSpacing: "0.03em" }}>
+                          Enter your email and we'll send you a one-time sign-in code — no password needed.
+                        </p>
+                        <input
+                          type="email"
+                          required
+                          autoComplete="email"
+                          placeholder="Email address"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          style={inputStyle}
+                        />
 
-                    {error && (
-                      <p className="text-[11px] tracking-wide" style={{ color: "#a0522d" }}>
-                        {error}
-                      </p>
-                    )}
-                    {success && (
-                      <p className="text-[11px] tracking-wide" style={{ color: "#5a7a5a" }}>
-                        {mode === "signin" ? "Welcome back." : "Account created."}
-                      </p>
-                    )}
+                        {error && (
+                          <p className="text-[11px] tracking-wide" style={{ color: "#a0522d" }}>{error}</p>
+                        )}
 
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full py-4 text-[11px] tracking-[0.32em] uppercase font-medium text-white mt-2 transition-opacity disabled:opacity-50"
-                      style={{ backgroundColor: "#1e1814" }}
-                    >
-                      {loading ? "…" : mode === "signin" ? "Sign In" : "Create Account"}
-                    </button>
-
-                    <div className="text-center mt-2">
-                      {mode === "signin" ? (
                         <button
-                          type="button"
-                          onClick={() => switchMode("signup")}
-                          className="text-[10px] tracking-[0.25em] uppercase font-light transition-opacity hover:opacity-60"
-                          style={{ color: "#7a6e64" }}
+                          type="submit"
+                          disabled={loading}
+                          className="w-full py-4 text-[11px] tracking-[0.32em] uppercase font-medium text-white mt-1 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                          style={{ backgroundColor: "#1e1814" }}
                         >
-                          New to Moi? Create an account
+                          <Mail size={13} strokeWidth={1.8} />
+                          {loading ? "Sending…" : "Send Code"}
                         </button>
-                      ) : (
+                      </motion.form>
+                    )}
+
+                    {/* Step 2 — Code */}
+                    {step === "code" && (
+                      <motion.form
+                        key="code-step"
+                        initial={{ opacity: 0, x: 18 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 18 }}
+                        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                        onSubmit={handleVerify}
+                        className="flex flex-col gap-4"
+                      >
+                        <p className="text-[12px] leading-relaxed" style={{ color: "#7a6e64", letterSpacing: "0.03em" }}>
+                          We sent a 6-digit code to <strong style={{ color: "#1e1814" }}>{email}</strong>. Enter it below.
+                        </p>
+
+                        <input
+                          ref={codeInputRef}
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          required
+                          maxLength={6}
+                          placeholder="000000"
+                          value={code}
+                          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                          style={{
+                            ...inputStyle,
+                            fontSize: "22px",
+                            letterSpacing: "0.4em",
+                            textAlign: "center",
+                            fontWeight: 500,
+                          }}
+                        />
+
+                        {error && (
+                          <p className="text-[11px] tracking-wide" style={{ color: "#a0522d" }}>{error}</p>
+                        )}
+
                         <button
-                          type="button"
-                          onClick={() => switchMode("signin")}
-                          className="text-[10px] tracking-[0.25em] uppercase font-light transition-opacity hover:opacity-60"
-                          style={{ color: "#7a6e64" }}
+                          type="submit"
+                          disabled={loading || code.length < 6}
+                          className="w-full py-4 text-[11px] tracking-[0.32em] uppercase font-medium text-white mt-1 transition-opacity disabled:opacity-50"
+                          style={{ backgroundColor: "#1e1814" }}
                         >
-                          Already have an account? Sign in
+                          {loading ? "Verifying…" : "Sign In"}
                         </button>
-                      )}
-                    </div>
-                  </form>
+
+                        <div className="text-center">
+                          {countdown > 0 ? (
+                            <span
+                              className="text-[10px] tracking-[0.2em] uppercase"
+                              style={{ color: "rgba(30,24,20,0.35)" }}
+                            >
+                              Resend in {countdown}s
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleResend}
+                              disabled={loading}
+                              className="text-[10px] tracking-[0.25em] uppercase font-light transition-opacity hover:opacity-60 disabled:opacity-40"
+                              style={{ color: "#7a6e64" }}
+                            >
+                              {loading ? "Sending…" : "Resend code"}
+                            </button>
+                          )}
+                        </div>
+                      </motion.form>
+                    )}
+                  </AnimatePresence>
                 )}
               </div>
             </div>
