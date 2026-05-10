@@ -1,9 +1,7 @@
 import { Router, type IRouter } from "express";
 import {
   createPaymobIntention,
-  chargeCardV1,
   cancelShopifyOrder,
-  type CardData,
 } from "../lib/paymob";
 import {
   addShopifyOrderNote,
@@ -100,7 +98,6 @@ router.post("/orders/paymob-init", async (req, res) => {
     cartId?: unknown;
     discountCode?: unknown;
     cancelPreviousOrderId?: unknown;
-    card?: unknown;
   };
 
   if (!Array.isArray(body.lines) || body.lines.length === 0) {
@@ -130,39 +127,17 @@ router.post("/orders/paymob-init", async (req, res) => {
     return;
   }
 
-  // Validate card data if present
-  let cardData: CardData | null = null;
-  if (body.card && typeof body.card === "object") {
-    const c = body.card as Record<string, unknown>;
-    if (
-      typeof c.nameOnCard !== "string" || !c.nameOnCard.trim() ||
-      typeof c.cardNumber !== "string" || !/^\d{15,16}$/.test(c.cardNumber.replace(/\s/g, "")) ||
-      typeof c.expiryMonth !== "string" || !/^\d{1,2}$/.test(c.expiryMonth) ||
-      typeof c.expiryYear !== "string" || !/^\d{2,4}$/.test(c.expiryYear) ||
-      typeof c.cvv !== "string" || !/^\d{3,4}$/.test(c.cvv)
-    ) {
-      res.status(400).json({ error: "Invalid card details." });
-      return;
-    }
-    cardData = {
-      nameOnCard: (c.nameOnCard as string).trim(),
-      cardNumber: (c.cardNumber as string).replace(/\s/g, ""),
-      expiryMonth: (c.expiryMonth as string).padStart(2, "0"),
-      expiryYear: c.expiryYear as string,
-      cvv: c.cvv as string,
-    };
-  }
-
   const lines = body.lines as OrderLine[];
   const discountCode = typeof body.discountCode === "string" && body.discountCode.trim() ? body.discountCode.trim() : undefined;
   const cartId = typeof body.cartId === "string" && body.cartId.trim() ? body.cartId.trim() : undefined;
   const cancelPreviousOrderId = typeof body.cancelPreviousOrderId === "number" ? body.cancelPreviousOrderId : undefined;
-
+  // Build return URL from server-trusted env vars only — never from client-supplied origin
   const replitDomain = (process.env.REPLIT_DOMAINS ?? "").split(",")[0]?.trim();
   const siteOrigin = replitDomain ? `https://${replitDomain}` : (process.env.SITE_URL ?? "");
 
-  req.log.info({ lineCount: lines.length, cancelPreviousOrderId, hasCard: !!cardData }, "Paymob init started");
+  req.log.info({ lineCount: lines.length, cancelPreviousOrderId }, "Paymob init started");
 
+  // Cancel previous failed order if provided
   if (cancelPreviousOrderId) {
     req.log.info({ cancelPreviousOrderId }, "Cancelling previous failed Paymob order");
     await cancelShopifyOrder(cancelPreviousOrderId);
@@ -271,73 +246,7 @@ router.post("/orders/paymob-init", async (req, res) => {
 
   req.log.info({ shopifyOrderId, shopifyOrderNumber }, "Shopify order created for Paymob");
 
-  // ── Path A: Direct card charge via v1 API ────────────────────────────────
-  if (cardData) {
-    try {
-      const result = await chargeCardV1({
-        amountCents: Math.round(parseFloat(total) * 100),
-        shopifyOrderId,
-        customer: {
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          email: customer.email,
-          phone: customer.phone,
-          address: customer.address,
-          city: customer.city,
-        },
-        card: cardData,
-        redirectionUrl: siteOrigin ? `${siteOrigin}/api/paymob-return` : undefined,
-      });
-
-      // 3DS required — return the bank's redirect URL
-      if (result.pending && result.redirectUrl) {
-        req.log.info({ shopifyOrderId, shopifyOrderNumber }, "Paymob v1: 3DS required");
-        res.status(200).json({
-          threeDsUrl: result.redirectUrl,
-          shopifyOrderId,
-          shopifyOrderNumber,
-          total,
-        });
-        return;
-      }
-
-      // Direct success
-      if (result.success) {
-        req.log.info({ shopifyOrderId, shopifyOrderNumber }, "Paymob v1: direct success");
-        void addShopifyOrderNote(shopifyOrderId, `Paymob v1 transaction: ${result.transactionId}`);
-        void tagShopifyOrder(shopifyOrderId, `paymob-txn-${result.transactionId}`);
-        res.status(200).json({
-          success: true,
-          shopifyOrderId,
-          shopifyOrderNumber,
-          total,
-        });
-        return;
-      }
-
-      // Declined
-      req.log.warn(
-        { shopifyOrderId, shopifyOrderNumber, declineMessage: result.declineMessage },
-        "Paymob v1: card declined",
-      );
-      res.status(402).json({
-        error: result.declineMessage
-          ? `Your card was declined: ${result.declineMessage}. Please try a different card.`
-          : "Your card was declined. Please try a different card or payment method.",
-        shopifyOrderId,
-        shopifyOrderNumber,
-        total,
-      });
-      return;
-    } catch (err) {
-      req.log.error({ err, shopifyOrderId }, "Paymob v1 charge failed — cancelling Shopify order");
-      await cancelShopifyOrder(shopifyOrderId);
-      res.status(500).json({ error: "Payment gateway unavailable. Please try again." });
-      return;
-    }
-  }
-
-  // ── Path B: Fallback to v2 Unified Checkout (no card data sent) ──────────
+  // Create Paymob intention (hosted checkout — no raw card data handled here)
   let intention: { clientSecret: string; publicKey: string };
   try {
     intention = await createPaymobIntention({
@@ -360,7 +269,7 @@ router.post("/orders/paymob-init", async (req, res) => {
     return;
   }
 
-  req.log.info({ shopifyOrderId, shopifyOrderNumber }, "Paymob v2 intention created");
+  req.log.info({ shopifyOrderId, shopifyOrderNumber }, "Paymob intention created");
 
   res.status(200).json({
     clientSecret: intention.clientSecret,

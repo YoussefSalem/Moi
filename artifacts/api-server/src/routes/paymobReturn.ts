@@ -5,10 +5,14 @@ const router: IRouter = Router();
 /**
  * GET /api/paymob-return
  *
- * Paymob navigates the embedded iframe to this URL after payment completes.
- * We return a tiny HTML page that reads the result query params and posts a
- * message to the parent window (the checkout page) so no full-page navigation
- * occurs for the customer.
+ * Paymob navigates the embedded iframe (or the browser tab for 3DS redirect)
+ * to this URL after payment completes. We return a tiny HTML page that:
+ *  1. Stores the result in sessionStorage (works for same-origin iframe and
+ *     for full-page redirects alike).
+ *  2. Attempts a postMessage to the parent frame (handles the inline-iframe case
+ *     where the checkout page is the opener).
+ *  3. If neither parent nor opener exists, redirects the top-level window back
+ *     to the site root so the checkout page can read from sessionStorage on mount.
  */
 router.get("/paymob-return", (req, res) => {
   const success = req.query["success"] === "true";
@@ -17,6 +21,13 @@ router.get("/paymob-return", (req, res) => {
   const transactionId = String(req.query["id"] ?? "");
 
   const isSuccess = success && !errorOccured;
+
+  // Serialise the result for sessionStorage — safe subset of query params only
+  const resultJson = JSON.stringify({
+    success: isSuccess,
+    merchantOrderId,
+    transactionId,
+  });
 
   const html = `<!DOCTYPE html>
 <html>
@@ -40,20 +51,30 @@ router.get("/paymob-return", (req, res) => {
   <p>Processing…</p>
   <script>
     (function () {
-      var payload = {
-        type: "PAYMOB_RESULT",
-        success: ${isSuccess},
-        merchantOrderId: ${JSON.stringify(merchantOrderId)},
-        transactionId: ${JSON.stringify(transactionId)},
-      };
+      var STORAGE_KEY = "moi_paymob_result";
+      var payload = ${resultJson};
+
+      // 1. Write to sessionStorage so the checkout page can pick it up on load
+      //    (works for full-page redirects and same-origin iframes)
+      try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch (_) {}
+
+      // 2. Try postMessage to the parent / opener (inline-iframe case)
+      var msg = { type: "PAYMOB_RESULT", success: payload.success, merchantOrderId: payload.merchantOrderId, transactionId: payload.transactionId };
+      var sent = false;
       try {
         if (window.parent && window.parent !== window) {
-          window.parent.postMessage(payload, "*");
-        } else {
-          window.top.postMessage(payload, "*");
+          window.parent.postMessage(msg, "*");
+          sent = true;
+        } else if (window.opener) {
+          window.opener.postMessage(msg, "*");
+          sent = true;
         }
-      } catch (e) {
-        // cross-origin guard — should not happen since same origin
+      } catch (_) {}
+
+      // 3. If no parent/opener (full-page redirect flow), navigate back to the root
+      //    so the checkout page reads sessionStorage on mount.
+      if (!sent) {
+        window.location.replace("/");
       }
     })();
   </script>
