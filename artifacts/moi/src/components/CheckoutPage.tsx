@@ -8,31 +8,15 @@ type PaymentMethod = "cod" | "instapay" | "card";
 type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
 type InstapaySubStep = "instructions" | "upload" | "review";
 
-interface InstapayOrderData {
-  lines: { variantId: string; quantity: number }[];
-  customer: {
-    firstName: string;
-    lastName: string;
-    phone: string;
-    email?: string;
-    address: string;
-    governorate: string;
-    postalCode?: string;
-    city: string;
-  };
-  cartId?: string;
-  discountCode?: string;
-}
-
 interface OrderResult {
   orderNumber: string | number;
   total: string;
   shopifyOrderId?: number;
+  shopifyOrderNumber?: number;
   instapayAccount?: string;
   instapayNumber?: string;
   customerName?: string;
   customerPhone?: string;
-  instapayOrderData?: InstapayOrderData;
 }
 
 const SHIPPING_EGP = 120;
@@ -257,12 +241,21 @@ export function CheckoutPage() {
           return;
         }
 
+        const resolvedTotal = data.total ?? fmt(totalAmount);
         setOrderResult({
           orderNumber: data.shopifyOrderNumber ?? data.shopifyOrderId ?? "",
-          total: data.total ?? fmt(totalAmount),
+          total: resolvedTotal,
           shopifyOrderId: data.shopifyOrderId,
+          shopifyOrderNumber: data.shopifyOrderNumber,
         });
         setFailedOrderId(null);
+        // Persist order info in sessionStorage so it survives a 3DS full-page redirect
+        if (data.shopifyOrderId) {
+          sessionStorage.setItem("moi_paymob_pending_order_id", String(data.shopifyOrderId));
+          sessionStorage.setItem("moi_paymob_order_number", String(data.shopifyOrderNumber ?? ""));
+          sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
+          sessionStorage.removeItem("moi_paymob_failed_order_id");
+        }
         setPaymobIframeUrl(
           `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(data.publicKey)}&clientSecret=${encodeURIComponent(data.clientSecret)}`
         );
@@ -292,6 +285,9 @@ export function CheckoutPage() {
           success?: boolean;
           instapayAccount?: string;
           instapayNumber?: string;
+          shopifyOrderId?: number;
+          shopifyOrderNumber?: number;
+          total?: string;
           error?: string;
         };
 
@@ -302,18 +298,14 @@ export function CheckoutPage() {
         }
 
         setOrderResult({
-          orderNumber: "",
-          total: fmt(totalAmount),
+          orderNumber: data.shopifyOrderNumber ?? data.shopifyOrderId ?? "",
+          total: data.total ?? fmt(totalAmount),
+          shopifyOrderId: data.shopifyOrderId,
+          shopifyOrderNumber: data.shopifyOrderNumber,
           instapayAccount: data.instapayAccount,
           instapayNumber: data.instapayNumber,
           customerName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
           customerPhone: form.phone.trim(),
-          instapayOrderData: {
-            lines: orderLines,
-            customer: customerPayload,
-            cartId: shopifyCart?.id ?? undefined,
-            discountCode: promoApplied?.code ?? undefined,
-          },
         });
         setStep("instapay-confirm");
       } catch {
@@ -419,31 +411,40 @@ export function CheckoutPage() {
     setPaymentMethod("cod");
   }, [orderResult]);
 
-  // Read Paymob result from sessionStorage — handles full-page redirect return
-  // (the paymob-return endpoint writes here before redirecting back to the root)
+  // On mount: restore state if the user was redirected back from Paymob's 3DS page.
+  // /api/paymob-return writes moi_paymob_result + sibling keys before redirecting to /.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    const STORAGE_KEY = "moi_paymob_result";
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
+    const resultRaw = sessionStorage.getItem("moi_paymob_result");
+    if (!resultRaw) return;
+
+    const pendingIdRaw = sessionStorage.getItem("moi_paymob_pending_order_id");
+    const orderNumRaw = sessionStorage.getItem("moi_paymob_order_number");
+    const orderTotalRaw = sessionStorage.getItem("moi_paymob_order_total");
+
+    ["moi_paymob_result", "moi_paymob_pending_order_id", "moi_paymob_order_number",
+      "moi_paymob_order_total", "moi_paymob_failed_order_id"].forEach((k) => sessionStorage.removeItem(k));
+
     try {
-      const result = JSON.parse(raw) as { success: boolean; merchantOrderId: string; transactionId: string };
-      sessionStorage.removeItem(STORAGE_KEY);
-      // Only act if we currently have a pending card-checkout order in state
-      if (orderResult?.shopifyOrderId) {
-        if (result.success) {
-          setPaymobIframeUrl(null);
-          clearCart();
-          setStep("card-confirm");
-        } else {
-          setPaymobIframeUrl(null);
-          setFailedOrderId(orderResult.shopifyOrderId);
-          setStep("card-failed");
-        }
+      const result = JSON.parse(resultRaw) as { success: boolean };
+      const shopifyOrderId = pendingIdRaw ? parseInt(pendingIdRaw, 10) : undefined;
+      setOrderResult({
+        orderNumber: orderNumRaw ?? "",
+        total: orderTotalRaw ?? "",
+        shopifyOrderId: shopifyOrderId || undefined,
+      });
+      if (result.success) {
+        clearCart();
+        setStep("card-confirm");
+      } else {
+        if (shopifyOrderId) setFailedOrderId(shopifyOrderId);
+        setStep("card-failed");
       }
+      openCheckout();
     } catch {
-      sessionStorage.removeItem(STORAGE_KEY);
+      // ignore malformed sessionStorage data
     }
-  }, [orderResult, clearCart]);
+  }, []); // mount-only — intentionally omits deps to avoid re-running on state changes
 
   const isConfirmStep = step === "cod-confirm" || step === "instapay-confirm" || step === "card-confirm" || step === "card-failed";
   const isCardCheckoutStep = step === "card-checkout";
@@ -483,11 +484,108 @@ export function CheckoutPage() {
           </div>
 
           {step === "card-checkout" && paymobIframeUrl ? (
-            <PaymobIframe
-              url={paymobIframeUrl}
-              onSuccess={handleIframeSuccess}
-              onFail={handleIframeFail}
-            />
+            <motion.div
+              key="card-checkout"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+              className="max-w-5xl mx-auto px-6 md:px-10 py-8 md:py-12 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16"
+            >
+              {/* Left: compact order summary */}
+              <div>
+                <p style={{ fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
+                  Order Summary
+                </p>
+                <div style={{ borderTop: "1px solid rgba(30,24,20,0.16)" }}>
+                  {lines
+                    ? lines.map((line) => (
+                        <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
+                          <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
+                            {line.merchandise.product.featuredImage && (
+                              <img src={line.merchandise.product.featuredImage.url} alt={line.merchandise.product.title} className="w-full h-full object-cover" />
+                            )}
+                          </div>
+                          <div className="flex-1 flex flex-col justify-between min-w-0">
+                            <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{line.merchandise.product.title}</p>
+                            <div className="flex justify-between items-end">
+                              <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif" }}>Qty {line.quantity}</span>
+                              <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{formatShopifyLinePrice(line)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    : localLines.map((item) => (
+                        <div key={item.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
+                          <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
+                            {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" />}
+                          </div>
+                          <div className="flex-1 flex flex-col justify-between min-w-0">
+                            <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.title}</p>
+                            <div className="flex justify-between items-end">
+                              <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif" }}>Qty {item.quantity}</span>
+                              <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{fmt(item.priceAmount * item.quantity)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                  }
+                </div>
+                <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(30,24,20,0.12)" }}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em" }}>Shipping</span>
+                    <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif" }}>{fmt(SHIPPING_EGP)}</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-3">
+                    <span style={{ fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>Total</span>
+                    <span style={{ fontSize: "18px", color: "#1e1814", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, letterSpacing: "0.03em" }}>
+                      {orderResult?.total ?? fmt(totalAmount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: card payment panel */}
+              <div className="flex flex-col">
+                {/* Card header */}
+                <div className="mb-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <svg width="34" height="24" viewBox="0 0 34 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                      <rect x="0.5" y="0.5" width="33" height="23" rx="3.5" stroke="rgba(30,24,20,0.22)" fill="rgba(30,24,20,0.03)"/>
+                      <rect x="9" y="7" width="16" height="10" rx="1.5" fill="rgba(30,24,20,0.15)" stroke="rgba(30,24,20,0.2)" strokeWidth="0.75"/>
+                      <line x1="9" y1="12" x2="25" y2="12" stroke="rgba(30,24,20,0.16)" strokeWidth="0.75"/>
+                      <line x1="17" y1="7" x2="17" y2="17" stroke="rgba(30,24,20,0.16)" strokeWidth="0.75"/>
+                    </svg>
+                    <div>
+                      <p style={{ fontSize: "10px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", marginBottom: "2px" }}>
+                        Payment
+                      </p>
+                      <p style={{ fontSize: "13px", letterSpacing: "0.18em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
+                        Credit / Debit Card
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ height: "1px", backgroundColor: "rgba(30,24,20,0.13)" }} />
+                </div>
+
+                {/* Paymob iframe */}
+                <div className="flex-1" style={{ minHeight: "520px" }}>
+                  <PaymobIframe
+                    url={paymobIframeUrl}
+                    onSuccess={handleIframeSuccess}
+                    onFail={handleIframeFail}
+                    iframeStyle={{ height: "580px" }}
+                  />
+                </div>
+
+                {/* Security badge */}
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <CreditCard size={12} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.38)", flexShrink: 0 }} />
+                  <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.42)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.06em" }}>
+                    Secured by Paymob · 256-bit SSL
+                  </p>
+                </div>
+              </div>
+            </motion.div>
           ) : step === "loading" ? (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5">
               <motion.div
@@ -1033,13 +1131,9 @@ function InstapayConfirmation({
       const compressed = await compressImage(screenshotFile);
       setUploadProgress(20);
 
-      const orderData = orderResult.instapayOrderData;
-
       const formData = new FormData();
-      formData.append("lines", JSON.stringify(orderData?.lines ?? []));
-      formData.append("customer", JSON.stringify(orderData?.customer ?? {}));
-      if (orderData?.cartId) formData.append("cartId", orderData.cartId);
-      if (orderData?.discountCode) formData.append("discountCode", orderData.discountCode);
+      formData.append("shopifyOrderId", String(orderResult.shopifyOrderId ?? ""));
+      formData.append("shopifyOrderNumber", String(orderResult.shopifyOrderNumber ?? orderResult.orderNumber ?? ""));
       formData.append("referenceNumber", referenceNumber.trim());
       if (orderResult.customerName) formData.append("customerName", orderResult.customerName);
       if (orderResult.customerPhone) formData.append("customerPhone", orderResult.customerPhone);
@@ -1346,9 +1440,10 @@ interface PaymobIframeProps {
   url: string;
   onSuccess: () => void;
   onFail: () => void;
+  iframeStyle?: React.CSSProperties;
 }
 
-function PaymobIframe({ url, onSuccess, onFail }: PaymobIframeProps) {
+function PaymobIframe({ url, onSuccess, onFail, iframeStyle }: PaymobIframeProps) {
   useEffect(() => {
     const expectedOrigin = window.location.origin;
     function handleMessage(event: MessageEvent) {
@@ -1377,6 +1472,7 @@ function PaymobIframe({ url, onSuccess, onFail }: PaymobIframeProps) {
         height: "calc(100vh - 73px)",
         border: "none",
         display: "block",
+        ...iframeStyle,
       }}
     />
   );

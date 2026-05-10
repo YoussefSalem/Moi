@@ -7,7 +7,6 @@ import {
 } from "../lib/integrations";
 import {
   createDraftOrder,
-  fetchStorefrontCart,
   extractVariantId,
   type OrderLine,
   type CustomerInfo,
@@ -57,9 +56,9 @@ function validateCustomer(customer: unknown): CustomerInfo | null {
 /**
  * POST /api/orders/instapay-init
  *
- * Validates customer + cart, computes the authoritative total from Shopify,
- * but does NOT create any Shopify order. Returns account info so the customer
- * can make the transfer. The order is only created once proof is submitted.
+ * Creates the Shopify draft order tagged as instapay-pending-verification,
+ * and returns the order ID + InstaPay account info so the customer can make
+ * the transfer. Proof is submitted separately via /api/orders/instapay-proof.
  */
 router.post("/orders/instapay-init", async (req, res) => {
   const body = req.body as CreateOrderBody;
@@ -91,34 +90,40 @@ router.post("/orders/instapay-init", async (req, res) => {
       ? body.discountCode.trim()
       : undefined;
 
-  // Validate the discount server-side if a cartId is provided
-  if (cartId && discountCode) {
-    try {
-      const cart = await fetchStorefrontCart(cartId);
-      if (cart) {
-        const applicable = cart.discountCodes.find((d) => d.applicable);
-        if (!applicable && cart.discountCodes.length > 0) {
-          res.status(422).json({
-            error: `Discount code "${discountCode}" is not applicable to this order.`,
-          });
-          return;
-        }
-      }
-    } catch {
-      // non-fatal — we'll re-validate at proof submission
-    }
-  }
-
   const instapayAccount = process.env.INSTAPAY_ACCOUNT_NAME ?? process.env.VITE_INSTAPAY_ACCOUNT_NAME ?? "";
   const instapayNumber = process.env.INSTAPAY_ACCOUNT_NUMBER ?? process.env.VITE_INSTAPAY_ACCOUNT_NUMBER ?? "";
 
-  req.log.info({ lineCount: lines.length, discountCode, cartId }, "Instapay init — no order created yet");
+  req.log.info({ lineCount: lines.length, discountCode, cartId }, "Instapay init — creating draft order");
 
-  res.status(200).json({
-    success: true,
-    instapayAccount,
-    instapayNumber,
-  });
+  try {
+    const result = await createDraftOrder({
+      lines,
+      customer,
+      paymentMethod: "instapay",
+      cartId,
+      discountCode,
+      extraTags: "instapay-pending-verification",
+    });
+
+    req.log.info({ shopifyOrderId: result.orderId, shopifyOrderNumber: result.orderNumber }, "Instapay init — order created");
+
+    res.status(200).json({
+      success: true,
+      instapayAccount,
+      instapayNumber,
+      shopifyOrderId: result.orderId,
+      shopifyOrderNumber: result.orderNumber,
+      total: result.total,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Order creation failed";
+    req.log.error({ err }, "Instapay init — order creation failed");
+    if (message.includes("not applicable")) {
+      res.status(422).json({ error: message });
+    } else {
+      res.status(500).json({ error: "Could not place your order. Please try again." });
+    }
+  }
 });
 
 /**

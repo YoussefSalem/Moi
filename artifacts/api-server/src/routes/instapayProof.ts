@@ -6,11 +6,6 @@ import { eq, and, or } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
 import { addShopifyOrderNote, tagShopifyOrder, sendWhatsApp } from "../lib/integrations";
 import { logger } from "../lib/logger";
-import {
-  createDraftOrder,
-  type OrderLine,
-  type CustomerInfo,
-} from "../lib/shopifyOrder";
 
 const router: IRouter = Router();
 
@@ -39,19 +34,17 @@ function getBucket() {
 /**
  * POST /api/orders/instapay-proof
  *
- * Creates the Shopify order AND records proof atomically.
- * The order is only created here — at proof submission time — never before.
+ * Records payment proof for an EXISTING InstaPay order.
+ * The Shopify order MUST already exist (created at instapay-init time).
  *
  * Form fields (multipart/form-data):
- *   lines         — JSON array of { variantId, quantity }
- *   customer      — JSON object with customer fields
- *   cartId        — (optional) Shopify Storefront cart ID
- *   discountCode  — (optional) discount code
- *   referenceNumber — Instapay reference number
- *   customerName  — display name (optional, derived from customer if omitted)
- *   customerPhone — phone (optional, derived from customer if omitted)
- *   amount        — display total string (optional, used for WhatsApp message)
- *   screenshot    — image file (required)
+ *   shopifyOrderId   — existing Shopify order ID (integer, required)
+ *   shopifyOrderNumber — existing Shopify order number (integer, required)
+ *   referenceNumber  — InstaPay reference number (required)
+ *   customerName     — display name (optional, for notifications)
+ *   customerPhone    — phone (optional, for notifications)
+ *   amount           — display total string (optional, for notifications)
+ *   screenshot       — image file (required)
  */
 router.post(
   "/orders/instapay-proof",
@@ -70,7 +63,20 @@ router.post(
   },
   async (req, res) => {
     const body = req.body as Record<string, string>;
-    const { referenceNumber, cartId, discountCode } = body;
+    const { referenceNumber } = body;
+
+    const shopifyOrderId = parseInt(body.shopifyOrderId ?? "", 10);
+    const shopifyOrderNumber = parseInt(body.shopifyOrderNumber ?? "", 10);
+
+    if (!shopifyOrderId || isNaN(shopifyOrderId)) {
+      res.status(400).json({ error: "shopifyOrderId is required." });
+      return;
+    }
+
+    if (!shopifyOrderNumber || isNaN(shopifyOrderNumber)) {
+      res.status(400).json({ error: "shopifyOrderNumber is required." });
+      return;
+    }
 
     if (!referenceNumber?.trim()) {
       res.status(400).json({ error: "referenceNumber is required." });
@@ -82,81 +88,36 @@ router.post(
       return;
     }
 
-    // Parse lines and customer from JSON form fields
-    let lines: OrderLine[];
-    let customer: CustomerInfo;
-    try {
-      lines = JSON.parse(body.lines ?? "[]") as OrderLine[];
-      customer = JSON.parse(body.customer ?? "{}") as CustomerInfo;
-    } catch {
-      res.status(400).json({ error: "Invalid order data." });
-      return;
-    }
-
-    if (!Array.isArray(lines) || lines.length === 0) {
-      res.status(400).json({ error: "No items in order." });
-      return;
-    }
-
-    if (
-      !customer?.firstName?.trim() ||
-      !customer?.lastName?.trim() ||
-      !customer?.phone?.trim() ||
-      !customer?.address?.trim() ||
-      !customer?.governorate?.trim() ||
-      !customer?.city?.trim()
-    ) {
-      res.status(400).json({ error: "Customer information is incomplete." });
-      return;
-    }
-
-    // 1. Duplicate-proof check — BEFORE creating any order
-    //    Guard against the same Instapay reference being submitted twice.
+    // 1. Duplicate guard — by shopifyOrderId in pending|approved status
+    //    Prevents submitting proof twice for the same order.
     const existing = await db
-      .select({ id: instapayProofs.id, shopifyOrderId: instapayProofs.shopifyOrderId, shopifyOrderNumber: instapayProofs.shopifyOrderNumber, amount: instapayProofs.amount })
+      .select({
+        id: instapayProofs.id,
+        shopifyOrderId: instapayProofs.shopifyOrderId,
+        shopifyOrderNumber: instapayProofs.shopifyOrderNumber,
+        amount: instapayProofs.amount,
+      })
       .from(instapayProofs)
       .where(
         and(
-          eq(instapayProofs.referenceNumber, referenceNumber.trim()),
+          eq(instapayProofs.shopifyOrderId, shopifyOrderId),
           or(eq(instapayProofs.status, "pending"), eq(instapayProofs.status, "approved")),
         ),
       )
       .limit(1);
 
     if (existing.length > 0) {
-      res.status(200).json({ ok: true, alreadySubmitted: true, orderNumber: existing[0].shopifyOrderNumber, shopifyOrderId: existing[0].shopifyOrderId, total: existing[0].amount ?? "" });
-      return;
-    }
-
-    // 2. Create Shopify draft order tagged as pending-verification
-    let shopifyOrderId: number;
-    let shopifyOrderNumber: number;
-    let total: string;
-
-    try {
-      const result = await createDraftOrder({
-        lines,
-        customer,
-        paymentMethod: "instapay",
-        cartId: cartId?.trim() || undefined,
-        discountCode: discountCode?.trim() || undefined,
-        extraTags: "instapay-pending-verification",
+      res.status(200).json({
+        ok: true,
+        alreadySubmitted: true,
+        orderNumber: existing[0].shopifyOrderNumber,
+        shopifyOrderId: existing[0].shopifyOrderId,
+        total: existing[0].amount ?? "",
       });
-      shopifyOrderId = result.orderId;
-      shopifyOrderNumber = result.orderNumber;
-      total = result.total;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Order creation failed";
-      logger.error({ err }, "Instapay proof — Shopify order creation failed");
-      if (message.includes("not applicable")) {
-        res.status(422).json({ error: message });
-      } else {
-        res.status(500).json({ error: "Could not place your order. Please try again." });
-      }
       return;
     }
 
-    // 3. Upload screenshot to object storage
+    // 2. Upload screenshot to object storage
     let screenshotKey: string;
     try {
       const ext = req.file.mimetype === "image/png" ? "png" : "jpg";
@@ -171,29 +132,27 @@ router.post(
       return;
     }
 
-    const customerName = body.customerName?.trim() ||
-      `${customer.firstName} ${customer.lastName}`.trim();
-    const customerPhone = body.customerPhone?.trim() || customer.phone;
-    // Always use the server-derived order total — never trust client-supplied amount
-    const amountDisplay = total;
+    const customerName = body.customerName?.trim() || "";
+    const customerPhone = body.customerPhone?.trim() || "";
+    const amountDisplay = body.amount?.trim() || "";
 
-    // 4. Insert DB row
+    // 3. Insert DB row
     await db.insert(instapayProofs).values({
       shopifyOrderId,
       shopifyOrderNumber,
-      customerPhone: customerPhone ?? null,
-      customerName: customerName ?? null,
-      amount: amountDisplay ?? null,
+      customerPhone: customerPhone || null,
+      customerName: customerName || null,
+      amount: amountDisplay || null,
       referenceNumber: referenceNumber.trim(),
       screenshotKey,
       status: "pending",
     });
 
-    // 5. Shopify note + tag (fire-and-forget)
+    // 4. Shopify note + tag (fire-and-forget)
     void addShopifyOrderNote(shopifyOrderId, `InstaPay proof submitted — ref: ${referenceNumber.trim()}`);
     void tagShopifyOrder(shopifyOrderId, "instapay-proof-submitted");
 
-    // 6. WhatsApp to business owner
+    // 5. WhatsApp to business owner
     const businessWA = process.env.BUSINESS_WHATSAPP_NUMBER ?? "";
     const siteUrl = process.env.SITE_URL ?? "";
     if (businessWA) {
@@ -203,13 +162,15 @@ router.post(
       );
     }
 
-    // 7. WhatsApp to customer
-    void sendWhatsApp(
-      customerPhone,
-      `🎉 Your Moi order #${shopifyOrderNumber} is being verified!\n\nRef: ${referenceNumber.trim()}\nTotal: ${amountDisplay} EGP\n\nOur team will confirm your order via WhatsApp once payment is verified. Thank you! 🖤`,
-    );
+    // 6. WhatsApp to customer
+    if (customerPhone) {
+      void sendWhatsApp(
+        customerPhone,
+        `🎉 Your Moi order #${shopifyOrderNumber} is being verified!\n\nRef: ${referenceNumber.trim()}\nTotal: ${amountDisplay} EGP\n\nOur team will confirm your order via WhatsApp once payment is verified. Thank you! 🖤`,
+      );
+    }
 
-    res.status(200).json({ ok: true, orderNumber: shopifyOrderNumber, shopifyOrderId, total });
+    res.status(200).json({ ok: true, orderNumber: shopifyOrderNumber, shopifyOrderId, total: amountDisplay });
   },
 );
 

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { verifyPaymobHmac } from "../lib/paymob";
+import { verifyPaymobHmac, extractPaymobTxn } from "../lib/paymob";
 import {
   getShopifyAdminToken,
   addShopifyOrderNote,
@@ -41,19 +41,28 @@ router.post("/webhooks/paymob", async (req, res) => {
   // Respond immediately — process async
   res.status(200).json({ ok: true });
 
+  // Normalize payload: Paymob v1 has fields at top level; v2 (Unified Checkout) wraps them in `obj`
+  const txn = extractPaymobTxn(payload);
+
   // Only process successful, non-voided, non-refunded transactions
-  if (payload.success !== true || payload.is_voided === true || payload.is_refunded === true) {
-    req.log.info({ success: payload.success, is_voided: payload.is_voided }, "Paymob webhook: not a successful transaction, skipping");
+  if (txn.success !== true || txn.is_voided === true || txn.is_refunded === true) {
+    req.log.info({ success: txn.success, is_voided: txn.is_voided }, "Paymob webhook: not a successful transaction, skipping");
     return;
   }
 
-  const shopifyOrderId = parseInt(String(payload.merchant_order_id ?? ""), 10);
-  const paymobTxnId = String(payload.id ?? "");
-  const amountCents = payload.amount_cents as number | undefined;
+  // merchant_order_id: top-level (v1) or inside txn.order (v2)
+  const orderObj = (txn.order && typeof txn.order === "object")
+    ? (txn.order as Record<string, unknown>)
+    : null;
+  const merchantOrderId = txn.merchant_order_id ?? orderObj?.merchant_order_id;
+
+  const shopifyOrderId = parseInt(String(merchantOrderId ?? ""), 10);
+  const paymobTxnId = String(txn.id ?? "");
+  const amountCents = txn.amount_cents as number | undefined;
   const amount = amountCents ? (amountCents / 100).toFixed(2) : "0";
 
   if (!shopifyOrderId || !paymobTxnId) {
-    req.log.error({ merchant_order_id: payload.merchant_order_id, id: payload.id }, "Paymob webhook: missing order or transaction ID");
+    req.log.error({ merchant_order_id: merchantOrderId, id: txn.id }, "Paymob webhook: missing order or transaction ID");
     return;
   }
 
