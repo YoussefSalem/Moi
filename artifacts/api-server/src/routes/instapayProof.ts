@@ -4,7 +4,7 @@ import { db } from "@workspace/db";
 import { instapayProofs } from "@workspace/db/schema";
 import { eq, and, or } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
-import { addShopifyOrderNote, tagShopifyOrder, sendWhatsApp } from "../lib/integrations";
+import { addShopifyOrderNote, tagShopifyOrder, sendWhatsApp, getShopifyAdminToken } from "../lib/integrations";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -117,7 +117,28 @@ router.post(
       return;
     }
 
-    // 2. Upload screenshot to object storage
+    // 2. Derive authoritative order total from Shopify (fall back to client-provided)
+    let amountDisplay = body.amount?.trim() || "";
+    try {
+      const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+      const adminToken = await getShopifyAdminToken();
+      if (storeDomain && adminToken) {
+        const orderRes = await fetch(
+          `https://${storeDomain}/admin/api/2024-04/orders/${shopifyOrderId}.json?fields=total_price`,
+          { headers: { "X-Shopify-Access-Token": adminToken } },
+        );
+        if (orderRes.ok) {
+          const orderData = await orderRes.json() as { order?: { total_price?: string } };
+          if (orderData.order?.total_price) {
+            amountDisplay = orderData.order.total_price;
+          }
+        }
+      }
+    } catch (err) {
+      logger.warn({ err, shopifyOrderId }, "Could not fetch authoritative order total from Shopify, using client value");
+    }
+
+    // 3. Upload screenshot to object storage
     let screenshotKey: string;
     try {
       const ext = req.file.mimetype === "image/png" ? "png" : "jpg";
@@ -134,9 +155,8 @@ router.post(
 
     const customerName = body.customerName?.trim() || "";
     const customerPhone = body.customerPhone?.trim() || "";
-    const amountDisplay = body.amount?.trim() || "";
 
-    // 3. Insert DB row
+    // 4. Insert DB row
     await db.insert(instapayProofs).values({
       shopifyOrderId,
       shopifyOrderNumber,

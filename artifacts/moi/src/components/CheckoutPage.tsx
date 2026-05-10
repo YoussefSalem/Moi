@@ -398,6 +398,7 @@ export function CheckoutPage() {
   const handleRetryCard = useCallback(() => {
     if (orderResult?.shopifyOrderId) {
       setFailedOrderId(orderResult.shopifyOrderId);
+      sessionStorage.setItem("moi_paymob_failed_order_id", String(orderResult.shopifyOrderId));
     }
     setStep("form");
     setPaymentMethod("card");
