@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Upload, X, CreditCard } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Upload, X, CreditCard, Lock } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 
@@ -96,6 +96,16 @@ const labelStyle: React.CSSProperties = {
   fontFamily: "'Montserrat', sans-serif",
 };
 
+function formatCardNumber(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})(?=.)/g, "$1 ");
+}
+
+function formatExpiry(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  if (digits.length >= 3) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return digits;
+}
+
 async function compressImage(file: File, maxPx = 1400, quality = 0.82): Promise<Blob> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -145,6 +155,13 @@ export function CheckoutPage() {
   const [form, setForm] = useState({
     firstName: "", lastName: "", phone: "", email: "",
     address: "", governorate: "", postalCode: "", city: "",
+  });
+
+  const [cardForm, setCardForm] = useState({
+    nameOnCard: "",
+    cardNumber: "",
+    expiry: "",
+    cvv: "",
   });
 
   const lines = isShopify && shopifyCart ? shopifyCart.lines.nodes : null;
@@ -227,8 +244,40 @@ export function CheckoutPage() {
       city: form.city.trim(),
     };
 
-    // Card payment: call paymob-init → embed Paymob checkout in-page via iframe
+    // Card payment: validate card fields, call paymob-init with direct charge
     if (paymentMethod === "card") {
+      // Validate card fields
+      if (!cardForm.nameOnCard.trim()) {
+        setStep("form");
+        setSubmitError("Please enter the name on your card.");
+        return;
+      }
+      const cardDigits = cardForm.cardNumber.replace(/\s/g, "");
+      if (!/^\d{15,16}$/.test(cardDigits)) {
+        setStep("form");
+        setSubmitError("Please enter a valid card number.");
+        return;
+      }
+      const expiryParts = cardForm.expiry.split("/");
+      if (expiryParts.length !== 2 || expiryParts[0].length !== 2 || expiryParts[1].length !== 2) {
+        setStep("form");
+        setSubmitError("Please enter a valid expiry date (MM/YY).");
+        return;
+      }
+      const expiryMonth = expiryParts[0];
+      const expiryYear = `20${expiryParts[1]}`;
+      const expDate = new Date(parseInt(expiryYear), parseInt(expiryMonth));
+      if (expDate <= new Date()) {
+        setStep("form");
+        setSubmitError("Your card has expired. Please use a different card.");
+        return;
+      }
+      if (!/^\d{3,4}$/.test(cardForm.cvv)) {
+        setStep("form");
+        setSubmitError("Please enter a valid CVV.");
+        return;
+      }
+
       try {
         const res = await fetch("/api/orders/paymob-init", {
           method: "POST",
@@ -239,35 +288,60 @@ export function CheckoutPage() {
             cartId: shopifyCart?.id ?? null,
             discountCode: promoApplied?.code ?? null,
             cancelPreviousOrderId: failedOrderId ?? undefined,
-            siteOrigin: window.location.origin,
+            card: {
+              nameOnCard: cardForm.nameOnCard.trim(),
+              cardNumber: cardDigits,
+              expiryMonth,
+              expiryYear,
+              cvv: cardForm.cvv,
+            },
           }),
         });
 
         const data = await res.json() as {
-          clientSecret?: string;
-          publicKey?: string;
+          success?: boolean;
+          threeDsUrl?: string;
           shopifyOrderId?: number;
           shopifyOrderNumber?: number;
           total?: string;
           error?: string;
         };
 
-        if (!res.ok || !data.clientSecret || !data.publicKey) {
-          setStep("form");
-          setSubmitError(data.error ?? "Payment gateway unavailable. Please try again.");
+        // Declined or server error
+        if (!res.ok || data.error) {
+          const result: OrderResult = {
+            orderNumber: data.shopifyOrderNumber ?? data.shopifyOrderId ?? "",
+            total: data.total ?? fmt(totalAmount),
+            shopifyOrderId: data.shopifyOrderId,
+          };
+          if (data.shopifyOrderId) {
+            setFailedOrderId(data.shopifyOrderId);
+            setOrderResult(result);
+            setStep("card-failed");
+          } else {
+            setStep("form");
+            setSubmitError(data.error ?? "Payment gateway unavailable. Please try again.");
+          }
           return;
         }
 
-        setOrderResult({
+        const result: OrderResult = {
           orderNumber: data.shopifyOrderNumber ?? data.shopifyOrderId ?? "",
           total: data.total ?? fmt(totalAmount),
           shopifyOrderId: data.shopifyOrderId,
-        });
+        };
+        setOrderResult(result);
         setFailedOrderId(null);
-        setPaymobIframeUrl(
-          `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(data.publicKey)}&clientSecret=${encodeURIComponent(data.clientSecret)}`
-        );
-        setStep("card-checkout");
+
+        if (data.threeDsUrl) {
+          // 3DS required — show bank auth page in iframe
+          setPaymobIframeUrl(data.threeDsUrl);
+          setStep("card-checkout");
+        } else if (data.success) {
+          // Direct success — no further step needed
+          clearCart();
+          setStep("card-confirm");
+        }
       } catch {
         setStep("form");
         setSubmitError("Network error. Please check your connection and try again.");
@@ -366,7 +440,7 @@ export function CheckoutPage() {
       setStep("form");
       setSubmitError("Network error. Please check your connection and try again.");
     }
-  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, failedOrderId, clearCart]);
+  }, [form, cardForm, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, failedOrderId, clearCart]);
 
   const handleDone = useCallback(() => {
     clearCart();
@@ -378,6 +452,7 @@ export function CheckoutPage() {
     setGovernorateOpen(false);
     setFailedOrderId(null);
     setForm({ firstName: "", lastName: "", phone: "", email: "", address: "", governorate: "", postalCode: "", city: "" });
+    setCardForm({ nameOnCard: "", cardNumber: "", expiry: "", cvv: "" });
     closeCheckout();
   }, [clearCart, closeCheckout]);
 
@@ -754,11 +829,83 @@ export function CheckoutPage() {
                 )}
 
                 {paymentMethod === "card" && (
-                  <div className="mt-5 p-4 flex items-start gap-3" style={{ backgroundColor: "rgba(30,24,20,0.05)", border: "1px solid rgba(30,24,20,0.14)" }}>
-                    <CreditCard size={15} strokeWidth={1.5} style={{ color: "#1e1814", flexShrink: 0, marginTop: 2 }} />
-                    <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.8, letterSpacing: "0.04em" }}>
-                      You'll enter your card details securely on the next screen. No card information is collected here.
-                    </p>
+                  <div className="mt-6 space-y-5">
+                    <div style={{ borderTop: "1px solid rgba(30,24,20,0.14)", paddingTop: "20px" }}>
+                      <p style={{ fontSize: "13px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
+                        Card Details
+                      </p>
+
+                      <div className="space-y-5">
+                        <div className="flex flex-col gap-1">
+                          <label style={labelStyle}>Name on Card</label>
+                          <input
+                            type="text"
+                            placeholder="As it appears on your card"
+                            value={cardForm.nameOnCard}
+                            onChange={(e) => setCardForm((f) => ({ ...f, nameOnCard: e.target.value }))}
+                            style={inputStyle}
+                            autoComplete="cc-name"
+                            className="checkout-input"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label style={labelStyle}>Card Number</label>
+                          <div style={{ position: "relative" }}>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="0000 0000 0000 0000"
+                              value={cardForm.cardNumber}
+                              onChange={(e) => setCardForm((f) => ({ ...f, cardNumber: formatCardNumber(e.target.value) }))}
+                              maxLength={19}
+                              style={{ ...inputStyle, paddingRight: "28px" }}
+                              autoComplete="cc-number"
+                              className="checkout-input"
+                            />
+                            <CreditCard size={15} strokeWidth={1.5} style={{ position: "absolute", right: 0, bottom: 12, color: "rgba(30,24,20,0.35)", pointerEvents: "none" }} />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1">
+                            <label style={labelStyle}>Expiry Date</label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="MM/YY"
+                              value={cardForm.expiry}
+                              onChange={(e) => setCardForm((f) => ({ ...f, expiry: formatExpiry(e.target.value) }))}
+                              maxLength={5}
+                              style={inputStyle}
+                              autoComplete="cc-exp"
+                              className="checkout-input"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label style={labelStyle}>CVV</label>
+                            <input
+                              type="password"
+                              inputMode="numeric"
+                              placeholder="•••"
+                              value={cardForm.cvv}
+                              onChange={(e) => setCardForm((f) => ({ ...f, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
+                              maxLength={4}
+                              style={inputStyle}
+                              autoComplete="cc-csc"
+                              className="checkout-input"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Lock size={11} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.42)", flexShrink: 0 }} />
+                          <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.06em" }}>
+                            Secured & encrypted via Paymob
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
