@@ -11,6 +11,7 @@ type InstapaySubStep = "instructions" | "upload" | "review";
 interface OrderResult {
   orderNumber: string | number;
   total: string;
+  intentId?: string;
   shopifyOrderId?: number;
   shopifyOrderNumber?: number;
   instapayAccount?: string;
@@ -123,7 +124,6 @@ export function CheckoutPage() {
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
-  const [failedOrderId, setFailedOrderId] = useState<number | null>(null);
   const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
 
   const [form, setForm] = useState({
@@ -222,15 +222,13 @@ export function CheckoutPage() {
             customer: customerPayload,
             cartId: shopifyCart?.id ?? null,
             discountCode: promoApplied?.code ?? null,
-            cancelPreviousOrderId: failedOrderId ?? undefined,
           }),
         });
 
         const data = await res.json() as {
           clientSecret?: string;
           publicKey?: string;
-          shopifyOrderId?: number;
-          shopifyOrderNumber?: number;
+          intentId?: string;
           total?: string;
           error?: string;
         };
@@ -243,18 +241,14 @@ export function CheckoutPage() {
 
         const resolvedTotal = data.total ?? fmt(totalAmount);
         setOrderResult({
-          orderNumber: data.shopifyOrderNumber ?? data.shopifyOrderId ?? "",
+          orderNumber: "",
           total: resolvedTotal,
-          shopifyOrderId: data.shopifyOrderId,
-          shopifyOrderNumber: data.shopifyOrderNumber,
+          intentId: data.intentId,
         });
-        setFailedOrderId(null);
-        // Persist order info in sessionStorage so it survives a 3DS full-page redirect
-        if (data.shopifyOrderId) {
-          sessionStorage.setItem("moi_paymob_pending_order_id", String(data.shopifyOrderId));
-          sessionStorage.setItem("moi_paymob_order_number", String(data.shopifyOrderNumber ?? ""));
+        // Persist in sessionStorage so state survives a 3DS full-page redirect
+        if (data.intentId) {
+          sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
           sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
-          sessionStorage.removeItem("moi_paymob_failed_order_id");
         }
         setPaymobIframeUrl(
           `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(data.publicKey)}&clientSecret=${encodeURIComponent(data.clientSecret)}`
@@ -357,7 +351,7 @@ export function CheckoutPage() {
       setStep("form");
       setSubmitError("Network error. Please check your connection and try again.");
     }
-  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, failedOrderId, clearCart]);
+  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, clearCart]);
 
   const handleDone = useCallback(() => {
     clearCart();
@@ -367,7 +361,6 @@ export function CheckoutPage() {
     setPromoApplied(null);
     setPromoInput("");
     setGovernorateOpen(false);
-    setFailedOrderId(null);
     setForm({ firstName: "", lastName: "", phone: "", email: "", address: "", governorate: "", postalCode: "", city: "" });
     closeCheckout();
   }, [clearCart, closeCheckout]);
@@ -380,37 +373,24 @@ export function CheckoutPage() {
 
   const handleIframeFail = useCallback(() => {
     setPaymobIframeUrl(null);
-    if (orderResult?.shopifyOrderId) {
-      setFailedOrderId(orderResult.shopifyOrderId);
-    }
     setStep("card-failed");
-  }, [orderResult]);
+  }, []);
 
   const handleCancelCardCheckout = useCallback(() => {
-    if (orderResult?.shopifyOrderId) {
-      setFailedOrderId(orderResult.shopifyOrderId);
-    }
     setPaymobIframeUrl(null);
     setStep("form");
     setPaymentMethod("card");
-  }, [orderResult]);
+  }, []);
 
   const handleRetryCard = useCallback(() => {
-    if (orderResult?.shopifyOrderId) {
-      setFailedOrderId(orderResult.shopifyOrderId);
-      sessionStorage.setItem("moi_paymob_failed_order_id", String(orderResult.shopifyOrderId));
-    }
     setStep("form");
     setPaymentMethod("card");
-  }, [orderResult]);
+  }, []);
 
   const handleChooseDifferent = useCallback(() => {
-    if (orderResult?.shopifyOrderId) {
-      setFailedOrderId(orderResult.shopifyOrderId);
-    }
     setStep("form");
     setPaymentMethod("cod");
-  }, [orderResult]);
+  }, []);
 
   // On mount: restore state if the user was redirected back from Paymob's 3DS page.
   // /api/paymob-return writes moi_paymob_result + sibling keys before redirecting to /.
@@ -419,26 +399,22 @@ export function CheckoutPage() {
     const resultRaw = sessionStorage.getItem("moi_paymob_result");
     if (!resultRaw) return;
 
-    const pendingIdRaw = sessionStorage.getItem("moi_paymob_pending_order_id");
-    const orderNumRaw = sessionStorage.getItem("moi_paymob_order_number");
+    const intentIdRaw = sessionStorage.getItem("moi_paymob_intent_id");
     const orderTotalRaw = sessionStorage.getItem("moi_paymob_order_total");
 
-    ["moi_paymob_result", "moi_paymob_pending_order_id", "moi_paymob_order_number",
-      "moi_paymob_order_total", "moi_paymob_failed_order_id"].forEach((k) => sessionStorage.removeItem(k));
+    ["moi_paymob_result", "moi_paymob_intent_id", "moi_paymob_order_total"].forEach((k) => sessionStorage.removeItem(k));
 
     try {
       const result = JSON.parse(resultRaw) as { success: boolean };
-      const shopifyOrderId = pendingIdRaw ? parseInt(pendingIdRaw, 10) : undefined;
       setOrderResult({
-        orderNumber: orderNumRaw ?? "",
+        orderNumber: "",
         total: orderTotalRaw ?? "",
-        shopifyOrderId: shopifyOrderId || undefined,
+        intentId: intentIdRaw ?? undefined,
       });
       if (result.success) {
         clearCart();
         setStep("card-confirm");
       } else {
-        if (shopifyOrderId) setFailedOrderId(shopifyOrderId);
         setStep("card-failed");
       }
       openCheckout();
@@ -968,14 +944,15 @@ function CardConfirmation({ orderResult, onDone }: { orderResult: OrderResult; o
           Thank you for shopping with Moi.
         </p>
       </div>
-      <div style={{ padding: "20px 28px", border: "1px solid rgba(30,24,20,0.22)", width: "100%" }}>
-        <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "6px" }}>Order Number</p>
-        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", color: "#1e1814", fontWeight: 700 }}>#{orderResult.orderNumber}</p>
-      </div>
+      {orderResult.total && (
+        <div style={{ padding: "20px 28px", border: "1px solid rgba(30,24,20,0.22)", width: "100%" }}>
+          <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "6px" }}>Amount Paid</p>
+          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", color: "#1e1814", fontWeight: 700 }}>{orderResult.total} EGP</p>
+        </div>
+      )}
       <div style={{ padding: "16px 20px", backgroundColor: "rgba(30,24,20,0.07)", width: "100%" }}>
         <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.92)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.8, letterSpacing: "0.04em" }}>
-          <strong style={{ color: "#1e1814" }}>Card Payment</strong><br />
-          Your order is confirmed and is being prepared. You'll receive a WhatsApp update with your tracking details shortly.
+          Your order is being prepared. You'll receive a WhatsApp message with your order details and tracking update shortly.
         </p>
       </div>
       <button
@@ -1014,15 +991,9 @@ function CardFailed({
           Payment Failed.
         </h1>
         <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.06em" }}>
-          Your order is still reserved. Please try again.
+          No charge was made. You can try again or choose another method.
         </p>
       </div>
-      {orderResult.orderNumber && (
-        <div style={{ padding: "14px 20px", border: "1px solid rgba(30,24,20,0.14)", width: "100%" }}>
-          <p style={{ fontSize: "13px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>Reserved Order</p>
-          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "24px", color: "#1e1814", fontWeight: 700 }}>#{orderResult.orderNumber}</p>
-        </div>
-      )}
       <div className="flex flex-col gap-3 w-full">
         <button
           onClick={onRetry}

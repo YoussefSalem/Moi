@@ -124,7 +124,7 @@ export async function fetchStorefrontCart(
 export async function createDraftOrder(params: {
   lines: OrderLine[];
   customer: CustomerInfo;
-  paymentMethod: "cod" | "instapay";
+  paymentMethod: "cod" | "instapay" | "card";
   cartId?: string;
   discountCode?: string;
   extraTags?: string;
@@ -141,8 +141,17 @@ export async function createDraftOrder(params: {
   const baseTags =
     params.paymentMethod === "cod"
       ? "cod,moi-checkout"
+      : params.paymentMethod === "card"
+      ? "paymob,moi-checkout"
       : "instapay,moi-checkout";
   const tags = params.extraTags ? `${baseTags},${params.extraTags}` : baseTags;
+
+  const noteText =
+    params.paymentMethod === "cod"
+      ? "Cash on Delivery"
+      : params.paymentMethod === "card"
+      ? "Credit/Debit Card"
+      : "Instapay Transfer";
 
   const draftPayload: Record<string, unknown> = {
     line_items: lineItems,
@@ -165,7 +174,7 @@ export async function createDraftOrder(params: {
       custom: true,
     },
     tags,
-    note: `Payment: ${params.paymentMethod === "cod" ? "Cash on Delivery" : "Instapay Transfer"}`,
+    note: `Payment: ${noteText}`,
     note_attributes: [
       { name: "payment_method", value: params.paymentMethod },
       { name: "customer_phone", value: params.customer.phone },

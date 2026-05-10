@@ -13,7 +13,7 @@ export interface PaymobCustomer {
 
 export interface CreateIntentionParams {
   amountCents: number;
-  shopifyOrderId: number;
+  merchantOrderId: string;
   customer: PaymobCustomer;
   redirectionUrl?: string;
 }
@@ -35,7 +35,7 @@ export async function createPaymobIntention(
     amount: params.amountCents,
     currency: "EGP",
     integration_ids: [parseInt(config.integrationId, 10)],
-    merchant_order_id: String(params.shopifyOrderId),
+    merchant_order_id: params.merchantOrderId,
     ...(params.redirectionUrl ? { redirection_url: params.redirectionUrl } : {}),
     billing_data: {
       first_name: params.customer.firstName,
@@ -155,16 +155,3 @@ export function extractPaymobTxn(payload: Record<string, unknown>): Record<strin
     : payload;
 }
 
-export async function cancelShopifyOrder(orderId: number): Promise<void> {
-  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const { getShopifyAdminToken } = await import("./integrations");
-  const adminToken = await getShopifyAdminToken();
-  if (!storeDomain || !adminToken) return;
-  await fetch(
-    `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/cancel.json`,
-    {
-      method: "POST",
-      headers: { "X-Shopify-Access-Token": adminToken, "Content-Type": "application/json" },
-    },
-  ).catch(() => {});
-}

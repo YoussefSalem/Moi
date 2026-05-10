@@ -21,3 +21,4 @@ export * from "./ambassadorApplications";
 export * from "./restockNotifications";
 export * from "./instapayProofs";
 export * from "./customerOtpCodes";
+export * from "./paymobIntents";
