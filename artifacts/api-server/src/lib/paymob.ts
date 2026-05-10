@@ -35,6 +35,7 @@ export async function createPaymobIntention(
     amount: params.amountCents,
     currency: "EGP",
     integration_ids: [parseInt(config.integrationId, 10)],
+    payment_methods: [parseInt(config.integrationId, 10)],
     merchant_order_id: params.merchantOrderId,
     ...(params.redirectionUrl ? { redirection_url: params.redirectionUrl } : {}),
     billing_data: {
