@@ -409,11 +409,13 @@ export function CheckoutPage() {
     ["moi_paymob_result", "moi_paymob_intent_id", "moi_paymob_order_total"].forEach((k) => sessionStorage.removeItem(k));
 
     try {
-      const result = JSON.parse(resultRaw) as { success: boolean };
+      const result = JSON.parse(resultRaw) as { success: boolean; transactionId?: string; merchantOrderId?: string };
+      const txnId = result.transactionId || undefined;
       setOrderResult({
         orderNumber: "",
         total: orderTotalRaw ?? "",
-        intentId: intentIdRaw ?? undefined,
+        intentId: intentIdRaw ?? result.merchantOrderId ?? undefined,
+        paymobTxnId: txnId,
       });
       if (result.success) {
         clearCart();

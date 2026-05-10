@@ -24,6 +24,15 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
 
+  // Log Paymob configuration presence (values masked) for observability
+  logger.info({
+    paymobApiKey: !!process.env["PAYMOB_API_KEY"],
+    paymobPublicKey: !!process.env["PAYMOB_PUBLIC_KEY"],
+    paymobSecretKey: !!process.env["PAYMOB_SECRET_KEY"],
+    paymobIntegrationId: !!process.env["PAYMOB_INTEGRATION_ID"],
+    paymobHmacSecret: !!process.env["PAYMOB_HMAC_SECRET"],
+  }, "Paymob config resolved");
+
   // Register Shopify webhooks for automatic restock notifications
   registerRestockWebhooks().catch((e) =>
     logger.warn({ err: e }, "Webhook registration error"),
