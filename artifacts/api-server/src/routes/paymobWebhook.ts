@@ -176,6 +176,15 @@ router.post("/webhooks/paymob", async (req, res) => {
     req.log.info({ shopifyOrderId, shopifyOrderNumber, paymobTxnId, amount }, "Paymob webhook: order fully processed");
   } catch (err) {
     req.log.error({ err, intentId, paymobTxnId }, "Paymob webhook processing error");
+    // Prevent the intent from getting stuck in 'processing' — mark it failed so
+    // it surfaces for manual review and future retries are not silently dropped.
+    if (intentId) {
+      await db
+        .update(paymobIntents)
+        .set({ status: "failed" })
+        .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "processing")))
+        .catch((dbErr) => req.log.error({ dbErr }, "Paymob webhook: also failed to mark intent as failed"));
+    }
   }
 });
 

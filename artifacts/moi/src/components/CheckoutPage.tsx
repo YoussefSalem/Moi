@@ -12,6 +12,7 @@ interface OrderResult {
   orderNumber: string | number;
   total: string;
   intentId?: string;
+  paymobTxnId?: string;
   shopifyOrderId?: number;
   shopifyOrderNumber?: number;
   instapayAccount?: string;
@@ -365,8 +366,11 @@ export function CheckoutPage() {
     closeCheckout();
   }, [clearCart, closeCheckout]);
 
-  const handleIframeSuccess = useCallback(() => {
+  const handleIframeSuccess = useCallback((txnId?: string) => {
     setPaymobIframeUrl(null);
+    if (txnId) {
+      setOrderResult((prev) => (prev ? { ...prev, paymobTxnId: txnId } : prev));
+    }
     setStep("card-confirm");
     clearCart();
   }, [clearCart]);
@@ -950,6 +954,12 @@ function CardConfirmation({ orderResult, onDone }: { orderResult: OrderResult; o
           <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", color: "#1e1814", fontWeight: 700 }}>{orderResult.total} EGP</p>
         </div>
       )}
+      {orderResult.paymobTxnId && (
+        <div style={{ padding: "12px 20px", border: "1px solid rgba(30,24,20,0.12)", width: "100%" }}>
+          <p style={{ fontSize: "11px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>Transaction Reference</p>
+          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "13px", color: "rgba(30,24,20,0.78)", letterSpacing: "0.04em" }}>{orderResult.paymobTxnId}</p>
+        </div>
+      )}
       <div style={{ padding: "16px 20px", backgroundColor: "rgba(30,24,20,0.07)", width: "100%" }}>
         <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.92)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.8, letterSpacing: "0.04em" }}>
           Your order is being prepared. You'll receive a WhatsApp message with your order details and tracking update shortly.
@@ -1410,26 +1420,49 @@ function InstapayConfirmation({
 
 interface PaymobIframeProps {
   url: string;
-  onSuccess: () => void;
+  onSuccess: (txnId?: string) => void;
   onFail: () => void;
   iframeStyle?: React.CSSProperties;
 }
 
 function PaymobIframe({ url, onSuccess, onFail, iframeStyle }: PaymobIframeProps) {
   useEffect(() => {
-    const expectedOrigin = window.location.origin;
+    const ownOrigin = window.location.origin;
+    // Paymob Unified Checkout posts completion messages from their domain
+    const paymobOrigin = "https://accept.paymob.com";
+
     function handleMessage(event: MessageEvent) {
-      // Only accept messages from our own origin (the /api/paymob-return relay page)
-      if (event.origin !== expectedOrigin) return;
-      const data = event.data as { type?: string; success?: boolean };
-      if (data?.type === "PAYMOB_RESULT") {
-        if (data.success) {
-          onSuccess();
+      const isOwn = event.origin === ownOrigin;
+      const isPaymob = event.origin === paymobOrigin;
+      if (!isOwn && !isPaymob) return;
+
+      const data = event.data as Record<string, unknown> | null;
+      if (!data || typeof data !== "object") return;
+
+      // Our relay page format — sent when the return page is loaded inside the iframe
+      // (inline 3DS flow) or when sessionStorage is written after a full-page redirect.
+      if (isOwn && data["type"] === "PAYMOB_RESULT") {
+        const txnId = String(data["transactionId"] ?? "");
+        if (data["success"]) {
+          onSuccess(txnId || undefined);
+        } else {
+          onFail();
+        }
+        return;
+      }
+
+      // Paymob Unified Checkout inline postMessage — no redirectionUrl needed.
+      // Paymob sends { success: boolean, id?: number|string, ... } from their origin.
+      if (isPaymob && typeof data["success"] === "boolean") {
+        const txnId = String(data["id"] ?? data["txn_id"] ?? data["transactionId"] ?? "");
+        if (data["success"]) {
+          onSuccess(txnId || undefined);
         } else {
           onFail();
         }
       }
     }
+
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, [onSuccess, onFail]);
