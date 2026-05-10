@@ -39,6 +39,18 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
       >
         <div className="flex items-center justify-between px-6 md:px-12 h-16">
           <button
+            onClick={() => {
+              onNavigate?.("home");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            className="absolute left-1/2 -translate-x-1/2 font-serif text-2xl tracking-[0.3em] font-light select-none transition-colors duration-500"
+            style={{ color: iconColor, letterSpacing: "0.35em" }}
+            aria-label="Go to home"
+          >
+            MOI
+          </button>
+
+          <button
             onClick={() => setMenuOpen(true)}
             className="flex flex-col gap-1.5 w-8 h-8 items-center justify-center group"
             aria-label="Open menu"
@@ -46,15 +58,6 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
             <span className="block w-6 h-px transition-all duration-300" style={{ backgroundColor: iconColor }} />
             <span className="block w-4 h-px transition-all duration-300 group-hover:w-6" style={{ backgroundColor: iconColor }} />
           </button>
-
-          <a
-            href="#home"
-            className="absolute left-1/2 -translate-x-1/2 font-serif text-2xl tracking-[0.3em] font-light select-none transition-colors duration-500"
-            style={{ color: iconColor, letterSpacing: "0.35em" }}
-            onClick={() => onNavigate?.("home")}
-          >
-            MOI
-          </a>
 
           <div className="flex items-center gap-5">
             <button aria-label="Search" className="transition-opacity hover:opacity-60" onClick={onSearch}>
