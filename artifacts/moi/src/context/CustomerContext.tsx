@@ -8,6 +8,7 @@ interface Customer {
   firstName: string | null;
   lastName: string | null;
   email: string;
+  phone?: string | null;
 }
 
 interface CustomerContextValue {
@@ -16,9 +17,13 @@ interface CustomerContextValue {
   authOpen: boolean;
   openAuth: () => void;
   closeAuth: () => void;
+  accountOpen: boolean;
+  openAccount: () => void;
+  closeAccount: () => void;
   sendOtp: (email: string) => Promise<string | null>;
   verifyOtp: (email: string, code: string) => Promise<string | null>;
   signOut: () => void;
+  updateCustomer: (patch: Partial<Customer>) => void;
 }
 
 const CustomerContext = createContext<CustomerContextValue | null>(null);
@@ -27,6 +32,7 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const initRef = useRef(false);
 
   // Restore session on mount
@@ -90,6 +96,11 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     setCustomer(null);
+    setAccountOpen(false);
+  }, []);
+
+  const updateCustomer = useCallback((patch: Partial<Customer>) => {
+    setCustomer((prev) => prev ? { ...prev, ...patch } : prev);
   }, []);
 
   return (
@@ -100,9 +111,13 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
         authOpen,
         openAuth: () => setAuthOpen(true),
         closeAuth: () => setAuthOpen(false),
+        accountOpen,
+        openAccount: () => setAccountOpen(true),
+        closeAccount: () => setAccountOpen(false),
         sendOtp,
         verifyOtp,
         signOut,
+        updateCustomer,
       }}
     >
       {children}

@@ -11,6 +11,7 @@ import { Footer } from "@/components/Footer";
 import { CartDrawer } from "@/components/CartDrawer";
 import { CheckoutPage } from "@/components/CheckoutPage";
 import { CustomerAuthModal } from "@/components/CustomerAuthModal";
+import { AccountPage } from "@/components/AccountPage";
 import { SearchDrawer } from "@/components/SearchDrawer";
 import { CartProvider } from "@/context/CartContext";
 import { CustomerProvider } from "@/context/CustomerContext";
@@ -107,6 +108,7 @@ function AppContent() {
       <CartDrawer />
       <CheckoutPage />
       <CustomerAuthModal />
+      <AccountPage />
       <SearchDrawer
         open={searchOpen}
         products={allProducts}

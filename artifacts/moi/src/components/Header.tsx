@@ -14,7 +14,7 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { itemCount, openCart } = useCart();
-  const { customer, openAuth, signOut } = useCustomer();
+  const { customer, openAuth, openAccount, signOut } = useCustomer();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -67,7 +67,7 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
             <button
               aria-label={customer ? "My Account" : "Sign In"}
               className="flex items-center gap-1.5 transition-opacity hover:opacity-60"
-              onClick={openAuth}
+              onClick={customer ? openAccount : openAuth}
             >
               <User size={18} strokeWidth={1.5} style={{ color: iconColor }} />
               {displayName && (
@@ -169,11 +169,15 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
                 <div className="mt-16 pt-8 border-t border-stone-200 space-y-4">
                   {customer ? (
                     <>
-                      <p className="text-sm font-light tracking-wide" style={{ color: "#1e1814" }}>
+                      <button
+                        className="text-sm font-light tracking-wide text-left hover:opacity-50 transition-opacity"
+                        style={{ color: "#1e1814" }}
+                        onClick={() => { setMenuOpen(false); openAccount(); }}
+                      >
                         {customer.firstName
                           ? `${customer.firstName}${customer.lastName ? ` ${customer.lastName}` : ""}`
                           : customer.email.split("@")[0]}
-                      </p>
+                      </button>
                       <button
                         className="block text-sm tracking-widest uppercase hover:opacity-50 transition-opacity"
                         style={{ color: "#7a6e64", letterSpacing: "0.15em" }}

@@ -277,4 +277,206 @@ router.get("/auth/customer/me", (req, res) => {
   });
 });
 
+function requireCustomerAuth(req: import("express").Request, res: import("express").Response): CustomerPayload | null {
+  const auth = req.headers.authorization;
+  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const payload = verifyCustomerToken(token);
+  if (!payload) {
+    res.status(401).json({ error: "Invalid or expired session" });
+    return null;
+  }
+  return payload;
+}
+
+function extractShopifyNumericId(shopifyId: string): string | null {
+  const match = shopifyId.match(/\/Customer\/(\d+)$/);
+  return match ? match[1] : null;
+}
+
+interface ShopifyAdminCustomerFull {
+  id: number;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  addresses: Array<{
+    id: number;
+    address1: string | null;
+    address2: string | null;
+    city: string | null;
+    province: string | null;
+    country: string | null;
+    zip: string | null;
+    default: boolean;
+  }>;
+}
+
+interface ShopifyAdminOrder {
+  id: number;
+  order_number: number;
+  created_at: string;
+  financial_status: string;
+  fulfillment_status: string | null;
+  total_price: string;
+  currency: string;
+}
+
+router.get("/auth/customer/profile", async (req, res) => {
+  const payload = requireCustomerAuth(req, res);
+  if (!payload) return;
+
+  const numericId = extractShopifyNumericId(payload.shopifyId);
+  if (!numericId) {
+    res.status(400).json({ error: "Cannot fetch profile for non-Shopify accounts." });
+    return;
+  }
+
+  const token = await getShopifyAdminToken();
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  if (!token || !storeDomain) {
+    res.status(503).json({ error: "Shopify integration not configured." });
+    return;
+  }
+
+  try {
+    const r = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/customers/${numericId}.json`,
+      { headers: { "X-Shopify-Access-Token": token } },
+    );
+    if (!r.ok) {
+      res.status(502).json({ error: "Failed to fetch profile from Shopify." });
+      return;
+    }
+    const data = await r.json() as { customer: ShopifyAdminCustomerFull };
+    const c = data.customer;
+    res.status(200).json({
+      firstName: c.first_name,
+      lastName: c.last_name,
+      email: c.email,
+      phone: c.phone,
+      addresses: c.addresses,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch Shopify customer profile");
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+router.put("/auth/customer/profile", async (req, res) => {
+  const payload = requireCustomerAuth(req, res);
+  if (!payload) return;
+
+  const numericId = extractShopifyNumericId(payload.shopifyId);
+  if (!numericId) {
+    res.status(400).json({ error: "Cannot update profile for non-Shopify accounts." });
+    return;
+  }
+
+  const { firstName, lastName, phone } = req.body as {
+    firstName?: unknown;
+    lastName?: unknown;
+    phone?: unknown;
+  };
+
+  const update: Record<string, unknown> = {};
+  if (typeof firstName === "string") update.first_name = firstName.trim();
+  if (typeof lastName === "string") update.last_name = lastName.trim();
+  if (typeof phone === "string") update.phone = phone.trim() || null;
+
+  const token = await getShopifyAdminToken();
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  if (!token || !storeDomain) {
+    res.status(503).json({ error: "Shopify integration not configured." });
+    return;
+  }
+
+  try {
+    const r = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/customers/${numericId}.json`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": token,
+        },
+        body: JSON.stringify({ customer: update }),
+      },
+    );
+    if (!r.ok) {
+      res.status(502).json({ error: "Failed to update profile in Shopify." });
+      return;
+    }
+    const data = await r.json() as { customer: ShopifyAdminCustomerFull };
+    const c = data.customer;
+
+    const newFirstName = c.first_name ?? null;
+    const newLastName = c.last_name ?? null;
+    const newToken = signCustomerToken({
+      shopifyId: payload.shopifyId,
+      email: payload.email,
+      firstName: newFirstName,
+      lastName: newLastName,
+    });
+
+    res.status(200).json({
+      token: newToken,
+      firstName: newFirstName,
+      lastName: newLastName,
+      phone: c.phone,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to update Shopify customer profile");
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+router.get("/auth/customer/orders", async (req, res) => {
+  const payload = requireCustomerAuth(req, res);
+  if (!payload) return;
+
+  const numericId = extractShopifyNumericId(payload.shopifyId);
+  if (!numericId) {
+    res.status(200).json({ orders: [] });
+    return;
+  }
+
+  const token = await getShopifyAdminToken();
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  if (!token || !storeDomain) {
+    res.status(503).json({ error: "Shopify integration not configured." });
+    return;
+  }
+
+  try {
+    const r = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/customers/${numericId}/orders.json?status=any&limit=50`,
+      { headers: { "X-Shopify-Access-Token": token } },
+    );
+    if (!r.ok) {
+      res.status(502).json({ error: "Failed to fetch orders from Shopify." });
+      return;
+    }
+    const data = await r.json() as { orders: ShopifyAdminOrder[] };
+    const orders = data.orders
+      .map((o) => ({
+        id: o.id,
+        orderNumber: o.order_number,
+        createdAt: o.created_at,
+        financialStatus: o.financial_status,
+        fulfillmentStatus: o.fulfillment_status,
+        totalPrice: o.total_price,
+        currency: o.currency,
+      }))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    res.status(200).json({ orders });
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch Shopify customer orders");
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
 export default router;
