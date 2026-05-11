@@ -14,8 +14,6 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onLookView }: ProductCardProps) {
-  const color = useImageColor(product.productShot);
-  const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
   const { addToCart } = useCart();
   const { customer } = useCustomer();
   const [addedFeedback, setAddedFeedback] = useState(false);
@@ -125,6 +123,9 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   }, [selectedColor, product.variants]);
 
   const effectivePrice = selectedVariant?.price ?? product.price;
+  const mainImage = product.colorImages?.[selectedColor] ?? product.productShot;
+  const color = useImageColor(mainImage);
+  const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
 
   const isOutOfStock = (() => {
     const defaultStock = getDefaultStock(selectedColor, selectedSize);
@@ -152,7 +153,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
       price: effectivePrice,
       priceAmount: parseFloat(String(effectivePrice).replace(/[^0-9.]/g, "")),
       currencyCode: "EGP",
-      image: product.productShot,
+      image: mainImage,
       size: selectedSize,
       color: selectedColor,
     });
@@ -260,7 +261,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               aria-label="See the look"
             >
               <img
-                src={product.productShot}
+                src={mainImage}
                 alt={product.name}
                 className="relative z-10 w-full max-w-xs md:max-w-sm"
                 style={{ maxHeight: 440, objectFit: "contain", objectPosition: "center" }}

@@ -30,6 +30,8 @@
  *   - OR the Stradivarius CDN a1-a14 URLs when they become available
  */
 
+import WHITE_MAIN from "@assets/White_Main_1778536263890.jpg";
+
 // ── Stradivarius CDN ──────────────────────────────────────
 const CDN_BASE = "https://static.e-stradivarius.net/assets/public/6609/3c52/c7794a08bf4d/3e85295c5fe2";
 const CDN_TS   = "ts=1773676013508";
@@ -105,6 +107,9 @@ export const IMAGES = {
       shoes:   ACC_SHOES,    // SWAP ME: a10 or branded shoes shot
       bag:     ACC_BAG,      // SWAP ME: a11 or branded bag shot
       earring: ACC_EARRING,  // SWAP ME: a12 or branded earring shot
+    },
+    colorImages: {
+      White: WHITE_MAIN,
     },
     name: "Moi Versa Top",
     colorLabel: "",
@@ -363,4 +368,5 @@ export interface ProductConfig {
   readonly variants?: readonly VariantOption[];
   readonly defaultInventory?: Record<string, Record<string, number>>;
   readonly colorSwatches?: Record<string, string>;
+  readonly colorImages?: Record<string, string>;
 }
