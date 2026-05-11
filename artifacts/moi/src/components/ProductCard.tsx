@@ -267,6 +267,23 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 style={{ maxHeight: 440, objectFit: "contain", objectPosition: "center" }}
                 crossOrigin="anonymous"
               />
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileHover={{ opacity: 1 }}
+                transition={{ duration: 0.25 }}
+                className="absolute inset-0 z-20 flex items-center justify-center"
+              >
+                <span
+                  className="text-[10px] tracking-[0.3em] uppercase font-medium px-4 py-2"
+                  style={{
+                    backgroundColor: "rgba(250,248,245,0.88)",
+                    color: "#1e1814",
+                    backdropFilter: "blur(8px)",
+                  }}
+                >
+                  See the Look
+                </span>
+              </motion.div>
             </motion.button>
           </div>
         </div>
