@@ -21,6 +21,16 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
 
+  // Preload all per-color images so switching is instant.
+  useEffect(() => {
+    if (!product.colorImages) return;
+    for (const url of Object.values(product.colorImages)) {
+      if (!url) continue;
+      const img = new Image();
+      img.src = url as string;
+    }
+  }, [product.colorImages]);
+
   const colorOption = useMemo(() => {
     if (!hasShopifyVariants) return null;
     const opt = product.variants![0].selectedOptions.find((o) => o.name.toLowerCase() === "color");

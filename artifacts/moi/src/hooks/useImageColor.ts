@@ -11,13 +11,33 @@ export interface ImageColorResult {
 
 const fac = new FastAverageColor();
 
+const colorCache = new Map<string, ImageColorResult>();
+
+function buildResult(r: number, g: number, b: number, isLight: boolean, isDark: boolean, hex: string): ImageColorResult {
+  return {
+    rgb: `${r}, ${g}, ${b}`,
+    rgba: (alpha: number) => `rgba(${r}, ${g}, ${b}, ${alpha})`,
+    isLight,
+    isDark,
+    hex,
+  };
+}
+
 export function useImageColor(imageUrl: string | null): ImageColorResult | null {
-  const [color, setColor] = useState<ImageColorResult | null>(null);
+  const [color, setColor] = useState<ImageColorResult | null>(() =>
+    imageUrl ? colorCache.get(imageUrl) ?? null : null
+  );
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     if (!imageUrl) {
       setColor(null);
+      return;
+    }
+
+    const cached = colorCache.get(imageUrl);
+    if (cached) {
+      setColor(cached);
       return;
     }
 
@@ -38,16 +58,10 @@ export function useImageColor(imageUrl: string | null): ImageColorResult | null 
         });
 
         const [r, g, b] = result.value;
+        const built = buildResult(r, g, b, result.isLight, result.isDark, result.hex);
+        colorCache.set(imageUrl, built);
 
-        if (!cancelled) {
-          setColor({
-            rgb: `${r}, ${g}, ${b}`,
-            rgba: (alpha: number) => `rgba(${r}, ${g}, ${b}, ${alpha})`,
-            isLight: result.isLight,
-            isDark: result.isDark,
-            hex: result.hex,
-          });
-        }
+        if (!cancelled) setColor(built);
       } catch {
         if (!cancelled) setColor(null);
       }
