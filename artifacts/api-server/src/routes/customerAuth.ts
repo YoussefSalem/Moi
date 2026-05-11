@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { Router, type IRouter } from "express";
-import nodemailer from "nodemailer";
+import { sendEmail } from "../lib/email";
 import { db } from "@workspace/db";
 import { customerOtpCodes, customerProfiles } from "@workspace/db";
 import { eq, and, gt, desc } from "drizzle-orm";
@@ -49,22 +49,8 @@ function hashOtp(otp: string, salt: string): string {
   return crypto.createHmac("sha256", salt).update(otp).digest("hex");
 }
 
-function makeTransporter() {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return null;
-  return nodemailer.createTransport({
-    host: "smtp.resend.com",
-    port: 465,
-    secure: true,
-    auth: { user: "resend", pass: apiKey },
-  });
-}
-
 async function sendOtpEmail(to: string, code: string): Promise<void> {
-  const transporter = makeTransporter();
-  if (!transporter) throw new Error("RESEND_API_KEY not configured");
-  await transporter.sendMail({
-    from: "Moi <onboarding@resend.dev>",
+  await sendEmail({
     to,
     subject: `Your Moi sign-in code: ${code}`,
     html: `

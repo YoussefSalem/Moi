@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import nodemailer from "nodemailer";
+import { sendEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -7,23 +7,8 @@ interface NewsletterBody {
   email?: unknown;
 }
 
-function makeTransporter() {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return null;
-  return nodemailer.createTransport({
-    host: "smtp.resend.com",
-    port: 465,
-    secure: true,
-    auth: { user: "resend", pass: apiKey },
-  });
-}
-
 async function sendNewsletterConfirmationEmail(email: string) {
-  const transporter = makeTransporter();
-  if (!transporter) throw new Error("RESEND_API_KEY not configured");
-
-  await transporter.sendMail({
-    from: "Moi <onboarding@resend.dev>",
+  await sendEmail({
     to: email,
     subject: "Welcome to Moi",
     html: `
@@ -33,7 +18,7 @@ async function sendNewsletterConfirmationEmail(email: string) {
           Thank you for subscribing.
         </h1>
         <p style="font-size:14px;line-height:1.9;color:#5a5048;margin:0 0 14px;">
-          We’re so pleased to have you with us. Expect only thoughtful updates from Moi — new drops, exclusive launches, and important brand news.
+          We're so pleased to have you with us. Expect only thoughtful updates from Moi — new drops, exclusive launches, and important brand news.
         </p>
         <p style="font-size:14px;line-height:1.9;color:#5a5048;margin:0 0 14px;">
           We respect your inbox and will never spam you.

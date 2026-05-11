@@ -5,6 +5,7 @@ import { instapayProofs } from "@workspace/db/schema";
 import { eq, and, or } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
 import { addShopifyOrderNote, tagShopifyOrder, sendWhatsApp, getShopifyAdminToken } from "../lib/integrations";
+import { sendEmail, buildInstapayPendingEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -117,25 +118,25 @@ router.post(
       return;
     }
 
-    // 2. Derive authoritative order total from Shopify (fall back to client-provided)
+    // 2. Derive authoritative order total + customer email from Shopify (fall back to client-provided)
     let amountDisplay = body.amount?.trim() || "";
+    let customerEmail: string | null = null;
     try {
       const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
       const adminToken = await getShopifyAdminToken();
       if (storeDomain && adminToken) {
         const orderRes = await fetch(
-          `https://${storeDomain}/admin/api/2024-04/orders/${shopifyOrderId}.json?fields=total_price`,
+          `https://${storeDomain}/admin/api/2024-04/orders/${shopifyOrderId}.json?fields=total_price,email`,
           { headers: { "X-Shopify-Access-Token": adminToken } },
         );
         if (orderRes.ok) {
-          const orderData = await orderRes.json() as { order?: { total_price?: string } };
-          if (orderData.order?.total_price) {
-            amountDisplay = orderData.order.total_price;
-          }
+          const orderData = await orderRes.json() as { order?: { total_price?: string; email?: string } };
+          if (orderData.order?.total_price) amountDisplay = orderData.order.total_price;
+          if (orderData.order?.email) customerEmail = orderData.order.email;
         }
       }
     } catch (err) {
-      logger.warn({ err, shopifyOrderId }, "Could not fetch authoritative order total from Shopify, using client value");
+      logger.warn({ err, shopifyOrderId }, "Could not fetch authoritative order data from Shopify, using client value");
     }
 
     // 3. Upload screenshot to object storage
@@ -168,11 +169,29 @@ router.post(
       status: "pending",
     });
 
-    // 4. Shopify note + tag (fire-and-forget)
+    // 4. Branded pending-verification email to customer (fire-and-forget)
+    if (customerEmail) {
+      const { html, text } = buildInstapayPendingEmail({
+        orderNumber: shopifyOrderNumber,
+        customerName: customerName,
+        total: amountDisplay,
+        referenceNumber: referenceNumber.trim(),
+      });
+      void sendEmail({
+        to: customerEmail,
+        subject: `Your Moi order #${shopifyOrderNumber} — payment verification in progress`,
+        html,
+        text,
+      })
+        .then(() => logger.info({ email: customerEmail, shopifyOrderNumber }, "InstaPay pending email sent"))
+        .catch((err) => logger.warn({ err, email: customerEmail }, "InstaPay pending email failed"));
+    }
+
+    // 5. Shopify note + tag (fire-and-forget)
     void addShopifyOrderNote(shopifyOrderId, `InstaPay proof submitted — ref: ${referenceNumber.trim()}`);
     void tagShopifyOrder(shopifyOrderId, "instapay-proof-submitted");
 
-    // 5. WhatsApp to business owner
+    // 6. WhatsApp to business owner
     const businessWA = process.env.BUSINESS_WHATSAPP_NUMBER ?? "";
     const siteUrl = process.env.SITE_URL ?? "";
     if (businessWA) {

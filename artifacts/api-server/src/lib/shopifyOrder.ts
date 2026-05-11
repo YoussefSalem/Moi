@@ -228,7 +228,7 @@ export async function createDraftOrder(params: {
   const draftId = createData.draft_order.id;
 
   const completeRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?payment_pending=true`,
+    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?payment_pending=true&send_receipt=false&send_fulfillment_receipt=false`,
     {
       method: "PUT",
       headers: {

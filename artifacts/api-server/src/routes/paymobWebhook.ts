@@ -11,6 +11,7 @@ import {
   addShopifyFulfillmentEvent,
 } from "../lib/integrations";
 import { createDraftOrder, type OrderLine, type CustomerInfo } from "../lib/shopifyOrder";
+import { sendEmail, buildOrderConfirmationEmail } from "../lib/email";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
 
@@ -123,6 +124,22 @@ router.post("/webhooks/paymob", async (req, res) => {
       .where(eq(paymobIntents.intentId, intentId));
 
     req.log.info({ intentId, shopifyOrderId, shopifyOrderNumber, paymobTxnId }, "Paymob webhook: Shopify order created");
+
+    // Send branded order confirmation email to customer (fire-and-forget)
+    if (customer.email) {
+      const { html, text } = buildOrderConfirmationEmail({
+        orderNumber: shopifyOrderNumber,
+        customerName: customer.firstName,
+        total: amount,
+        paymentMethod: "Credit/Debit Card (Paymob)",
+        address: customer.address,
+        governorate: customer.governorate,
+        city: customer.city,
+      });
+      void sendEmail({ to: customer.email, subject: `Your Moi order #${shopifyOrderNumber} is confirmed`, html, text })
+        .then(() => req.log.info({ email: customer.email, shopifyOrderNumber }, "Order confirmation email sent"))
+        .catch((err) => req.log.warn({ err, email: customer.email }, "Order confirmation email failed"));
+    }
 
     const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
     const adminToken = await getShopifyAdminToken();
