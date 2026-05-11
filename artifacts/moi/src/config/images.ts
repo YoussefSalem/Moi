@@ -279,19 +279,23 @@ export const IMAGES = {
       black:    { Small: 5, Medium: 5 },
     },
     /**
-     * Per-color gallery images for the Versa Top.
-     * SWAP ME: replace the empty productShots arrays with real image URLs as they arrive
-     * (1–2 images per color). The look.model is the hero image for "The Look" overlay.
-     * productShots falls back to the top-level productShot when the array is empty.
+     * Per-color overrides for the Versa Top gallery and Look.
+     * SWAP ME — add real image URLs for each color as they arrive:
+     *   productShot: color-specific flat-lay (used in the card center image)
+     *   filmstrip:   ordered gallery URLs (drives the Carousel strip and LookView)
+     *   look.model:  editorial lifestyle image shown as the main "The Look" hero
+     *
+     * Any omitted field falls back to the parent product1 value automatically.
+     * Empty object `{}` = use all parent defaults (safe placeholder until images arrive).
      */
     colorImages: {
-      Ivory:    { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
-      Sand:     { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
-      Taupe:    { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
-      Espresso: { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
-      Brown:    { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
-      White:    { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
-      Black:    { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
+      Ivory:    {},
+      Sand:     {},
+      Taupe:    {},
+      Espresso: {},
+      Brown:    {},
+      White:    {},
+      Black:    {},
     },
   },
 
@@ -350,14 +354,18 @@ export const IMAGES = {
 } as const;
 
 /**
- * Per-color gallery images and look content for a single color variant.
- * productShots: 1–2 images shown in the swipeable product card gallery.
- * look: lifestyle photos shown in "The Look" overlay for this color.
+ * Per-color overrides for a single color variant.
+ * All fields are optional — any missing field falls back to the parent ProductConfig value.
+ * Shape mirrors the top-level ProductConfig fields it can override:
+ *   productShot → the color-specific flat-lay / studio shot
+ *   filmstrip   → ordered gallery images shown in the Carousel and LookView for this color
+ *   look        → lifestyle model + accessories for "The Look" overlay
  */
 export interface ColorVariantImages {
-  readonly productShots: readonly string[];
-  readonly look: {
-    readonly model: string;
+  readonly productShot?: string;
+  readonly filmstrip?: readonly string[];
+  readonly look?: {
+    readonly model?: string;
     readonly shoes?: string;
     readonly bag?: string;
     readonly earring?: string;
