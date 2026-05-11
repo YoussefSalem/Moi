@@ -53,8 +53,11 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const activeColorData = product.colorImages?.[selectedColor] ?? null;
   const effectiveProductShot: string =
     activeColorData?.productShot ?? product.productShot;
+  // Treat empty filmstrip arrays (length 0) the same as absent — fall back to
+  // the parent product's filmstrip so the gallery is never blank.
+  const colorFilmstrip = activeColorData?.filmstrip;
   const effectiveFilmstrip: readonly string[] =
-    (activeColorData?.filmstrip ?? product.filmstrip) as readonly string[];
+    (colorFilmstrip && colorFilmstrip.length > 0 ? colorFilmstrip : product.filmstrip) as readonly string[];
   const effectiveLook = {
     model:   activeColorData?.look?.model   ?? product.look.model,
     shoes:   activeColorData?.look?.shoes   ?? product.look.shoes,

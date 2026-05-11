@@ -11,6 +11,12 @@ interface CarouselProps {
 export function Carousel({ filmstrip }: CarouselProps = {}) {
   const images: readonly string[] = filmstrip ?? IMAGES.product1.filmstrip;
   const [activeIndex, setActiveIndex] = useState(0);
+
+  // Reset active index whenever the filmstrip reference changes so we never
+  // hold a stale index into a shorter array (e.g. after a color switch).
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [images]);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
