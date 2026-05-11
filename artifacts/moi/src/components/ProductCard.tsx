@@ -222,7 +222,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-        className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-[minmax(260px,1fr)_minmax(320px,460px)_minmax(260px,1fr)] gap-10 md:gap-16 items-center"
+        className="max-w-7xl mx-auto px-6 md:px-12 py-6 md:py-10 grid grid-cols-1 md:grid-cols-[minmax(260px,1fr)_minmax(320px,460px)_minmax(260px,1fr)] gap-10 md:gap-16 items-center"
       >
         {/* Left: name + description */}
         <div className="flex flex-col gap-5 md:items-start md:justify-center md:text-left text-center">
