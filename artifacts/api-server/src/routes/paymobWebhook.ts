@@ -10,7 +10,7 @@ import {
   createShopifyFulfillment,
   addShopifyFulfillmentEvent,
 } from "../lib/integrations";
-import { createDraftOrder, type OrderLine, type CustomerInfo } from "../lib/shopifyOrder";
+import { createDraftOrder, type OrderLine, type CustomerInfo, type ShopifyLineItem } from "../lib/shopifyOrder";
 import { sendEmail, buildOrderConfirmationEmail } from "../lib/email";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
@@ -97,6 +97,7 @@ router.post("/webhooks/paymob", async (req, res) => {
     // Create Shopify order from stored intent data
     let shopifyOrderId: number;
     let shopifyOrderNumber: number;
+    let shopifyLineItems: ShopifyLineItem[] = [];
     try {
       const result = await createDraftOrder({
         lines,
@@ -108,6 +109,7 @@ router.post("/webhooks/paymob", async (req, res) => {
       });
       shopifyOrderId = result.orderId;
       shopifyOrderNumber = result.orderNumber;
+      shopifyLineItems = result.lineItems;
     } catch (err) {
       req.log.error({ err, intentId }, "Paymob webhook: Shopify order creation failed — marking intent failed");
       await db
@@ -135,6 +137,7 @@ router.post("/webhooks/paymob", async (req, res) => {
         address: customer.address,
         governorate: customer.governorate,
         city: customer.city,
+        lineItems: shopifyLineItems,
       });
       void sendEmail({ to: customer.email, subject: `Your Moi order #${shopifyOrderNumber} is confirmed`, html, text })
         .then(() => req.log.info({ email: customer.email, shopifyOrderNumber }, "Order confirmation email sent"))

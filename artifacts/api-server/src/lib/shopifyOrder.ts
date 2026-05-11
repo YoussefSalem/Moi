@@ -121,6 +121,13 @@ export async function fetchStorefrontCart(
   }
 }
 
+export interface ShopifyLineItem {
+  title: string;
+  variant_title: string | null;
+  quantity: number;
+  price: string;
+}
+
 export async function createDraftOrder(params: {
   lines: OrderLine[];
   customer: CustomerInfo;
@@ -128,7 +135,7 @@ export async function createDraftOrder(params: {
   cartId?: string;
   discountCode?: string;
   extraTags?: string;
-}): Promise<{ orderNumber: number; orderId: number; total: string }> {
+}): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[] }> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) throw new Error("Shopify Admin API not configured");
@@ -154,6 +161,7 @@ export async function createDraftOrder(params: {
       : "Instapay Transfer";
 
   const draftPayload: Record<string, unknown> = {
+    suppress_notifications: true,
     line_items: lineItems,
     shipping_address: {
       first_name: params.customer.firstName,
@@ -250,17 +258,19 @@ export async function createDraftOrder(params: {
   const total = completeData.draft_order.total_price;
 
   const orderRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=order_number`,
+    `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=order_number,line_items`,
     { headers: { "X-Shopify-Access-Token": adminToken } },
   );
 
   let orderNumber = orderId;
+  let fetchedLineItems: ShopifyLineItem[] = [];
   if (orderRes.ok) {
     const orderData = await orderRes.json() as {
-      order: { order_number: number };
+      order: { order_number: number; line_items: unknown[] };
     };
     orderNumber = orderData.order.order_number ?? orderId;
+    fetchedLineItems = (orderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
   }
 
-  return { orderNumber, orderId, total };
+  return { orderNumber, orderId, total, lineItems: fetchedLineItems };
 }
