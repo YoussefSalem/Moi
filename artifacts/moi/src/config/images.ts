@@ -30,6 +30,9 @@
  *   - OR the Stradivarius CDN a1-a14 URLs when they become available
  */
 
+import WhiteMain from "@assets/White_Main_1778535268055.jpg";
+import WhiteSwipe from "@assets/Gemini_Generated_Image_bmu2azbmu2azbmu2_1778535309719.png";
+
 // ── Stradivarius CDN ──────────────────────────────────────
 const CDN_BASE = "https://static.e-stradivarius.net/assets/public/6609/3c52/c7794a08bf4d/3e85295c5fe2";
 const CDN_TS   = "ts=1773676013508";
@@ -294,7 +297,13 @@ export const IMAGES = {
       Taupe:    {},
       Espresso: {},
       Brown:    {},
-      White:    {},
+      White: {
+        productShot: WhiteMain,
+        filmstrip: [
+          WhiteMain,
+          WhiteSwipe,
+        ],
+      },
       Black:    {},
     },
   },
