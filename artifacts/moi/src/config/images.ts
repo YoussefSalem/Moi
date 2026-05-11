@@ -32,17 +32,6 @@
 
 import WHITE_MAIN from "@assets/White_Main_1778537256857.jpg";
 
-// ── Stradivarius CDN ──────────────────────────────────────
-const CDN_BASE = "https://static.e-stradivarius.net/assets/public/6609/3c52/c7794a08bf4d/3e85295c5fe2";
-const CDN_TS   = "ts=1773676013508";
-
-function cdnImage(id: string, width = 800): string {
-  return `${CDN_BASE}/${id}/${id}.jpg?${CDN_TS}&w=${width}`;
-}
-
-// ── Only accessible CDN asset ─────────────────────────────
-const PRODUCT_SHOT       = cdnImage("02076511400-a15", 800);   // cape draped flat-lay, 800px
-const PRODUCT_SHOT_LARGE = cdnImage("02076511400-a15", 1536);  // hero / look view backdrop
 
 // ── CDN a1–a14 substitutes (confirmed 200 OK) ─────────────
 // Unsplash fashion editorial photos used in place of the unavailable CDN model shots.
@@ -292,7 +281,7 @@ export const IMAGES = {
    * SWAP ME: replace productShot with the Taupe CDN a15 URL when it becomes available.
    */
   product2: {
-    productShot: PRODUCT_SHOT,      // SWAP ME: Taupe CDN shot when available
+    productShot: WHITE_MAIN,        // SWAP ME: replace with Taupe product shot
     filmstrip: [FS_A3, FS_A4, FS_A5, FS_A6, FS_A7, FS_A8, FS_A1, FS_A2],
     look: {
       model:   FS_A3,        // SWAP ME: Taupe colorway editorial model shot
