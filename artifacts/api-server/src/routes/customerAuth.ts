@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { Router, type IRouter } from "express";
 import nodemailer from "nodemailer";
 import { db } from "@workspace/db";
-import { customerOtpCodes } from "@workspace/db";
+import { customerOtpCodes, customerProfiles } from "@workspace/db";
 import { eq, and, gt, desc } from "drizzle-orm";
 import { getShopifyAdminToken } from "../lib/integrations";
 
@@ -244,8 +244,23 @@ router.post("/auth/customer/verify-otp", async (req, res) => {
   const shopifyId = shopifyCustomer
     ? `gid://shopify/Customer/${shopifyCustomer.id}`
     : `local:${safeEmail}`;
-  const firstName = shopifyCustomer?.first_name ?? null;
-  const lastName = shopifyCustomer?.last_name ?? null;
+
+  // Prefer locally stored profile (user edits) over Shopify name
+  let firstName = shopifyCustomer?.first_name ?? null;
+  let lastName = shopifyCustomer?.last_name ?? null;
+  try {
+    const localRows = await db
+      .select()
+      .from(customerProfiles)
+      .where(eq(customerProfiles.shopifyId, shopifyId))
+      .limit(1);
+    if (localRows[0]) {
+      firstName = localRows[0].firstName ?? firstName;
+      lastName = localRows[0].lastName ?? lastName;
+    }
+  } catch {
+    // ignore — fall back to Shopify name
+  }
 
   const token = signCustomerToken({ shopifyId, email: safeEmail, firstName, lastName });
   req.log.info({ email: safeEmail }, "Customer signed in via OTP");
@@ -343,6 +358,7 @@ router.get("/auth/customer/profile", async (req, res) => {
   }
 
   try {
+    // Fetch addresses from Shopify (read_customers scope available)
     const r = await fetch(
       `https://${storeDomain}/admin/api/2024-04/customers/${numericId}.json`,
       { headers: { "X-Shopify-Access-Token": token } },
@@ -353,11 +369,31 @@ router.get("/auth/customer/profile", async (req, res) => {
     }
     const data = await r.json() as { customer: ShopifyAdminCustomerFull };
     const c = data.customer;
+
+    // Overlay locally stored name/phone (user edits) on top of Shopify data
+    let firstName: string | null = c.first_name;
+    let lastName: string | null = c.last_name;
+    let phone: string | null = c.phone;
+    try {
+      const localRows = await db
+        .select()
+        .from(customerProfiles)
+        .where(eq(customerProfiles.shopifyId, payload.shopifyId))
+        .limit(1);
+      if (localRows[0]) {
+        firstName = localRows[0].firstName ?? firstName;
+        lastName = localRows[0].lastName ?? lastName;
+        phone = localRows[0].phone ?? phone;
+      }
+    } catch {
+      // ignore — use Shopify data as fallback
+    }
+
     res.status(200).json({
-      firstName: c.first_name,
-      lastName: c.last_name,
+      firstName,
+      lastName,
       email: c.email,
-      phone: c.phone,
+      phone,
       addresses: c.addresses,
     });
   } catch (err) {
@@ -370,57 +406,36 @@ router.put("/auth/customer/profile", async (req, res) => {
   const payload = requireCustomerAuth(req, res);
   if (!payload) return;
 
-  const numericId = extractShopifyNumericId(payload.shopifyId);
-  if (!numericId) {
-    res.status(400).json({ error: "Cannot update profile for non-Shopify accounts." });
-    return;
-  }
-
   const { firstName, lastName, phone } = req.body as {
     firstName?: unknown;
     lastName?: unknown;
     phone?: unknown;
   };
 
-  const update: Record<string, unknown> = {
-    first_name: payload.firstName ?? "",
-    last_name: payload.lastName ?? "",
-    phone: null,
-  };
-  if (typeof firstName === "string") update.first_name = firstName.trim();
-  if (typeof lastName === "string") update.last_name = lastName.trim();
-  if (typeof phone === "string") update.phone = phone.trim() || null;
-
-  const token = await getShopifyAdminToken();
-  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  if (!token || !storeDomain) {
-    res.status(503).json({ error: "Shopify integration not configured." });
-    return;
-  }
+  const newFirstName = typeof firstName === "string" ? firstName.trim() || null : payload.firstName;
+  const newLastName = typeof lastName === "string" ? lastName.trim() || null : payload.lastName;
+  const newPhone = typeof phone === "string" ? phone.trim() || null : null;
 
   try {
-    const r = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/customers/${numericId}.json`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Shopify-Access-Token": token,
+    // Save profile locally — Shopify OAuth token only has read_customers scope
+    await db
+      .insert(customerProfiles)
+      .values({
+        shopifyId: payload.shopifyId,
+        firstName: newFirstName,
+        lastName: newLastName,
+        phone: newPhone,
+      })
+      .onConflictDoUpdate({
+        target: customerProfiles.shopifyId,
+        set: {
+          firstName: newFirstName,
+          lastName: newLastName,
+          phone: newPhone,
+          updatedAt: new Date(),
         },
-        body: JSON.stringify({ customer: update }),
-      },
-    );
-    if (!r.ok) {
-      const text = await r.text().catch(() => "");
-      req.log.error({ status: r.status, text }, "Failed to update profile in Shopify");
-      res.status(502).json({ error: "Failed to update profile in Shopify." });
-      return;
-    }
-    const data = await r.json() as { customer: ShopifyAdminCustomerFull };
-    const c = data.customer;
+      });
 
-    const newFirstName = c.first_name ?? null;
-    const newLastName = c.last_name ?? null;
     const newToken = signCustomerToken({
       shopifyId: payload.shopifyId,
       email: payload.email,
@@ -428,14 +443,15 @@ router.put("/auth/customer/profile", async (req, res) => {
       lastName: newLastName,
     });
 
+    req.log.info({ shopifyId: payload.shopifyId }, "Customer profile updated locally");
     res.status(200).json({
       token: newToken,
       firstName: newFirstName,
       lastName: newLastName,
-      phone: c.phone,
+      phone: newPhone,
     });
   } catch (err) {
-    req.log.error({ err }, "Failed to update Shopify customer profile");
+    req.log.error({ err }, "Failed to update customer profile");
     res.status(500).json({ error: "Something went wrong." });
   }
 });

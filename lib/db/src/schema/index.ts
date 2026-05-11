@@ -22,3 +22,4 @@ export * from "./restockNotifications";
 export * from "./instapayProofs";
 export * from "./customerOtpCodes";
 export * from "./paymobIntents";
+export * from "./customerProfiles";
