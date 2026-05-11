@@ -243,6 +243,28 @@ export const IMAGES = {
         ],
       },
       {
+        id: "moi-versa-top-cashmere-small",
+        title: "Cashmere / Small",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Cashmere" },
+          { name: "Size", value: "Small" },
+        ],
+      },
+      {
+        id: "moi-versa-top-cashmere-medium",
+        title: "Cashmere / Medium",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Cashmere" },
+          { name: "Size", value: "Medium" },
+        ],
+      },
+      {
         id: "moi-versa-top-black-small",
         title: "Black / Small",
         availableForSale: true,
@@ -272,6 +294,7 @@ export const IMAGES = {
       espresso: { Small: 5, Medium: 5 },
       brown:    { Small: 5, Medium: 5 },
       white:    { Small: 5, Medium: 5 },
+      cashmere: { Small: 5, Medium: 5 },
       black:    { Small: 5, Medium: 5 },
     },
   },
