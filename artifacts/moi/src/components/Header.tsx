@@ -43,21 +43,11 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
               onNavigate?.("home");
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            className="absolute left-1/2 -translate-x-1/2 select-none transition-opacity duration-300 hover:opacity-75"
+            className="absolute left-1/2 -translate-x-1/2 font-serif text-2xl tracking-[0.3em] font-light select-none transition-colors duration-500"
+            style={{ color: iconColor, letterSpacing: "0.35em" }}
             aria-label="Go to home"
           >
-            <span
-              className="block text-white font-serif italic"
-              style={{
-                color: iconColor,
-                fontFamily: "cursive",
-                fontSize: "2.2rem",
-                lineHeight: 1,
-                transform: "translateY(-1px)",
-              }}
-            >
-              M
-            </span>
+            MOI
           </button>
 
           <button
