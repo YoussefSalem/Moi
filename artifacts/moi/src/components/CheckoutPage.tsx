@@ -654,13 +654,24 @@ export function CheckoutPage() {
                     <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
                     <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(subtotalAmount)}</span>
                   </div>
-                  {savings > 0 && (
-                    <div className="flex justify-between">
-                      <span style={{ fontSize: "13px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>
-                        Discount{promoApplied ? ` (${promoApplied.code})` : ""}
-                      </span>
-                      <span style={{ fontSize: "13px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif" }}>
-                        −{fmt(savings)}
+                  {promoApplied && savings > 0 && (
+                    <div
+                      className="flex justify-between items-center py-2 px-3 rounded-sm"
+                      style={{
+                        backgroundColor: "rgba(74,111,85,0.10)",
+                        border: "1px solid rgba(74,111,85,0.22)",
+                      }}
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <span style={{ fontSize: "12px", color: "#3f6f4d", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.10em", textTransform: "uppercase", fontWeight: 600 }}>
+                          Saved with promo
+                        </span>
+                        <span style={{ fontSize: "12px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.06em" }}>
+                          {promoApplied.code}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: "15px", color: "#3f6f4d", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
+                        -{fmt(savings)}
                       </span>
                     </div>
                   )}
