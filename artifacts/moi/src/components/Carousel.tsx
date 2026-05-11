@@ -4,8 +4,12 @@ import { X, Heart } from "lucide-react";
 import { useImageColor } from "@/hooks/useImageColor";
 import { IMAGES } from "@/config/images";
 
-export function Carousel() {
-  const images: readonly string[] = IMAGES.product1.filmstrip;
+interface CarouselProps {
+  filmstrip?: readonly string[];
+}
+
+export function Carousel({ filmstrip }: CarouselProps = {}) {
+  const images: readonly string[] = filmstrip ?? IMAGES.product1.filmstrip;
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(0);

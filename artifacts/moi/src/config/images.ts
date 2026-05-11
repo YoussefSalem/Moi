@@ -278,6 +278,21 @@ export const IMAGES = {
       white:    { Small: 5, Medium: 5 },
       black:    { Small: 5, Medium: 5 },
     },
+    /**
+     * Per-color gallery images for the Versa Top.
+     * SWAP ME: replace the empty productShots arrays with real image URLs as they arrive
+     * (1–2 images per color). The look.model is the hero image for "The Look" overlay.
+     * productShots falls back to the top-level productShot when the array is empty.
+     */
+    colorImages: {
+      Ivory:    { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
+      Sand:     { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
+      Taupe:    { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
+      Espresso: { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
+      Brown:    { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
+      White:    { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
+      Black:    { productShots: [] as string[], look: { model: PRODUCT_SHOT, shoes: ACC_SHOES, bag: ACC_BAG, earring: ACC_EARRING } },
+    },
   },
 
   /**
@@ -334,6 +349,21 @@ export const IMAGES = {
   },
 } as const;
 
+/**
+ * Per-color gallery images and look content for a single color variant.
+ * productShots: 1–2 images shown in the swipeable product card gallery.
+ * look: lifestyle photos shown in "The Look" overlay for this color.
+ */
+export interface ColorVariantImages {
+  readonly productShots: readonly string[];
+  readonly look: {
+    readonly model: string;
+    readonly shoes?: string;
+    readonly bag?: string;
+    readonly earring?: string;
+  };
+}
+
 export interface VariantOption {
   id: string;
   title: string;
@@ -363,4 +393,10 @@ export interface ProductConfig {
   readonly variants?: readonly VariantOption[];
   readonly defaultInventory?: Record<string, Record<string, number>>;
   readonly colorSwatches?: Record<string, string>;
+  /**
+   * Per-color gallery images and look content.
+   * Keys must match the color names in variants (e.g. "Ivory", "Sand").
+   * When a color has no entry here, productShot / filmstrip / look are used as fallback.
+   */
+  readonly colorImages?: Record<string, ColorVariantImages>;
 }

@@ -14,13 +14,6 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onLookView }: ProductCardProps) {
-  const color = useImageColor(product.productShot);
-  const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
-  const { addToCart } = useCart();
-  const { customer } = useCustomer();
-  const [addedFeedback, setAddedFeedback] = useState(false);
-  const [notifyModalOpen, setNotifyModalOpen] = useState(false);
-
   const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
 
   const colorOption = useMemo(() => {
@@ -53,6 +46,37 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState<string>(
     () => sizeOption?.values[0] ?? "Small"
   );
+  const [activeSlide, setActiveSlide] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+
+  // Resolve per-color gallery images — falls back to top-level defaults if no entry or empty
+  const activeColorData = product.colorImages?.[selectedColor] ?? null;
+  const effectiveShots: readonly string[] =
+    activeColorData?.productShots?.length
+      ? activeColorData.productShots
+      : [product.productShot];
+  const effectiveLook = activeColorData?.look?.model
+    ? {
+        model: activeColorData.look.model,
+        shoes: activeColorData.look.shoes ?? product.look.shoes,
+        bag: activeColorData.look.bag ?? product.look.bag,
+        earring: activeColorData.look.earring ?? product.look.earring,
+      }
+    : product.look;
+
+  const safeSlide = Math.min(activeSlide, effectiveShots.length - 1);
+  const color = useImageColor(effectiveShots[safeSlide]);
+  const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
+
+  const { addToCart } = useCart();
+  const { customer } = useCustomer();
+  const [addedFeedback, setAddedFeedback] = useState(false);
+  const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+
+  // Reset slide index when color changes so we start at the first image
+  useEffect(() => {
+    setActiveSlide(0);
+  }, [selectedColor]);
 
   const prevVariantsRef = useRef<readonly VariantOption[] | undefined>(undefined);
   useEffect(() => {
@@ -107,8 +131,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   useEffect(() => {
     if (!sizeOption || !product.variants) return;
-    // Only auto-switch if the current size doesn't exist at all for this color
-    // (i.e. no variant found, not just out of stock). OOS sizes remain selectable.
     const sizeExistsForColor = product.variants.some((v) =>
       v.selectedOptions.some((o) => o.name.toLowerCase() === (sizeOption.optionName.toLowerCase() ?? "size") && o.value === selectedSize) &&
       (!colorOption || v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === selectedColor))
@@ -152,7 +174,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
       price: effectivePrice,
       priceAmount: parseFloat(String(effectivePrice).replace(/[^0-9.]/g, "")),
       currencyCode: "EGP",
-      image: product.productShot,
+      image: effectiveShots[safeSlide],
       size: selectedSize,
       color: selectedColor,
     });
@@ -192,7 +214,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   const handleNotifyMe = async () => {
     if (customer?.email) {
-      // Logged-in: subscribe silently with their email
       const result = await subscribeToRestock(customer.email);
       if (result.success) {
         toast.success("You're on the list.", {
@@ -203,9 +224,31 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
         toast.error(result.error ?? "Could not subscribe. Please try again.");
       }
     } else {
-      // Guest: open email-capture modal
       setNotifyModalOpen(true);
     }
+  };
+
+  // Swipe gesture handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || effectiveShots.length < 2) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 40) {
+      setActiveSlide((prev) =>
+        dx < 0
+          ? Math.min(prev + 1, effectiveShots.length - 1)
+          : Math.max(prev - 1, 0)
+      );
+    }
+    touchStartX.current = null;
+  };
+
+  // Build effective product to pass to LookView (includes resolved look data)
+  const effectiveProduct: ProductConfig = {
+    ...product,
+    look: effectiveLook,
   };
 
   return (
@@ -240,9 +283,9 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
           </p>
         </div>
 
-        {/* Center: product image */}
+        {/* Center: swipeable product gallery */}
         <div className="flex justify-center relative">
-          <div className="relative">
+          <div className="relative flex flex-col items-center gap-3">
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
@@ -253,18 +296,24 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               }}
             />
             <motion.button
-              onClick={() => onLookView(product)}
+              onClick={() => onLookView(effectiveProduct)}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
               className="block relative group focus:outline-none"
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.4 }}
               aria-label="See the look"
             >
-              <img
-                src={product.productShot}
+              <motion.img
+                key={`${selectedColor}-${safeSlide}`}
+                src={effectiveShots[safeSlide]}
                 alt={product.name}
                 className="relative z-10 w-full max-w-xs md:max-w-sm"
                 style={{ maxHeight: 440, objectFit: "contain", objectPosition: "center" }}
                 crossOrigin="anonymous"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.35 }}
               />
               <motion.div
                 initial={{ opacity: 0 }}
@@ -284,6 +333,30 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 </span>
               </motion.div>
             </motion.button>
+
+            {/* Dot indicators — shown only when this color has multiple shots */}
+            {effectiveShots.length > 1 && (
+              <div className="relative z-10 flex items-center gap-1.5">
+                {effectiveShots.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setActiveSlide(i)}
+                    aria-label={`View image ${i + 1}`}
+                    style={{
+                      width: i === safeSlide ? 18 : 6,
+                      height: 4,
+                      borderRadius: 2,
+                      backgroundColor: i === safeSlide ? "#1e1814" : "rgba(30,24,20,0.22)",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      transition: "width 0.3s ease, background-color 0.3s ease",
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -356,15 +429,10 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                       cursor: "pointer",
                     }}
                   >
-                    {/* Diagonal line for out-of-stock */}
                     {!available && (
                       <span
                         aria-hidden="true"
-                        style={{
-                          position: "absolute",
-                          top: 0, left: 0, right: 0, bottom: 0,
-                          pointerEvents: "none",
-                        }}
+                        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, pointerEvents: "none" }}
                       >
                         <svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0 }}>
                           <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(30,24,20,0.18)" strokeWidth="1" />
@@ -383,7 +451,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
             {effectivePrice}
           </p>
 
-          {/* Pre-Order */}
+          {/* Pre-Order / Notify Me */}
           {isOutOfStock ? (
             <motion.button
               type="button"
