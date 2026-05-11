@@ -43,8 +43,8 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
               onNavigate?.("home");
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            className="absolute left-1/2 -translate-x-1/2 font-serif text-2xl tracking-[0.3em] font-light select-none transition-colors duration-500"
-            style={{ color: iconColor, letterSpacing: "0.35em" }}
+            className="absolute left-1/2 -translate-x-1/2 font-serif select-none transition-colors duration-500"
+            style={{ color: iconColor, letterSpacing: "0.3em", fontSize: "1.75rem" }}
             aria-label="Go to home"
           >
             MOI
