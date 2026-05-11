@@ -140,7 +140,9 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
           .map((option) => option.value)))].map((name) => ({ name, swatch: swatchFor(name) }))
       : [];
 
-  const displaySizes = sizeOption?.values ?? ["Small", "Medium"];
+  const displaySizes = sizeOption?.values?.filter((s) =>
+    !["one size", "os", "default title", "one-size"].includes(s.toLowerCase())
+  ) ?? [];
 
   const handleAddToCart = async () => {
     if (isOutOfStock) return;
@@ -325,8 +327,8 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
             </div>
           </div>
 
-          {/* Size */}
-          <div className="flex flex-col gap-3">
+          {/* Size — only shown when there are 2+ meaningful size options */}
+          {displaySizes.length > 1 && <div className="flex flex-col gap-3">
             <p className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
               Size
             </p>
@@ -374,7 +376,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 );
               })}
             </div>
-          </div>
+          </div>}
 
           {/* Price */}
           <p className="text-base font-light tracking-widest" style={{ color: "#1e1814" }}>
