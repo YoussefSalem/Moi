@@ -208,7 +208,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                     border: "1px solid #1e1814",
                   }}
                 >
-                  {addedFeedback ? "Added ✓" : "Add to Bag"}
+                  {addedFeedback ? "Added ✓" : "Pre-Order"}
                 </motion.button>
               </div>
             </motion.div>

@@ -381,7 +381,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
             {effectivePrice}
           </p>
 
-          {/* Add to Cart */}
+          {/* Pre-Order */}
           {isOutOfStock ? (
             <motion.button
               type="button"
@@ -415,7 +415,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 letterSpacing: "0.28em",
               }}
             >
-              {addedFeedback ? "Added ✓" : "Add to Cart"}
+              {addedFeedback ? "Added ✓" : "Pre-Order"}
             </motion.button>
           )}
         </div>
