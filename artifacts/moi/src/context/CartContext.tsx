@@ -94,9 +94,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const savedId = localStorage.getItem(CART_ID_KEY);
       if (savedId) {
         getCart(savedId)
-          .then((c) => {
-            if (c) setShopifyCart(c);
-            else localStorage.removeItem(CART_ID_KEY);
+          .then(async (c) => {
+            if (!c) { localStorage.removeItem(CART_ID_KEY); return; }
+            // Strip any leftover discount codes from a previous session so the
+            // cart total always reflects the raw undiscounted price on load.
+            const hasAppliedCodes = c.discountCodes.some((d) => d.applicable);
+            if (hasAppliedCodes) {
+              try {
+                const cleaned = await cartDiscountCodesUpdate(c.id, []);
+                setShopifyCart(cleaned);
+              } catch {
+                setShopifyCart(c);
+              }
+            } else {
+              setShopifyCart(c);
+            }
           })
           .catch(() => localStorage.removeItem(CART_ID_KEY));
       }
