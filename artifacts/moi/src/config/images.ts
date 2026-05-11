@@ -30,6 +30,7 @@
  *   - OR the Stradivarius CDN a1-a14 URLs when they become available
  */
 
+import WHITE_MAIN from "@assets/White_Main_1778537256857.jpg";
 
 // ── Stradivarius CDN ──────────────────────────────────────
 const CDN_BASE = "https://static.e-stradivarius.net/assets/public/6609/3c52/c7794a08bf4d/3e85295c5fe2";
@@ -99,7 +100,7 @@ export const IMAGES = {
    * look.model  : full editorial model shot for the Look View (a9 substitute)
    */
   product1: {
-    productShot: PRODUCT_SHOT,
+    productShot: WHITE_MAIN,
     filmstrip: [FS_A1, FS_A2, FS_A3, FS_A4, FS_A5, FS_A6, FS_A7, FS_A8],
     look: {
       model:   LOOK_MODEL,   // a9 substitute — editorial model wearing the cape
@@ -108,6 +109,7 @@ export const IMAGES = {
       earring: ACC_EARRING,  // SWAP ME: a12 or branded earring shot
     },
     colorImages: {
+      White: WHITE_MAIN,
     },
     name: "Moi Versa Top",
     colorLabel: "",
