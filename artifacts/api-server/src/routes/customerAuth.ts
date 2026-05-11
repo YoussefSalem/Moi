@@ -382,7 +382,11 @@ router.put("/auth/customer/profile", async (req, res) => {
     phone?: unknown;
   };
 
-  const update: Record<string, unknown> = {};
+  const update: Record<string, unknown> = {
+    first_name: payload.firstName ?? "",
+    last_name: payload.lastName ?? "",
+    phone: null,
+  };
   if (typeof firstName === "string") update.first_name = firstName.trim();
   if (typeof lastName === "string") update.last_name = lastName.trim();
   if (typeof phone === "string") update.phone = phone.trim() || null;
@@ -407,6 +411,8 @@ router.put("/auth/customer/profile", async (req, res) => {
       },
     );
     if (!r.ok) {
+      const text = await r.text().catch(() => "");
+      req.log.error({ status: r.status, text }, "Failed to update profile in Shopify");
       res.status(502).json({ error: "Failed to update profile in Shopify." });
       return;
     }
