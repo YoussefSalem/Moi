@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Upload, X, CreditCard } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Upload, X, CreditCard, Tag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 
@@ -654,27 +654,71 @@ export function CheckoutPage() {
                     <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
                     <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(subtotalAmount)}</span>
                   </div>
-                  {promoApplied && savings > 0 && (
-                    <div
-                      className="flex justify-between items-center py-2 px-3 rounded-sm"
-                      style={{
-                        backgroundColor: "rgba(74,111,85,0.10)",
-                        border: "1px solid rgba(74,111,85,0.22)",
-                      }}
-                    >
-                      <div className="flex flex-col gap-0.5">
-                        <span style={{ fontSize: "12px", color: "#3f6f4d", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.10em", textTransform: "uppercase", fontWeight: 600 }}>
-                          Saved with promo
-                        </span>
-                        <span style={{ fontSize: "12px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.06em" }}>
-                          {promoApplied.code}
-                        </span>
-                      </div>
-                      <span style={{ fontSize: "15px", color: "#3f6f4d", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
-                        -{fmt(savings)}
-                      </span>
-                    </div>
-                  )}
+                  <AnimatePresence>
+                    {promoApplied && savings > 0 && (
+                      <motion.div
+                        key="savings-row"
+                        initial={{ opacity: 0, scale: 0.96, y: -6 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.96, y: -6 }}
+                        transition={{ type: "spring", stiffness: 340, damping: 28 }}
+                        style={{
+                          backgroundColor: "rgba(52,95,67,0.09)",
+                          border: "1px solid rgba(52,95,67,0.28)",
+                          borderRadius: "2px",
+                          padding: "10px 14px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+                          <div style={{
+                            width: "26px", height: "26px", borderRadius: "50%",
+                            backgroundColor: "rgba(52,95,67,0.14)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            flexShrink: 0,
+                          }}>
+                            <Tag size={12} strokeWidth={2} style={{ color: "#2f6644" }} />
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                            <span style={{
+                              fontSize: "11px", color: "#2f6644",
+                              fontFamily: "'Montserrat', sans-serif",
+                              letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700,
+                            }}>
+                              Promo applied
+                            </span>
+                            <span style={{
+                              fontSize: "11px", color: "rgba(47,102,68,0.75)",
+                              fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em",
+                            }}>
+                              {promoApplied.code}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px" }}>
+                          <span style={{
+                            fontSize: "16px", color: "#2f6644",
+                            fontFamily: "'Montserrat', sans-serif", fontWeight: 700,
+                            letterSpacing: "0.02em",
+                          }}>
+                            -{fmt(savings)}
+                          </span>
+                          {subtotalAmount > 0 && (
+                            <span style={{
+                              fontSize: "10px", color: "rgba(47,102,68,0.7)",
+                              fontFamily: "'Montserrat', sans-serif",
+                              letterSpacing: "0.12em", textTransform: "uppercase",
+                            }}>
+                              {Math.round((savings / subtotalAmount) * 100)}% off
+                            </span>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <div className="flex justify-between">
                     <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Shipping</span>
                     <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(SHIPPING_EGP)}</span>
