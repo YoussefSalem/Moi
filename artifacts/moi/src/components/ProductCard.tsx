@@ -123,7 +123,15 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   }, [selectedColor, product.variants]);
 
   const effectivePrice = selectedVariant?.price ?? product.price;
-  const mainImage = product.colorImages?.[selectedColor] ?? product.productShot;
+  const resolvedColorImage = (() => {
+    if (!product.colorImages) return undefined;
+    const exact = product.colorImages[selectedColor];
+    if (exact) return exact;
+    const lower = selectedColor.toLowerCase();
+    const key = Object.keys(product.colorImages).find((k) => k.toLowerCase() === lower);
+    return key ? product.colorImages[key] : undefined;
+  })();
+  const mainImage = resolvedColorImage ?? product.productShot;
   const color = useImageColor(mainImage);
   const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
 
