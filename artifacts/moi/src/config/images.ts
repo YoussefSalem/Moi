@@ -30,7 +30,6 @@
  *   - OR the Stradivarius CDN a1-a14 URLs when they become available
  */
 
-import WHITE_MAIN from "@assets/image_1778537161636.png";
 
 // ── Stradivarius CDN ──────────────────────────────────────
 const CDN_BASE = "https://static.e-stradivarius.net/assets/public/6609/3c52/c7794a08bf4d/3e85295c5fe2";
@@ -109,7 +108,6 @@ export const IMAGES = {
       earring: ACC_EARRING,  // SWAP ME: a12 or branded earring shot
     },
     colorImages: {
-      White: WHITE_MAIN,
     },
     name: "Moi Versa Top",
     colorLabel: "",
