@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import nodemailer from "nodemailer";
+import { sendEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -30,29 +30,19 @@ router.post("/contact", async (req, res) => {
     "Contact form submission",
   );
 
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, CONTACT_EMAIL_TO } = process.env;
-
-  if (SMTP_HOST && SMTP_USER && SMTP_PASS && CONTACT_EMAIL_TO) {
+  const contactTo = process.env.CONTACT_EMAIL_TO;
+  if (contactTo) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: SMTP_PORT ? parseInt(SMTP_PORT, 10) : 587,
-        secure: SMTP_PORT === "465",
-        auth: { user: SMTP_USER, pass: SMTP_PASS },
-      });
-
-      await transporter.sendMail({
-        from: `"Moi Contact" <${SMTP_USER}>`,
-        to: CONTACT_EMAIL_TO,
+      await sendEmail({
+        to: contactTo,
         replyTo: safeEmail,
         subject: `Contact form — ${safeName}`,
         text: `From: ${safeName} <${safeEmail}>\n\n${safeMessage}`,
         html: `<p><strong>From:</strong> ${safeName} &lt;${safeEmail}&gt;</p><p>${safeMessage.replace(/\n/g, "<br>")}</p>`,
       });
-
-      req.log.info({ to: CONTACT_EMAIL_TO }, "Contact email sent");
+      req.log.info({ to: contactTo }, "Contact email sent");
     } catch (err) {
-      req.log.warn({ err }, "SMTP send failed — logged only");
+      req.log.warn({ err }, "Contact email send failed — logged only");
     }
   }
 
