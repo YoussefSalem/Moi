@@ -33,6 +33,7 @@
 import WHITE_MAIN from "@assets/White_Main_1778537256857.jpg";
 import CASHMERE_MAIN from "@assets/Cashmere_Main_1778538163346.jpg";
 import BEIGE_MAIN from "@assets/Beige_Main_1778538937481.jpg";
+import YELLOW_MAIN from "@assets/Yeellow_Main_1778539354603.png";
 
 
 // ── CDN a1–a14 substitutes (confirmed 200 OK) ─────────────
@@ -103,6 +104,7 @@ export const IMAGES = {
       White: WHITE_MAIN,
       Cashmere: CASHMERE_MAIN,
       Beige: BEIGE_MAIN,
+      Yellow: YELLOW_MAIN,
     },
     name: "Moi Versa Top",
     colorLabel: "",
