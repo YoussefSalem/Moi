@@ -12,6 +12,15 @@ export function Carousel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const color = useImageColor(images[activeIndex]);
 
+  // Preload all filmstrip images immediately.
+  useEffect(() => {
+    for (const src of images) {
+      if (!src) continue;
+      const img = new Image();
+      img.src = src as string;
+    }
+  }, [images]);
+
   const openLightbox = (idx: number) => {
     setLightboxIdx(idx);
     setLightboxOpen(true);

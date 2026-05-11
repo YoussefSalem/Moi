@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Bell } from "lucide-react";
 import { useImageColor } from "@/hooks/useImageColor";
@@ -21,15 +21,18 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
 
-  // Preload all per-color images so switching is instant.
+  // Preload all per-color images AND filmstrip so switching/scrolling is instant.
   useEffect(() => {
-    if (!product.colorImages) return;
-    for (const url of Object.values(product.colorImages)) {
-      if (!url) continue;
+    const urls: string[] = [
+      ...Object.values(product.colorImages ?? {}),
+      ...(product.filmstrip ?? []),
+      product.productShot,
+    ].filter(Boolean) as string[];
+    for (const url of urls) {
       const img = new Image();
-      img.src = url as string;
+      img.src = url;
     }
-  }, [product.colorImages]);
+  }, [product.colorImages, product.filmstrip, product.productShot]);
 
   const colorOption = useMemo(() => {
     if (!hasShopifyVariants) return null;
@@ -144,6 +147,17 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const mainImage = resolvedColorImage ?? product.productShot;
   const color = useImageColor(mainImage);
   const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
+
+  // Show shimmer sweep for ~380ms whenever the displayed image changes.
+  const [isSwapping, setIsSwapping] = useState(false);
+  const prevImageRef = useRef(mainImage);
+  useEffect(() => {
+    if (mainImage === prevImageRef.current) return;
+    prevImageRef.current = mainImage;
+    setIsSwapping(true);
+    const t = setTimeout(() => setIsSwapping(false), 380);
+    return () => clearTimeout(t);
+  }, [mainImage]);
 
   const isOutOfStock = (() => {
     const defaultStock = getDefaultStock(selectedColor, selectedSize);
@@ -268,7 +282,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 background: `radial-gradient(ellipse 90% 80% at 50% 60%, ${color?.rgba(0.18) ?? "rgba(180,160,140,0.12)"} 0%, transparent 70%)`,
                 filter: "blur(24px)",
                 transform: "scale(1.2)",
-                transition: "background 1.5s ease",
+                transition: "background 0.6s ease",
               }}
             />
             <motion.button
@@ -278,13 +292,34 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               transition={{ duration: 0.4 }}
               aria-label="See the look"
             >
-              <img
-                src={mainImage}
-                alt={product.name}
-                className="relative z-10 w-full max-w-xs md:max-w-sm"
-                style={{ maxHeight: 440, objectFit: "contain", objectPosition: "center" }}
-                crossOrigin="anonymous"
-              />
+              {/* Cross-fade between color images */}
+              <div className="relative z-10 w-full max-w-xs md:max-w-sm" style={{ minHeight: 320 }}>
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={mainImage}
+                    src={mainImage}
+                    alt={product.name}
+                    className="w-full"
+                    style={{ maxHeight: 440, objectFit: "contain", objectPosition: "center" }}
+                    crossOrigin="anonymous"
+                    initial={{ opacity: 0, scale: 0.985 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.015 }}
+                    transition={{ duration: 0.22, ease: "easeInOut" }}
+                  />
+                </AnimatePresence>
+                {/* Shimmer sweep overlay while swapping */}
+                <AnimatePresence>
+                  {isSwapping && (
+                    <motion.div
+                      key="shimmer-overlay"
+                      className="absolute inset-0 pointer-events-none shimmer"
+                      initial={{ opacity: 1 }}
+                      exit={{ opacity: 0, transition: { duration: 0.25 } }}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
               <motion.div
                 initial={{ opacity: 0 }}
                 whileHover={{ opacity: 1 }}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
@@ -52,6 +52,23 @@ function ProductSkeleton() {
 
 const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
 
+// Eagerly preload every image from both products so there's zero fetch delay
+// when the user switches colors or scrolls the carousel.
+function useGlobalImagePreload(products: ProductConfig[]) {
+  useEffect(() => {
+    const urls = new Set<string>();
+    for (const p of products) {
+      if (p.productShot) urls.add(p.productShot);
+      for (const u of Object.values(p.colorImages ?? {})) if (u) urls.add(u as string);
+      for (const u of (p.filmstrip ?? [])) if (u) urls.add(u as string);
+    }
+    for (const url of urls) {
+      const img = new Image();
+      img.src = url;
+    }
+  }, [products]);
+}
+
 function AppContent() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
   const [page, setPage] = useState<"home" | "accessories" | "ambassador">("home");
@@ -59,6 +76,7 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
   useRestockChecker();
+  useGlobalImagePreload(products);
 
   const product1 = products[0] ?? IMAGES.product1;
   const product2 = products[1] ?? IMAGES.product2;
