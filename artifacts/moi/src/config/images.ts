@@ -278,25 +278,6 @@ export const IMAGES = {
       white:    { Small: 5, Medium: 5 },
       black:    { Small: 5, Medium: 5 },
     },
-    /**
-     * Per-color overrides for the Versa Top gallery and Look.
-     * SWAP ME — add real image URLs for each color as they arrive:
-     *   productShot: color-specific flat-lay (used in the card center image)
-     *   filmstrip:   ordered gallery URLs (drives the Carousel strip and LookView)
-     *   look.model:  editorial lifestyle image shown as the main "The Look" hero
-     *
-     * Any omitted field falls back to the parent product1 value automatically.
-     * Empty object `{}` = use all parent defaults (safe placeholder until images arrive).
-     */
-    colorImages: {
-      Ivory:    {},
-      Sand:     {},
-      Taupe:    {},
-      Espresso: {},
-      Brown:    {},
-      White:    {},
-      Black:    {},
-    },
   },
 
   /**
@@ -353,25 +334,6 @@ export const IMAGES = {
   },
 } as const;
 
-/**
- * Per-color overrides for a single color variant.
- * All fields are optional — any missing field falls back to the parent ProductConfig value.
- * Shape mirrors the top-level ProductConfig fields it can override:
- *   productShot → the color-specific flat-lay / studio shot
- *   filmstrip   → ordered gallery images shown in the Carousel and LookView for this color
- *   look        → lifestyle model + accessories for "The Look" overlay
- */
-export interface ColorVariantImages {
-  readonly productShot?: string;
-  readonly filmstrip?: readonly string[];
-  readonly look?: {
-    readonly model?: string;
-    readonly shoes?: string;
-    readonly bag?: string;
-    readonly earring?: string;
-  };
-}
-
 export interface VariantOption {
   id: string;
   title: string;
@@ -401,10 +363,4 @@ export interface ProductConfig {
   readonly variants?: readonly VariantOption[];
   readonly defaultInventory?: Record<string, Record<string, number>>;
   readonly colorSwatches?: Record<string, string>;
-  /**
-   * Per-color gallery images and look content.
-   * Keys must match the color names in variants (e.g. "Ivory", "Sand").
-   * When a color has no entry here, productShot / filmstrip / look are used as fallback.
-   */
-  readonly colorImages?: Record<string, ColorVariantImages>;
 }
