@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { getProducts, formatMoney, SHOPIFY_CONFIGURED, type ShopifyProduct } from "@/lib/shopify";
+import { getProducts, getProductByHandle, formatMoney, SHOPIFY_CONFIGURED, type ShopifyProduct } from "@/lib/shopify";
 import { type ProductConfig, type VariantOption } from "@/config/images";
 
-function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductConfig): ProductConfig {
+export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductConfig): ProductConfig {
   const { minVariantPrice } = shopify.priceRange;
   const priceFormatted = formatMoney(minVariantPrice.amount, minVariantPrice.currencyCode);
   const mainImage = shopify.featuredImage?.url ?? fallback.productShot;
