@@ -95,9 +95,15 @@ export function useShopifyProducts(fallbacks: ProductConfig[]): UseShopifyProduc
           setLoading(false);
           return;
         }
-        const mapped = shopifyProducts.map((sp, i) =>
-          mapProductToConfig(sp, fallbacks[i] ?? fallbacks[0]),
-        );
+        const mapped = shopifyProducts.map((sp) => {
+          // Match by title (case-insensitive substring) so order from Shopify doesn't matter.
+          const matched = fallbacks.find((fb) =>
+            fb.name && sp.title.toLowerCase().includes(fb.name.toLowerCase())
+          ) ?? fallbacks.find((fb) =>
+            fb.name && fb.name.toLowerCase().includes(sp.title.toLowerCase())
+          ) ?? fallbacks[0];
+          return mapProductToConfig(sp, matched);
+        });
         setProducts(mapped);
         setLoading(false);
       })
