@@ -135,7 +135,15 @@ export function CheckoutPage() {
   const lines = isShopify && shopifyCart ? shopifyCart.lines.nodes : null;
   const localLines = !isShopify ? localItems : [];
   const localSubtotal = localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
-  const subtotalAmount = shopifyCart ? parseFloat(shopifyCart.cost.subtotalAmount.amount) : localSubtotal;
+  // Shopify's cost.subtotalAmount already reflects discounts, so we can't use it
+  // to compute savings. Instead, sum raw line item prices × quantities.
+  const lineItemsSubtotal = shopifyCart
+    ? shopifyCart.lines.nodes.reduce(
+        (sum, line) => sum + parseFloat(line.merchandise.price.amount) * line.quantity,
+        0,
+      )
+    : localSubtotal;
+  const subtotalAmount = lineItemsSubtotal;
   const cartDiscountedTotal = shopifyCart ? parseFloat(shopifyCart.cost.totalAmount.amount) : localSubtotal;
   const savings = Math.max(0, subtotalAmount - cartDiscountedTotal);
   const totalAmount = cartDiscountedTotal + SHIPPING_EGP;
