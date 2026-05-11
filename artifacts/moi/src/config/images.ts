@@ -303,6 +303,35 @@ export const IMAGES = {
     lining: "Lining: 96% Polyester, 4% Elastane",
     ref: "2076/511/401",
   },
+  /**
+   * PRODUCT 3 — Trio Bangles (Accessories)
+   * Elegant set of three stacking bangles. Placeholder Unsplash images.
+   * SWAP ME: replace with branded product photography when available.
+   */
+  product3: {
+    productShot: `${U}-1611591437281-460bfbe1220a?w=800&fit=crop&q=80`,
+    filmstrip: [
+      `${U}-1611591437281-460bfbe1220a?w=600&fit=crop&q=80`,
+      `${U}-1603561591411-07134e71a2a9?w=600&fit=crop&q=80`,
+      `${U}-1588444837495-c6cfeb53f32d?w=600&fit=crop&q=80`,
+      `${U}-1515562141207-7a88fb7ce338?w=600&fit=crop&q=80`,
+      `${U}-1611591437281-460bfbe1220a?w=600&fit=crop&q=80`,
+      `${U}-1603561591411-07134e71a2a9?w=600&fit=crop&q=80`,
+    ],
+    look: {
+      model:   `${U}-1611591437281-460bfbe1220a?w=800&fit=crop&q=80`,
+      shoes:   ACC_SHOES,
+      bag:     ACC_BAG,
+      earring: ACC_EARRING,
+    },
+    name: "Trio Bangles",
+    colorLabel: "",
+    description: "Three slim stacking bangles in a polished finish — worn together or layered freely. Lightweight, adjustable, and crafted to accompany every look.",
+    price: "890 EGP",
+    outer: "Material: Brass with gold-tone plating",
+    lining: "Set of 3 bangles",
+    ref: "ACC/001/TRB",
+  },
 } as const;
 
 export interface VariantOption {

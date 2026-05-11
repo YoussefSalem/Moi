@@ -92,7 +92,7 @@ function AppContent() {
         </main>
       ) : page === "accessories" ? (
         <div>
-          <AccessoriesPage />
+          <AccessoriesPage onLookView={setLookProduct} />
           <Footer />
         </div>
       ) : (
