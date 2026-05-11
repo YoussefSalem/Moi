@@ -292,15 +292,18 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               transition={{ duration: 0.4 }}
               aria-label="See the look"
             >
-              {/* Cross-fade between color images */}
-              <div className="relative z-10 w-full max-w-xs md:max-w-sm" style={{ minHeight: 320 }}>
+              {/* Cross-fade between color images — fixed-height container prevents layout shift */}
+              <div
+                className="relative z-10 w-full max-w-xs md:max-w-sm"
+                style={{ height: "clamp(320px, 48vh, 480px)" }}
+              >
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={mainImage}
                     src={mainImage}
                     alt={product.name}
-                    className="w-full"
-                    style={{ maxHeight: 440, objectFit: "contain", objectPosition: "center" }}
+                    className="absolute inset-0 w-full h-full"
+                    style={{ objectFit: "contain", objectPosition: "center" }}
                     crossOrigin="anonymous"
                     initial={{ opacity: 0, scale: 0.985 }}
                     animate={{ opacity: 1, scale: 1 }}
