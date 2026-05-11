@@ -30,10 +30,6 @@
  *   - OR the Stradivarius CDN a1-a14 URLs when they become available
  */
 
-// ── White variant images (served from public/) ─────────────
-const WHITE_MAIN  = `${import.meta.env.BASE_URL}White_Main.jpg`;
-const WHITE_SWIPE = `${import.meta.env.BASE_URL}White_Swipe.png`;
-
 // ── Stradivarius CDN ──────────────────────────────────────
 const CDN_BASE = "https://static.e-stradivarius.net/assets/public/6609/3c52/c7794a08bf4d/3e85295c5fe2";
 const CDN_TS   = "ts=1773676013508";
@@ -298,10 +294,7 @@ export const IMAGES = {
       Taupe:    {},
       Espresso: {},
       Brown:    {},
-      White: {
-        productShot: WHITE_MAIN,
-        filmstrip: [WHITE_MAIN, WHITE_SWIPE],
-      },
+      White:    {},
       Black:    {},
     },
   },

@@ -50,14 +50,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   // ── Per-color image resolution ────────────────────────────────────────────
   // All fields fall back to top-level ProductConfig values when not overridden.
-  // Case-insensitive lookup: Shopify may return "WHITE" while our key is "White"
-  const activeColorData = product.colorImages
-    ? (product.colorImages[selectedColor] ??
-       Object.entries(product.colorImages).find(
-         ([k]) => k.toLowerCase() === selectedColor.toLowerCase()
-       )?.[1] ??
-       null)
-    : null;
+  const activeColorData = product.colorImages?.[selectedColor] ?? null;
   const effectiveProductShot: string =
     activeColorData?.productShot ?? product.productShot;
   // Treat empty filmstrip arrays (length 0) the same as absent — fall back to
