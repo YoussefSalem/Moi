@@ -59,6 +59,7 @@ interface CartContextValue {
   checkoutUrl: string | null;
   formatShopifyLinePrice: (line: ShopifyCartLine) => string;
   cartTotal: string;
+  cartRawTotal: string;
   cartSubtotal: string;
   isShopify: boolean;
 }
@@ -240,10 +241,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const shopifySubtotal = shopifyCart
     ? formatMoney(shopifyCart.cost.subtotalAmount.amount, shopifyCart.cost.subtotalAmount.currencyCode)
     : "";
+  // Raw undiscounted total: sum line item prices × quantities, ignoring any applied discount.
+  // Used in the cart drawer so discount codes don't silently alter the visible total there.
+  const shopifyRawLineTotal = shopifyCart
+    ? shopifyCart.lines.nodes.reduce(
+        (sum, line) => sum + parseFloat(line.merchandise.price.amount) * line.quantity,
+        0,
+      )
+    : 0;
+  const shopifyCurrency = shopifyCart?.cost.totalAmount.currencyCode ?? "EGP";
   const localTotal = localItems.reduce((sum, i) => sum + i.priceAmount * i.quantity, 0);
   const localCurrency = localItems[0]?.currencyCode ?? "EGP";
   const cartTotal = shopifyActive
     ? shopifyTotal
+    : localItems.length > 0 ? formatMoney(String(localTotal), localCurrency) : "";
+  const cartRawTotal = shopifyActive
+    ? formatMoney(String(shopifyRawLineTotal), shopifyCurrency)
     : localItems.length > 0 ? formatMoney(String(localTotal), localCurrency) : "";
   const cartSubtotal = shopifyActive
     ? shopifySubtotal
@@ -269,6 +282,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       checkoutUrl: shopifyCart?.checkoutUrl ?? null,
       formatShopifyLinePrice,
       cartTotal,
+      cartRawTotal,
       cartSubtotal,
       isShopify: shopifyActive,
     }}>

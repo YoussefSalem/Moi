@@ -12,7 +12,7 @@ export function CartDrawer() {
     removeItem,
     updateQuantity,
     formatShopifyLinePrice,
-    cartTotal,
+    cartRawTotal,
     loading,
     isShopify,
   } = useCart();
@@ -282,7 +282,7 @@ export function CartDrawer() {
                     className="text-base font-semibold tracking-wide"
                     style={{ color: "#17120f" }}
                   >
-                    {cartTotal}
+                    {cartRawTotal}
                   </span>
                 </div>
                 <p
