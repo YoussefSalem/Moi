@@ -24,6 +24,7 @@ export default defineConfig({
         server.middlewares.use((req, res, next) => {
           if (req.url && /\/images\/[^?]+\.(jpg|jpeg|webp|png|avif)(\?|$)/i.test(req.url)) {
             res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+            res.setHeader("Access-Control-Allow-Origin", "*");
           }
           next();
         });
