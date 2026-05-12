@@ -192,7 +192,7 @@ export function Carousel() {
 
               {/* Right: full-size image */}
               <div className="flex-1 flex items-center justify-center relative bg-black">
-                <AnimatePresence mode="wait">
+                <AnimatePresence initial={false} mode="wait">
                   <motion.img
                     key={lightboxIdx}
                     src={images[lightboxIdx]}

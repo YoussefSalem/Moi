@@ -30,18 +30,17 @@
  *   - OR the Stradivarius CDN a1-a14 URLs when they become available
  */
 
-// ── Compressed product images served from /public/images/ (~130–280 KB each) ──
-// Originals were 8-11 MB; compressed with ImageMagick at 1000px/q78.
+// ── Compressed product images (~130–280 KB each, down from 8–11 MB originals) ──
+// Imported as ES modules so Vite generates correct content-hashed URLs.
 // SWAP ME: replace with CDN URLs when available.
-const _BASE = import.meta.env.BASE_URL;
-const WHITE_MAIN    = `${_BASE}images/white.jpg`;
-const CASHMERE_MAIN = `${_BASE}images/cashmere.jpg`;
-const BEIGE_MAIN    = `${_BASE}images/beige.jpg`;
-const YELLOW_MAIN   = `${_BASE}images/yellow.jpg`;
-const TEAL_MAIN     = `${_BASE}images/teal.jpg`;
-// attached fallback assets (compressed)
-const ATTACHED_ONE  = `${_BASE}images/filmstrip-a.jpg`;
-const ATTACHED_TWO  = `${_BASE}images/filmstrip-b.jpg`;
+import WHITE_MAIN    from "@/assets/images/white.jpg";
+import CASHMERE_MAIN from "@/assets/images/cashmere.jpg";
+import BEIGE_MAIN    from "@/assets/images/beige.jpg";
+import YELLOW_MAIN   from "@/assets/images/yellow.jpg";
+import TEAL_MAIN     from "@/assets/images/teal.jpg";
+// filmstrip fallback assets (compressed)
+import ATTACHED_ONE  from "@/assets/images/filmstrip-a.jpg";
+import ATTACHED_TWO  from "@/assets/images/filmstrip-b.jpg";
 
 // ── CDN a1–a14 substitutes (confirmed 200 OK) ─────────────
 // Unsplash fashion editorial photos used in place of the unavailable CDN model shots.

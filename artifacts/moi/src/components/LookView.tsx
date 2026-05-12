@@ -147,7 +147,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                       transition: "background 1.5s ease",
                     }}
                   />
-                  <AnimatePresence mode="wait">
+                  <AnimatePresence initial={false} mode="wait">
                     <motion.img
                       key={activeImage ?? product.look.model}
                       src={activeImage ?? product.look.model}

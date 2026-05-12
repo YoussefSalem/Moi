@@ -297,17 +297,19 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 className="relative z-10 w-full max-w-xs md:max-w-sm"
                 style={{ height: "clamp(320px, 48vh, 480px)" }}
               >
-                <AnimatePresence mode="wait">
+                {/* initial={false} prevents the first image from fading in from opacity:0 */}
+                {/* (which could stall when parent whileInView fires late). Color-swaps still animate. */}
+                <AnimatePresence initial={false} mode="wait">
                   <motion.img
                     key={mainImage}
                     src={mainImage}
                     alt={product.name}
                     className="absolute inset-0 w-full h-full"
                     style={{ objectFit: "contain", objectPosition: "center" }}
-                    initial={{ opacity: 0, scale: 0.985 }}
+                    initial={{ opacity: 0, scale: 0.97 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.015 }}
-                    transition={{ duration: 0.22, ease: "easeInOut" }}
+                    exit={{ opacity: 0, scale: 1.03 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
                   />
                 </AnimatePresence>
                 {/* Shimmer sweep overlay while swapping */}
