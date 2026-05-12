@@ -52,6 +52,10 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    headers: {
+      // Cache compressed images aggressively — filenames are stable so a long TTL is safe.
+      "Cache-Control": "public, max-age=31536000, immutable",
+    },
   },
   preview: {
     port,

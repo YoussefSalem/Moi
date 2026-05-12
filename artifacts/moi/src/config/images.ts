@@ -30,20 +30,23 @@
  *   - OR the Stradivarius CDN a1-a14 URLs when they become available
  */
 
-import WHITE_MAIN from "@assets/White_Main_1778537256857.jpg";
-import CASHMERE_MAIN from "@assets/Cashmere_Main_1778538163346.jpg";
-import BEIGE_MAIN from "@assets/Beige_Main_1778538937481.jpg";
-import YELLOW_MAIN from "@assets/Yeellow_Main_1778539354603.png";
-import TEAL_MAIN from "@assets/Teal_Main__1778539458828.jpg";
-
+// ── Compressed product images served from /public/images/ ──
+// Originals were 8-11 MB each; these are resized to 1000px / q78 JPEG (~130-280 KB).
+// SWAP ME: replace with CDN URLs when available.
+const BASE = import.meta.env.BASE_URL;
+const WHITE_MAIN    = `${BASE}images/white.jpg`;
+const CASHMERE_MAIN = `${BASE}images/cashmere.jpg`;
+const BEIGE_MAIN    = `${BASE}images/beige.jpg`;
+const YELLOW_MAIN   = `${BASE}images/yellow.jpg`;
+const TEAL_MAIN     = `${BASE}images/teal.jpg`;
 
 // ── CDN a1–a14 substitutes (confirmed 200 OK) ─────────────
 // Unsplash fashion editorial photos used in place of the unavailable CDN model shots.
 // SWAP ME: replace each with the corresponding CDN URL (a1–a14) once they resolve.
 const U = "https://images.unsplash.com/photo";
-// attached fallback assets — used directly for the first paint
-const ATTACHED_ONE = "@assets/image_1778208832966.png";
-const ATTACHED_TWO = "@assets/image_1778208841709.png";
+// attached fallback assets — served from /public/images/ (compressed)
+const ATTACHED_ONE = `${BASE}images/filmstrip-a.jpg`;
+const ATTACHED_TWO = `${BASE}images/filmstrip-b.jpg`;
 const HERO_IMAGE = `${import.meta.env.BASE_URL}hero-image.jpeg`;
 // a1 substitute — attached product / variant image
 const FS_A1  = ATTACHED_ONE;
