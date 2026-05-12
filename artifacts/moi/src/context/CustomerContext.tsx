@@ -60,8 +60,9 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const data = await res.json() as { success?: boolean; error?: string };
-      if (!res.ok) return data.error ?? "Failed to send code.";
+      const text = await res.text();
+      const data = text ? (JSON.parse(text) as { success?: boolean; error?: string }) : {};
+      if (!res.ok) return data.error ?? "Could not send the verification code. Please try again.";
       return null;
     } catch {
       return "Network error. Please try again.";
@@ -78,8 +79,9 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, code }),
       });
-      const data = await res.json() as { token?: string; customer?: Customer; error?: string };
-      if (!res.ok) return data.error ?? "Verification failed.";
+      const text = await res.text();
+      const data = text ? (JSON.parse(text) as { token?: string; customer?: Customer; error?: string }) : {};
+      if (!res.ok) return data.error ?? "Could not verify the code. Please try again.";
       if (data.token && data.customer) {
         localStorage.setItem(TOKEN_KEY, data.token);
         setCustomer(data.customer);
