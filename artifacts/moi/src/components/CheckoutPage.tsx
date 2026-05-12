@@ -3,6 +3,30 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, ChevronUp, Upload, X, CreditCard, Tag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
+import { IMAGES } from "@/config/images";
+import type { ShopifyCartLine } from "@/lib/shopify";
+
+const COLOR_IMAGE_MAP: Record<string, string> = {};
+for (const cfg of Object.values(IMAGES)) {
+  if ("colorImages" in cfg && cfg.colorImages) {
+    for (const [color, url] of Object.entries(cfg.colorImages as Record<string, string>)) {
+      COLOR_IMAGE_MAP[color.toLowerCase()] = url;
+    }
+  }
+}
+
+function resolveLineImage(line: ShopifyCartLine): string | null {
+  if (line.merchandise.image?.url) return line.merchandise.image.url;
+  if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
+  const colorOpt = line.merchandise.selectedOptions?.find(
+    (o) => o.name.toLowerCase() === "color"
+  );
+  if (colorOpt) {
+    const hit = COLOR_IMAGE_MAP[colorOpt.value.toLowerCase()];
+    if (hit) return hit;
+  }
+  return null;
+}
 
 type PaymentMethod = "cod" | "instapay" | "card";
 type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
@@ -492,8 +516,8 @@ export function CheckoutPage() {
                     ? lines.map((line) => (
                         <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
-                            {(line.merchandise.image ?? line.merchandise.product.featuredImage) && (
-                              <img src={(line.merchandise.image ?? line.merchandise.product.featuredImage)!.url} alt={line.merchandise.product.title} className="w-full h-full object-cover" />
+                            {resolveLineImage(line) && (
+                              <img src={resolveLineImage(line)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" />
                             )}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
@@ -622,8 +646,8 @@ export function CheckoutPage() {
                     ? lines.map((line) => (
                         <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.1)" }}>
-                            {(line.merchandise.image ?? line.merchandise.product.featuredImage) && (
-                              <img src={(line.merchandise.image ?? line.merchandise.product.featuredImage)!.url} alt={line.merchandise.product.title} className="w-full h-full object-cover" />
+                            {resolveLineImage(line) && (
+                              <img src={resolveLineImage(line)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" />
                             )}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">

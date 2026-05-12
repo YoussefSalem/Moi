@@ -1,6 +1,35 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { IMAGES } from "@/config/images";
+import type { ShopifyCartLine } from "@/lib/shopify";
+
+// Build a flat color→image map from all product configs so we can resolve
+// the correct local thumbnail even when Shopify has no variant image set.
+const COLOR_IMAGE_MAP: Record<string, string> = {};
+for (const cfg of Object.values(IMAGES)) {
+  if ("colorImages" in cfg && cfg.colorImages) {
+    for (const [color, url] of Object.entries(cfg.colorImages as Record<string, string>)) {
+      COLOR_IMAGE_MAP[color.toLowerCase()] = url;
+    }
+  }
+}
+
+function resolveLineImage(line: ShopifyCartLine): string | null {
+  // 1. Variant-level image set in Shopify admin
+  if (line.merchandise.image?.url) return line.merchandise.image.url;
+  // 2. Product featured image set in Shopify admin
+  if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
+  // 3. Derive from the Color selectedOption → local config image
+  const colorOpt = line.merchandise.selectedOptions?.find(
+    (o) => o.name.toLowerCase() === "color"
+  );
+  if (colorOpt) {
+    const hit = COLOR_IMAGE_MAP[colorOpt.value.toLowerCase()];
+    if (hit) return hit;
+  }
+  return null;
+}
 
 export function CartDrawer() {
   const {
@@ -106,9 +135,9 @@ export function CartDrawer() {
                             className="w-20 h-24 flex-shrink-0 overflow-hidden"
                             style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
                           >
-                            {(line.merchandise.image ?? line.merchandise.product.featuredImage) && (
+                            {resolveLineImage(line) && (
                               <img
-                                src={(line.merchandise.image ?? line.merchandise.product.featuredImage)!.url}
+                                src={resolveLineImage(line)!}
                                 alt={line.merchandise.product.title}
                                 className="w-full h-full object-cover"
                               />

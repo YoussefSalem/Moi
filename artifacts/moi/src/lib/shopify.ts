@@ -84,6 +84,7 @@ export interface ShopifyCartLine {
     id: string;
     title: string;
     image: ShopifyImage | null;
+    selectedOptions: { name: string; value: string }[];
     product: { title: string; handle: string; featuredImage: ShopifyImage | null };
     price: { amount: string; currencyCode: string };
   };
@@ -144,6 +145,7 @@ const CART_FRAGMENT = `
           ... on ProductVariant {
             id title
             image { url altText }
+            selectedOptions { name value }
             price { amount currencyCode }
             product { title handle featuredImage { url altText } }
           }
