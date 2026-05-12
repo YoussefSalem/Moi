@@ -95,7 +95,7 @@ export const IMAGES = {
    * look.model  : full editorial model shot for the Look View (a9 substitute)
    */
   product1: {
-    productShot: WHITE_MAIN,
+    productShot: BEIGE_MAIN,
     filmstrip: [FS_A1, FS_A2, FS_A3, FS_A4, FS_A5, FS_A6, FS_A7, FS_A8],
     look: {
       model:   LOOK_MODEL,   // a9 substitute — editorial model wearing the cape
