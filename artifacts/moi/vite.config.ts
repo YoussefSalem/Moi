@@ -18,6 +18,17 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
+    {
+      name: "image-cache-headers",
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url && /\/images\/[^?]+\.(jpg|jpeg|webp|png|avif)(\?|$)/i.test(req.url)) {
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          }
+          next();
+        });
+      },
+    },
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
@@ -51,10 +62,6 @@ export default defineConfig({
     fs: {
       strict: true,
       deny: ["**/.*"],
-    },
-    headers: {
-      // Cache compressed images aggressively — filenames are stable so a long TTL is safe.
-      "Cache-Control": "public, max-age=31536000, immutable",
     },
   },
   preview: {
