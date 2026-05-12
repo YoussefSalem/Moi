@@ -17,7 +17,10 @@ function getTransporter(): Transporter {
 }
 
 function getBrandFrom(): string {
-  return `Moi <${process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"}>`;
+  const raw = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
+  // If the env var already contains a display name (e.g. "Moi <hello@domain.com>"),
+  // use it as-is to avoid double-wrapping like "Moi <Moi <hello@domain.com>>".
+  return raw.includes("<") ? raw : `Moi <${raw}>`;
 }
 
 export async function sendEmail(params: {
