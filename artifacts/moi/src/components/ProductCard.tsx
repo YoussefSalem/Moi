@@ -344,24 +344,20 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 setDragLastX(null);
                 setDragStartTime(null);
                 setDraggingGallery(false);
-                if (!shouldSwipe) return;
-                jumpGallery(delta < 0 ? 1 : -1);
+                if (shouldSwipe) {
+                  jumpGallery(delta < 0 ? 1 : -1);
+                } else {
+                  // Tap (not a swipe) → open Look View
+                  onLookView(product);
+                }
               }}
               style={{
                 touchAction: "pan-y",
                 userSelect: draggingGallery ? "none" : "auto",
                 WebkitUserSelect: draggingGallery ? "none" : "auto",
+                cursor: "pointer",
               }}
             >
-              <button
-                type="button"
-                onClick={() => onLookView(product)}
-                className="absolute inset-0 z-30"
-                aria-label="See the look"
-                style={{
-                  touchAction: "manipulation",
-                }}
-              />
               {/* Cross-fade between color images — fixed-height container prevents layout shift */}
               <div
                 className="relative z-10 w-full"
@@ -394,13 +390,9 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                   )}
                 </AnimatePresence>
               </div>
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileHover={{ opacity: 1 }}
-                whileTap={{ opacity: 1 }}
-                animate={{ opacity: draggingGallery ? 1 : undefined }}
-                transition={{ duration: 0.25 }}
-                className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
+              <div
+                className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+                style={{ opacity: draggingGallery ? 0 : undefined }}
               >
                 <span
                   className="text-[10px] tracking-[0.3em] uppercase font-medium px-4 py-2"
@@ -412,7 +404,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 >
                   See the Look
                 </span>
-              </motion.div>
+              </div>
             </div>
             <div className="mt-4 flex items-center justify-center gap-1.5">
               {galleryImages.map((_, index) => (
