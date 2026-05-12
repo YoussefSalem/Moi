@@ -41,6 +41,11 @@ import TEAL_MAIN     from "@/assets/images/teal.jpg";
 // filmstrip fallback assets (compressed)
 import ATTACHED_ONE  from "@/assets/images/filmstrip-a.jpg";
 import ATTACHED_TWO  from "@/assets/images/filmstrip-b.jpg";
+const WHITE_GALLERY = [WHITE_MAIN, ATTACHED_ONE, ATTACHED_TWO];
+const CASHMERE_GALLERY = [CASHMERE_MAIN, ATTACHED_TWO, ATTACHED_ONE];
+const BEIGE_GALLERY = [BEIGE_MAIN, ATTACHED_ONE, ATTACHED_TWO];
+const YELLOW_GALLERY = [YELLOW_MAIN, ATTACHED_TWO, ATTACHED_ONE];
+const TEAL_GALLERY = [TEAL_MAIN, ATTACHED_ONE, ATTACHED_TWO];
 
 // ── CDN a1–a14 substitutes (confirmed 200 OK) ─────────────
 // Unsplash fashion editorial photos used in place of the unavailable CDN model shots.
@@ -109,6 +114,13 @@ export const IMAGES = {
       Beige: BEIGE_MAIN,
       Yellow: YELLOW_MAIN,
       Teal: TEAL_MAIN,
+    },
+    colorGalleries: {
+      White: WHITE_GALLERY,
+      Cashmere: CASHMERE_GALLERY,
+      Beige: BEIGE_GALLERY,
+      Yellow: YELLOW_GALLERY,
+      Teal: TEAL_GALLERY,
     },
     name: "Moi Versa Top",
     colorLabel: "",
@@ -391,4 +403,5 @@ export interface ProductConfig {
   readonly defaultInventory?: Record<string, Record<string, number>>;
   readonly colorSwatches?: Record<string, string>;
   readonly colorImages?: Record<string, string>;
+  readonly colorGalleries?: Record<string, readonly string[]>;
 }

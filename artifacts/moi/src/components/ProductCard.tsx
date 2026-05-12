@@ -18,6 +18,8 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const { customer } = useCustomer();
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [dragStartX, setDragStartX] = useState<number | null>(null);
 
   const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
 
@@ -144,7 +146,17 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     const key = Object.keys(product.colorImages).find((k) => k.toLowerCase() === lower);
     return key ? product.colorImages[key] : undefined;
   })();
-  const mainImage = resolvedColorImage ?? product.productShot;
+  const colorGallery = (() => {
+    const galleries = product.colorGalleries;
+    if (!galleries) return [resolvedColorImage ?? product.productShot];
+    const exact = galleries[selectedColor];
+    if (exact?.length) return exact as readonly string[];
+    const lower = selectedColor.toLowerCase();
+    const key = Object.keys(galleries).find((k) => k.toLowerCase() === lower);
+    return key && galleries[key]?.length ? galleries[key]! : [resolvedColorImage ?? product.productShot];
+  })();
+  const galleryImages = colorGallery.length > 0 ? colorGallery : [resolvedColorImage ?? product.productShot];
+  const mainImage = galleryImages[galleryIndex % galleryImages.length] ?? resolvedColorImage ?? product.productShot;
   const color = useImageColor(mainImage);
   const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
 
@@ -158,6 +170,10 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     const t = setTimeout(() => setIsSwapping(false), 380);
     return () => clearTimeout(t);
   }, [mainImage]);
+
+  useEffect(() => {
+    setGalleryIndex(0);
+  }, [selectedColor]);
 
   const isOutOfStock = (() => {
     const defaultStock = getDefaultStock(selectedColor, selectedSize);
@@ -176,6 +192,10 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const displaySizes = sizeOption?.values?.filter((s) =>
     !["one size", "os", "default title", "one-size"].includes(s.toLowerCase())
   ) ?? [];
+
+  const goToGallery = (index: number) => setGalleryIndex((index + galleryImages.length) % galleryImages.length);
+  const nextGallery = () => goToGallery(galleryIndex + 1);
+  const prevGallery = () => goToGallery(galleryIndex - 1);
 
   const handleAddToCart = async () => {
     if (isOutOfStock) return;
@@ -285,13 +305,24 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 transition: "background 0.6s ease",
               }}
             />
-            <motion.button
-              onClick={() => onLookView(product)}
+            <div
               className="block relative group focus:outline-none w-full"
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.4 }}
-              aria-label="See the look"
+              onPointerDown={(e) => setDragStartX(e.clientX)}
+              onPointerCancel={() => setDragStartX(null)}
+              onPointerUp={(e) => {
+                if (dragStartX === null) return;
+                const delta = e.clientX - dragStartX;
+                setDragStartX(null);
+                if (Math.abs(delta) < 40) return;
+                delta < 0 ? nextGallery() : prevGallery();
+              }}
             >
+              <button
+                type="button"
+                onClick={() => onLookView(product)}
+                className="absolute inset-0 z-30"
+                aria-label="See the look"
+              />
               {/* Cross-fade between color images — fixed-height container prevents layout shift */}
               <div
                 className="relative z-10 w-full"
@@ -341,7 +372,38 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                   See the Look
                 </span>
               </motion.div>
-            </motion.button>
+            </div>
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                aria-label="Previous image"
+                onClick={prevGallery}
+                className="rounded-full bg-white/70 px-3 py-2 text-[10px] tracking-[0.2em] uppercase"
+              >
+                Prev
+              </button>
+              {galleryImages.map((_, index) => (
+                <button
+                  key={`${selectedColor}-${index}`}
+                  type="button"
+                  aria-label={`Go to image ${index + 1}`}
+                  onClick={() => setGalleryIndex(index)}
+                  className="h-2.5 w-2.5 rounded-full transition-all duration-300"
+                  style={{
+                    backgroundColor: index === galleryIndex ? "#1e1814" : "rgba(30,24,20,0.22)",
+                    transform: index === galleryIndex ? "scale(1.15)" : "scale(1)",
+                  }}
+                />
+              ))}
+              <button
+                type="button"
+                aria-label="Next image"
+                onClick={nextGallery}
+                className="rounded-full bg-white/70 px-3 py-2 text-[10px] tracking-[0.2em] uppercase"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
 
