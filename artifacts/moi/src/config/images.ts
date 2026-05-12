@@ -34,8 +34,8 @@
 // Imported as ES modules so Vite generates correct content-hashed URLs.
 // SWAP ME: replace with CDN URLs when available.
 import WHITE_MAIN    from "@/assets/images/white.jpg";
-import WHITE_ALT_ONE  from "@/assets/images/white-white-1.jpg";
-import WHITE_ALT_TWO  from "@/assets/images/white-white-2.jpg";
+import WHITE_ALT_ONE  from "@/assets/images/IMG_1996_1778613360425-opt.jpg";
+import WHITE_ALT_TWO  from "@/assets/images/IMG_1993_1778613360426-opt.jpg";
 import CASHMERE_MAIN from "@/assets/images/cashmere.jpg";
 import BEIGE_MAIN    from "@/assets/images/beige.jpg";
 import YELLOW_MAIN   from "@/assets/images/yellow.jpg";

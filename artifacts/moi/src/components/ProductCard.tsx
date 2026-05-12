@@ -411,36 +411,20 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 </span>
               </motion.div>
             </div>
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <button
-                type="button"
-                aria-label="Previous image"
-                onClick={prevGallery}
-                className="rounded-full bg-white/70 px-3 py-2 text-[10px] tracking-[0.2em] uppercase"
-              >
-                Prev
-              </button>
+            <div className="mt-4 flex items-center justify-center gap-1.5">
               {galleryImages.map((_, index) => (
                 <button
                   key={`${selectedColor}-${index}`}
                   type="button"
                   aria-label={`Go to image ${index + 1}`}
                   onClick={() => setGalleryIndex(index)}
-                  className="h-2.5 w-2.5 rounded-full transition-all duration-300"
+                  className="h-2 w-2 rounded-full transition-all duration-300"
                   style={{
                     backgroundColor: index === galleryIndex ? "#1e1814" : "rgba(30,24,20,0.22)",
-                    transform: index === galleryIndex ? "scale(1.15)" : "scale(1)",
+                    transform: index === galleryIndex ? "scale(1.1)" : "scale(1)",
                   }}
                 />
               ))}
-              <button
-                type="button"
-                aria-label="Next image"
-                onClick={nextGallery}
-                className="rounded-full bg-white/70 px-3 py-2 text-[10px] tracking-[0.2em] uppercase"
-              >
-                Next
-              </button>
             </div>
           </div>
         </div>
