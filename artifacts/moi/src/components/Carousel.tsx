@@ -17,6 +17,7 @@ export function Carousel() {
     for (const src of images) {
       if (!src) continue;
       const img = new Image();
+      img.crossOrigin = "anonymous";
       img.src = src as string;
     }
   }, [images]);

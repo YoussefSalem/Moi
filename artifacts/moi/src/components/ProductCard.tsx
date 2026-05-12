@@ -30,6 +30,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     ].filter(Boolean) as string[];
     for (const url of urls) {
       const img = new Image();
+      img.crossOrigin = "anonymous";
       img.src = url;
     }
   }, [product.colorImages, product.filmstrip, product.productShot]);
