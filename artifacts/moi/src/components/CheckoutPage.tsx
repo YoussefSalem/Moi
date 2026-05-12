@@ -492,8 +492,8 @@ export function CheckoutPage() {
                     ? lines.map((line) => (
                         <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
-                            {line.merchandise.product.featuredImage && (
-                              <img src={line.merchandise.product.featuredImage.url} alt={line.merchandise.product.title} className="w-full h-full object-cover" />
+                            {(line.merchandise.image ?? line.merchandise.product.featuredImage) && (
+                              <img src={(line.merchandise.image ?? line.merchandise.product.featuredImage)!.url} alt={line.merchandise.product.title} className="w-full h-full object-cover" />
                             )}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
@@ -622,8 +622,8 @@ export function CheckoutPage() {
                     ? lines.map((line) => (
                         <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.1)" }}>
-                            {line.merchandise.product.featuredImage && (
-                              <img src={line.merchandise.product.featuredImage.url} alt={line.merchandise.product.title} className="w-full h-full object-cover" />
+                            {(line.merchandise.image ?? line.merchandise.product.featuredImage) && (
+                              <img src={(line.merchandise.image ?? line.merchandise.product.featuredImage)!.url} alt={line.merchandise.product.title} className="w-full h-full object-cover" />
                             )}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">

@@ -83,6 +83,7 @@ export interface ShopifyCartLine {
   merchandise: {
     id: string;
     title: string;
+    image: ShopifyImage | null;
     product: { title: string; handle: string; featuredImage: ShopifyImage | null };
     price: { amount: string; currencyCode: string };
   };
@@ -142,6 +143,7 @@ const CART_FRAGMENT = `
         merchandise {
           ... on ProductVariant {
             id title
+            image { url altText }
             price { amount currencyCode }
             product { title handle featuredImage { url altText } }
           }

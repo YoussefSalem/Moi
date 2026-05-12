@@ -106,9 +106,9 @@ export function CartDrawer() {
                             className="w-20 h-24 flex-shrink-0 overflow-hidden"
                             style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
                           >
-                            {line.merchandise.product.featuredImage && (
+                            {(line.merchandise.image ?? line.merchandise.product.featuredImage) && (
                               <img
-                                src={line.merchandise.product.featuredImage.url}
+                                src={(line.merchandise.image ?? line.merchandise.product.featuredImage)!.url}
                                 alt={line.merchandise.product.title}
                                 className="w-full h-full object-cover"
                               />
