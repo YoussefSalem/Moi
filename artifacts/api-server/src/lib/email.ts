@@ -1,26 +1,20 @@
-import nodemailer from "nodemailer";
-import type { Transporter } from "nodemailer";
+import { Resend } from "resend";
+import { logger } from "./logger";
 
-let _transporter: Transporter | null = null;
+let _resend: Resend | null = null;
 
-function getTransporter(): Transporter {
-  if (_transporter) return _transporter;
+function getResend(): Resend {
+  if (_resend) return _resend;
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error("RESEND_API_KEY not configured");
-  _transporter = nodemailer.createTransport({
-    host: "smtp.resend.com",
-    port: 465,
-    secure: true,
-    auth: { user: "resend", pass: apiKey },
-  });
-  return _transporter;
+  _resend = new Resend(apiKey);
+  return _resend;
 }
 
 function getBrandFrom(): string {
-  const raw = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
-  // If the env var already contains a display name (e.g. "Moi <hello@domain.com>"),
-  // use it as-is to avoid double-wrapping like "Moi <Moi <hello@domain.com>>".
-  return raw.includes("<") ? raw : `Moi <${raw}>`;
+  const raw = (process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev").trim();
+  if (raw.includes("<")) return raw;
+  return `Moi <${raw}>`;
 }
 
 export async function sendEmail(params: {
@@ -30,15 +24,20 @@ export async function sendEmail(params: {
   text: string;
   replyTo?: string;
 }): Promise<void> {
-  const transporter = getTransporter();
-  await transporter.sendMail({
-    from: getBrandFrom(),
+  const resend = getResend();
+  const from = getBrandFrom();
+  logger.info({ from, to: params.to, subject: params.subject }, "Sending email via Resend SDK");
+  const { error } = await resend.emails.send({
+    from,
     to: params.to,
     subject: params.subject,
     html: params.html,
     text: params.text,
     ...(params.replyTo ? { replyTo: params.replyTo } : {}),
   });
+  if (error) {
+    throw new Error(`Resend error: ${error.message}`);
+  }
 }
 
 const HEADER = `
