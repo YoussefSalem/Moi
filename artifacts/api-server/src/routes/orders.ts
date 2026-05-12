@@ -11,6 +11,7 @@ import {
   type OrderLine,
   type CustomerInfo,
 } from "../lib/shopifyOrder";
+import { sendEmail, buildCODOrderEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -172,7 +173,7 @@ router.post("/orders/create", async (req, res) => {
   );
 
   try {
-    const { orderNumber, orderId, total } = await createDraftOrder({
+    const { orderNumber, orderId, total, lineItems } = await createDraftOrder({
       lines,
       customer,
       paymentMethod: "cod",
@@ -181,6 +182,27 @@ router.post("/orders/create", async (req, res) => {
     });
 
     req.log.info({ orderNumber, orderId }, "COD order created");
+
+    // Branded order confirmation email (fire-and-forget)
+    if (customer.email) {
+      const { html, text } = buildCODOrderEmail({
+        orderNumber,
+        customerName: customer.firstName,
+        total,
+        address: customer.address,
+        governorate: customer.governorate,
+        city: customer.city,
+        lineItems: lineItems,
+      });
+      void sendEmail({
+        to: customer.email,
+        subject: `Your Moi order #${orderNumber} has been placed`,
+        html,
+        text,
+      })
+        .then(() => req.log.info({ email: customer.email, orderNumber }, "COD order confirmation email sent"))
+        .catch((err) => req.log.warn({ err, email: customer.email }, "COD order confirmation email failed"));
+    }
 
     void sendWhatsApp(
       customer.phone,
