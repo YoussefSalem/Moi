@@ -20,6 +20,9 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [dragStartX, setDragStartX] = useState<number | null>(null);
+  const [dragLastX, setDragLastX] = useState<number | null>(null);
+  const [dragStartTime, setDragStartTime] = useState<number | null>(null);
+  const [draggingGallery, setDraggingGallery] = useState(false);
 
   const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
 
@@ -196,6 +199,9 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const goToGallery = (index: number) => setGalleryIndex((index + galleryImages.length) % galleryImages.length);
   const nextGallery = () => goToGallery(galleryIndex + 1);
   const prevGallery = () => goToGallery(galleryIndex - 1);
+  const jumpGallery = (direction: 1 | -1) => {
+    direction > 0 ? nextGallery() : prevGallery();
+  };
 
   const handleAddToCart = async () => {
     if (isOutOfStock) return;
@@ -307,14 +313,44 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
             />
             <div
               className="block relative group focus:outline-none w-full"
-              onPointerDown={(e) => setDragStartX(e.clientX)}
-              onPointerCancel={() => setDragStartX(null)}
+              onPointerDown={(e) => {
+                setDragStartX(e.clientX);
+                setDragLastX(e.clientX);
+                setDragStartTime(Date.now());
+                setDraggingGallery(true);
+                (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+              }}
+              onPointerMove={(e) => {
+                if (dragStartX === null) return;
+                setDragLastX(e.clientX);
+              }}
+              onPointerCancel={(e) => {
+                setDragStartX(null);
+                setDragLastX(null);
+                setDragStartTime(null);
+                setDraggingGallery(false);
+                try {
+                  (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
+                } catch {}
+              }}
               onPointerUp={(e) => {
                 if (dragStartX === null) return;
-                const delta = e.clientX - dragStartX;
+                const endX = dragLastX ?? e.clientX;
+                const delta = endX - dragStartX;
+                const elapsed = Math.max(1, Date.now() - (dragStartTime ?? Date.now()));
+                const velocity = delta / elapsed;
+                const shouldSwipe = Math.abs(delta) > 32 || Math.abs(velocity) > 0.45;
                 setDragStartX(null);
-                if (Math.abs(delta) < 40) return;
-                delta < 0 ? nextGallery() : prevGallery();
+                setDragLastX(null);
+                setDragStartTime(null);
+                setDraggingGallery(false);
+                if (!shouldSwipe) return;
+                jumpGallery(delta < 0 ? 1 : -1);
+              }}
+              style={{
+                touchAction: "pan-y",
+                userSelect: draggingGallery ? "none" : "auto",
+                WebkitUserSelect: draggingGallery ? "none" : "auto",
               }}
             >
               <button
@@ -358,6 +394,8 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               <motion.div
                 initial={{ opacity: 0 }}
                 whileHover={{ opacity: 1 }}
+                whileTap={{ opacity: 1 }}
+                animate={{ opacity: draggingGallery ? 1 : undefined }}
                 transition={{ duration: 0.25 }}
                 className="absolute inset-0 z-20 flex items-center justify-center"
               >
