@@ -221,8 +221,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setLocalItems([]);
     localStorage.removeItem(CART_ID_KEY);
     localStorage.removeItem(LOCAL_CART_KEY);
-    setCheckoutOpen(false);
-    setCartOpen(false);
   }, []);
 
   const formatShopifyLinePrice = useCallback((line: ShopifyCartLine) => {

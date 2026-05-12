@@ -531,7 +531,8 @@ export function CheckoutPage() {
     }
   }, []); // mount-only — intentionally omits deps to avoid re-running on state changes
 
-  const isConfirmStep = step === "cod-confirm" || step === "instapay-confirm" || step === "card-confirm" || step === "card-failed";
+  const isSuccessStep = step === "cod-confirm" || step === "card-confirm";
+  const isConfirmStep = isSuccessStep || step === "instapay-confirm" || step === "card-failed";
   const isCardCheckoutStep = step === "card-checkout";
   const loadingText = paymentMethod === "card" ? "Preparing payment…" : "Placing your order…";
 
@@ -553,7 +554,7 @@ export function CheckoutPage() {
             style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}
           >
             <button
-              onClick={isConfirmStep ? handleDone : isCardCheckoutStep ? handleCancelCardCheckout : closeCheckout}
+              onClick={isSuccessStep ? handleSuccessDone : isConfirmStep ? handleDone : isCardCheckoutStep ? handleCancelCardCheckout : closeCheckout}
               className="flex items-center gap-2 transition-opacity hover:opacity-50"
               aria-label="Back"
             >
