@@ -19,9 +19,10 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
-  const [dragStartX, setDragStartX] = useState<number | null>(null);
-  const [dragLastX, setDragLastX] = useState<number | null>(null);
-  const [dragStartTime, setDragStartTime] = useState<number | null>(null);
+  // Use refs so event handlers always read the latest value synchronously
+  const dragStartXRef = useRef<number | null>(null);
+  const dragLastXRef = useRef<number | null>(null);
+  const dragStartTimeRef = useRef<number | null>(null);
   const [draggingGallery, setDraggingGallery] = useState(false);
 
   const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
@@ -314,47 +315,57 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
             <div
               className="block relative group focus:outline-none w-full"
               onPointerDown={(e) => {
-                setDragStartX(e.clientX);
-                setDragLastX(e.clientX);
-                setDragStartTime(Date.now());
+                dragStartXRef.current = e.clientX;
+                dragLastXRef.current = e.clientX;
+                dragStartTimeRef.current = Date.now();
                 setDraggingGallery(true);
-                (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
               }}
               onPointerMove={(e) => {
-                if (dragStartX === null) return;
-                setDragLastX(e.clientX);
+                if (dragStartXRef.current === null) return;
+                dragLastXRef.current = e.clientX;
               }}
-              onPointerCancel={(e) => {
-                setDragStartX(null);
-                setDragLastX(null);
-                setDragStartTime(null);
+              onPointerCancel={() => {
+                // On touch + touchAction:pan-y, horizontal swipes fire pointercancel.
+                // Still resolve as a swipe if there was enough horizontal movement.
+                const start = dragStartXRef.current;
+                const last = dragLastXRef.current;
+                dragStartXRef.current = null;
+                dragLastXRef.current = null;
+                dragStartTimeRef.current = null;
                 setDraggingGallery(false);
-                try {
-                  (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
-                } catch {}
+                if (start !== null && last !== null) {
+                  const delta = last - start;
+                  if (Math.abs(delta) > 40) jumpGallery(delta < 0 ? 1 : -1);
+                }
               }}
               onPointerUp={(e) => {
-                if (dragStartX === null) return;
-                const endX = dragLastX ?? e.clientX;
-                const delta = endX - dragStartX;
-                const elapsed = Math.max(1, Date.now() - (dragStartTime ?? Date.now()));
+                const start = dragStartXRef.current;
+                if (start === null) return;
+                const endX = dragLastXRef.current ?? e.clientX;
+                const delta = endX - start;
+                const elapsed = Math.max(1, Date.now() - (dragStartTimeRef.current ?? Date.now()));
                 const velocity = delta / elapsed;
-                const shouldSwipe = Math.abs(delta) > 32 || Math.abs(velocity) > 0.45;
-                setDragStartX(null);
-                setDragLastX(null);
-                setDragStartTime(null);
+                const shouldSwipe = Math.abs(delta) > 40 || Math.abs(velocity) > 0.4;
+                dragStartXRef.current = null;
+                dragLastXRef.current = null;
+                dragStartTimeRef.current = null;
                 setDraggingGallery(false);
                 if (shouldSwipe) {
                   jumpGallery(delta < 0 ? 1 : -1);
                 } else {
-                  // Tap (not a swipe) → open Look View
                   onLookView(product);
                 }
               }}
+              onPointerLeave={() => {
+                dragStartXRef.current = null;
+                dragLastXRef.current = null;
+                dragStartTimeRef.current = null;
+                setDraggingGallery(false);
+              }}
               style={{
                 touchAction: "pan-y",
-                userSelect: draggingGallery ? "none" : "auto",
-                WebkitUserSelect: draggingGallery ? "none" : "auto",
+                userSelect: "none",
+                WebkitUserSelect: "none",
                 cursor: "pointer",
               }}
             >
