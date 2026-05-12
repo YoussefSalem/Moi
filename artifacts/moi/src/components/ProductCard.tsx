@@ -274,8 +274,8 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
         </div>
 
         {/* Center: product image */}
-        <div className="flex justify-center relative">
-          <div className="relative">
+        <div className="flex justify-center relative min-h-[320px] md:min-h-[480px]">
+          <div className="relative w-full max-w-xs md:max-w-sm">
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
@@ -287,14 +287,14 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
             />
             <motion.button
               onClick={() => onLookView(product)}
-              className="block relative group focus:outline-none"
+              className="block relative group focus:outline-none w-full"
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.4 }}
               aria-label="See the look"
             >
               {/* Cross-fade between color images — fixed-height container prevents layout shift */}
               <div
-                className="relative z-10 w-full max-w-xs md:max-w-sm"
+                className="relative z-10 w-full"
                 style={{ height: "clamp(320px, 48vh, 480px)" }}
               >
                 {/* initial={false} prevents the first image from fading in from opacity:0 */}
