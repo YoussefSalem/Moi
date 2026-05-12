@@ -34,6 +34,8 @@
 // Imported as ES modules so Vite generates correct content-hashed URLs.
 // SWAP ME: replace with CDN URLs when available.
 import WHITE_MAIN    from "@/assets/images/white.jpg";
+import WHITE_ALT_ONE  from "@/assets/images/white-white-1.jpg";
+import WHITE_ALT_TWO  from "@/assets/images/white-white-2.jpg";
 import CASHMERE_MAIN from "@/assets/images/cashmere.jpg";
 import BEIGE_MAIN    from "@/assets/images/beige.jpg";
 import YELLOW_MAIN   from "@/assets/images/yellow.jpg";
@@ -41,7 +43,7 @@ import TEAL_MAIN     from "@/assets/images/teal.jpg";
 // filmstrip fallback assets (compressed)
 import ATTACHED_ONE  from "@/assets/images/filmstrip-a.jpg";
 import ATTACHED_TWO  from "@/assets/images/filmstrip-b.jpg";
-const WHITE_GALLERY = [WHITE_MAIN, ATTACHED_ONE, ATTACHED_TWO];
+const WHITE_GALLERY = [WHITE_MAIN, WHITE_ALT_ONE, WHITE_ALT_TWO];
 const CASHMERE_GALLERY = [CASHMERE_MAIN, ATTACHED_TWO, ATTACHED_ONE];
 const BEIGE_GALLERY = [BEIGE_MAIN, ATTACHED_ONE, ATTACHED_TWO];
 const YELLOW_GALLERY = [YELLOW_MAIN, ATTACHED_TWO, ATTACHED_ONE];
