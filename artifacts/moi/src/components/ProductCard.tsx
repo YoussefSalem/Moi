@@ -30,7 +30,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     ].filter(Boolean) as string[];
     for (const url of urls) {
       const img = new Image();
-      img.crossOrigin = "anonymous";
       img.src = url;
     }
   }, [product.colorImages, product.filmstrip, product.productShot]);
@@ -305,7 +304,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                     alt={product.name}
                     className="absolute inset-0 w-full h-full"
                     style={{ objectFit: "contain", objectPosition: "center" }}
-                    crossOrigin="anonymous"
                     initial={{ opacity: 0, scale: 0.985 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 1.015 }}

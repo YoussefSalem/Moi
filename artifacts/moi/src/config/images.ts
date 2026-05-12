@@ -30,16 +30,18 @@
  *   - OR the Stradivarius CDN a1-a14 URLs when they become available
  */
 
-// ── Compressed product images (~130–280 KB each, down from 8–11 MB originals) ──
+// ── Compressed product images served from /public/images/ (~130–280 KB each) ──
+// Originals were 8-11 MB; compressed with ImageMagick at 1000px/q78.
 // SWAP ME: replace with CDN URLs when available.
-import WHITE_MAIN    from "@assets/white-compressed.jpg";
-import CASHMERE_MAIN from "@assets/cashmere-compressed.jpg";
-import BEIGE_MAIN    from "@assets/beige-compressed.jpg";
-import YELLOW_MAIN   from "@assets/yellow-compressed.jpg";
-import TEAL_MAIN     from "@assets/teal-compressed.jpg";
+const _BASE = import.meta.env.BASE_URL;
+const WHITE_MAIN    = `${_BASE}images/white.jpg`;
+const CASHMERE_MAIN = `${_BASE}images/cashmere.jpg`;
+const BEIGE_MAIN    = `${_BASE}images/beige.jpg`;
+const YELLOW_MAIN   = `${_BASE}images/yellow.jpg`;
+const TEAL_MAIN     = `${_BASE}images/teal.jpg`;
 // attached fallback assets (compressed)
-import ATTACHED_ONE from "@assets/filmstrip-a-compressed.jpg";
-import ATTACHED_TWO from "@assets/filmstrip-b-compressed.jpg";
+const ATTACHED_ONE  = `${_BASE}images/filmstrip-a.jpg`;
+const ATTACHED_TWO  = `${_BASE}images/filmstrip-b.jpg`;
 
 // ── CDN a1–a14 substitutes (confirmed 200 OK) ─────────────
 // Unsplash fashion editorial photos used in place of the unavailable CDN model shots.

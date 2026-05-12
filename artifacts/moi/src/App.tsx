@@ -64,7 +64,6 @@ function useGlobalImagePreload(products: ProductConfig[]) {
     }
     for (const url of urls) {
       const img = new Image();
-      img.crossOrigin = "anonymous";
       img.src = url;
     }
   }, [products]);

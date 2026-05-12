@@ -17,7 +17,6 @@ export function Carousel() {
     for (const src of images) {
       if (!src) continue;
       const img = new Image();
-      img.crossOrigin = "anonymous";
       img.src = src as string;
     }
   }, [images]);
@@ -99,7 +98,6 @@ export function Carousel() {
                     height: "clamp(300px, 55vh, 600px)",
                     opacity: i === activeIndex ? 1 : 0.75,
                   }}
-                  crossOrigin="anonymous"
                 />
               </motion.button>
             ))}

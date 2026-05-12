@@ -157,7 +157,6 @@ export function LookView({ product, onClose }: LookViewProps) {
                       exit={{ opacity: 0, scale: 0.98 }}
                       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                       className="relative z-10 w-full h-[70vh] object-cover object-top"
-                      crossOrigin="anonymous"
                     />
                   </AnimatePresence>
                 </motion.div>
