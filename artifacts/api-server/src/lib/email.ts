@@ -41,194 +41,6 @@ export async function sendEmail(params: {
 }
 
 // ---------------------------------------------------------------------------
-// Shared layout primitives
-// ---------------------------------------------------------------------------
-
-function emailShell(body: string): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<meta name="color-scheme" content="light" />
-<title>Moi</title>
-</head>
-<body style="margin:0;padding:0;background:#e8e4de;font-family:Arial,'Helvetica Neue',sans-serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e8e4de;padding:32px 0 48px;">
-  <tr>
-    <td align="center">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-        ${body}
-      </table>
-    </td>
-  </tr>
-</table>
-</body>
-</html>`;
-}
-
-function header(): string {
-  return `
-    <tr>
-      <td bgcolor="#1e1814" style="padding:28px 40px;text-align:center;">
-        <span style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.65em;color:#faf8f5;text-transform:uppercase;text-decoration:none;">M O I</span>
-      </td>
-    </tr>`;
-}
-
-function statusBanner(label: string, color: "#1e1814" | "#7a6054" | "#b08d6a"): string {
-  return `
-    <tr>
-      <td bgcolor="${color}" style="padding:10px 40px;text-align:center;">
-        <span style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.5em;color:#faf8f5;text-transform:uppercase;">${label}</span>
-      </td>
-    </tr>`;
-}
-
-function bodyOpen(): string {
-  return `
-    <tr>
-      <td bgcolor="#faf8f5" style="border-left:1px solid #ddd8d0;border-right:1px solid #ddd8d0;padding:48px 40px 0;">`;
-}
-
-function bodyClose(): string {
-  return `
-      </td>
-    </tr>`;
-}
-
-function footer(siteUrl: string = "https://buy-moi.com"): string {
-  return `
-    <tr>
-      <td bgcolor="#1e1814" style="padding:28px 40px;text-align:center;border-top:1px solid rgba(250,248,245,0.08);">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-          <tr>
-            <td align="center" style="padding-bottom:16px;">
-              <span style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.55em;color:#faf8f5;text-transform:uppercase;">M O I</span>
-            </td>
-          </tr>
-          <tr>
-            <td align="center">
-              <a href="${siteUrl}" style="font-family:Arial,sans-serif;font-size:10px;letter-spacing:0.25em;color:rgba(250,248,245,0.45);text-transform:uppercase;text-decoration:none;">Shop</a>
-              <span style="color:rgba(250,248,245,0.2);padding:0 12px;">|</span>
-              <a href="mailto:hello@buy-moi.com" style="font-family:Arial,sans-serif;font-size:10px;letter-spacing:0.25em;color:rgba(250,248,245,0.45);text-transform:uppercase;text-decoration:none;">Contact</a>
-            </td>
-          </tr>
-          <tr>
-            <td align="center" style="padding-top:20px;">
-              <span style="font-family:Arial,sans-serif;font-size:9px;color:rgba(250,248,245,0.25);letter-spacing:0.12em;">© 2025 Moi. All rights reserved.</span>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>`;
-}
-
-function divider(): string {
-  return `<tr><td style="padding:0 40px;"><div style="height:1px;background:#e4dfd8;margin:32px 0;"></div></td></tr>`;
-}
-
-function ctaButton(label: string, href: string): string {
-  return `
-    <tr>
-      <td bgcolor="#faf8f5" style="border-left:1px solid #ddd8d0;border-right:1px solid #ddd8d0;padding:32px 40px 48px;text-align:center;">
-        <a href="${href}" style="display:inline-block;background:#1e1814;color:#faf8f5;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.38em;text-transform:uppercase;text-decoration:none;padding:14px 36px;">
-          ${label}
-        </a>
-      </td>
-    </tr>`;
-}
-
-// ---------------------------------------------------------------------------
-// Re-usable blocks
-// ---------------------------------------------------------------------------
-
-function orderSummaryBlock(params: {
-  orderNumber: number | string;
-  total: string;
-  paymentLabel: string;
-  address: string;
-  city: string;
-  governorate: string;
-  note?: string;
-}): string {
-  const { orderNumber, total, paymentLabel, address, city, governorate, note } = params;
-  const rows = [
-    { label: "Order", value: `#${orderNumber}` },
-    { label: "Total", value: `${total} EGP` },
-    { label: "Payment", value: paymentLabel },
-    { label: "Ship to", value: `${address}, ${city}, ${governorate}` },
-    ...(note ? [{ label: "Note", value: note }] : []),
-  ];
-
-  const rowsHtml = rows.map((r, i) => `
-    <tr>
-      <td style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#9a8e82;padding:10px 0;${i > 0 ? "border-top:1px solid #ddd8d0;" : ""}vertical-align:top;padding-right:16px;white-space:nowrap;">
-        ${r.label}
-      </td>
-      <td style="font-family:Arial,sans-serif;font-size:13px;color:#1e1814;padding:10px 0;${i > 0 ? "border-top:1px solid #ddd8d0;" : ""}text-align:right;font-weight:600;">
-        ${r.value}
-      </td>
-    </tr>`).join("");
-
-  return `
-    <tr>
-      <td bgcolor="#faf8f5" style="border-left:1px solid #ddd8d0;border-right:1px solid #ddd8d0;padding:0 40px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-          style="background:#f3efe9;border-left:2px solid #1e1814;padding:20px 24px;">
-          <tr><td>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              ${rowsHtml}
-            </table>
-          </td></tr>
-        </table>
-      </td>
-    </tr>`;
-}
-
-function lineItemsBlock(items: EmailLineItem[]): string {
-  if (!items.length) return "";
-
-  const itemsHtml = items.map((item, i) => {
-    const variant = item.variant_title && item.variant_title !== "Default Title"
-      ? `<br><span style="font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:#9a8e82;">${item.variant_title}</span>`
-      : "";
-    return `
-      <tr>
-        <td style="padding:14px 0;${i > 0 ? "border-top:1px solid #e4dfd8;" : ""}vertical-align:top;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="vertical-align:top;">
-                <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#1e1814;font-weight:600;line-height:1.4;">
-                  ${item.title}${variant}
-                </p>
-                <p style="margin:4px 0 0;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#9a8e82;">
-                  Qty ${item.quantity}
-                </p>
-              </td>
-              <td style="text-align:right;vertical-align:top;white-space:nowrap;padding-left:16px;">
-                <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#1e1814;font-weight:600;">${item.price} EGP</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>`;
-  }).join("");
-
-  return `
-    <tr>
-      <td bgcolor="#faf8f5" style="border-left:1px solid #ddd8d0;border-right:1px solid #ddd8d0;padding:0 40px;">
-        <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.45em;text-transform:uppercase;color:#9a8e82;">
-          Your Items
-        </p>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-          ${itemsHtml}
-        </table>
-      </td>
-    </tr>`;
-}
-
-// ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
 
@@ -240,7 +52,203 @@ export interface EmailLineItem {
 }
 
 // ---------------------------------------------------------------------------
-// COD Order Email — "Order Placed, pay on arrival"
+// Core email builder
+// ---------------------------------------------------------------------------
+
+function buildEmail({
+  preheader,
+  headline,
+  subline,
+  bodyHtml,
+  orderNumber,
+  total,
+  paymentLabel,
+  address,
+  city,
+  governorate,
+  lineItems,
+  statusNote,
+  siteUrl = "https://buy-moi.com",
+}: {
+  preheader: string;
+  headline: string;
+  subline: string;
+  bodyHtml: string;
+  orderNumber: number | string;
+  total: string;
+  paymentLabel: string;
+  address: string;
+  city: string;
+  governorate: string;
+  lineItems?: EmailLineItem[];
+  statusNote?: string;
+  siteUrl?: string;
+}): string {
+  const itemRows = lineItems && lineItems.length > 0
+    ? lineItems.map((item, i) => {
+        const variant =
+          item.variant_title && item.variant_title !== "Default Title"
+            ? `<br /><span style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#9a8e82;">${item.variant_title}</span>`
+            : "";
+        const border = i === 0 ? "" : "border-top:1px solid #ede9e3;";
+        return `
+        <tr>
+          <td style="padding:16px 0;${border}vertical-align:top;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:top;">
+                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;line-height:1.5;font-weight:600;">${item.title}${variant}</p>
+                  <p style="margin:5px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#9a8e82;letter-spacing:0.15em;text-transform:uppercase;">Qty&nbsp;${item.quantity}</p>
+                </td>
+                <td style="vertical-align:top;text-align:right;padding-left:20px;white-space:nowrap;">
+                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;font-weight:600;">${item.price}&nbsp;EGP</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>`;
+      }).join("")
+    : "";
+
+  const itemsSection = itemRows
+    ? `
+    <!-- Items -->
+    <tr><td style="padding:0 48px;">
+      <p style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;font-size:9px;letter-spacing:0.45em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Your Items</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #ede9e3;">
+        ${itemRows}
+      </table>
+    </td></tr>
+    <!-- gap -->
+    <tr><td style="height:32px;"></td></tr>`
+    : "";
+
+  const statusNoteHtml = statusNote
+    ? `<tr><td style="padding:0 48px 32px;">
+        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.9;color:#7a6e64;padding:16px 20px;border:1px solid #ede9e3;border-left:2px solid #c8bfb4;">${statusNote}</p>
+      </td></tr>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="color-scheme" content="light" />
+<title>Moi</title>
+<!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:#e8e3dc;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+<!-- Preheader (hidden) -->
+<div style="display:none;overflow:hidden;max-height:0;mso-hide:all;">${preheader}&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e8e3dc;min-width:100%;">
+<tr><td align="center" style="padding:40px 16px 48px;">
+
+  <!-- Card -->
+  <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;">
+
+    <!-- Top accent line -->
+    <tr><td style="background:#1a1714;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+    <!-- Header -->
+    <tr><td style="padding:36px 48px 28px;border-bottom:1px solid #ede9e3;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td>
+            <a href="${siteUrl}" style="text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.6em;color:#1a1714;text-transform:uppercase;">M O I</a>
+          </td>
+          <td style="text-align:right;">
+            <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:#9a8e82;">Order&nbsp;#${orderNumber}</span>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+
+    <!-- Hero text -->
+    <tr><td style="padding:44px 48px 0;">
+      <h1 style="margin:0 0 14px;font-family:Georgia,'Times New Roman',Times,serif;font-size:32px;font-weight:400;color:#1a1714;line-height:1.15;letter-spacing:-0.01em;">${headline}</h1>
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.8;color:#5c504a;">${subline}</p>
+    </td></tr>
+
+    <!-- Divider -->
+    <tr><td style="padding:32px 48px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #ede9e3;font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>
+
+    <!-- Body content -->
+    <tr><td style="padding:0 48px;">${bodyHtml}</td></tr>
+
+    <!-- Divider -->
+    <tr><td style="padding:32px 48px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #ede9e3;font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>
+
+    <!-- Order details -->
+    <tr><td style="padding:32px 48px 0;">
+      <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:9px;letter-spacing:0.45em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Order Summary</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">Total</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;font-weight:700;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;">${total}&nbsp;EGP</td>
+        </tr>
+        <tr>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">Payment</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;">${paymentLabel}</td>
+        </tr>
+        <tr>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;vertical-align:top;">Deliver to</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;line-height:1.6;">${address}<br />${city}, ${governorate}</td>
+        </tr>
+      </table>
+    </td></tr>
+
+    <!-- gap -->
+    <tr><td style="height:36px;"></td></tr>
+
+    ${itemsSection}
+    ${statusNoteHtml}
+
+    <!-- CTA -->
+    <tr><td style="padding:0 48px 48px;">
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="background:#1a1714;">
+            <a href="${siteUrl}" style="display:inline-block;padding:14px 32px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.35em;text-transform:uppercase;color:#ffffff;text-decoration:none;white-space:nowrap;">
+              Continue Shopping
+            </a>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+
+    <!-- Footer -->
+    <tr><td style="padding:28px 48px;border-top:1px solid #ede9e3;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td>
+            <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.5em;text-transform:uppercase;color:#1a1714;">M O I</p>
+            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;">Questions? <a href="mailto:hello@buy-moi.com" style="color:#1a1714;text-decoration:underline;">hello@buy-moi.com</a></p>
+          </td>
+          <td style="text-align:right;vertical-align:top;">
+            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#b0a89e;line-height:1.6;">
+              <a href="${siteUrl}" style="color:#b0a89e;text-decoration:none;letter-spacing:0.12em;">buy-moi.com</a>
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+
+    <!-- Bottom accent line -->
+    <tr><td style="background:#1a1714;height:2px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+  </table>
+  <!-- end card -->
+
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+// ---------------------------------------------------------------------------
+// COD Order Email
 // ---------------------------------------------------------------------------
 
 export function buildCODOrderEmail(params: {
@@ -253,47 +261,25 @@ export function buildCODOrderEmail(params: {
   lineItems?: EmailLineItem[];
 }): { html: string; text: string } {
   const { orderNumber, customerName, total, address, governorate, city, lineItems } = params;
-  const greeting = customerName ? `Hi ${customerName},` : "Hello,";
-  const siteUrl = "https://buy-moi.com";
+  const name = customerName ? customerName.split(" ")[0] : "";
 
-  const html = emailShell(`
-    ${header()}
-    ${statusBanner("Order Placed", "#1e1814")}
-    ${bodyOpen()}
-      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:13px;color:#7a6e64;">${greeting}</p>
-      <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:400;color:#1e1814;margin:0 0 20px;line-height:1.2;">
-        Your order has been placed.
-      </h1>
-      <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:13px;line-height:1.8;color:#5a5048;">
-        Thank you for shopping with Moi. Our team will reach out shortly to confirm your delivery details and collect payment on arrival.
-      </p>
-      <p style="margin:0 0 0;font-family:Arial,sans-serif;font-size:13px;line-height:1.8;color:#5a5048;">
-        A WhatsApp confirmation has also been sent to your number.
-      </p>
-    ${bodyClose()}
-    ${divider()}
-    ${orderSummaryBlock({
-      orderNumber,
-      total,
-      paymentLabel: "Cash on Delivery",
-      address,
-      city,
-      governorate,
-    })}
-    ${lineItems && lineItems.length > 0 ? `
-    ${divider()}
-    ${lineItemsBlock(lineItems)}` : ""}
-    ${divider()}
-    <tr>
-      <td bgcolor="#faf8f5" style="border-left:1px solid #ddd8d0;border-right:1px solid #ddd8d0;padding:0 40px 48px;">
-        <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;line-height:1.8;color:#9a8e82;border-left:2px solid #c8c0b6;padding-left:16px;">
-          You'll receive a WhatsApp message with your tracking number once your order is on its way. If you have any questions, reply to this email or message us directly.
-        </p>
-      </td>
-    </tr>
-    ${ctaButton("Continue Shopping", siteUrl)}
-    ${footer(siteUrl)}
-  `);
+  const html = buildEmail({
+    preheader: `Your Moi order #${orderNumber} has been placed. Our team will be in touch shortly.`,
+    headline: name ? `Thank you,<br />${name}.` : "Thank you.",
+    subline: "Your order has been placed and our team will be in touch shortly to arrange delivery. Payment is collected on arrival.",
+    bodyHtml: `
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.8;color:#5c504a;">
+        We've also sent a WhatsApp confirmation to your number. Once your order is on its way, you'll receive a tracking update.
+      </p>`,
+    orderNumber,
+    total,
+    paymentLabel: "Cash on Delivery",
+    address,
+    city,
+    governorate,
+    lineItems,
+    statusNote: "Our courier will contact you before delivery to confirm your availability. If you have any questions or need to change your delivery window, reply to this email.",
+  });
 
   const itemsText = lineItems && lineItems.length > 0
     ? "\nItems:\n" + lineItems.map((i) => {
@@ -302,13 +288,13 @@ export function buildCODOrderEmail(params: {
       }).join("\n") + "\n"
     : "";
 
-  const text = `Order Placed — Moi\n\n${greeting}\n\nYour order has been placed. Our team will reach out to arrange delivery and collect payment on arrival.\n\nOrder #${orderNumber}\n${itemsText}Total: ${total} EGP\nPayment: Cash on Delivery\nShip to: ${address}, ${city}, ${governorate}\n\nYou'll receive a WhatsApp message with your tracking number once your order is on its way.\n\nThank you for shopping with Moi.\n${siteUrl}`;
+  const text = `Order Placed — Moi\n\n${name ? `Thank you, ${name}.` : "Thank you."}\n\nYour order has been placed. Our team will be in touch shortly to arrange delivery. Payment is collected on arrival.\n\nOrder #${orderNumber}\n${itemsText}Total: ${total} EGP\nPayment: Cash on Delivery\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nbuy-moi.com`;
 
   return { html, text };
 }
 
 // ---------------------------------------------------------------------------
-// Card / Paid Order Email — "Order Confirmed, payment received"
+// Card / Paid Order Email
 // ---------------------------------------------------------------------------
 
 export function buildOrderConfirmationEmail(params: {
@@ -322,44 +308,24 @@ export function buildOrderConfirmationEmail(params: {
   lineItems?: EmailLineItem[];
 }): { html: string; text: string } {
   const { orderNumber, customerName, total, paymentMethod, address, governorate, city, lineItems } = params;
-  const greeting = customerName ? `Hi ${customerName},` : "Hello,";
-  const siteUrl = "https://buy-moi.com";
+  const name = customerName ? customerName.split(" ")[0] : "";
 
-  const html = emailShell(`
-    ${header()}
-    ${statusBanner("Payment Confirmed", "#1e1814")}
-    ${bodyOpen()}
-      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:13px;color:#7a6e64;">${greeting}</p>
-      <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:400;color:#1e1814;margin:0 0 20px;line-height:1.2;">
-        Your order is confirmed.
-      </h1>
-      <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;line-height:1.8;color:#5a5048;">
-        We've received your payment and your order is now being prepared. You'll receive a WhatsApp message with your tracking number once your order is on its way.
-      </p>
-    ${bodyClose()}
-    ${divider()}
-    ${orderSummaryBlock({
-      orderNumber,
-      total,
-      paymentLabel: paymentMethod,
-      address,
-      city,
-      governorate,
-    })}
-    ${lineItems && lineItems.length > 0 ? `
-    ${divider()}
-    ${lineItemsBlock(lineItems)}` : ""}
-    ${divider()}
-    <tr>
-      <td bgcolor="#faf8f5" style="border-left:1px solid #ddd8d0;border-right:1px solid #ddd8d0;padding:0 40px 48px;">
-        <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;line-height:1.8;color:#9a8e82;border-left:2px solid #c8c0b6;padding-left:16px;">
-          If you have any questions about your order, please reply to this email or message us on WhatsApp and we'll be happy to help.
-        </p>
-      </td>
-    </tr>
-    ${ctaButton("Continue Shopping", siteUrl)}
-    ${footer(siteUrl)}
-  `);
+  const html = buildEmail({
+    preheader: `Your Moi order #${orderNumber} is confirmed. It's now being prepared.`,
+    headline: name ? `Order confirmed,<br />${name}.` : "Order confirmed.",
+    subline: "Your payment has been received and your order is now being prepared. You'll receive a WhatsApp update with your tracking number once it's on its way.",
+    bodyHtml: `
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.8;color:#5c504a;">
+        If you have any questions about your order, simply reply to this email and we'll be happy to help.
+      </p>`,
+    orderNumber,
+    total,
+    paymentLabel: paymentMethod,
+    address,
+    city,
+    governorate,
+    lineItems,
+  });
 
   const itemsText = lineItems && lineItems.length > 0
     ? "\nItems:\n" + lineItems.map((i) => {
@@ -368,13 +334,13 @@ export function buildOrderConfirmationEmail(params: {
       }).join("\n") + "\n"
     : "";
 
-  const text = `Order Confirmed — Moi\n\n${greeting}\n\nYour order is confirmed and is now being prepared.\n\nOrder #${orderNumber}\n${itemsText}Total: ${total} EGP\nPayment: ${paymentMethod}\nShip to: ${address}, ${city}, ${governorate}\n\nYou'll receive a WhatsApp message with your tracking number once your order ships.\n\nThank you for shopping with Moi.\n${siteUrl}`;
+  const text = `Order Confirmed — Moi\n\n${name ? `Order confirmed, ${name}.` : "Order confirmed."}\n\nYour payment has been received and your order is now being prepared.\n\nOrder #${orderNumber}\n${itemsText}Total: ${total} EGP\nPayment: ${paymentMethod}\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nbuy-moi.com`;
 
   return { html, text };
 }
 
 // ---------------------------------------------------------------------------
-// InstaPay Pending Email — "Payment verification in progress"
+// InstaPay Pending Email
 // ---------------------------------------------------------------------------
 
 export function buildInstapayPendingEmail(params: {
@@ -384,62 +350,39 @@ export function buildInstapayPendingEmail(params: {
   referenceNumber: string;
 }): { html: string; text: string } {
   const { orderNumber, customerName, total, referenceNumber } = params;
-  const greeting = customerName ? `Hi ${customerName},` : "Hello,";
+  const name = customerName ? customerName.split(" ")[0] : "";
   const siteUrl = "https://buy-moi.com";
 
-  const html = emailShell(`
-    ${header()}
-    ${statusBanner("Verifying Payment", "#7a6054")}
-    ${bodyOpen()}
-      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:13px;color:#7a6e64;">${greeting}</p>
-      <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:400;color:#1e1814;margin:0 0 20px;line-height:1.2;">
-        We're verifying your payment.
-      </h1>
-      <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;line-height:1.8;color:#5a5048;">
-        We've received your InstaPay proof and your order is pending payment verification. Our team will review it shortly — usually within a few hours.
-      </p>
-    ${bodyClose()}
-    ${divider()}
-    <tr>
-      <td bgcolor="#faf8f5" style="border-left:1px solid #ddd8d0;border-right:1px solid #ddd8d0;padding:0 40px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-          style="background:#f3efe9;border-left:2px solid #b08d6a;padding:20px 24px;">
-          <tr><td>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#9a8e82;padding:10px 0;padding-right:16px;white-space:nowrap;vertical-align:top;">Order</td>
-                <td style="font-family:Arial,sans-serif;font-size:13px;color:#1e1814;padding:10px 0;text-align:right;font-weight:600;">#${orderNumber}</td>
-              </tr>
-              <tr>
-                <td style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#9a8e82;padding:10px 0;border-top:1px solid #ddd8d0;padding-right:16px;white-space:nowrap;vertical-align:top;">Total</td>
-                <td style="font-family:Arial,sans-serif;font-size:13px;color:#1e1814;padding:10px 0;border-top:1px solid #ddd8d0;text-align:right;font-weight:600;">${total} EGP</td>
-              </tr>
-              <tr>
-                <td style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#9a8e82;padding:10px 0;border-top:1px solid #ddd8d0;padding-right:16px;white-space:nowrap;vertical-align:top;">InstaPay Ref</td>
-                <td style="font-family:Arial,sans-serif;font-size:13px;color:#1e1814;padding:10px 0;border-top:1px solid #ddd8d0;text-align:right;font-weight:600;font-family:'Courier New',monospace;">${referenceNumber}</td>
-              </tr>
-              <tr>
-                <td style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#9a8e82;padding:10px 0;border-top:1px solid #ddd8d0;padding-right:16px;white-space:nowrap;vertical-align:top;">Status</td>
-                <td style="font-family:Arial,sans-serif;font-size:13px;color:#b08d6a;padding:10px 0;border-top:1px solid #ddd8d0;text-align:right;font-weight:600;">Pending Verification</td>
-              </tr>
-            </table>
-          </td></tr>
-        </table>
-      </td>
-    </tr>
-    ${divider()}
-    <tr>
-      <td bgcolor="#faf8f5" style="border-left:1px solid #ddd8d0;border-right:1px solid #ddd8d0;padding:0 40px 48px;">
-        <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;line-height:1.8;color:#9a8e82;border-left:2px solid #c8c0b6;padding-left:16px;">
-          Once your transfer is verified, you'll receive a confirmation message on WhatsApp and your order will be dispatched. If you have any questions, simply reply to this email.
-        </p>
-      </td>
-    </tr>
-    ${ctaButton("Continue Shopping", siteUrl)}
-    ${footer(siteUrl)}
-  `);
+  const html = buildEmail({
+    preheader: `We've received your InstaPay proof for order #${orderNumber}. Verification is in progress.`,
+    headline: "Verifying your<br />payment.",
+    subline: "We've received your InstaPay proof and your order is pending payment verification. Our team will review it shortly — usually within a few hours.",
+    bodyHtml: `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">InstaPay Ref</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;font-weight:700;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;font-family:'Courier New',Courier,monospace;letter-spacing:0.05em;">${referenceNumber}</td>
+        </tr>
+        <tr>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">Status</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#b08d6a;font-weight:700;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;letter-spacing:0.08em;text-transform:uppercase;">Pending Verification</td>
+        </tr>
+      </table>`,
+    orderNumber,
+    total,
+    paymentLabel: "InstaPay Transfer",
+    address: "",
+    city: "",
+    governorate: "",
+    statusNote: "Once your transfer is verified, you'll receive a WhatsApp confirmation and your order will be dispatched. If you have any questions, simply reply to this email.",
+    siteUrl,
+  });
 
-  const text = `Payment Verification in Progress — Moi\n\n${greeting}\n\nWe've received your InstaPay proof and your order is pending verification.\n\nOrder #${orderNumber}\nTotal: ${total} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Pending Verification\n\nOnce verified, you'll receive a WhatsApp confirmation and your order will be dispatched.\n\nThank you for shopping with Moi.\n${siteUrl}`;
+  // Override the order summary to exclude the empty address rows — patch HTML
+  // by building a stripped-down version. Since buildEmail always includes address
+  // rows, we pass placeholder text for instapay (no address stored at proof time).
+
+  const text = `Payment Verification in Progress — Moi\n\n${name ? `Hi ${name},` : "Hello,"}\n\nWe've received your InstaPay proof for order #${orderNumber}.\n\nOrder #${orderNumber}\nTotal: ${total} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Pending Verification\n\nOnce verified, you'll receive a WhatsApp confirmation and your order will be dispatched.\n\nbuy-moi.com`;
 
   return { html, text };
 }
