@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Upload, X, CreditCard, Tag } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 import { IMAGES } from "@/config/images";
@@ -43,6 +43,14 @@ interface OrderResult {
   instapayNumber?: string;
   customerName?: string;
   customerPhone?: string;
+  items?: Array<{
+    id?: string;
+    title: string;
+    variantTitle?: string | null;
+    quantity: number;
+    image?: string | null;
+    price?: string;
+  }>;
 }
 
 const SHIPPING_EGP = 120;
@@ -150,6 +158,8 @@ export function CheckoutPage() {
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
   const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
+  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
+  const redirectTimerRef = useRef<number | null>(null);
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", phone: "", email: "",
@@ -172,6 +182,23 @@ export function CheckoutPage() {
   const savings = Math.max(0, subtotalAmount - cartDiscountedTotal);
   const totalAmount = cartDiscountedTotal + SHIPPING_EGP;
   const currencyCode = shopifyCart?.cost.totalAmount.currencyCode ?? localItems[0]?.currencyCode ?? "EGP";
+  const successItems = orderResult?.items ?? (lines
+    ? lines.map((line) => ({
+        id: line.id,
+        title: line.merchandise.product.title,
+        variantTitle: line.merchandise.title === "Default Title" ? null : line.merchandise.title,
+        quantity: line.quantity,
+        image: resolveLineImage(line),
+        price: formatShopifyLinePrice(line),
+      }))
+    : localLines.map((item) => ({
+        id: item.id,
+        title: item.title,
+        variantTitle: null,
+        quantity: item.quantity,
+        image: item.image ?? null,
+        price: item.price,
+      })));
 
   function fmt(amount: number) {
     try {
@@ -211,6 +238,49 @@ export function CheckoutPage() {
     setPromoInput("");
     setPromoError("");
   }, [applyDiscount]);
+
+  const handleSuccessDone = useCallback(() => {
+    if (redirectTimerRef.current) {
+      window.clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
+    }
+    setRedirectCountdown(null);
+    clearCart();
+    setStep("form");
+    closeCheckout();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [clearCart, closeCheckout]);
+
+  useEffect(() => {
+    const isSuccessStep = step === "cod-confirm" || step === "instapay-confirm" || step === "card-confirm";
+    if (!checkoutOpen || !orderResult || !isSuccessStep) {
+      if (redirectTimerRef.current) {
+        window.clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
+      setRedirectCountdown(null);
+      return;
+    }
+    if (redirectTimerRef.current) return;
+
+    setRedirectCountdown(20);
+    redirectTimerRef.current = window.setTimeout(() => {
+      handleSuccessDone();
+      window.location.assign("/");
+    }, 20000);
+
+    const tick = window.setInterval(() => {
+      setRedirectCountdown((value) => {
+        if (value == null || value <= 1) {
+          window.clearInterval(tick);
+          return 0;
+        }
+        return value - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(tick);
+  }, [checkoutOpen, orderResult, step, handleSuccessDone]);
 
   const handleSubmit = useCallback(async () => {
     if (!isShopify || !shopifyCart) {
@@ -613,11 +683,11 @@ export function CheckoutPage() {
               </p>
             </div>
           ) : step === "cod-confirm" ? (
-            <CODConfirmation orderResult={orderResult!} onDone={handleDone} fmt={fmt} />
+            <CODConfirmation orderResult={orderResult!} onDone={handleSuccessDone} items={successItems} redirectCountdown={redirectCountdown} />
           ) : step === "instapay-confirm" ? (
             <InstapayConfirmation
               orderResult={orderResult!}
-              onDone={handleDone}
+              onDone={handleSuccessDone}
               onProofSubmitted={(orderNumber, shopifyOrderId, total) => {
                 setOrderResult((prev) => prev ? { ...prev, orderNumber, shopifyOrderId, total } : prev);
                 clearCart();
@@ -625,7 +695,7 @@ export function CheckoutPage() {
               fmt={fmt}
             />
           ) : step === "card-confirm" ? (
-            <CardConfirmation orderResult={orderResult!} onDone={handleDone} />
+            <CardConfirmation orderResult={orderResult!} onDone={handleSuccessDone} items={successItems} redirectCountdown={redirectCountdown} />
           ) : step === "card-failed" ? (
             <CardFailed
               orderResult={orderResult!}
@@ -977,91 +1047,35 @@ export function CheckoutPage() {
   );
 }
 
-function CODConfirmation({ orderResult, onDone, fmt }: { orderResult: OrderResult; onDone: () => void; fmt: (n: number) => string }) {
+function CODConfirmation({ orderResult, onDone, items, redirectCountdown }: { orderResult: OrderResult; onDone: () => void; items: NonNullable<OrderResult["items"]>; redirectCountdown: number | null }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-lg mx-auto px-8 py-16 text-center flex flex-col items-center gap-6"
-    >
-      <div style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: "rgba(30,24,20,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Check size={22} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-      </div>
-      <div>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "36px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
-          Order Placed.
-        </h1>
-        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.06em" }}>
-          Thank you for shopping with Moi.
-        </p>
-      </div>
-      <div style={{ padding: "20px 28px", border: "1px solid rgba(30,24,20,0.22)", width: "100%" }}>
-        <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "6px" }}>Order Number</p>
-        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", color: "#1e1814", fontWeight: 700 }}>#{orderResult.orderNumber}</p>
-      </div>
-      <div style={{ padding: "16px 20px", backgroundColor: "rgba(30,24,20,0.07)", width: "100%" }}>
-        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.92)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.8, letterSpacing: "0.04em" }}>
-          <strong style={{ color: "#1e1814" }}>Cash on Delivery</strong><br />
-          Our team will contact you shortly to arrange delivery. Total due on arrival: <strong style={{ color: "#1e1814" }}>{orderResult.total} EGP</strong>
-        </p>
-      </div>
-      <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, lineHeight: 1.7 }}>
-        A WhatsApp confirmation has been sent to your number.
-      </p>
-      <button
-        onClick={onDone}
-        className="mt-2 transition-opacity hover:opacity-60"
-        style={{ fontSize: "13px", letterSpacing: "0.28em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", padding: "12px 32px", border: "1px solid rgba(30,24,20,0.18)" }}
-      >
-        Continue Shopping
-      </button>
-    </motion.div>
+    <OrderSuccessScreen
+      orderResult={orderResult}
+      onDone={onDone}
+      items={items}
+      title="Order Placed"
+      subtitle="Cash on Delivery"
+      detail={`Our team will contact you shortly to arrange delivery. Total due on arrival: ${orderResult.total} EGP`}
+      note="A WhatsApp confirmation has been sent to your number."
+      accentLabel="Pay on Delivery"
+      redirectCountdown={redirectCountdown}
+    />
   );
 }
 
-function CardConfirmation({ orderResult, onDone }: { orderResult: OrderResult; onDone: () => void }) {
+function CardConfirmation({ orderResult, onDone, items, redirectCountdown }: { orderResult: OrderResult; onDone: () => void; items: NonNullable<OrderResult["items"]>; redirectCountdown: number | null }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-lg mx-auto px-8 py-16 text-center flex flex-col items-center gap-6"
-    >
-      <div style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: "rgba(30,24,20,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Check size={22} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-      </div>
-      <div>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "36px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
-          Payment Confirmed.
-        </h1>
-        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.06em" }}>
-          Thank you for shopping with Moi.
-        </p>
-      </div>
-      {orderResult.total && (
-        <div style={{ padding: "20px 28px", border: "1px solid rgba(30,24,20,0.22)", width: "100%" }}>
-          <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "6px" }}>Amount Paid</p>
-          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", color: "#1e1814", fontWeight: 700 }}>{orderResult.total} EGP</p>
-        </div>
-      )}
-      {orderResult.paymobTxnId && (
-        <div style={{ padding: "12px 20px", border: "1px solid rgba(30,24,20,0.12)", width: "100%" }}>
-          <p style={{ fontSize: "11px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>Transaction Reference</p>
-          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "13px", color: "rgba(30,24,20,0.78)", letterSpacing: "0.04em" }}>{orderResult.paymobTxnId}</p>
-        </div>
-      )}
-      <div style={{ padding: "16px 20px", backgroundColor: "rgba(30,24,20,0.07)", width: "100%" }}>
-        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.92)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.8, letterSpacing: "0.04em" }}>
-          Your order is being prepared. You'll receive a WhatsApp message with your order details and tracking update shortly.
-        </p>
-      </div>
-      <button
-        onClick={onDone}
-        className="mt-2 transition-opacity hover:opacity-60"
-        style={{ fontSize: "13px", letterSpacing: "0.28em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", padding: "12px 32px", border: "1px solid rgba(30,24,20,0.18)" }}
-      >
-        Continue Shopping
-      </button>
-    </motion.div>
+    <OrderSuccessScreen
+      orderResult={orderResult}
+      onDone={onDone}
+      items={items}
+      title="Order Placed"
+      subtitle="Payment Confirmed"
+      detail="Your payment has been confirmed and your order is now being prepared."
+      note="You'll receive a WhatsApp message with your order details and tracking update shortly."
+      accentLabel="Paid"
+      redirectCountdown={redirectCountdown}
+    />
   );
 }
 
@@ -1503,6 +1517,140 @@ function InstapayConfirmation({
           </motion.div>
         )}
       </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function OrderSuccessScreen({
+  orderResult,
+  onDone,
+  items,
+  title,
+  subtitle,
+  detail,
+  note,
+  accentLabel,
+  redirectCountdown,
+}: {
+  orderResult: OrderResult;
+  onDone: () => void;
+  items: NonNullable<OrderResult["items"]>;
+  title: string;
+  subtitle: string;
+  detail: string;
+  note: string;
+  accentLabel: string;
+  redirectCountdown: number | null;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-xl mx-auto px-6 py-14 md:py-16 flex flex-col items-center text-center gap-7"
+    >
+      <div className="relative flex items-center justify-center" style={{ width: 82, height: 82 }}>
+        <motion.div
+          initial={{ scale: 0.7, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          style={{ width: 82, height: 82, borderRadius: "50%", border: "1px solid rgba(30,24,20,0.12)", backgroundColor: "rgba(30,24,20,0.03)" }}
+        />
+        <motion.div
+          initial={{ scale: 0.75, opacity: 0, rotate: -10 }}
+          animate={{ scale: 1, opacity: 1, rotate: 0 }}
+          transition={{ duration: 0.42, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <motion.div
+            animate={{ y: [0, -2, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+            style={{ width: 52, height: 52, borderRadius: "50%", backgroundColor: "#1e1814", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <Check size={24} strokeWidth={2} style={{ color: "#faf8f5" }} />
+          </motion.div>
+        </motion.div>
+      </div>
+
+      <div className="space-y-2">
+        <p style={{ fontSize: "11px", letterSpacing: "0.34em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif" }}>
+          {subtitle}
+        </p>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "38px", fontWeight: 700, color: "#1e1814", lineHeight: 1 }}>
+          {title}
+        </h1>
+      </div>
+
+      <div className="w-full grid gap-3">
+        <div className="flex items-center justify-between px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.12)" }}>
+          <span style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>
+            {accentLabel}
+          </span>
+          <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
+            {orderResult.total} EGP
+          </span>
+        </div>
+
+        {items.map((item) => (
+          <div key={item.id ?? `${item.title}-${item.quantity}`} className="flex items-center gap-3 px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.08)", backgroundColor: "rgba(30,24,20,0.02)" }}>
+            <div className="w-12 h-14 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
+              {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" />}
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {item.title}
+              </p>
+              {item.variantTitle && (
+                <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>
+                  {item.variantTitle}
+                </p>
+              )}
+            </div>
+            <div className="text-right">
+              <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>Qty {item.quantity}</p>
+              <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
+                {item.price ?? orderResult.total}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="w-full text-left" style={{ borderTop: "1px solid rgba(30,24,20,0.08)" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginTop: "18px", marginBottom: "12px" }}>
+          Items Purchased
+        </p>
+        <div className="flex flex-col gap-3">
+          {orderResult.paymobTxnId ? null : null}
+          <div className="flex items-center justify-between gap-4">
+            <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>Order Summary</span>
+          </div>
+        </div>
+      </div>
+
+      <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.8)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 420 }}>
+        {detail}
+      </p>
+
+      <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.68)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 420 }}>
+        {note}
+      </p>
+
+      {redirectCountdown != null && (
+        <p style={{ fontSize: "11px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}>
+          Returning home in {redirectCountdown}s
+        </p>
+      )}
+
+      <button
+        onClick={onDone}
+        className="w-full max-w-sm py-4 transition-opacity hover:opacity-85"
+        style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "12px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+      >
+        <span className="inline-flex items-center justify-center gap-2">
+          <ShoppingBag size={14} strokeWidth={2} />
+          Shop More
+        </span>
+      </button>
     </motion.div>
   );
 }
