@@ -358,6 +358,9 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 onClick={() => onLookView(product)}
                 className="absolute inset-0 z-30"
                 aria-label="See the look"
+                style={{
+                  touchAction: "manipulation",
+                }}
               />
               {/* Cross-fade between color images — fixed-height container prevents layout shift */}
               <div
@@ -397,7 +400,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 whileTap={{ opacity: 1 }}
                 animate={{ opacity: draggingGallery ? 1 : undefined }}
                 transition={{ duration: 0.25 }}
-                className="absolute inset-0 z-20 flex items-center justify-center"
+                className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
               >
                 <span
                   className="text-[10px] tracking-[0.3em] uppercase font-medium px-4 py-2"
