@@ -24,6 +24,19 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
 
+  // Log Resend key diagnostics (values masked)
+  const audienceKey = process.env["RESEND_API_KEY_AUDIENCE"];
+  const sendKey = process.env["RESEND_API_KEY"];
+  logger.info({
+    resendAudienceKeyPresent: !!audienceKey,
+    resendAudienceKeyLength: audienceKey?.length ?? 0,
+    resendAudienceKeyPrefix: audienceKey?.slice(0, 6) ?? "(none)",
+    resendSendKeyPresent: !!sendKey,
+    resendSendKeyLength: sendKey?.length ?? 0,
+    resendSendKeyPrefix: sendKey?.slice(0, 6) ?? "(none)",
+    audienceId: process.env["RESEND_AUDIENCE_ID"] ?? "(none)",
+  }, "Resend config resolved");
+
   // Log Paymob configuration presence (values masked) for observability
   logger.info({
     paymobApiKey: !!process.env["PAYMOB_API_KEY"],
