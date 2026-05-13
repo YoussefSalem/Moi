@@ -196,6 +196,12 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const displaySizes = sizeOption?.values?.filter((s) =>
     !["one size", "os", "default title", "one-size"].includes(s.toLowerCase())
   ) ?? [];
+  const hasSingleVariantPill = !sizeOption || sizeOption.values.length === 1 || sizeOption.values.every((s) =>
+    ["one size", "os", "default title", "one-size"].includes(s.toLowerCase())
+  );
+  const singleVariantLabel = sizeOption?.values.find((s) => !["one size", "os", "default title", "one-size"].includes(s.toLowerCase()))
+    ?? sizeOption?.values[0]
+    ?? "One Size";
 
   const goToGallery = (index: number) => setGalleryIndex((index + galleryImages.length) % galleryImages.length);
   const nextGallery = () => goToGallery(galleryIndex + 1);
@@ -475,8 +481,28 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
             </div>
           </div>
 
-          {/* Size — only shown when there are 2+ meaningful size options */}
-          {displaySizes.length > 1 && <div className="flex flex-col gap-3">
+          {/* Size / Variant */}
+          {hasSingleVariantPill ? (
+            <div className="flex flex-col gap-3">
+              <p className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
+                Variant
+              </p>
+              <button
+                type="button"
+                aria-pressed
+                className="min-w-24 px-5 py-3 text-[11px] tracking-[0.22em] uppercase font-medium border transition-all duration-300 relative overflow-hidden"
+                style={{
+                  color: "#1e1814",
+                  borderColor: "#1e1814",
+                  backgroundColor: "rgba(30,24,20,0.04)",
+                  boxShadow: "inset 0 0 0 1px rgba(30,24,20,0.08)",
+                  cursor: "default",
+                }}
+              >
+                {singleVariantLabel}
+              </button>
+            </div>
+          ) : displaySizes.length > 1 && <div className="flex flex-col gap-3">
             <p className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
               Size
             </p>
