@@ -3,6 +3,7 @@ import { sendEmail } from "../lib/email";
 
 const router: IRouter = Router();
 const audienceId = process.env.RESEND_AUDIENCE_ID;
+const audienceApiKey = process.env.RESEND_API_KEY_AUDIENCE ?? process.env.RESEND_API_KEY;
 
 interface NewsletterBody {
   email?: unknown;
@@ -53,7 +54,7 @@ router.post("/newsletter", async (req, res) => {
       throw new Error("RESEND_AUDIENCE_ID not configured");
     }
 
-    const apiKey = process.env.RESEND_API_KEY;
+    const apiKey = audienceApiKey;
     if (!apiKey) throw new Error("RESEND_API_KEY not configured");
 
     const audienceRes = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
