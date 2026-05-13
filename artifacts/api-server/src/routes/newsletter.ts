@@ -9,6 +9,27 @@ interface NewsletterBody {
   email?: unknown;
 }
 
+async function syncToAudience(email: string, log: typeof console): Promise<void> {
+  if (!audienceId || !audienceApiKey) {
+    (log as any).warn("Audience sync skipped: missing RESEND_AUDIENCE_ID or API key");
+    return;
+  }
+
+  const res = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${audienceApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, unsubscribed: false }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Resend audience sync failed (${res.status}): ${body}`);
+  }
+}
+
 async function sendNewsletterConfirmationEmail(email: string) {
   await sendEmail({
     to: email,
@@ -50,50 +71,31 @@ router.post("/newsletter", async (req, res) => {
   req.log.info({ email: safeEmail }, "Newsletter subscription request");
 
   try {
-    if (!audienceId) {
-      throw new Error("RESEND_AUDIENCE_ID not configured");
-    }
-
-    const apiKey = audienceApiKey;
-    if (!apiKey) throw new Error("RESEND_API_KEY not configured");
-
-    const audienceRes = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: safeEmail,
-        unsubscribed: false,
-      }),
-    });
-
-    if (!audienceRes.ok) {
-      const body = await audienceRes.text();
-      throw new Error(`Resend audience sync failed (${audienceRes.status}): ${body}`);
-    }
-
     await sendNewsletterConfirmationEmail(safeEmail);
     req.log.info({ email: safeEmail }, "Newsletter confirmation sent");
-    res.status(200).json({ success: true, delivered: true });
-    return;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    const isResendTestLimit = message.includes("only send testing emails") || message.includes("verify a domain");
+    const isTestLimit = message.includes("only send testing emails") || message.includes("verify a domain");
     req.log.warn({ err, email: safeEmail }, "Newsletter confirmation email failed");
 
-    if (isResendTestLimit) {
+    if (isTestLimit) {
       res.status(200).json({
         success: true,
         delivered: false,
-        note: "Email sending is currently limited to your verified test inbox. Verify a domain in Resend to send to other recipients.",
+        note: "Email sending is currently limited to your verified test inbox.",
       });
       return;
     }
+
+    res.status(500).json({ success: false, error: "Could not send the confirmation email right now." });
+    return;
   }
 
-  res.status(500).json({ success: false, error: "Could not send the confirmation email right now." });
+  syncToAudience(safeEmail, req.log).catch((err) => {
+    req.log.warn({ err, email: safeEmail }, "Audience sync failed (non-blocking)");
+  });
+
+  res.status(200).json({ success: true, delivered: true });
 });
 
 export default router;
