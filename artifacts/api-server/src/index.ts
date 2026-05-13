@@ -27,6 +27,7 @@ app.listen(port, (err) => {
   // Log Resend key diagnostics (values masked)
   const audienceKey = process.env["RESEND_API_KEY_AUDIENCE"];
   const sendKey = process.env["RESEND_API_KEY"];
+  const keysAreIdentical = !!audienceKey && audienceKey === sendKey;
   logger.info({
     resendAudienceKeyPresent: !!audienceKey,
     resendAudienceKeyLength: audienceKey?.length ?? 0,
@@ -35,7 +36,10 @@ app.listen(port, (err) => {
     resendSendKeyLength: sendKey?.length ?? 0,
     resendSendKeyPrefix: sendKey?.slice(0, 6) ?? "(none)",
     audienceId: process.env["RESEND_AUDIENCE_ID"] ?? "(none)",
-  }, "Resend config resolved");
+    audienceSyncEnabled: !keysAreIdentical,
+  }, keysAreIdentical
+    ? "Resend config resolved — WARNING: RESEND_API_KEY_AUDIENCE is identical to RESEND_API_KEY (audience sync disabled until a full-access key is set)"
+    : "Resend config resolved");
 
   // Log Paymob configuration presence (values masked) for observability
   logger.info({

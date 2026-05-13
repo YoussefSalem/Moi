@@ -2,9 +2,35 @@ import { Router, type IRouter } from "express";
 import { sendEmail } from "../lib/email";
 
 const router: IRouter = Router();
+const audienceId = process.env.RESEND_AUDIENCE_ID;
+const audienceApiKey = process.env.RESEND_API_KEY_AUDIENCE ?? process.env.RESEND_API_KEY;
+const sendApiKey = process.env.RESEND_API_KEY;
 
 interface NewsletterBody {
   email?: unknown;
+}
+
+async function syncToAudience(email: string): Promise<void> {
+  if (!audienceId) return;
+  if (!audienceApiKey) return;
+  if (audienceApiKey === sendApiKey) {
+    // Both keys are identical — the audience key has not been set to a full-access key yet
+    return;
+  }
+
+  const res = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${audienceApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, unsubscribed: false }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Resend audience sync failed (${res.status}): ${body}`);
+  }
 }
 
 async function sendNewsletterConfirmationEmail(email: string) {
@@ -67,6 +93,10 @@ router.post("/newsletter", async (req, res) => {
     res.status(500).json({ success: false, error: "Could not send the confirmation email right now." });
     return;
   }
+
+  syncToAudience(safeEmail).catch((err) => {
+    req.log.warn({ err, email: safeEmail }, "Audience sync failed (non-blocking)");
+  });
 
   res.status(200).json({ success: true, delivered: true });
 });
