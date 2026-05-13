@@ -3,25 +3,19 @@ import { sendEmail } from "../lib/email";
 
 const router: IRouter = Router();
 const audienceId = process.env.RESEND_AUDIENCE_ID;
-const audienceApiKey = process.env.RESEND_API_KEY_AUDIENCE ?? process.env.RESEND_API_KEY;
-const sendApiKey = process.env.RESEND_API_KEY;
 
 interface NewsletterBody {
   email?: unknown;
 }
 
-async function syncToAudience(email: string): Promise<void> {
-  if (!audienceId) return;
-  if (!audienceApiKey) return;
-  if (audienceApiKey === sendApiKey) {
-    // Both keys are identical — the audience key has not been set to a full-access key yet
-    return;
-  }
+async function syncToAudience(email: string, log: ReturnType<typeof router.use> extends never ? never : any): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY_AUDIENCE ?? process.env.RESEND_API_KEY;
+  if (!audienceId || !apiKey) return;
 
   const res = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${audienceApiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ email, unsubscribed: false }),
@@ -94,7 +88,7 @@ router.post("/newsletter", async (req, res) => {
     return;
   }
 
-  syncToAudience(safeEmail).catch((err) => {
+  syncToAudience(safeEmail, req.log).catch((err) => {
     req.log.warn({ err, email: safeEmail }, "Audience sync failed (non-blocking)");
   });
 
