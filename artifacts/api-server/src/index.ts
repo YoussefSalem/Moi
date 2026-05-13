@@ -31,10 +31,10 @@ app.listen(port, (err) => {
   logger.info({
     resendAudienceKeyPresent: !!audienceKey,
     resendAudienceKeyLength: audienceKey?.length ?? 0,
-    resendAudienceKeyPrefix: audienceKey?.slice(0, 6) ?? "(none)",
+    resendAudienceKeyPrefix: audienceKey?.slice(0, 12) ?? "(none)",
     resendSendKeyPresent: !!sendKey,
     resendSendKeyLength: sendKey?.length ?? 0,
-    resendSendKeyPrefix: sendKey?.slice(0, 6) ?? "(none)",
+    resendSendKeyPrefix: sendKey?.slice(0, 12) ?? "(none)",
     audienceId: process.env["RESEND_AUDIENCE_ID"] ?? "(none)",
     audienceSyncEnabled: !keysAreIdentical,
   }, keysAreIdentical
