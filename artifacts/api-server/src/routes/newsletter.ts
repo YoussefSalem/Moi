@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { sendEmail } from "../lib/email";
 
 const router: IRouter = Router();
+const audienceId = process.env.RESEND_AUDIENCE_ID;
 
 interface NewsletterBody {
   email?: unknown;
@@ -48,6 +49,30 @@ router.post("/newsletter", async (req, res) => {
   req.log.info({ email: safeEmail }, "Newsletter subscription request");
 
   try {
+    if (!audienceId) {
+      throw new Error("RESEND_AUDIENCE_ID not configured");
+    }
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) throw new Error("RESEND_API_KEY not configured");
+
+    const audienceRes = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: safeEmail,
+        unsubscribed: false,
+      }),
+    });
+
+    if (!audienceRes.ok) {
+      const body = await audienceRes.text();
+      throw new Error(`Resend audience sync failed (${audienceRes.status}): ${body}`);
+    }
+
     await sendNewsletterConfirmationEmail(safeEmail);
     req.log.info({ email: safeEmail }, "Newsletter confirmation sent");
     res.status(200).json({ success: true, delivered: true });

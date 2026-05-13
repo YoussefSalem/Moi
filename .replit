@@ -51,6 +51,7 @@ externalPort = 4200
 
 [userenv.shared]
 AMBASSADOR_EMAIL_TO = "youssefasalem@gmail.com"
+RESEND_AUDIENCE_ID = "35123711-722c-4924-a475-fe23da4d282d"
 
 [nix]
 channel = "stable-25_05"
