@@ -67,24 +67,24 @@ export function Footer() {
           {/* Social links */}
           <div className="flex items-center justify-center gap-6 mb-10">
             <a
-              href="https://instagram.com/moi"
+              href="https://www.instagram.com/shopmoi/"
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-center gap-2.5 transition-all duration-300 hover:opacity-100 opacity-70"
             >
-              <Instagram size={18} strokeWidth={1.5} className="text-white/80 group-hover:text-white transition-colors" />
+              <Instagram size={22} strokeWidth={1.5} className="text-white/80 group-hover:text-white transition-colors" />
               <span className="text-[11px] tracking-[0.25em] uppercase text-white/60 group-hover:text-white/90 transition-colors font-medium" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 Follow us on Instagram
               </span>
             </a>
             <div className="w-px h-4 bg-white/15" />
             <a
-              href="https://tiktok.com/@moi"
+              href="https://www.tiktok.com/@shopmoi_?_r=1&_t=ZS-96Mp1lQiOZO"
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-center gap-2.5 transition-all duration-300 hover:opacity-100 opacity-70"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/80 group-hover:text-white transition-colors">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/80 group-hover:text-white transition-colors">
                 <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
               </svg>
               <span className="text-[11px] tracking-[0.25em] uppercase text-white/60 group-hover:text-white/90 transition-colors font-medium" style={{ fontFamily: "'Montserrat', sans-serif" }}>
