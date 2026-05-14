@@ -198,6 +198,8 @@ export function Carousel() {
                     src={images[lightboxIdx]}
                     alt={`Cape look ${lightboxIdx + 1}`}
                     className="max-h-full max-w-full object-contain"
+                    loading="lazy"
+                    decoding="async"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}

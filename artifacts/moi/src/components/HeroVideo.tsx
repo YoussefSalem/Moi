@@ -71,6 +71,8 @@ export function HeroVideo() {
           alt="Moi fashion"
           className="absolute inset-0 w-full h-full object-cover"
           style={{ objectPosition: "center 22%" }}
+          loading="eager"
+          decoding="async"
           initial={{ scale: 1 }}
           animate={{ scale: 1.06 }}
           transition={{ duration: 14, ease: "linear", repeat: Infinity, repeatType: "reverse" }}

@@ -128,7 +128,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                       className="overflow-hidden rounded-sm border border-stone-200"
                       style={{ aspectRatio: "1 / 1" }}
                     >
-                      <img src={src} alt="Thumbnail" className="w-full h-full object-cover" />
+                      <img src={src} alt="Thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     </motion.button>
                   ))}
                 </div>
@@ -152,6 +152,8 @@ export function LookView({ product, onClose }: LookViewProps) {
                       key={activeImage ?? product.look.model}
                       src={activeImage ?? product.look.model}
                       alt={product.name}
+                      loading="lazy"
+                      decoding="async"
                       initial={{ opacity: 0, scale: 0.98 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.98 }}
@@ -172,7 +174,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                       className="overflow-hidden rounded-sm border border-stone-200"
                       style={{ aspectRatio: "1 / 1" }}
                     >
-                      <img src={src} alt="Thumbnail" className="w-full h-full object-cover" />
+                      <img src={src} alt="Thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     </motion.button>
                   ))}
                 </div>
