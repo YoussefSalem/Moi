@@ -6,18 +6,21 @@ const videos = [
   {
     title: "Get ready with me",
     handle: "@thatsalmarocks",
+    profileUrl: "https://www.tiktok.com/@thatsalmarocks",
     caption: "Morning routine & outfit check — effortless day-to-night dressing.",
     embedUrl: "https://www.tiktok.com/embed/v2/7639398570302377223",
   },
   {
     title: "Outfit of the day",
     handle: "@shopmoi_",
+    profileUrl: "https://www.tiktok.com/@shopmoi_",
     caption: "Styling picks that feel polished and easy to recreate.",
     embedUrl: "https://www.tiktok.com/embed/v2/7639352601947016455",
   },
   {
     title: "Coming soon",
     handle: "@shopmoi_",
+    profileUrl: "https://www.tiktok.com/@shopmoi_",
     caption: "Real, wearable outfits that translate from screen to wardrobe.",
     embedUrl: "",
   },
@@ -243,7 +246,14 @@ export function AmbassadorPage() {
                   style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
                 >
                   <p className="text-sm text-white/90">{video.title}</p>
-                  <p className="mt-1 text-[10px] tracking-[0.25em] uppercase text-white/40">{video.handle}</p>
+                  <a
+                    href={video.profileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-block text-[10px] tracking-[0.25em] uppercase text-white/40 hover:text-white/80 transition-colors"
+                  >
+                    {video.handle}
+                  </a>
                   <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
                     <div className="relative aspect-[9/16]">
