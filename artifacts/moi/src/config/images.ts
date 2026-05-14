@@ -63,6 +63,7 @@ import BANGLES_MAIN from "@/assets/images/bangles-main.jpg";
 import BANGLES_ALT_1 from "@/assets/images/bangles-alt-1.jpg";
 import BANGLES_ALT_2 from "@/assets/images/bangles-alt-2.jpg";
 import BANGLES_ALT_3 from "@/assets/images/bangles-alt-3.jpg";
+import BANGLES_ALT_4 from "@/assets/images/bangles-alt-4.jpg";
 // filmstrip fallback assets (compressed)
 import ATTACHED_ONE  from "@/assets/images/filmstrip-a.jpg";
 import ATTACHED_TWO  from "@/assets/images/filmstrip-b.jpg";
@@ -466,6 +467,7 @@ export const IMAGES = {
       BANGLES_ALT_1,
       BANGLES_ALT_2,
       BANGLES_ALT_3,
+      BANGLES_ALT_4,
     ],
     look: {
       model:   BANGLES_ALT_1,
@@ -477,7 +479,7 @@ export const IMAGES = {
       Ivory: BANGLES_MAIN,
     },
     colorGalleries: {
-      Ivory: [BANGLES_MAIN, BANGLES_ALT_1, BANGLES_ALT_2, BANGLES_ALT_3],
+      Ivory: [BANGLES_MAIN, BANGLES_ALT_1, BANGLES_ALT_2, BANGLES_ALT_3, BANGLES_ALT_4],
     },
     colorSwatches: {
       ivory: "#e3d4cb",
