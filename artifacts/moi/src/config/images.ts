@@ -338,7 +338,7 @@ export const IMAGES = {
     },
     name: "Moi wavvy",
     colorLabel: "",
-    description: "A versatile top designed to be styled in multiple ways.",
+    description: "The ultimate throw-and-go. Effortless design, Wavy is light, breathable, and made for drifting.",
     price: "1.690 EGP",
     outer: "Outer shell: 100% Polyester",
     lining: "Lining: 96% Polyester, 4% Elastane",
