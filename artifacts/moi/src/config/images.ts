@@ -48,6 +48,9 @@ import YELLOW_MAIN   from "@/assets/images/yellow.jpg";
 import YELLOW_ALT_1  from "@/assets/images/yellow-alt-1.jpg";
 import YELLOW_ALT_2  from "@/assets/images/yellow-alt-2.jpg";
 import TEAL_MAIN     from "@/assets/images/teal.jpg";
+import TEAL_ALT_1    from "@/assets/images/teal-alt-1.jpg";
+import TEAL_ALT_2    from "@/assets/images/teal-alt-2.jpg";
+import TEAL_ALT_3    from "@/assets/images/teal-alt-3.jpg";
 import LIGHT_BLUE_MAIN from "@/assets/images/light-blue.jpg";
 import LIGHT_BLUE_ALT_1 from "@/assets/images/light-blue-alt-1.jpg";
 import LIGHT_BLUE_ALT_2 from "@/assets/images/light-blue-alt-2.jpg";
@@ -63,7 +66,7 @@ const WHITE_GALLERY = [WHITE_MAIN, WHITE_ALT_ONE, WHITE_ALT_TWO];
 const CASHMERE_GALLERY = [CASHMERE_MAIN, CASHMERE_ALT_1, CASHMERE_ALT_2, CASHMERE_ALT_3];
 const BEIGE_GALLERY = [BEIGE_MAIN, BEIGE_ALT_1, BEIGE_ALT_2];
 const YELLOW_GALLERY = [YELLOW_MAIN, YELLOW_ALT_1, YELLOW_ALT_2];
-const TEAL_GALLERY = [TEAL_MAIN, ATTACHED_ONE, ATTACHED_TWO];
+const TEAL_GALLERY = [TEAL_MAIN, TEAL_ALT_1, TEAL_ALT_2, TEAL_ALT_3];
 
 // ── CDN a1–a14 substitutes (confirmed 200 OK) ─────────────
 // Unsplash fashion editorial photos used in place of the unavailable CDN model shots.
