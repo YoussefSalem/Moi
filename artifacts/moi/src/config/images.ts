@@ -40,6 +40,7 @@ import CASHMERE_MAIN from "@/assets/images/cashmere.jpg";
 import BEIGE_MAIN    from "@/assets/images/beige.jpg";
 import YELLOW_MAIN   from "@/assets/images/yellow.jpg";
 import TEAL_MAIN     from "@/assets/images/teal.jpg";
+import LIGHT_BLUE_MAIN from "@/assets/images/light-blue.jpg";
 // filmstrip fallback assets (compressed)
 import ATTACHED_ONE  from "@/assets/images/filmstrip-a.jpg";
 import ATTACHED_TWO  from "@/assets/images/filmstrip-b.jpg";
@@ -116,6 +117,7 @@ export const IMAGES = {
       Beige: BEIGE_MAIN,
       Yellow: YELLOW_MAIN,
       Teal: TEAL_MAIN,
+      "Light Blue": LIGHT_BLUE_MAIN,
     },
     colorGalleries: {
       White: WHITE_GALLERY,
@@ -123,6 +125,15 @@ export const IMAGES = {
       Beige: BEIGE_GALLERY,
       Yellow: YELLOW_GALLERY,
       Teal: TEAL_GALLERY,
+      "Light Blue": [LIGHT_BLUE_MAIN, ATTACHED_ONE, ATTACHED_TWO],
+    },
+    colorSwatches: {
+      white: "#f5f0e8",
+      cashmere: "#d4c4b0",
+      beige: "#c8b8a0",
+      yellow: "#e8d080",
+      teal: "#4a8a8a",
+      "light blue": "#a8c8d8",
     },
     name: "Moi wavvy",
     colorLabel: "",
@@ -308,6 +319,28 @@ export const IMAGES = {
           { name: "Size", value: "Medium" },
         ],
       },
+      {
+        id: "moi-versa-top-light-blue-small",
+        title: "Light Blue / Small",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Light Blue" },
+          { name: "Size", value: "Small" },
+        ],
+      },
+      {
+        id: "moi-versa-top-light-blue-medium",
+        title: "Light Blue / Medium",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Light Blue" },
+          { name: "Size", value: "Medium" },
+        ],
+      },
     ],
     defaultInventory: {
       ivory:    { Small: 5, Medium: 5 },
@@ -318,6 +351,7 @@ export const IMAGES = {
       white:    { Small: 5, Medium: 5 },
       cashmere: { Small: 5, Medium: 5 },
       black:    { Small: 5, Medium: 5 },
+      "light blue": { Small: 5, Medium: 5 },
     },
   },
 
