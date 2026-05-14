@@ -30,6 +30,8 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
     filmstrip: filmstripImages,
     variantId: firstAvailable?.id,
     variants,
+    colorImages: fallback.colorImages,
+    colorGalleries: fallback.colorGalleries,
     colorSwatches: (() => {
       const LOCAL_FALLBACK: Record<string, string> = {
         black: "#000000",
