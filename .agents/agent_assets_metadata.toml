@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "fgwv8IFvCKLfgafslDtHz"
+uri = "file://artifacts/moi/public/apple-logo.png"
+type = "image"
+title = "Apple logo for payment button"
