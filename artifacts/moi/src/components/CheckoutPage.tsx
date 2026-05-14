@@ -1018,26 +1018,14 @@ export function CheckoutPage() {
                 )}
 
                 {paymentMethod === "card" && (
-                  <>
-                    <div className="mt-5 p-4 flex items-start gap-3" style={{ backgroundColor: "rgba(30,24,20,0.05)", border: "1px solid rgba(30,24,20,0.14)" }}>
-                      <CreditCard size={15} strokeWidth={1.5} style={{ color: "#1e1814", flexShrink: 0, marginTop: 2 }} />
-                      <div>
-                        <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.8, letterSpacing: "0.04em" }}>
-                          Your delivery details are pre-filled. You'll only need to enter your card number, expiry, and CVV on the secure payment screen.
-                        </p>
-                      </div>
+                  <div className="mt-5 p-4 flex items-start gap-3" style={{ backgroundColor: "rgba(30,24,20,0.05)", border: "1px solid rgba(30,24,20,0.14)" }}>
+                    <CreditCard size={15} strokeWidth={1.5} style={{ color: "#1e1814", flexShrink: 0, marginTop: 2 }} />
+                    <div>
+                      <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.8, letterSpacing: "0.04em" }}>
+                        Your delivery details are pre-filled. You'll only need to enter your card number, expiry, and CVV on the secure payment screen.
+                      </p>
                     </div>
-                    <button
-                      onClick={handleSubmit}
-                      className="w-full mt-3 py-3 transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
-                      style={{ backgroundColor: "#000", borderRadius: "6px" }}
-                    >
-                      <img src="/apple-logo.png" alt="" style={{ width: "18px", height: "18px", filter: "invert(1)" }} />
-                      <span style={{ color: "#fff", fontSize: "15px", fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif", fontWeight: 500, letterSpacing: "0.02em" }}>
-                        Pay
-                      </span>
-                    </button>
-                  </>
+                  </div>
                 )}
 
                 <button
@@ -1047,6 +1035,28 @@ export function CheckoutPage() {
                 >
                   Place Order
                 </button>
+
+                {paymentMethod === "card" && (
+                  <>
+                    <div className="flex items-center justify-center my-5" style={{ gap: "12px" }}>
+                      <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.12)" }} />
+                      <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", color: "rgba(30,24,20,0.5)", fontWeight: 500, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                        or
+                      </span>
+                      <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.12)" }} />
+                    </div>
+                    <button
+                      onClick={handleSubmit}
+                      className="w-full py-3.5 transition-opacity hover:opacity-90 flex items-center justify-center gap-2.5"
+                      style={{ backgroundColor: "#000", borderRadius: "6px" }}
+                    >
+                      <img src="/apple-logo.png" alt="" style={{ width: "22px", height: "22px", filter: "invert(1)" }} />
+                      <span style={{ color: "#fff", fontSize: "16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif", fontWeight: 500, letterSpacing: "0.02em" }}>
+                        Pay
+                      </span>
+                    </button>
+                  </>
+                )}
 
                 <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.58)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "14px", letterSpacing: "0.18em" }}>
                   By placing your order you agree to our terms of service.
