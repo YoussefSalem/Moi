@@ -467,7 +467,6 @@ export const IMAGES = {
       BANGLES_ALT_1,
       BANGLES_ALT_2,
       BANGLES_ALT_3,
-      BANGLES_ALT_4,
     ],
     look: {
       model:   BANGLES_ALT_1,
@@ -479,7 +478,7 @@ export const IMAGES = {
       Ivory: BANGLES_MAIN,
     },
     colorGalleries: {
-      Ivory: [BANGLES_MAIN, BANGLES_ALT_1, BANGLES_ALT_2, BANGLES_ALT_3, BANGLES_ALT_4],
+      Ivory: [BANGLES_MAIN, BANGLES_ALT_1, BANGLES_ALT_2, BANGLES_ALT_3],
     },
     colorSwatches: {
       ivory: "#e3d4cb",
