@@ -152,12 +152,18 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   })();
   const colorGallery = (() => {
     const galleries = product.colorGalleries;
-    if (!galleries) return [resolvedColorImage ?? product.productShot];
-    const exact = galleries[selectedColor];
-    if (exact?.length) return exact as readonly string[];
-    const lower = selectedColor.toLowerCase();
-    const key = Object.keys(galleries).find((k) => k.toLowerCase() === lower);
-    return key && galleries[key]?.length ? galleries[key]! : [resolvedColorImage ?? product.productShot];
+    if (galleries) {
+      const exact = galleries[selectedColor];
+      if (exact?.length) return exact as readonly string[];
+      const lower = selectedColor.toLowerCase();
+      const key = Object.keys(galleries).find((k) => k.toLowerCase() === lower);
+      if (key && galleries[key]?.length) return galleries[key]!;
+    }
+    // When no color gallery matches, show the main shot + filmstrip as swipeable images
+    const filmstrip = product.filmstrip ?? [];
+    return filmstrip.length > 0
+      ? [product.productShot, ...filmstrip]
+      : [resolvedColorImage ?? product.productShot];
   })();
   const galleryImages = colorGallery.length > 0 ? colorGallery : [resolvedColorImage ?? product.productShot];
   const mainImage = galleryImages[galleryIndex % galleryImages.length] ?? resolvedColorImage ?? product.productShot;
