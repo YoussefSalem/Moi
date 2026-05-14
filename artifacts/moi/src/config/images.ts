@@ -59,6 +59,10 @@ import NAVI_ALT from "@/assets/images/navi-alt.jpg";
 import MINT_MAIN from "@/assets/images/mint.jpg";
 import MINT_ALT_1 from "@/assets/images/mint-alt-1.jpg";
 import MINT_ALT_2 from "@/assets/images/mint-alt-2.jpg";
+import BANGLES_MAIN from "@/assets/images/bangles-main.jpg";
+import BANGLES_ALT_1 from "@/assets/images/bangles-alt-1.jpg";
+import BANGLES_ALT_2 from "@/assets/images/bangles-alt-2.jpg";
+import BANGLES_ALT_3 from "@/assets/images/bangles-alt-3.jpg";
 // filmstrip fallback assets (compressed)
 import ATTACHED_ONE  from "@/assets/images/filmstrip-a.jpg";
 import ATTACHED_TWO  from "@/assets/images/filmstrip-b.jpg";
@@ -457,20 +461,26 @@ export const IMAGES = {
    * SWAP ME: replace with branded product photography when available.
    */
   product3: {
-    productShot: `${U}-1611591437281-460bfbe1220a?w=800&fit=crop&q=80`,
+    productShot: BANGLES_MAIN,
     filmstrip: [
-      `${U}-1611591437281-460bfbe1220a?w=600&fit=crop&q=80`,
-      `${U}-1603561591411-07134e71a2a9?w=600&fit=crop&q=80`,
-      `${U}-1588444837495-c6cfeb53f32d?w=600&fit=crop&q=80`,
-      `${U}-1515562141207-7a88fb7ce338?w=600&fit=crop&q=80`,
-      `${U}-1611591437281-460bfbe1220a?w=600&fit=crop&q=80`,
-      `${U}-1603561591411-07134e71a2a9?w=600&fit=crop&q=80`,
+      BANGLES_ALT_1,
+      BANGLES_ALT_2,
+      BANGLES_ALT_3,
     ],
     look: {
-      model:   `${U}-1611591437281-460bfbe1220a?w=800&fit=crop&q=80`,
+      model:   BANGLES_ALT_1,
       shoes:   ACC_SHOES,
       bag:     ACC_BAG,
       earring: ACC_EARRING,
+    },
+    colorImages: {
+      Ivory: BANGLES_MAIN,
+    },
+    colorGalleries: {
+      Ivory: [BANGLES_MAIN, BANGLES_ALT_1, BANGLES_ALT_2, BANGLES_ALT_3],
+    },
+    colorSwatches: {
+      ivory: "#e3d4cb",
     },
     name: "Trio Bangles",
     colorLabel: "",
