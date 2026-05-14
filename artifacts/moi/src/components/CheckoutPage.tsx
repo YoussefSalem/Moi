@@ -28,7 +28,7 @@ function resolveLineImage(line: ShopifyCartLine): string | null {
   return null;
 }
 
-type PaymentMethod = "cod" | "instapay" | "card";
+type PaymentMethod = "cod" | "instapay" | "card" | "apple_pay";
 type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
 type InstapaySubStep = "instructions" | "upload" | "review";
 
@@ -314,8 +314,8 @@ export function CheckoutPage() {
       city: form.city.trim(),
     };
 
-    // Card payment: call paymob-init → embed Paymob hosted checkout in-page via iframe
-    if (paymentMethod === "card") {
+    // Card / Apple Pay: call paymob-init → embed Paymob hosted checkout in-page via iframe
+    if (paymentMethod === "card" || paymentMethod === "apple_pay") {
       try {
         const res = await fetch("/api/orders/paymob-init", {
           method: "POST",
@@ -534,7 +534,7 @@ export function CheckoutPage() {
   const isSuccessStep = step === "cod-confirm" || step === "card-confirm";
   const isConfirmStep = isSuccessStep || step === "instapay-confirm" || step === "card-failed";
   const isCardCheckoutStep = step === "card-checkout";
-  const loadingText = paymentMethod === "card" ? "Preparing payment…" : "Placing your order…";
+  const loadingText = paymentMethod === "card" || paymentMethod === "apple_pay" ? "Preparing payment…" : "Placing your order…";
 
   return (
     <AnimatePresence>
@@ -902,8 +902,8 @@ export function CheckoutPage() {
                 <p style={{ fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "16px" }}>
                   Payment Method
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-8">
-                  {(["cod", "instapay", "card"] as PaymentMethod[]).map((m) => (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-8">
+                  {(["cod", "instapay", "card", "apple_pay"] as PaymentMethod[]).map((m) => (
                     <button
                       key={m}
                       onClick={() => setPaymentMethod(m)}
@@ -915,13 +915,13 @@ export function CheckoutPage() {
                       }}
                     >
                       <div style={{ fontSize: "16px", marginBottom: "5px" }}>
-                        {m === "cod" ? "🚚" : m === "instapay" ? "📱" : "💳"}
+                        {m === "cod" ? "🚚" : m === "instapay" ? "📱" : m === "apple_pay" ? "🍎" : "💳"}
                       </div>
                       <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
-                        {m === "cod" ? "Cash on Delivery" : m === "instapay" ? "InstaPay" : "Card"}
+                        {m === "cod" ? "Cash on Delivery" : m === "instapay" ? "InstaPay" : m === "apple_pay" ? "Apple Pay" : "Card"}
                       </p>
                       <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", marginTop: "3px", lineHeight: 1.4 }}>
-                        {m === "cod" ? "Pay on arrival" : m === "instapay" ? "Bank transfer" : "Online payment"}
+                        {m === "cod" ? "Pay on arrival" : m === "instapay" ? "Bank transfer" : m === "apple_pay" ? "Fast & secure" : "Online payment"}
                       </p>
                     </button>
                   ))}
@@ -1017,12 +1017,18 @@ export function CheckoutPage() {
                   </div>
                 )}
 
-                {paymentMethod === "card" && (
+                {(paymentMethod === "card" || paymentMethod === "apple_pay") && (
                   <div className="mt-5 p-4 flex items-start gap-3" style={{ backgroundColor: "rgba(30,24,20,0.05)", border: "1px solid rgba(30,24,20,0.14)" }}>
-                    <CreditCard size={15} strokeWidth={1.5} style={{ color: "#1e1814", flexShrink: 0, marginTop: 2 }} />
+                    {paymentMethod === "apple_pay" ? (
+                      <span style={{ fontSize: "15px", flexShrink: 0, marginTop: 1 }}>🍎</span>
+                    ) : (
+                      <CreditCard size={15} strokeWidth={1.5} style={{ color: "#1e1814", flexShrink: 0, marginTop: 2 }} />
+                    )}
                     <div>
                       <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.8, letterSpacing: "0.04em" }}>
-                        Your delivery details are pre-filled. You'll only need to enter your card number, expiry, and CVV on the secure payment screen.
+                        {paymentMethod === "apple_pay"
+                          ? "Pay securely with Apple Pay via Paymob. You'll complete the payment on the secure checkout screen."
+                          : "Your delivery details are pre-filled. You'll only need to enter your card number, expiry, and CVV on the secure payment screen."}
                       </p>
                     </div>
                   </div>
@@ -1030,10 +1036,11 @@ export function CheckoutPage() {
 
                 <button
                   onClick={handleSubmit}
-                  className="w-full mt-8 py-4 transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+                  className="w-full mt-8 py-4 transition-opacity hover:opacity-80 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: paymentMethod === "apple_pay" ? "#000" : "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
                 >
-                  Place Order
+                  {paymentMethod === "apple_pay" && <span style={{ fontSize: "16px" }}>🍎</span>}
+                  {paymentMethod === "apple_pay" ? "Pay with Apple Pay" : "Place Order"}
                 </button>
 
                 <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.58)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "14px", letterSpacing: "0.18em" }}>
