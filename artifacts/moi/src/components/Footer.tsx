@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Instagram, Twitter } from "lucide-react";
+import { ChevronDown, Instagram } from "lucide-react";
 import { NewsletterSection } from "@/components/NewsletterSection";
 export function Footer() {
   const [openSection, setOpenSection] = useState<string | null>("return");
@@ -64,6 +64,35 @@ export function Footer() {
     <>
       <footer className="w-full px-6 md:px-12 py-14 md:py-18" style={{ backgroundColor: "#28211d" }}>
         <div className="max-w-6xl mx-auto">
+          {/* Social links */}
+          <div className="flex items-center justify-center gap-6 mb-10">
+            <a
+              href="https://instagram.com/moi"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-2.5 transition-all duration-300 hover:opacity-100 opacity-70"
+            >
+              <Instagram size={18} strokeWidth={1.5} className="text-white/80 group-hover:text-white transition-colors" />
+              <span className="text-[11px] tracking-[0.25em] uppercase text-white/60 group-hover:text-white/90 transition-colors font-medium" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                Follow us on Instagram
+              </span>
+            </a>
+            <div className="w-px h-4 bg-white/15" />
+            <a
+              href="https://tiktok.com/@moi"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-2.5 transition-all duration-300 hover:opacity-100 opacity-70"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/80 group-hover:text-white transition-colors">
+                <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+              </svg>
+              <span className="text-[11px] tracking-[0.25em] uppercase text-white/60 group-hover:text-white/90 transition-colors font-medium" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                Follow us on TikTok
+              </span>
+            </a>
+          </div>
+
           <div className="mb-10 border-t border-white/10 pt-8">
             <div className="flex items-center justify-between gap-4 mb-8">
               <div>
