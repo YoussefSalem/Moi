@@ -336,7 +336,7 @@ export const IMAGES = {
       bag:     ACC_BAG,
       earring: ACC_EARRING,
     },
-    name: "Asymmetric Cape",
+    name: "Moi wavvy",
     colorLabel: "",
     description: "A versatile top designed to be styled in multiple ways.",
     price: "1.690 EGP",
