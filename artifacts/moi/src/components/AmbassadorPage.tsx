@@ -5,21 +5,21 @@ import { Send, UserRound, Phone, Mail, Facebook, Instagram, MessageCircleMore, V
 const videos = [
   {
     title: "Get ready with me",
-    handle: "@grwm._isaaa",
+    handle: "@thatsalmarocks",
     caption: "Morning routine & outfit check — effortless day-to-night dressing.",
-    embedUrl: "https://www.tiktok.com/embed/v2/7637274579974606087",
+    embedUrl: "https://www.tiktok.com/embed/v2/7639398570302377223",
   },
   {
     title: "Outfit of the day",
-    handle: "@hollyjai_",
+    handle: "@shopmoi_",
     caption: "Styling picks that feel polished and easy to recreate.",
-    embedUrl: "https://www.tiktok.com/embed/v2/7329247143737249056",
+    embedUrl: "https://www.tiktok.com/embed/v2/7639352601947016455",
   },
   {
-    title: "My go-to look",
-    handle: "@tatiannaareizaga",
+    title: "Coming soon",
+    handle: "@shopmoi_",
     caption: "Real, wearable outfits that translate from screen to wardrobe.",
-    embedUrl: "https://www.tiktok.com/embed/v2/7598245849679826206",
+    embedUrl: "",
   },
 ];
 
@@ -236,9 +236,9 @@ export function AmbassadorPage() {
               <p className="text-[10px] tracking-[0.35em] uppercase text-white/50">TikTok social proof</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {videos.map((video) => (
+              {videos.map((video, idx) => (
                 <div
-                  key={video.handle}
+                  key={`${video.handle}-${idx}`}
                   className="rounded-2xl border border-white/10 p-4"
                   style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
                 >
@@ -247,14 +247,24 @@ export function AmbassadorPage() {
                   <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
                     <div className="relative aspect-[9/16]">
-                      <iframe
-                        title={video.title}
-                        src={video.embedUrl}
-                        className="absolute inset-0 h-full w-full"
-                        allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
-                        scrolling="no"
-                        style={{ overflow: "hidden" }}
-                      />
+                      {video.embedUrl ? (
+                        <iframe
+                          title={video.title}
+                          src={video.embedUrl}
+                          className="absolute inset-0 h-full w-full"
+                          allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
+                          scrolling="no"
+                          style={{ overflow: "hidden" }}
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "linear-gradient(135deg, #1f1916 0%, #2a201c 50%, #1f1916 100%)" }}>
+                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-white/25 mb-3">
+                            <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+                          </svg>
+                          <p className="text-[10px] tracking-[0.3em] uppercase text-white/30 font-medium" style={{ fontFamily: "'Montserrat', sans-serif" }}>Coming soon</p>
+                          <div className="mt-4 w-12 h-px bg-white/10" />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
