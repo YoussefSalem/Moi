@@ -45,6 +45,9 @@ import LIGHT_BLUE_ALT_1 from "@/assets/images/light-blue-alt-1.jpg";
 import LIGHT_BLUE_ALT_2 from "@/assets/images/light-blue-alt-2.jpg";
 import NAVI_MAIN from "@/assets/images/navi.jpg";
 import NAVI_ALT from "@/assets/images/navi-alt.jpg";
+import MINT_MAIN from "@/assets/images/mint.jpg";
+import MINT_ALT_1 from "@/assets/images/mint-alt-1.jpg";
+import MINT_ALT_2 from "@/assets/images/mint-alt-2.jpg";
 // filmstrip fallback assets (compressed)
 import ATTACHED_ONE  from "@/assets/images/filmstrip-a.jpg";
 import ATTACHED_TWO  from "@/assets/images/filmstrip-b.jpg";
@@ -122,7 +125,8 @@ export const IMAGES = {
       Yellow: YELLOW_MAIN,
       Teal: TEAL_MAIN,
       "Light Blue": LIGHT_BLUE_MAIN,
-      Navi: NAVI_MAIN,
+      Navy: NAVI_MAIN,
+      Mint: MINT_MAIN,
     },
     colorGalleries: {
       White: WHITE_GALLERY,
@@ -131,7 +135,8 @@ export const IMAGES = {
       Yellow: YELLOW_GALLERY,
       Teal: TEAL_GALLERY,
       "Light Blue": [LIGHT_BLUE_MAIN, LIGHT_BLUE_ALT_1, LIGHT_BLUE_ALT_2],
-      Navi: [NAVI_MAIN, NAVI_ALT],
+      Navy: [NAVI_MAIN, NAVI_ALT],
+      Mint: [MINT_MAIN, MINT_ALT_1, MINT_ALT_2],
     },
     colorSwatches: {
       white: "#f5f0e8",
@@ -140,7 +145,8 @@ export const IMAGES = {
       yellow: "#e8d080",
       teal: "#4a8a8a",
       "light blue": "#a8c8d8",
-      navi: "#3a5a7a",
+      navy: "#3a5a7a",
+      mint: "#98c8a8",
     },
     name: "Moi wavvy",
     colorLabel: "",
@@ -349,24 +355,46 @@ export const IMAGES = {
         ],
       },
       {
-        id: "moi-versa-top-navi-small",
-        title: "Navi / Small",
+        id: "moi-versa-top-navy-small",
+        title: "Navy / Small",
         availableForSale: true,
         inventoryQuantity: 5,
         price: "1.690 EGP",
         selectedOptions: [
-          { name: "Color", value: "Navi" },
+          { name: "Color", value: "Navy" },
           { name: "Size", value: "Small" },
         ],
       },
       {
-        id: "moi-versa-top-navi-medium",
-        title: "Navi / Medium",
+        id: "moi-versa-top-navy-medium",
+        title: "Navy / Medium",
         availableForSale: true,
         inventoryQuantity: 5,
         price: "1.690 EGP",
         selectedOptions: [
-          { name: "Color", value: "Navi" },
+          { name: "Color", value: "Navy" },
+          { name: "Size", value: "Medium" },
+        ],
+      },
+      {
+        id: "moi-versa-top-mint-small",
+        title: "Mint / Small",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Mint" },
+          { name: "Size", value: "Small" },
+        ],
+      },
+      {
+        id: "moi-versa-top-mint-medium",
+        title: "Mint / Medium",
+        availableForSale: true,
+        inventoryQuantity: 5,
+        price: "1.690 EGP",
+        selectedOptions: [
+          { name: "Color", value: "Mint" },
           { name: "Size", value: "Medium" },
         ],
       },
@@ -381,7 +409,8 @@ export const IMAGES = {
       cashmere: { Small: 5, Medium: 5 },
       black:    { Small: 5, Medium: 5 },
       "light blue": { Small: 5, Medium: 5 },
-      navi:     { Small: 5, Medium: 5 },
+      navy:     { Small: 5, Medium: 5 },
+      mint:     { Small: 5, Medium: 5 },
     },
   },
 
