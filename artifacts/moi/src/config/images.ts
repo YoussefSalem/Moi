@@ -41,6 +41,8 @@ import BEIGE_MAIN    from "@/assets/images/beige.jpg";
 import YELLOW_MAIN   from "@/assets/images/yellow.jpg";
 import TEAL_MAIN     from "@/assets/images/teal.jpg";
 import LIGHT_BLUE_MAIN from "@/assets/images/light-blue.jpg";
+import LIGHT_BLUE_ALT_1 from "@/assets/images/light-blue-alt-1.jpg";
+import LIGHT_BLUE_ALT_2 from "@/assets/images/light-blue-alt-2.jpg";
 // filmstrip fallback assets (compressed)
 import ATTACHED_ONE  from "@/assets/images/filmstrip-a.jpg";
 import ATTACHED_TWO  from "@/assets/images/filmstrip-b.jpg";
@@ -125,7 +127,7 @@ export const IMAGES = {
       Beige: BEIGE_GALLERY,
       Yellow: YELLOW_GALLERY,
       Teal: TEAL_GALLERY,
-      "Light Blue": [LIGHT_BLUE_MAIN, ATTACHED_ONE, ATTACHED_TWO],
+      "Light Blue": [LIGHT_BLUE_MAIN, LIGHT_BLUE_ALT_1, LIGHT_BLUE_ALT_2],
     },
     colorSwatches: {
       white: "#f5f0e8",
