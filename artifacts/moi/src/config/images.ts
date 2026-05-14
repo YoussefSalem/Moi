@@ -124,7 +124,7 @@ export const IMAGES = {
       Yellow: YELLOW_GALLERY,
       Teal: TEAL_GALLERY,
     },
-    name: "Moi Versa Top",
+    name: "Moi wavvy",
     colorLabel: "",
     description: "A versatile top designed to be styled in multiple ways.",
     price: "1.690 EGP",
