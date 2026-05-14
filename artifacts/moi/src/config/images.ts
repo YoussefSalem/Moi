@@ -124,6 +124,7 @@ export const IMAGES = {
     colorImages: {
       White: WHITE_MAIN,
       Cashmere: CASHMERE_MAIN,
+      Cashemere: CASHMERE_MAIN,
       Beige: BEIGE_MAIN,
       Yellow: YELLOW_MAIN,
       Teal: TEAL_MAIN,
@@ -134,6 +135,7 @@ export const IMAGES = {
     colorGalleries: {
       White: WHITE_GALLERY,
       Cashmere: CASHMERE_GALLERY,
+      Cashemere: CASHMERE_GALLERY,
       Beige: BEIGE_GALLERY,
       Yellow: YELLOW_GALLERY,
       Teal: TEAL_GALLERY,
@@ -144,6 +146,7 @@ export const IMAGES = {
     colorSwatches: {
       white: "#f5f0e8",
       cashmere: "#d4c4b0",
+      cashemere: "#d4c4b0",
       beige: "#c8b8a0",
       yellow: "#e8d080",
       teal: "#4a8a8a",
