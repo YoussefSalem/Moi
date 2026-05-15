@@ -65,18 +65,21 @@ export function HeroVideo() {
           poster={IMAGES.hero.fallbackUrl}
         />
       ) : (
-        <motion.img
-          src={IMAGES.hero.fallbackUrl}
-          alt="Moi premium versatile top - elegant fashion collection"
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: "center 22%", willChange: "transform" }}
-          loading="eager"
-          decoding="async"
-          fetchPriority="high"
-          initial={{ scale: 1 }}
-          animate={{ scale: 1.06 }}
-          transition={{ duration: 14, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
-        />
+        <picture className="absolute inset-0 w-full h-full">
+          <source srcSet={IMAGES.hero.fallbackUrl.replace(".jpeg", ".webp").replace(".jpg", ".webp")} type="image/webp" />
+          <motion.img
+            src={IMAGES.hero.fallbackUrl}
+            alt="Moi premium versatile top - elegant fashion collection"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: "center 22%", willChange: "transform" }}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            initial={{ scale: 1 }}
+            animate={{ scale: 1.06 }}
+            transition={{ duration: 14, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
+          />
+        </picture>
       )}
 
       {/* Primary gradient overlay */}

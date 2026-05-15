@@ -1,24 +1,26 @@
-import { useMemo, useState, useEffect } from "react";
+import { lazy, Suspense, useMemo, useState, useEffect } from "react";
 import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductDivider } from "@/components/ProductDivider";
-import { AccessoriesPage } from "@/components/AccessoriesPage";
-import { AmbassadorPage } from "@/components/AmbassadorPage";
-import { LookView } from "@/components/LookView";
-import { Footer } from "@/components/Footer";
-import { CartDrawer } from "@/components/CartDrawer";
-import { CheckoutPage } from "@/components/CheckoutPage";
-import { CustomerAuthModal } from "@/components/CustomerAuthModal";
-import { AccountPage } from "@/components/AccountPage";
-import { SearchDrawer } from "@/components/SearchDrawer";
 import { CartProvider } from "@/context/CartContext";
 import { CustomerProvider } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 import { useRestockChecker } from "@/hooks/useRestockChecker";
-import { AdminPage } from "@/pages/AdminPage";
+
+// Heavy components — loaded only when needed
+const AccessoriesPage = lazy(() => import("@/components/AccessoriesPage").then(m => ({ default: m.AccessoriesPage })));
+const AmbassadorPage = lazy(() => import("@/components/AmbassadorPage").then(m => ({ default: m.AmbassadorPage })));
+const LookView = lazy(() => import("@/components/LookView").then(m => ({ default: m.LookView })));
+const Footer = lazy(() => import("@/components/Footer").then(m => ({ default: m.Footer })));
+const CartDrawer = lazy(() => import("@/components/CartDrawer").then(m => ({ default: m.CartDrawer })));
+const CheckoutPage = lazy(() => import("@/components/CheckoutPage").then(m => ({ default: m.CheckoutPage })));
+const CustomerAuthModal = lazy(() => import("@/components/CustomerAuthModal").then(m => ({ default: m.CustomerAuthModal })));
+const AccountPage = lazy(() => import("@/components/AccountPage").then(m => ({ default: m.AccountPage })));
+const SearchDrawer = lazy(() => import("@/components/SearchDrawer").then(m => ({ default: m.SearchDrawer })));
+const AdminPage = lazy(() => import("@/pages/AdminPage").then(m => ({ default: m.AdminPage })));
 
 const IS_ADMIN = window.location.pathname.startsWith("/admin");
 
@@ -52,20 +54,22 @@ function ProductSkeleton() {
 
 const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
 
-// Eagerly preload every image from both products so there's zero fetch delay
-// when the user switches colors or scrolls the carousel.
+// Defer image preloading until after first paint — don't block LCP
 function useGlobalImagePreload(products: ProductConfig[]) {
   useEffect(() => {
-    const urls = new Set<string>();
-    for (const p of products) {
-      if (p.productShot) urls.add(p.productShot);
-      for (const u of Object.values(p.colorImages ?? {})) if (u) urls.add(u as string);
-      for (const u of (p.filmstrip ?? [])) if (u) urls.add(u as string);
-    }
-    for (const url of urls) {
-      const img = new Image();
-      img.src = url;
-    }
+    const timer = setTimeout(() => {
+      const urls = new Set<string>();
+      for (const p of products) {
+        if (p.productShot) urls.add(p.productShot);
+        for (const u of Object.values(p.colorImages ?? {})) if (u) urls.add(u as string);
+        for (const u of (p.filmstrip ?? [])) if (u) urls.add(u as string);
+      }
+      for (const url of urls) {
+        const img = new Image();
+        img.src = url;
+      }
+    }, 2000); // defer 2s after first paint
+    return () => clearTimeout(timer);
   }, [products]);
 }
 
@@ -118,43 +122,57 @@ function AppContent() {
         </main>
       ) : page === "accessories" ? (
         <div>
-          <AccessoriesPage onLookView={setLookProduct} />
-          <Footer />
+          <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
+            <AccessoriesPage onLookView={setLookProduct} />
+            <Footer />
+          </Suspense>
         </div>
       ) : (
         <div>
-          <AmbassadorPage />
-          <Footer />
+          <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
+            <AmbassadorPage />
+            <Footer />
+          </Suspense>
         </div>
       )}
 
-      {page === "home" && <Footer />}
+      {page === "home" && (
+        <Suspense fallback={null}>
+          <Footer />
+        </Suspense>
+      )}
 
-      <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
-      <CartDrawer />
-      <CheckoutPage />
-      <CustomerAuthModal />
-      <AccountPage />
-      <SearchDrawer
-        open={searchOpen}
-        products={allProducts}
-        query={searchQuery}
-        onQueryChange={setSearchQuery}
-        onClose={() => setSearchOpen(false)}
-        onSelect={(product) => {
-          setLookProduct(product);
-          setSearchOpen(false);
-          setSearchQuery("");
-          setPage("home");
-        }}
-      />
+      <Suspense fallback={null}>
+        <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
+        <CartDrawer />
+        <CheckoutPage />
+        <CustomerAuthModal />
+        <AccountPage />
+        <SearchDrawer
+          open={searchOpen}
+          products={allProducts}
+          query={searchQuery}
+          onQueryChange={setSearchQuery}
+          onClose={() => setSearchOpen(false)}
+          onSelect={(product) => {
+            setLookProduct(product);
+            setSearchOpen(false);
+            setSearchQuery("");
+            setPage("home");
+          }}
+        />
+      </Suspense>
     </div>
   );
 }
 
 function App() {
   if (IS_ADMIN) {
-    return <AdminPage />;
+    return (
+      <Suspense fallback={<div style={{ minHeight: "100vh", background: "#faf8f5" }} />}>
+        <AdminPage />
+      </Suspense>
+    );
   }
 
   return (

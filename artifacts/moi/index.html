@@ -74,17 +74,19 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Non-blocking font load: media="print" trick defers until after first paint -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap"
       rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
-    <!-- Critical image preloads — start fetching before React even loads -->
-    <link rel="preload" as="image" href="/hero-image.jpeg" />
-    <link rel="preload" as="image" href="/images/wavvy-look-1.jpg?v=2" />
-    <link rel="preload" as="image" href="/images/wavvy-look-2.jpg?v=2" />
-    <link rel="preload" as="image" href="/images/wavvy-look-3.jpg?v=2" />
-    <link rel="preload" as="image" href="/images/wavvy-look-4.jpg?v=2" />
-    <link rel="preload" as="image" href="/images/wavvy-look-5.jpg?v=2" />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" />
+    </noscript>
+    <!-- Preload only the LCP image (hero) — WebP for modern browsers, JPEG fallback -->
+    <link rel="preload" as="image" href="/hero-image.webp" type="image/webp" />
+    <link rel="preload" as="image" href="/hero-image.jpeg" media="not all" />
     <style>
       html.js-enabled #seo-prerender { display: none !important; }
     </style>
