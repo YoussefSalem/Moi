@@ -64,8 +64,8 @@ export function SearchDrawer({ open, products, query, onQueryChange, onClose, on
                   value={query}
                   onChange={(e) => onQueryChange(e.target.value)}
                   placeholder="Search by product, color, or ref"
-                  className="w-full px-4 py-3 text-sm tracking-wide outline-none bg-transparent"
-                  style={{ border: "1px solid rgba(30,24,20,0.14)", color: "#1e1814" }}
+                  className="w-full px-4 py-3 text-base tracking-wide outline-none bg-transparent"
+                  style={{ border: "1px solid rgba(30,24,20,0.14)", color: "#1e1814", fontSize: "16px" }}
                   autoFocus
                 />
 
