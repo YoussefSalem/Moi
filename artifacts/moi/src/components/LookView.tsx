@@ -87,8 +87,8 @@ export function LookView({ product, onClose }: LookViewProps) {
             style={{ overscrollBehavior: "contain", touchAction: "pan-y", WebkitOverflowScrolling: "touch" }}
           >
           <div className="relative flex-1 flex flex-col min-h-screen">
-            {/* ── Header ────────────────────────────── */}
-            <div className="flex items-center justify-between px-8 md:px-16 pt-8 pb-4">
+            {/* ── Header (sticky so it stays reachable on mobile) ── */}
+            <div className="sticky top-0 z-20 flex items-center justify-between px-8 md:px-16 pt-8 pb-4" style={{ backgroundColor: "hsl(30 20% 97%)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
               <button
                 onClick={onClose}
                 className="flex items-center gap-2 text-[11px] tracking-[0.25em] uppercase hover:opacity-50 transition-opacity"
@@ -112,7 +112,7 @@ export function LookView({ product, onClose }: LookViewProps) {
               className="text-center font-serif leading-none mb-8"
               style={{
                 color: "#1e1814",
-                fontSize: "clamp(4rem, 12vw, 11rem)",
+                fontSize: "clamp(2.5rem, 9vw, 11rem)",
                 letterSpacing: "0.08em",
                 fontWeight: 300,
                 opacity: 0.38,
