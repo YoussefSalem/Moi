@@ -329,7 +329,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               }}
             />
             <div
-              className="block relative group focus:outline-none w-full"
+              className="block relative group focus:outline-none w-full active:scale-[0.97] transition-transform duration-150"
               onPointerDown={(e) => {
                 dragStartXRef.current = e.clientX;
                 dragLastXRef.current = e.clientX;
