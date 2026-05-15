@@ -15,7 +15,10 @@ for (const cfg of Object.values(IMAGES)) {
     }
   }
   if ("name" in cfg && cfg.name && "productShot" in cfg && cfg.productShot) {
-    PRODUCT_IMAGE_MAP[cfg.name.toLowerCase()] = cfg.productShot;
+    const name = cfg.name.toLowerCase();
+    PRODUCT_IMAGE_MAP[name] = cfg.productShot;
+    PRODUCT_IMAGE_MAP[name + "."] = cfg.productShot;
+    PRODUCT_IMAGE_MAP[name.replace(/\./g, "")] = cfg.productShot;
   }
 }
 
@@ -28,13 +31,12 @@ function resolveLineImage(line: ShopifyCartLine): string | null {
     const hit = COLOR_IMAGE_MAP[colorOpt.value.toLowerCase()];
     if (hit) return hit;
   }
-  // 2. Product-level fallback
-  const productName = line.merchandise.product.title?.toLowerCase().replace(/\./g, "").trim();
-  if (productName) {
-    const hit = PRODUCT_IMAGE_MAP[productName];
-    if (hit) return hit;
-  }
-  // 3. Shopify variant / product images
+  // 2. Product-level fallback — ALWAYS prefer local image over Shopify
+  const rawTitle = line.merchandise.product.title?.toLowerCase() ?? "";
+  const normalized = rawTitle.replace(/\./g, "").trim();
+  const hit = PRODUCT_IMAGE_MAP[rawTitle] || PRODUCT_IMAGE_MAP[normalized] || PRODUCT_IMAGE_MAP[rawTitle + "."];
+  if (hit) return hit;
+  // 3. Shopify images only as last resort
   if (line.merchandise.image?.url) return line.merchandise.image.url;
   if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
   return null;
