@@ -31,21 +31,28 @@ function normalizeTitle(t: string) {
 }
 
 function resolveLineImage(line: ShopifyCartLine, localItems: LocalCartItem[]): string | null {
-  // 0. Best source: local cart added with the selected color image
   const variantId = line.merchandise.id;
   const localMatch = localItems.find((li) => li.variantId === variantId);
-  if (localMatch?.image) return localMatch.image;
 
   const rawTitle = line.merchandise.product.title ?? "";
   const normTitle = normalizeTitle(rawTitle);
 
-  // 1. Product + color scoped lookup (no cross-product collisions)
-  // Try every non-size option as a potential color so we aren't coupled to a specific option name
-  // (Shopify stores may use "Color", "Colour", "Couleur", etc.)
+  // Size-like option names to skip when scanning for the color option
   const SIZE_OPTION_NAMES = new Set(["size", "titre", "taille", "tamanho", "größe"]);
+
+  // Build a candidate color list from multiple sources, most-reliable first:
+  // a) color stored explicitly when item was added locally
+  // b) selectedOptions from the Shopify cart line
+  const colorCandidates: string[] = [];
+  if (localMatch?.color) colorCandidates.push(localMatch.color.toLowerCase());
   for (const opt of (line.merchandise.selectedOptions ?? [])) {
-    if (SIZE_OPTION_NAMES.has(opt.name.toLowerCase())) continue;
-    const color = opt.value.toLowerCase();
+    if (!SIZE_OPTION_NAMES.has(opt.name.toLowerCase())) {
+      colorCandidates.push(opt.value.toLowerCase());
+    }
+  }
+
+  // 1. Product + color map lookup (hashed bundle URL, always fresh — no stale localStorage URLs)
+  for (const color of colorCandidates) {
     const hit = PRODUCT_COLOR_MAP[`${normTitle}::${color}`]
       ?? PRODUCT_COLOR_MAP[`${rawTitle.toLowerCase()}::${color}`];
     if (hit) return hit;
@@ -55,9 +62,13 @@ function resolveLineImage(line: ShopifyCartLine, localItems: LocalCartItem[]): s
   const productHit = PRODUCT_SHOT_MAP[normTitle] ?? PRODUCT_SHOT_MAP[rawTitle.toLowerCase()];
   if (productHit) return productHit;
 
-  // 3. Shopify images as last resort
+  // 3. Shopify CDN image (set on the variant in Shopify admin)
   if (line.merchandise.image?.url) return line.merchandise.image.url;
   if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
+
+  // 4. Last resort: the stored localStorage URL (may be stale after a rebuild)
+  if (localMatch?.image) return localMatch.image;
+
   return null;
 }
 
