@@ -19,6 +19,20 @@ export default defineConfig({
     tailwindcss(),
     runtimeErrorOverlay(),
     {
+      name: "non-blocking-css",
+      transformIndexHtml: {
+        enforce: "post" as const,
+        handler(html: string) {
+          return html.replace(
+            /<link rel="stylesheet" crossorigin href="([^"]+\.css)">/g,
+            (_match: string, href: string) =>
+              `<link rel="preload" href="${href}" as="style" onload="this.onload=null;this.rel='stylesheet'">` +
+              `<noscript><link rel="stylesheet" href="${href}"></noscript>`
+          );
+        },
+      },
+    },
+    {
       name: "seo-headers",
       configureServer(server) {
         server.middlewares.use((req, res, next) => {

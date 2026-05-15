@@ -88,13 +88,8 @@ export function HeroVideo() {
         }}
       />
 
-      {/* Text content */}
-      <motion.div
-        initial={{ opacity: 0, y: 28 }}
-        animate={{ opacity: loaded ? 1 : 0, y: loaded ? 0 : 28 }}
-        transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
-        className="absolute bottom-0 left-0 right-0 pb-20 flex flex-col items-center text-center px-6 z-[3] md:pb-20"
-      >
+      {/* Text content — H1 renders immediately (no opacity gate) so LCP is not delayed */}
+      <div className="absolute bottom-0 left-0 right-0 pb-20 flex flex-col items-center text-center px-6 z-[3] md:pb-20">
         <p
           className="text-[10px] tracking-[0.55em] uppercase mb-4 font-light"
           style={{ color: "rgba(255,255,255,0.72)", fontFamily: "'Montserrat', sans-serif" }}
@@ -118,6 +113,9 @@ export function HeroVideo() {
         <motion.button
           type="button"
           onClick={handleShopNow}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: loaded ? 1 : 0 }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
           whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.14)" }}
           whileTap={{ scale: 0.98 }}
           className="inline-block px-12 py-4 text-[10px] tracking-[0.4em] uppercase font-light border transition-all duration-300"
@@ -131,7 +129,7 @@ export function HeroVideo() {
         >
           SHOP NOW
         </motion.button>
-      </motion.div>
+      </div>
 
       {/* Scroll cue */}
       <motion.div

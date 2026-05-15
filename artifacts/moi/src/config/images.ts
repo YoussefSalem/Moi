@@ -106,11 +106,11 @@ const ACC_BAG     = `${U}-1617922001439-4a2e6562f328?w=300&h=300&fit=crop&q=80`;
 const ACC_EARRING = `${U}-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&q=80`;
 
 // ── Moi Wavvy — Look View images (real brand photography) ─
-const WAVVY_LOOK_1 = "/images/wavvy-look-1.jpg?v=2";
-const WAVVY_LOOK_2 = "/images/wavvy-look-2.jpg?v=2";
-const WAVVY_LOOK_3 = "/images/wavvy-look-3.jpg?v=2";
-const WAVVY_LOOK_4 = "/images/wavvy-look-4.jpg?v=2";
-const WAVVY_LOOK_5 = "/images/wavvy-look-5.jpg?v=2";
+const WAVVY_LOOK_1 = "/images/wavvy-look-1.webp";
+const WAVVY_LOOK_2 = "/images/wavvy-look-2.webp";
+const WAVVY_LOOK_3 = "/images/wavvy-look-3.webp";
+const WAVVY_LOOK_4 = "/images/wavvy-look-4.webp";
+const WAVVY_LOOK_5 = "/images/wavvy-look-5.webp";
 
 export const IMAGES = {
   /**
