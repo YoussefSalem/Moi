@@ -486,14 +486,19 @@ export const IMAGES = {
     },
     colorImages: {
       Ivory: BANGLES_MAIN,
+      Beige: BANGLES_MAIN,
+      "One Size": BANGLES_MAIN,
     },
     colorGalleries: {
       Ivory: [BANGLES_MAIN, BANGLES_ALT_1, BANGLES_ALT_2, BANGLES_ALT_3],
+      Beige: [BANGLES_MAIN, BANGLES_ALT_1, BANGLES_ALT_2, BANGLES_ALT_3],
     },
     colorSwatches: {
       ivory: "#e3d4cb",
+      beige: "#e3d4cb",
     },
     name: "Trio Bangles",
+    shopifyTitle: "Trio Bangles.",
     colorLabel: "",
     description: "Three slim stacking bangles in a polished finish — worn together or layered freely. Lightweight, adjustable, and crafted to accompany every look.",
     price: "890 EGP",
