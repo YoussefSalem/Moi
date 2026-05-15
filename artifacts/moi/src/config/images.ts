@@ -136,10 +136,10 @@ export const IMAGES = {
     productShot: BEIGE_MAIN,
     filmstrip: [FS_A1, FS_A2, FS_A3, FS_A4, FS_A5, FS_A6, FS_A7, FS_A8],
     look: {
-      model:   LOOK_MODEL,   // a9 substitute — editorial model wearing the cape
-      shoes:   ACC_SHOES,    // SWAP ME: a10 or branded shoes shot
-      bag:     ACC_BAG,      // SWAP ME: a11 or branded bag shot
-      earring: ACC_EARRING,  // SWAP ME: a12 or branded earring shot
+      model:   "",
+      shoes:   "",
+      bag:     "",
+      earring: "",
     },
     colorImages: {
       White: WHITE_MAIN,
@@ -477,10 +477,10 @@ export const IMAGES = {
       BANGLES_ALT_3,
     ],
     look: {
-      model:   BANGLES_ALT_1,
-      shoes:   ACC_SHOES,
-      bag:     ACC_BAG,
-      earring: ACC_EARRING,
+      model:   "",
+      shoes:   "",
+      bag:     "",
+      earring: "",
     },
     colorImages: {
       Ivory: BANGLES_MAIN,
