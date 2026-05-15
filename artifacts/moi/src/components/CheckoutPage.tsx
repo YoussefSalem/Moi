@@ -931,7 +931,7 @@ export function CheckoutPage() {
                   Payment Method
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-8">
-                  {(["cod", "instapay", "card"] as PaymentMethod[]).map((m) => (
+                  {(["cod", "instapay"] as PaymentMethod[]).map((m) => (
                     <button
                       key={m}
                       onClick={() => setPaymentMethod(m)}
@@ -943,16 +943,35 @@ export function CheckoutPage() {
                       }}
                     >
                       <div style={{ fontSize: "16px", marginBottom: "5px" }}>
-                        {m === "cod" ? "🚚" : m === "instapay" ? "📱" : "💳"}
+                        {m === "cod" ? "🚚" : "📱"}
                       </div>
                       <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
-                        {m === "cod" ? "Cash on Delivery" : m === "instapay" ? "InstaPay" : "Card"}
+                        {m === "cod" ? "Cash on Delivery" : "InstaPay"}
                       </p>
                       <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", marginTop: "3px", lineHeight: 1.4 }}>
-                        {m === "cod" ? "Pay on arrival" : m === "instapay" ? "Bank transfer" : "Online payment"}
+                        {m === "cod" ? "Pay on arrival" : "Bank transfer"}
                       </p>
                     </button>
                   ))}
+                  <div
+                    className="text-left"
+                    style={{
+                      padding: "14px 12px",
+                      border: "1px dashed rgba(30,24,20,0.2)",
+                      backgroundColor: "transparent",
+                      opacity: 0.55,
+                    }}
+                  >
+                    <div style={{ fontSize: "16px", marginBottom: "5px", filter: "grayscale(1)" }}>
+                      💳
+                    </div>
+                    <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
+                      Card
+                    </p>
+                    <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.45)", fontFamily: "'Cormorant Garamond', Georgia, serif", fontStyle: "italic", fontWeight: 500, marginTop: "4px", lineHeight: 1.4 }}>
+                      coming soon
+                    </p>
+                  </div>
                 </div>
 
                 {/* Delivery form */}
@@ -1045,17 +1064,6 @@ export function CheckoutPage() {
                   </div>
                 )}
 
-                {paymentMethod === "card" && (
-                  <div className="mt-5 p-4 flex items-start gap-3" style={{ backgroundColor: "rgba(30,24,20,0.05)", border: "1px solid rgba(30,24,20,0.14)" }}>
-                    <CreditCard size={15} strokeWidth={1.5} style={{ color: "#1e1814", flexShrink: 0, marginTop: 2 }} />
-                    <div>
-                      <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.8, letterSpacing: "0.04em" }}>
-                        Your delivery details are pre-filled. You'll only need to enter your card number, expiry, and CVV on the secure payment screen.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
                 <button
                   onClick={handleSubmit}
                   className="w-full mt-8 py-4 transition-opacity hover:opacity-80"
@@ -1063,28 +1071,6 @@ export function CheckoutPage() {
                 >
                   Place Order
                 </button>
-
-                {paymentMethod === "card" && (
-                  <>
-                    <div className="flex items-center justify-center my-5" style={{ gap: "12px" }}>
-                      <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.12)" }} />
-                      <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", color: "rgba(30,24,20,0.5)", fontWeight: 500, letterSpacing: "0.15em", textTransform: "uppercase" }}>
-                        or
-                      </span>
-                      <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.12)" }} />
-                    </div>
-                    <button
-                      onClick={handleSubmit}
-                      className="w-full py-3.5 transition-opacity hover:opacity-90 flex items-center justify-center gap-2.5"
-                      style={{ backgroundColor: "#000", borderRadius: "6px" }}
-                    >
-                      <img src="/apple-logo.png" alt="Apple Pay" style={{ width: "22px", height: "22px", filter: "invert(1)" }} />
-                      <span style={{ color: "#fff", fontSize: "16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif", fontWeight: 500, letterSpacing: "0.02em" }}>
-                        Pay
-                      </span>
-                    </button>
-                  </>
-                )}
 
                 <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.58)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "14px", letterSpacing: "0.18em" }}>
                   By placing your order you agree to our terms of service.
