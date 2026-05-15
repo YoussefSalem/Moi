@@ -12,7 +12,8 @@ const PRODUCT_SHOT_MAP: Record<string, string> = {};
 
 for (const cfg of Object.values(IMAGES)) {
   if (!("name" in cfg) || !cfg.name) continue;
-  const names = [cfg.name.toLowerCase(), cfg.name.toLowerCase().replace(/\./g, "").trim()];
+  const rawNames = [cfg.name, ...("shopifyTitle" in cfg && cfg.shopifyTitle ? [cfg.shopifyTitle as string] : [])];
+  const names = rawNames.flatMap((n) => [n.toLowerCase(), n.toLowerCase().replace(/\./g, "").trim()]);
   if ("productShot" in cfg && cfg.productShot) {
     for (const n of names) PRODUCT_SHOT_MAP[n] = cfg.productShot;
   }
