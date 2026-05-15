@@ -63,17 +63,19 @@ export function LookView({ product, onClose }: LookViewProps) {
       {product && (
         <motion.div
           key="look-view"
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 40 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
           className="fixed inset-0 z-[80] flex flex-col overflow-y-auto"
           style={{
             background: `radial-gradient(ellipse 100% 100% at 50% 60%, ${gradColor} 0%, hsl(30 20% 97%) 65%)`,
             transition: "background 0.4s ease",
+            touchAction: "pan-y",
+            overscrollBehavior: "contain",
           }}
         >
-          <div className="relative flex-1 flex flex-col min-h-screen">
+          <div className="relative flex-1 flex flex-col min-h-screen" style={{ overscrollBehaviorY: "contain" }}>
             {/* ── Header ────────────────────────────── */}
             <div className="flex items-center justify-between px-8 md:px-16 pt-8 pb-4">
               <button
@@ -126,6 +128,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                       filter: "blur(24px)",
                       transform: "scale(1.15)",
                       transition: "background 0.4s ease",
+                      willChange: "transform",
                     }}
                   />
                   <AnimatePresence initial={false} mode="wait">
@@ -139,14 +142,15 @@ export function LookView({ product, onClose }: LookViewProps) {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.25, ease: "easeInOut" }}
-                      className="relative z-10 w-full h-full object-cover object-top rounded-sm"
+                      className="relative z-10 w-full h-full object-cover object-top rounded-sm pointer-events-none select-none"
+                      draggable={false}
                     />
                   </AnimatePresence>
                 </div>
                 {/* Horizontal thumb strip */}
                 <div
                   className="flex gap-2 overflow-x-auto pb-1"
-                  style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", msOverflowStyle: "none", touchAction: "pan-x" }}
                 >
                   <style>{`.look-strip::-webkit-scrollbar { display: none; }`}</style>
                   {availableImages.map((src) => (
