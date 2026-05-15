@@ -200,8 +200,6 @@ export function CheckoutPage() {
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
   const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
-  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
-  const redirectTimerRef = useRef<number | null>(null);
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", phone: "", email: "",
@@ -282,48 +280,12 @@ export function CheckoutPage() {
   }, [applyDiscount]);
 
   const handleSuccessDone = useCallback(() => {
-    if (redirectTimerRef.current) {
-      window.clearTimeout(redirectTimerRef.current);
-      redirectTimerRef.current = null;
-    }
-    setRedirectCountdown(null);
     clearCart();
     setStep("form");
     sessionStorage.removeItem("moi_instapay_order_result");
     closeCheckout();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [clearCart, closeCheckout]);
-
-  useEffect(() => {
-    const isSuccessStep = step === "cod-confirm" || step === "card-confirm";
-    if (!checkoutOpen || !orderResult || !isSuccessStep) {
-      if (redirectTimerRef.current) {
-        window.clearTimeout(redirectTimerRef.current);
-        redirectTimerRef.current = null;
-      }
-      setRedirectCountdown(null);
-      return;
-    }
-    if (redirectTimerRef.current) return;
-
-    setRedirectCountdown(20);
-    redirectTimerRef.current = window.setTimeout(() => {
-      handleSuccessDone();
-      window.location.assign("/");
-    }, 20000);
-
-    const tick = window.setInterval(() => {
-      setRedirectCountdown((value) => {
-        if (value == null || value <= 1) {
-          window.clearInterval(tick);
-          return 0;
-        }
-        return value - 1;
-      });
-    }, 1000);
-
-    return () => window.clearInterval(tick);
-  }, [checkoutOpen, orderResult, step, handleSuccessDone]);
 
   const handleSubmit = useCallback(async () => {
     if (!isShopify || !shopifyCart) {
@@ -749,7 +711,7 @@ export function CheckoutPage() {
               </p>
             </div>
           ) : step === "cod-confirm" ? (
-            <CODConfirmation orderResult={orderResult!} onDone={handleSuccessDone} items={successItems} redirectCountdown={redirectCountdown} />
+            <CODConfirmation orderResult={orderResult!} onDone={handleSuccessDone} items={successItems} />
           ) : step === "instapay-confirm" ? (
             <InstapayConfirmation
               orderResult={orderResult!}
@@ -762,7 +724,7 @@ export function CheckoutPage() {
               fmt={fmt}
             />
           ) : step === "card-confirm" ? (
-            <CardConfirmation orderResult={orderResult!} onDone={handleSuccessDone} items={successItems} redirectCountdown={redirectCountdown} />
+            <CardConfirmation orderResult={orderResult!} onDone={handleSuccessDone} items={successItems} />
           ) : step === "card-failed" ? (
             <CardFailed
               orderResult={orderResult!}
@@ -1136,7 +1098,7 @@ export function CheckoutPage() {
   );
 }
 
-function CODConfirmation({ orderResult, onDone, items, redirectCountdown }: { orderResult: OrderResult; onDone: () => void; items: NonNullable<OrderResult["items"]>; redirectCountdown: number | null }) {
+function CODConfirmation({ orderResult, onDone, items }: { orderResult: OrderResult; onDone: () => void; items: NonNullable<OrderResult["items"]> }) {
   return (
     <OrderSuccessScreen
       orderResult={orderResult}
@@ -1147,12 +1109,11 @@ function CODConfirmation({ orderResult, onDone, items, redirectCountdown }: { or
       detail={`Our team will contact you shortly to arrange delivery. Total due on arrival: ${orderResult.total} EGP`}
       note="A WhatsApp confirmation has been sent to your number."
       accentLabel="Pay on Delivery"
-      redirectCountdown={redirectCountdown}
     />
   );
 }
 
-function CardConfirmation({ orderResult, onDone, items, redirectCountdown }: { orderResult: OrderResult; onDone: () => void; items: NonNullable<OrderResult["items"]>; redirectCountdown: number | null }) {
+function CardConfirmation({ orderResult, onDone, items }: { orderResult: OrderResult; onDone: () => void; items: NonNullable<OrderResult["items"]> }) {
   return (
     <OrderSuccessScreen
       orderResult={orderResult}
@@ -1163,7 +1124,6 @@ function CardConfirmation({ orderResult, onDone, items, redirectCountdown }: { o
       detail="Your payment has been confirmed and your order is now being prepared."
       note="You'll receive a WhatsApp message with your order details and tracking update shortly."
       accentLabel="Paid"
-      redirectCountdown={redirectCountdown}
     />
   );
 }
@@ -1618,7 +1578,6 @@ function OrderSuccessScreen({
   detail,
   note,
   accentLabel,
-  redirectCountdown,
 }: {
   orderResult: OrderResult;
   onDone: () => void;
@@ -1628,7 +1587,6 @@ function OrderSuccessScreen({
   detail: string;
   note: string;
   accentLabel: string;
-  redirectCountdown: number | null;
 }) {
   return (
     <motion.div
@@ -1722,12 +1680,6 @@ function OrderSuccessScreen({
       <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.68)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 420 }}>
         {note}
       </p>
-
-      {redirectCountdown != null && (
-        <p style={{ fontSize: "11px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}>
-          Returning home in {redirectCountdown}s
-        </p>
-      )}
 
       <button
         onClick={onDone}
