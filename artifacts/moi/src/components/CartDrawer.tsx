@@ -3,6 +3,7 @@ import { X, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { IMAGES } from "@/config/images";
 import type { ShopifyCartLine } from "@/lib/shopify";
+import type { LocalCartItem } from "@/context/CartContext";
 
 // Product-scoped color map: "productname::color" → image URL
 // This prevents color collisions across products (e.g. "Beige" exists in both the Cape and Bangles variants).
@@ -28,11 +29,16 @@ function normalizeTitle(t: string) {
   return t.toLowerCase().replace(/\./g, "").trim();
 }
 
-function resolveLineImage(line: ShopifyCartLine): string | null {
+function resolveLineImage(line: ShopifyCartLine, localItems: LocalCartItem[]): string | null {
+  // 0. Best source: local cart added with the selected color image
+  const variantId = line.merchandise.id;
+  const localMatch = localItems.find((li) => li.variantId === variantId);
+  if (localMatch?.image) return localMatch.image;
+
   const rawTitle = line.merchandise.product.title ?? "";
   const normTitle = normalizeTitle(rawTitle);
 
-  // 1. Product + color scoped lookup (most accurate, no cross-product collisions)
+  // 1. Product + color scoped lookup (no cross-product collisions)
   const colorOpt = line.merchandise.selectedOptions?.find(
     (o) => o.name.toLowerCase() === "color"
   );
@@ -42,7 +48,7 @@ function resolveLineImage(line: ShopifyCartLine): string | null {
     if (hit) return hit;
   }
 
-  // 2. Product-level shot (no color match within this product → use main product image)
+  // 2. Product-level shot
   const productHit = PRODUCT_SHOT_MAP[normTitle] ?? PRODUCT_SHOT_MAP[rawTitle.toLowerCase()];
   if (productHit) return productHit;
 
@@ -156,9 +162,9 @@ export function CartDrawer() {
                             className="w-20 h-24 flex-shrink-0 overflow-hidden"
                             style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
                           >
-                            {resolveLineImage(line) && (
+                            {resolveLineImage(line, localItems) && (
                               <img
-                                src={resolveLineImage(line)!}
+                                src={resolveLineImage(line, localItems)!}
                                 alt={line.merchandise.product.title}
                                 className="w-full h-full object-cover"
                               />
