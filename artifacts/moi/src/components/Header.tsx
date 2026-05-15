@@ -43,6 +43,7 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
           <button
             onClick={() => {
               onNavigate?.("home");
+              window.history.replaceState(null, "", window.location.pathname);
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
             className="absolute left-1/2 -translate-x-1/2 font-serif select-none transition-colors duration-500"
@@ -154,12 +155,18 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
                       transition={{ delay: 0.1 + i * 0.07 }}
                     >
                       <a
-                        href={link === "Accessories" ? "#accessories" : link === "Become an Ambassador" ? "#ambassador" : "#home"}
+                        href={link === "Accessories" ? "#accessories" : link === "Become an Ambassador" ? "#ambassador" : "/"}
                         className="block text-2xl font-light tracking-wide hover:opacity-50 transition-opacity"
                         style={{ color: "#1e1814", letterSpacing: "0.08em" }}
-                        onClick={() => {
+                        onClick={(e) => {
+                          const dest = link === "Accessories" ? "accessories" : link === "Become an Ambassador" ? "ambassador" : "home";
+                          if (dest === "home") {
+                            e.preventDefault();
+                            window.history.replaceState(null, "", window.location.pathname);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }
                           setMenuOpen(false);
-                          onNavigate?.(link === "Accessories" ? "accessories" : link === "Become an Ambassador" ? "ambassador" : "home");
+                          onNavigate?.(dest);
                         }}
                       >
                         {link}
