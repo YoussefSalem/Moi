@@ -21,6 +21,21 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
 
   const firstAvailable = shopify.variants.nodes.find((v) => v.availableForSale) ?? shopify.variants.nodes[0];
 
+  // Pull extra Shopify images (excluding the featured shot) into The Look slots
+  const featuredUrl = shopify.featuredImage?.url;
+  const extraShopifyImages = shopify.images.nodes
+    .filter((img) => img.url !== featuredUrl)
+    .map((img) => img.url)
+    .slice(0, 5);
+
+  const look = {
+    model:   extraShopifyImages[0] || fallback.look.model,
+    shoes:   extraShopifyImages[1] || fallback.look.shoes,
+    bag:     extraShopifyImages[2] || fallback.look.bag,
+    earring: extraShopifyImages[3] || fallback.look.earring,
+    extra:   extraShopifyImages[4] || fallback.look.extra,
+  };
+
   return {
     ...fallback,
     name: shopify.title || fallback.name,
@@ -28,7 +43,7 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
     price: priceFormatted || fallback.price,
     productShot: fallback.productShot ?? mainImage,
     filmstrip: (fallback.filmstrip?.length ? fallback.filmstrip : filmstripImages) as string[],
-    look: fallback.look,
+    look,
     variantId: firstAvailable?.id,
     variants,
     colorImages: fallback.colorImages,
