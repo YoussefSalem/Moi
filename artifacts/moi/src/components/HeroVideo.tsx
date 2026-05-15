@@ -73,6 +73,7 @@ export function HeroVideo() {
           style={{ objectPosition: "center 22%" }}
           loading="eager"
           decoding="async"
+          fetchPriority="high"
           initial={{ scale: 1 }}
           animate={{ scale: 1.06 }}
           transition={{ duration: 14, ease: "linear", repeat: Infinity, repeatType: "reverse" }}

@@ -609,7 +609,7 @@ export function CheckoutPage() {
                         <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
                             {resolveLineImage(line) && (
-                              <img src={resolveLineImage(line)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" />
+                              <img src={resolveLineImage(line)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             )}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
@@ -624,7 +624,7 @@ export function CheckoutPage() {
                     : localLines.map((item) => (
                         <div key={item.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
-                            {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" />}
+                            {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
                             <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.title}</p>
@@ -739,7 +739,7 @@ export function CheckoutPage() {
                         <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.1)" }}>
                             {resolveLineImage(line) && (
-                              <img src={resolveLineImage(line)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" />
+                              <img src={resolveLineImage(line)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             )}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
@@ -759,7 +759,7 @@ export function CheckoutPage() {
                     : localLines.map((item) => (
                         <div key={item.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.1)" }}>
-                            {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" />}
+                            {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
                             <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.title}</p>
@@ -1637,7 +1637,7 @@ function OrderSuccessScreen({
         {items.map((item) => (
           <div key={item.id ?? `${item.title}-${item.quantity}`} className="flex items-center gap-3 px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.08)", backgroundColor: "rgba(30,24,20,0.02)" }}>
             <div className="w-12 h-14 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
-              {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" />}
+              {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
             </div>
             <div className="flex-1 text-left min-w-0">
               <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
