@@ -399,9 +399,8 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                     alt={`${product.name} - ${selectedColor} versatile top`}
                     className="absolute inset-0 w-full h-full"
                     style={{ objectFit: "contain", objectPosition: "center" }}
-                    loading="eager"
+                    loading="lazy"
                     decoding="async"
-                    fetchPriority="high"
                     initial={{ opacity: 0, scale: 0.97 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 1.03 }}

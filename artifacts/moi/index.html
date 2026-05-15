@@ -95,7 +95,12 @@
       body{overflow-x:hidden}
       #root{min-height:100svh}
     </style>
-    <script>document.documentElement.classList.add("js-enabled");</script>
+    <script>
+      // Delay hiding SEO prerender until after first frame paints → fast FCP
+      requestAnimationFrame(function(){requestAnimationFrame(function(){
+        document.documentElement.classList.add("js-enabled");
+      });});
+    </script>
   </head>
   <body>
     <div id="root">
