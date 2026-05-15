@@ -55,7 +55,7 @@ export function LookView({ product, onClose }: LookViewProps) {
   }, [product]);
   const sideImages = useMemo(() => {
     if (!product) return [];
-    return availableImages.filter((src) => src !== activeImage).slice(0, 5);
+    return availableImages.filter((src) => src !== activeImage).slice(0, 4);
   }, [activeImage, availableImages, product]);
 
   return (
@@ -162,8 +162,8 @@ export function LookView({ product, onClose }: LookViewProps) {
                     />
                   </AnimatePresence>
                 </motion.div>
-                <div className="grid grid-rows-3 gap-4">
-                  {sideImages.slice(2, 5).map((src) => (
+                <div className="grid grid-rows-2 gap-4">
+                  {sideImages.slice(2, 4).map((src) => (
                     <motion.button
                       key={src}
                       type="button"

@@ -21,19 +21,20 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
 
   const firstAvailable = shopify.variants.nodes.find((v) => v.availableForSale) ?? shopify.variants.nodes[0];
 
-  // Pull extra Shopify images (excluding the featured shot) into The Look slots
+  // Pull Shopify images into The Look slots.
+  // Featured image = main model shot; remaining images = side thumbnails.
   const featuredUrl = shopify.featuredImage?.url;
   const extraShopifyImages = shopify.images.nodes
     .filter((img) => img.url !== featuredUrl)
     .map((img) => img.url)
-    .slice(0, 5);
+    .slice(0, 4);
 
   const look = {
-    model:   extraShopifyImages[0] || fallback.look.model,
-    shoes:   extraShopifyImages[1] || fallback.look.shoes,
-    bag:     extraShopifyImages[2] || fallback.look.bag,
-    earring: extraShopifyImages[3] || fallback.look.earring,
-    extra:   extraShopifyImages[4] || fallback.look.extra,
+    model:   featuredUrl || fallback.look.model,
+    shoes:   extraShopifyImages[0] || fallback.look.shoes,
+    bag:     extraShopifyImages[1] || fallback.look.bag,
+    earring: extraShopifyImages[2] || fallback.look.earring,
+    extra:   extraShopifyImages[3] || fallback.look.extra,
   };
 
   return {
