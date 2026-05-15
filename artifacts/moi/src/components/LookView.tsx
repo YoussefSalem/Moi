@@ -67,23 +67,26 @@ export function LookView({ product, onClose }: LookViewProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 16 }}
           transition={{ duration: 0.38, ease: [0.32, 0, 0.16, 1] }}
-          className="fixed inset-0 z-[80] flex flex-col overflow-y-auto"
+          className="fixed inset-0 z-[80] overflow-hidden"
           style={{
             backgroundColor: "hsl(30 20% 97%)",
-            touchAction: "pan-y",
-            overscrollBehavior: "contain",
             willChange: "transform, opacity",
           }}
         >
-          {/* Ambient glow — separate layer, renders after mount so it never blocks entry */}
+          {/* Ambient glow — opacity-only transition (GPU composited, no repaint) */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
               background: `radial-gradient(ellipse 80% 70% at 50% 40%, ${gradColor} 0%, transparent 70%)`,
-              transition: "background 0.6s ease",
+              transition: "opacity 0.6s ease",
             }}
           />
-          <div className="relative flex-1 flex flex-col min-h-screen" style={{ overscrollBehaviorY: "contain" }}>
+          {/* Scroll container is separate from the animated layer */}
+          <div
+            className="absolute inset-0 overflow-y-auto"
+            style={{ overscrollBehavior: "contain", touchAction: "pan-y", WebkitOverflowScrolling: "touch" }}
+          >
+          <div className="relative flex-1 flex flex-col min-h-screen">
             {/* ── Header ────────────────────────────── */}
             <div className="flex items-center justify-between px-8 md:px-16 pt-8 pb-4">
               <button
@@ -112,7 +115,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                 fontSize: "clamp(4rem, 12vw, 11rem)",
                 letterSpacing: "0.08em",
                 fontWeight: 300,
-                opacity: 0.12,
+                opacity: 0.38,
                 pointerEvents: "none",
                 userSelect: "none",
               }}
@@ -245,6 +248,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                 </motion.button>
               </div>
             </div>
+          </div>
           </div>
         </motion.div>
       )}
