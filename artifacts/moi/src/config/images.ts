@@ -95,6 +95,16 @@ const FS_A7  = ATTACHED_ONE;
 // a8 substitute — attached product / variant image
 const FS_A8  = ATTACHED_TWO;
 
+// ── Look View: editorial model (a9 substitute) ────────────
+// SWAP ME: replace with CDN a9 once available
+const LOOK_MODEL = FS_A1;
+
+// ── Accessory close-ups for Look View floating badges ─────
+// SWAP ME: replace with branded accessory product shots
+const ACC_SHOES   = `${U}-1445205170230-053b83016050?w=300&h=300&fit=crop&q=80`;
+const ACC_BAG     = `${U}-1617922001439-4a2e6562f328?w=300&h=300&fit=crop&q=80`;
+const ACC_EARRING = `${U}-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&q=80`;
+
 // ── Moi Wavvy — Look View images (real brand photography) ─
 const WAVVY_LOOK_1 = "/images/wavvy-look-1.jpg?v=2";
 const WAVVY_LOOK_2 = "/images/wavvy-look-2.jpg?v=2";
@@ -123,13 +133,13 @@ export const IMAGES = {
    * look.model  : full editorial model shot for the Look View (a9 substitute)
    */
   product1: {
-    productShot: WHITE_MAIN,
+    productShot: BEIGE_MAIN,
     filmstrip: [FS_A1, FS_A2, FS_A3, FS_A4, FS_A5, FS_A6, FS_A7, FS_A8],
     look: {
-      model:   FS_A1,
-      shoes:   FS_A2,
-      bag:     FS_A3,
-      earring: FS_A4,
+      model:   LOOK_MODEL,   // a9 substitute — editorial model wearing the cape
+      shoes:   ACC_SHOES,    // SWAP ME: a10 or branded shoes shot
+      bag:     ACC_BAG,      // SWAP ME: a11 or branded bag shot
+      earring: ACC_EARRING,  // SWAP ME: a12 or branded earring shot
     },
     colorImages: {
       White: WHITE_MAIN,
@@ -164,13 +174,13 @@ export const IMAGES = {
       navy: "#3a5a7a",
       mint: "#98c8a8",
     },
-    name: "Moi Versa Top",
+    name: "Moi wavvy",
     colorLabel: "",
-    description: "A versatile top designed to be styled in multiple ways.",
+    description: "The ultimate throw-and-go. Effortless design, Wavy is light, breathable, and made for drifting.",
     price: "1.690 EGP",
     outer: "Outer shell: 100% Polyester",
     lining: "Lining: 96% Polyester, 4% Elastane",
-    ref: "2076/511/401",
+    ref: "2076/511/400",
     variants: [
       {
         id: "moi-versa-top-ivory-small",
@@ -469,9 +479,9 @@ export const IMAGES = {
     ],
     look: {
       model:   BANGLES_ALT_1,
-      shoes:   BANGLES_ALT_2,
-      bag:     BANGLES_ALT_3,
-      earring: BANGLES_MAIN,
+      shoes:   ACC_SHOES,
+      bag:     ACC_BAG,
+      earring: ACC_EARRING,
     },
     colorImages: {
       Ivory: BANGLES_MAIN,

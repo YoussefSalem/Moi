@@ -122,7 +122,7 @@ export function useShopifyProducts(fallbacks: ProductConfig[], version = 1): Use
       });
 
     return () => { cancelled = true; };
-  }, [version]);
+  }, []);
 
   return { products, loading, error };
 }
