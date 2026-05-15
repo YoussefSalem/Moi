@@ -28,7 +28,12 @@ export default defineConfig({
           }
           // Override any platform-injected noindex on HTML documents
           if (req.url && !req.url.match(/\.(js|css|png|jpg|jpeg|webp|svg|ico|woff2?)(\?|$)/i)) {
+            res.removeHeader("X-Robots-Tag");
             res.setHeader("X-Robots-Tag", "index, follow, max-image-preview:large");
+          }
+          // Sitemap & robots must be served with plain text
+          if (req.url && (req.url === "/robots.txt" || req.url === "/sitemap.xml")) {
+            res.removeHeader("X-Robots-Tag");
           }
           next();
         });
