@@ -19,12 +19,16 @@ export default defineConfig({
     tailwindcss(),
     runtimeErrorOverlay(),
     {
-      name: "image-cache-headers",
+      name: "seo-headers",
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
           if (req.url && /\/images\/[^?]+\.(jpg|jpeg|webp|png|avif)(\?|$)/i.test(req.url)) {
             res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
             res.setHeader("Access-Control-Allow-Origin", "*");
+          }
+          // Override any platform-injected noindex on HTML documents
+          if (req.url && !req.url.match(/\.(js|css|png|jpg|jpeg|webp|svg|ico|woff2?)(\?|$)/i)) {
+            res.setHeader("X-Robots-Tag", "index, follow, max-image-preview:large");
           }
           next();
         });
