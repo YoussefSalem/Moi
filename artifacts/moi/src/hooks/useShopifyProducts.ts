@@ -28,6 +28,7 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
     price: priceFormatted || fallback.price,
     productShot: fallback.productShot ?? mainImage,
     filmstrip: (fallback.filmstrip?.length ? fallback.filmstrip : filmstripImages) as string[],
+    look: fallback.look,
     variantId: firstAvailable?.id,
     variants,
     colorImages: fallback.colorImages,
