@@ -85,16 +85,98 @@
     <link rel="preload" as="image" href="/images/wavvy-look-3.jpg?v=2" />
     <link rel="preload" as="image" href="/images/wavvy-look-4.jpg?v=2" />
     <link rel="preload" as="image" href="/images/wavvy-look-5.jpg?v=2" />
+    <style>
+      html.js-enabled #seo-prerender { display: none !important; }
+    </style>
+    <script>document.documentElement.classList.add("js-enabled");</script>
   </head>
   <body>
-    <div id="root"></div>
-    <noscript>
-      <div style="padding:2rem;max-width:600px;margin:0 auto;font-family:'Montserrat',sans-serif">
-        <h1 style="font-family:'Cormorant Garamond',serif;font-size:2.5rem">Moi</h1>
-        <p>Premium versatile tops and fashion clothing in Egypt. Shop elegant, effortless style with Moi's curated collection of tops and accessories.</p>
-        <p>Enable JavaScript to explore our full collection.</p>
+    <div id="root">
+      <!-- Static prerendered content for SEO crawlers and noscript -->
+      <div id="seo-prerender" style="font-family:'Montserrat',sans-serif;background:#faf8f5;color:#1e1814">
+        <header style="padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(180,160,140,0.2)">
+          <span style="font-family:'Cormorant Garamond',serif;letter-spacing:0.3em;font-size:1.5rem">MOI</span>
+          <nav aria-label="Main navigation">
+            <a href="/clothing" style="margin-right:1.5rem;text-decoration:none;color:#1e1814;font-size:0.85rem;letter-spacing:0.08em;text-transform:uppercase">Clothing</a>
+            <a href="/accessories" style="margin-right:1.5rem;text-decoration:none;color:#1e1814;font-size:0.85rem;letter-spacing:0.08em;text-transform:uppercase">Accessories</a>
+            <a href="/ambassador" style="text-decoration:none;color:#1e1814;font-size:0.85rem;letter-spacing:0.08em;text-transform:uppercase">Ambassador</a>
+          </nav>
+        </header>
+
+        <main>
+          <section style="text-align:center;padding:4rem 1.5rem 2rem">
+            <h1 style="font-family:'Cormorant Garamond',serif;font-size:2.8rem;font-weight:400;margin-bottom:1rem">Premium Versatile Tops & Fashion in Egypt</h1>
+            <p style="max-width:600px;margin:0 auto 2rem;line-height:1.7;color:#5a4e44">Discover Moi's curated collection of versatile tops, elegant fashion pieces, and statement accessories. Designed for effortless everyday style.</p>
+            <a href="#collection" style="display:inline-block;padding:0.9rem 2.4rem;background:#1e1814;color:#faf8f5;text-decoration:none;font-size:0.8rem;letter-spacing:0.15em;text-transform:uppercase">Explore Collection</a>
+          </section>
+
+          <section id="collection" style="padding:2rem 1.5rem 4rem">
+            <article style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;margin-bottom:4rem">
+              <div>
+                <img src="/images/beige.jpg" alt="Moi Wavvy Top in Beige - versatile casual top for women in Egypt" loading="eager" decoding="async" style="width:100%;height:auto;border-radius:4px" />
+              </div>
+              <div>
+                <h2 style="font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:400;margin-bottom:0.5rem">Moi Wavvy Top</h2>
+                <p style="font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;color:#8a7e72;margin-bottom:1rem">Versatile Everyday Top</p>
+                <p style="line-height:1.7;color:#5a4e44;margin-bottom:1.5rem">The ultimate throw-and-go versatile top. Lightweight, breathable, and designed for effortless everyday style. Available in Beige, White, and Yellow.</p>
+                <p style="font-size:1.1rem;font-weight:500;margin-bottom:1rem">1,690 EGP</p>
+                <a href="/clothing" style="display:inline-block;padding:0.7rem 1.8rem;border:1px solid #1e1814;color:#1e1814;text-decoration:none;font-size:0.75rem;letter-spacing:0.12em;text-transform:uppercase">View Details</a>
+              </div>
+            </article>
+
+            <article style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center">
+              <div style="order:2">
+                <img src="/images/cashmere.jpg" alt="Moi Cashmere Top in Taupe - elegant premium top for women in Egypt" loading="lazy" decoding="async" style="width:100%;height:auto;border-radius:4px" />
+              </div>
+              <div style="order:1">
+                <h2 style="font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:400;margin-bottom:0.5rem">Moi Cashmere Top</h2>
+                <p style="font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;color:#8a7e72;margin-bottom:1rem">Elegant Premium Top</p>
+                <p style="line-height:1.7;color:#5a4e44;margin-bottom:1.5rem">Luxurious cashmere feel with a modern silhouette. Perfect for dressing up or down. Available in Taupe, Teal, and White.</p>
+                <p style="font-size:1.1rem;font-weight:500;margin-bottom:1rem">1,690 EGP</p>
+                <a href="/clothing" style="display:inline-block;padding:0.7rem 1.8rem;border:1px solid #1e1814;color:#1e1814;text-decoration:none;font-size:0.75rem;letter-spacing:0.12em;text-transform:uppercase">View Details</a>
+              </div>
+            </article>
+          </section>
+
+          <section style="padding:3rem 1.5rem;text-align:center;background:#f0ece6">
+            <h2 style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:400;margin-bottom:1rem">Complete Your Look</h2>
+            <p style="max-width:500px;margin:0 auto 1.5rem;line-height:1.7;color:#5a4e44">Explore our curated accessories collection to complement your versatile tops.</p>
+            <a href="/accessories" style="display:inline-block;padding:0.7rem 1.8rem;border:1px solid #1e1814;color:#1e1814;text-decoration:none;font-size:0.75rem;letter-spacing:0.12em;text-transform:uppercase">Shop Accessories</a>
+          </section>
+        </main>
+
+        <footer style="padding:3rem 1.5rem;background:#28211d;color:#fff">
+          <div style="max-width:1100px;margin:0 auto">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;margin-bottom:2rem">
+              <div>
+                <p style="font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:#fff6;margin-bottom:1rem">Shop</p>
+                <a href="/new-in" style="display:block;color:#fff9;text-decoration:none;font-size:0.85rem;margin-bottom:0.5rem">New In</a>
+                <a href="/clothing" style="display:block;color:#fff9;text-decoration:none;font-size:0.85rem;margin-bottom:0.5rem">Clothing</a>
+                <a href="/accessories" style="display:block;color:#fff9;text-decoration:none;font-size:0.85rem;margin-bottom:0.5rem">Accessories</a>
+                <a href="/sale" style="display:block;color:#fff9;text-decoration:none;font-size:0.85rem">Sale</a>
+              </div>
+              <div>
+                <p style="font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:#fff6;margin-bottom:1rem">Company</p>
+                <a href="/about" style="display:block;color:#fff9;text-decoration:none;font-size:0.85rem;margin-bottom:0.5rem">About Moi</a>
+                <a href="/sustainability" style="display:block;color:#fff9;text-decoration:none;font-size:0.85rem;margin-bottom:0.5rem">Sustainability</a>
+                <a href="/press" style="display:block;color:#fff9;text-decoration:none;font-size:0.85rem;margin-bottom:0.5rem">Press</a>
+                <a href="/careers" style="display:block;color:#fff9;text-decoration:none;font-size:0.85rem">Careers</a>
+              </div>
+              <div>
+                <p style="font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:#fff6;margin-bottom:1rem">Legal</p>
+                <a href="/privacy" style="display:block;color:#fff9;text-decoration:none;font-size:0.85rem;margin-bottom:0.5rem">Privacy Policy</a>
+                <a href="/terms" style="display:block;color:#fff9;text-decoration:none;font-size:0.85rem;margin-bottom:0.5rem">Terms</a>
+                <a href="/cookies" style="display:block;color:#fff9;text-decoration:none;font-size:0.85rem">Cookies</a>
+              </div>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:1.5rem;display:flex;justify-content:space-between;font-size:0.7rem;color:#fff5">
+              <span>© 2026 Moi. All rights reserved.</span>
+              <span>Premium versatile tops in Egypt</span>
+            </div>
+          </div>
+        </footer>
       </div>
-    </noscript>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
