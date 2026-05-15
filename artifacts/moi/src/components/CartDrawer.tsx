@@ -40,12 +40,14 @@ function resolveLineImage(line: ShopifyCartLine, localItems: LocalCartItem[]): s
   const normTitle = normalizeTitle(rawTitle);
 
   // 1. Product + color scoped lookup (no cross-product collisions)
-  const colorOpt = line.merchandise.selectedOptions?.find(
-    (o) => o.name.toLowerCase() === "color"
-  );
-  if (colorOpt) {
-    const color = colorOpt.value.toLowerCase();
-    const hit = PRODUCT_COLOR_MAP[`${normTitle}::${color}`] ?? PRODUCT_COLOR_MAP[`${rawTitle.toLowerCase()}::${color}`];
+  // Try every non-size option as a potential color so we aren't coupled to a specific option name
+  // (Shopify stores may use "Color", "Colour", "Couleur", etc.)
+  const SIZE_OPTION_NAMES = new Set(["size", "titre", "taille", "tamanho", "größe"]);
+  for (const opt of (line.merchandise.selectedOptions ?? [])) {
+    if (SIZE_OPTION_NAMES.has(opt.name.toLowerCase())) continue;
+    const color = opt.value.toLowerCase();
+    const hit = PRODUCT_COLOR_MAP[`${normTitle}::${color}`]
+      ?? PRODUCT_COLOR_MAP[`${rawTitle.toLowerCase()}::${color}`];
     if (hit) return hit;
   }
 
