@@ -33,40 +33,40 @@
 // ── Compressed product images (~130–280 KB each, down from 8–11 MB originals) ──
 // Imported as ES modules so Vite generates correct content-hashed URLs.
 // SWAP ME: replace with CDN URLs when available.
-import WHITE_MAIN    from "@/assets/images/white.jpg";
-import WHITE_ALT_ONE  from "@/assets/images/IMG_1996_1778613360425-opt.jpg";
-import WHITE_ALT_TWO  from "@/assets/images/IMG_1993_1778613360426-opt.jpg";
-import CASHMERE_MAIN from "@/assets/images/cashmere-main-new.jpg";
-import CASHMERE_ALT_1 from "@/assets/images/cashmere-alt-1.jpg";
-import CASHMERE_ALT_2 from "@/assets/images/cashmere-alt-2.jpg";
-import CASHMERE_ALT_3 from "@/assets/images/cashmere-alt-3.jpg";
-import BEIGE_MAIN    from "@/assets/images/beige.jpg";
-import BEIGE_ALT_1   from "@/assets/images/beige-alt-1.jpg";
-import BEIGE_ALT_2   from "@/assets/images/beige-alt-2.jpg";
-import BEIGE_ALT_3   from "@/assets/images/beige-alt-3.jpg";
-import YELLOW_MAIN   from "@/assets/images/yellow.jpg";
-import YELLOW_ALT_1  from "@/assets/images/yellow-alt-1.jpg";
-import YELLOW_ALT_2  from "@/assets/images/yellow-alt-2.jpg";
-import TEAL_MAIN     from "@/assets/images/teal.jpg";
-import TEAL_ALT_1    from "@/assets/images/teal-alt-1.jpg";
-import TEAL_ALT_2    from "@/assets/images/teal-alt-2.jpg";
-import TEAL_ALT_3    from "@/assets/images/teal-alt-3.jpg";
-import LIGHT_BLUE_MAIN from "@/assets/images/light-blue.jpg";
-import LIGHT_BLUE_ALT_1 from "@/assets/images/light-blue-alt-1.jpg";
-import LIGHT_BLUE_ALT_2 from "@/assets/images/light-blue-alt-2.jpg";
-import NAVI_MAIN from "@/assets/images/navi.jpg";
-import NAVI_ALT from "@/assets/images/navi-alt.jpg";
-import MINT_MAIN from "@/assets/images/mint.jpg";
-import MINT_ALT_1 from "@/assets/images/mint-alt-1.jpg";
-import MINT_ALT_2 from "@/assets/images/mint-alt-2.jpg";
-import BANGLES_MAIN from "@/assets/images/bangles-main.jpg";
-import BANGLES_ALT_1 from "@/assets/images/bangles-alt-1.jpg";
-import BANGLES_ALT_2 from "@/assets/images/bangles-alt-2.jpg";
-import BANGLES_ALT_3 from "@/assets/images/bangles-alt-3.jpg";
-import BANGLES_ALT_4 from "@/assets/images/bangles-alt-4.jpg";
+import WHITE_MAIN    from "@/assets/images/white.webp";
+import WHITE_ALT_ONE  from "@/assets/images/IMG_1996_1778613360425-opt.webp";
+import WHITE_ALT_TWO  from "@/assets/images/IMG_1993_1778613360426-opt.webp";
+import CASHMERE_MAIN from "@/assets/images/cashmere-main-new.webp";
+import CASHMERE_ALT_1 from "@/assets/images/cashmere-alt-1.webp";
+import CASHMERE_ALT_2 from "@/assets/images/cashmere-alt-2.webp";
+import CASHMERE_ALT_3 from "@/assets/images/cashmere-alt-3.webp";
+import BEIGE_MAIN    from "@/assets/images/beige.webp";
+import BEIGE_ALT_1   from "@/assets/images/beige-alt-1.webp";
+import BEIGE_ALT_2   from "@/assets/images/beige-alt-2.webp";
+import BEIGE_ALT_3   from "@/assets/images/beige-alt-3.webp";
+import YELLOW_MAIN   from "@/assets/images/yellow.webp";
+import YELLOW_ALT_1  from "@/assets/images/yellow-alt-1.webp";
+import YELLOW_ALT_2  from "@/assets/images/yellow-alt-2.webp";
+import TEAL_MAIN     from "@/assets/images/teal.webp";
+import TEAL_ALT_1    from "@/assets/images/teal-alt-1.webp";
+import TEAL_ALT_2    from "@/assets/images/teal-alt-2.webp";
+import TEAL_ALT_3    from "@/assets/images/teal-alt-3.webp";
+import LIGHT_BLUE_MAIN from "@/assets/images/light-blue.webp";
+import LIGHT_BLUE_ALT_1 from "@/assets/images/light-blue-alt-1.webp";
+import LIGHT_BLUE_ALT_2 from "@/assets/images/light-blue-alt-2.webp";
+import NAVI_MAIN from "@/assets/images/navi.webp";
+import NAVI_ALT from "@/assets/images/navi-alt.webp";
+import MINT_MAIN from "@/assets/images/mint.webp";
+import MINT_ALT_1 from "@/assets/images/mint-alt-1.webp";
+import MINT_ALT_2 from "@/assets/images/mint-alt-2.webp";
+import BANGLES_MAIN from "@/assets/images/bangles-main.webp";
+import BANGLES_ALT_1 from "@/assets/images/bangles-alt-1.webp";
+import BANGLES_ALT_2 from "@/assets/images/bangles-alt-2.webp";
+import BANGLES_ALT_3 from "@/assets/images/bangles-alt-3.webp";
+import BANGLES_ALT_4 from "@/assets/images/bangles-alt-4.webp";
 // filmstrip fallback assets (compressed)
-import ATTACHED_ONE  from "@/assets/images/filmstrip-a.jpg";
-import ATTACHED_TWO  from "@/assets/images/filmstrip-b.jpg";
+import ATTACHED_ONE  from "@/assets/images/filmstrip-a.webp";
+import ATTACHED_TWO  from "@/assets/images/filmstrip-b.webp";
 const WHITE_GALLERY = [WHITE_MAIN, WHITE_ALT_ONE, WHITE_ALT_TWO];
 const CASHMERE_GALLERY = [CASHMERE_MAIN, CASHMERE_ALT_1, CASHMERE_ALT_2, CASHMERE_ALT_3];
 const BEIGE_GALLERY = [BEIGE_MAIN, BEIGE_ALT_1, BEIGE_ALT_2];
@@ -77,7 +77,7 @@ const TEAL_GALLERY = [TEAL_MAIN, TEAL_ALT_1, TEAL_ALT_2, TEAL_ALT_3];
 // Unsplash fashion editorial photos used in place of the unavailable CDN model shots.
 // SWAP ME: replace each with the corresponding CDN URL (a1–a14) once they resolve.
 const U = "https://images.unsplash.com/photo";
-const HERO_IMAGE = `${import.meta.env.BASE_URL}hero-image.jpeg`;
+const HERO_IMAGE = `${import.meta.env.BASE_URL}hero-image.webp`;
 // a1 substitute — attached product / variant image
 const FS_A1  = ATTACHED_ONE;
 // a2 substitute — attached product / variant image

@@ -84,9 +84,8 @@
     <noscript>
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" />
     </noscript>
-    <!-- Preload only the LCP image (hero) — WebP for modern browsers, JPEG fallback -->
-    <link rel="preload" as="image" href="/hero-image.webp" type="image/webp" />
-    <link rel="preload" as="image" href="/hero-image.jpeg" media="not all" />
+    <!-- Preload the LCP hero image as WebP -->
+    <link rel="preload" as="image" href="/hero-image.webp" type="image/webp" fetchpriority="high" />
     <style>
       html.js-enabled #seo-prerender { display: none !important; }
     </style>
@@ -115,7 +114,7 @@
           <section id="collection" style="padding:2rem 1.5rem 4rem">
             <article style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;margin-bottom:4rem">
               <div>
-                <img src="/images/beige.jpg" alt="Moi Wavvy Top in Beige - versatile casual top for women in Egypt" loading="eager" decoding="async" style="width:100%;height:auto;border-radius:4px" />
+                <img src="/images/beige.webp" alt="Moi Wavvy Top in Beige - versatile casual top for women in Egypt" loading="eager" decoding="async" style="width:100%;height:auto;border-radius:4px" />
               </div>
               <div>
                 <h2 style="font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:400;margin-bottom:0.5rem">Moi Wavvy Top</h2>
@@ -128,7 +127,7 @@
 
             <article style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center">
               <div style="order:2">
-                <img src="/images/cashmere.jpg" alt="Moi Cashmere Top in Taupe - elegant premium top for women in Egypt" loading="lazy" decoding="async" style="width:100%;height:auto;border-radius:4px" />
+                <img src="/images/cashmere.webp" alt="Moi Cashmere Top in Taupe - elegant premium top for women in Egypt" loading="lazy" decoding="async" style="width:100%;height:auto;border-radius:4px" />
               </div>
               <div style="order:1">
                 <h2 style="font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:400;margin-bottom:0.5rem">Moi Cashmere Top</h2>
