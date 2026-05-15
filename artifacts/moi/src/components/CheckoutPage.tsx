@@ -29,9 +29,9 @@ function resolveLineImage(line: ShopifyCartLine): string | null {
     if (hit) return hit;
   }
   // 2. Product-level fallback
-  const productName = line.merchandise.product.title;
+  const productName = line.merchandise.product.title?.toLowerCase().replace(/\./g, "").trim();
   if (productName) {
-    const hit = PRODUCT_IMAGE_MAP[productName.toLowerCase()];
+    const hit = PRODUCT_IMAGE_MAP[productName];
     if (hit) return hit;
   }
   // 3. Shopify variant / product images
