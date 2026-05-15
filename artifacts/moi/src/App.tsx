@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState, useEffect } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
@@ -54,24 +54,6 @@ function ProductSkeleton() {
 
 const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
 
-// Defer image preloading until after first paint — don't block LCP
-function useGlobalImagePreload(products: ProductConfig[]) {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const urls = new Set<string>();
-      for (const p of products) {
-        if (p.productShot) urls.add(p.productShot);
-        for (const u of Object.values(p.colorImages ?? {})) if (u) urls.add(u as string);
-        for (const u of (p.filmstrip ?? [])) if (u) urls.add(u as string);
-      }
-      for (const url of urls) {
-        const img = new Image();
-        img.src = url;
-      }
-    }, 2000); // defer 2s after first paint
-    return () => clearTimeout(timer);
-  }, [products]);
-}
 
 function AppContent() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
@@ -80,7 +62,6 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
   useRestockChecker();
-  useGlobalImagePreload(products);
 
   const product1 = products[0] ?? IMAGES.product1;
   const product2 = products[1] ?? IMAGES.product2;
