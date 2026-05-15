@@ -295,7 +295,7 @@ export function CheckoutPage() {
   }, [clearCart, closeCheckout]);
 
   useEffect(() => {
-    const isSuccessStep = step === "cod-confirm" || step === "instapay-confirm" || step === "card-confirm";
+    const isSuccessStep = step === "cod-confirm" || step === "card-confirm";
     if (!checkoutOpen || !orderResult || !isSuccessStep) {
       if (redirectTimerRef.current) {
         window.clearTimeout(redirectTimerRef.current);
