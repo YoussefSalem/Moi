@@ -27,23 +27,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
 
-  // Preload per-color images + filmstrip after idle — avoids competing with first render.
-  useEffect(() => {
-    const urls: string[] = [
-      ...Object.values(product.colorImages ?? {}),
-      ...(product.filmstrip ?? []),
-      product.productShot,
-    ].filter(Boolean) as string[];
-    const schedule = "requestIdleCallback" in window
-      ? (cb: () => void) => (window as Window & typeof globalThis & { requestIdleCallback: (cb: () => void) => number }).requestIdleCallback(cb)
-      : (cb: () => void) => setTimeout(cb, 200);
-    schedule(() => {
-      for (const url of urls) {
-        const img = new Image();
-        img.src = url;
-      }
-    });
-  }, [product.colorImages, product.filmstrip, product.productShot]);
 
   const colorOption = useMemo(() => {
     if (!hasShopifyVariants) return null;
