@@ -65,7 +65,6 @@ function AppContent() {
 
   const product1 = products[0] ?? IMAGES.product1;
   const product2 = products[1] ?? IMAGES.product2;
-  const allProducts = useMemo(() => products, [products]);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "hsl(30 15% 95%)" }}>
@@ -131,7 +130,7 @@ function AppContent() {
         <AccountPage />
         <SearchDrawer
           open={searchOpen}
-          products={allProducts}
+          products={products}
           query={searchQuery}
           onQueryChange={setSearchQuery}
           onClose={() => setSearchOpen(false)}
