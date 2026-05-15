@@ -7,20 +7,21 @@ import type { ShopifyCartLine } from "@/lib/shopify";
 // Build a flat color→image map from all product configs so we can resolve
 // the correct local thumbnail even when Shopify has no variant image set.
 const COLOR_IMAGE_MAP: Record<string, string> = {};
-for (const cfg of Object.values(IMAGES)) {
+const PRODUCT_IMAGE_MAP: Record<string, string> = {};
+for (const [key, cfg] of Object.entries(IMAGES)) {
   if ("colorImages" in cfg && cfg.colorImages) {
     for (const [color, url] of Object.entries(cfg.colorImages as Record<string, string>)) {
       COLOR_IMAGE_MAP[color.toLowerCase()] = url;
     }
   }
+  // Map product name → product shot for product-level fallback in cart
+  if ("name" in cfg && cfg.name && "productShot" in cfg && cfg.productShot) {
+    PRODUCT_IMAGE_MAP[cfg.name.toLowerCase()] = cfg.productShot;
+  }
 }
 
 function resolveLineImage(line: ShopifyCartLine): string | null {
-  // 1. Variant-level image set in Shopify admin
-  if (line.merchandise.image?.url) return line.merchandise.image.url;
-  // 2. Product featured image set in Shopify admin
-  if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
-  // 3. Derive from the Color selectedOption → local config image
+  // 1. Derive from the Color selectedOption → local config image (most accurate)
   const colorOpt = line.merchandise.selectedOptions?.find(
     (o) => o.name.toLowerCase() === "color"
   );
@@ -28,6 +29,16 @@ function resolveLineImage(line: ShopifyCartLine): string | null {
     const hit = COLOR_IMAGE_MAP[colorOpt.value.toLowerCase()];
     if (hit) return hit;
   }
+  // 2. Product-level fallback (e.g. bangles with any color name)
+  const productName = line.merchandise.product.title;
+  if (productName) {
+    const hit = PRODUCT_IMAGE_MAP[productName.toLowerCase()];
+    if (hit) return hit;
+  }
+  // 3. Shopify variant image
+  if (line.merchandise.image?.url) return line.merchandise.image.url;
+  // 4. Shopify product featured image
+  if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
   return null;
 }
 

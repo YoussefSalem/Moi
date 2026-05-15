@@ -7,17 +7,20 @@ import { IMAGES } from "@/config/images";
 import type { ShopifyCartLine } from "@/lib/shopify";
 
 const COLOR_IMAGE_MAP: Record<string, string> = {};
+const PRODUCT_IMAGE_MAP: Record<string, string> = {};
 for (const cfg of Object.values(IMAGES)) {
   if ("colorImages" in cfg && cfg.colorImages) {
     for (const [color, url] of Object.entries(cfg.colorImages as Record<string, string>)) {
       COLOR_IMAGE_MAP[color.toLowerCase()] = url;
     }
   }
+  if ("name" in cfg && cfg.name && "productShot" in cfg && cfg.productShot) {
+    PRODUCT_IMAGE_MAP[cfg.name.toLowerCase()] = cfg.productShot;
+  }
 }
 
 function resolveLineImage(line: ShopifyCartLine): string | null {
-  if (line.merchandise.image?.url) return line.merchandise.image.url;
-  if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
+  // 1. Derive from the Color selectedOption → local config image
   const colorOpt = line.merchandise.selectedOptions?.find(
     (o) => o.name.toLowerCase() === "color"
   );
@@ -25,6 +28,15 @@ function resolveLineImage(line: ShopifyCartLine): string | null {
     const hit = COLOR_IMAGE_MAP[colorOpt.value.toLowerCase()];
     if (hit) return hit;
   }
+  // 2. Product-level fallback
+  const productName = line.merchandise.product.title;
+  if (productName) {
+    const hit = PRODUCT_IMAGE_MAP[productName.toLowerCase()];
+    if (hit) return hit;
+  }
+  // 3. Shopify variant / product images
+  if (line.merchandise.image?.url) return line.merchandise.image.url;
+  if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
   return null;
 }
 
