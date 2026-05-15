@@ -32,6 +32,7 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
     variants,
     colorImages: fallback.colorImages,
     colorGalleries: fallback.colorGalleries,
+    look: fallback.look,
     colorSwatches: (() => {
       const LOCAL_FALLBACK: Record<string, string> = {
         black: "#000000",
@@ -98,12 +99,17 @@ export function useShopifyProducts(fallbacks: ProductConfig[]): UseShopifyProduc
           return;
         }
         const mapped = shopifyProducts.map((sp) => {
-          // Match by title (case-insensitive substring) so order from Shopify doesn't matter.
-          const matched = fallbacks.find((fb) =>
+          // 1. Match by handle (most reliable)
+          const byHandle = fallbacks.find((fb) =>
+            fb.handle && sp.handle && fb.handle.toLowerCase() === sp.handle.toLowerCase()
+          );
+          // 2. Match by title (case-insensitive substring)
+          const byTitle = fallbacks.find((fb) =>
             fb.name && sp.title.toLowerCase().includes(fb.name.toLowerCase())
           ) ?? fallbacks.find((fb) =>
             fb.name && fb.name.toLowerCase().includes(sp.title.toLowerCase())
-          ) ?? fallbacks[0];
+          );
+          const matched = byHandle ?? byTitle ?? fallbacks[0];
           return mapProductToConfig(sp, matched);
         });
         setProducts(mapped);
