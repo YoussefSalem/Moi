@@ -80,13 +80,15 @@ interface UseShopifyProductsResult {
   error: string | null;
 }
 
-export function useShopifyProducts(fallbacks: ProductConfig[]): UseShopifyProductsResult {
+export function useShopifyProducts(fallbacks: ProductConfig[], version = 1): UseShopifyProductsResult {
   const [products, setProducts] = useState<ProductConfig[]>(fallbacks);
   const [loading, setLoading] = useState(SHOPIFY_CONFIGURED);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!SHOPIFY_CONFIGURED) return;
+    // Reset to fallbacks immediately when version changes so old mapped data is discarded
+    setProducts(fallbacks);
 
     let cancelled = false;
     setLoading(true);
@@ -98,19 +100,17 @@ export function useShopifyProducts(fallbacks: ProductConfig[]): UseShopifyProduc
           setLoading(false);
           return;
         }
-        const mapped = shopifyProducts.map((sp) => {
-          // 1. Match by handle (most reliable)
-          const byHandle = fallbacks.find((fb) =>
-            fb.handle && sp.handle && fb.handle.toLowerCase() === sp.handle.toLowerCase()
-          );
-          // 2. Match by title (case-insensitive substring)
-          const byTitle = fallbacks.find((fb) =>
-            fb.name && sp.title.toLowerCase().includes(fb.name.toLowerCase())
-          ) ?? fallbacks.find((fb) =>
-            fb.name && fb.name.toLowerCase().includes(sp.title.toLowerCase())
-          );
-          const matched = byHandle ?? byTitle ?? fallbacks[0];
-          return mapProductToConfig(sp, matched);
+        // Preserve fallback order so products[0] / products[1] always match
+        const mapped = fallbacks.map((fb) => {
+          const sp = shopifyProducts.find((sp) => {
+            // 1. Match by handle (most reliable)
+            if (fb.handle && sp.handle && fb.handle.toLowerCase() === sp.handle.toLowerCase()) return true;
+            // 2. Match by title (case-insensitive substring)
+            if (fb.name && sp.title.toLowerCase().includes(fb.name.toLowerCase())) return true;
+            if (fb.name && fb.name.toLowerCase().includes(sp.title.toLowerCase())) return true;
+            return false;
+          });
+          return sp ? mapProductToConfig(sp, fb) : fb;
         });
         setProducts(mapped);
         setLoading(false);

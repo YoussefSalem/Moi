@@ -23,7 +23,10 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
           if (req.url && /\/images\/[^?]+\.(jpg|jpeg|webp|png|avif)(\?|$)/i.test(req.url)) {
-            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+            // In dev, disable long-term caching so image changes reflect immediately
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            res.setHeader("Pragma", "no-cache");
+            res.setHeader("Expires", "0");
             res.setHeader("Access-Control-Allow-Origin", "*");
           }
           next();
