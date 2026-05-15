@@ -114,8 +114,63 @@ export function LookView({ product, onClose }: LookViewProps) {
             </motion.h2>
 
             {/* ── Editorial layout ─────────────────── */}
-            <div className="mx-auto w-full max-w-6xl px-8 md:px-16 pb-16">
-              <div className="grid grid-cols-1 md:grid-cols-[minmax(140px,1fr)_minmax(0,1.35fr)_minmax(140px,1fr)] gap-4 md:gap-6 items-center">
+            <div className="mx-auto w-full max-w-6xl px-5 md:px-16 pb-10 md:pb-16 flex flex-col md:block">
+              {/* Mobile: hero image + horizontal thumb strip */}
+              <div className="md:hidden flex flex-col gap-3">
+                {/* Main image */}
+                <div className="relative w-full" style={{ height: "55vh" }}>
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: `radial-gradient(ellipse 90% 80% at 50% 60%, ${color?.rgba(0.2) ?? "rgba(180,160,130,0.14)"} 0%, transparent 70%)`,
+                      filter: "blur(24px)",
+                      transform: "scale(1.15)",
+                      transition: "background 0.4s ease",
+                    }}
+                  />
+                  <AnimatePresence initial={false} mode="wait">
+                    <motion.img
+                      key={activeImage ?? product.look.model}
+                      src={activeImage ?? product.look.model}
+                      alt={product.name}
+                      loading="eager"
+                      decoding="async"
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                      className="relative z-10 w-full h-full object-cover object-top rounded-sm"
+                    />
+                  </AnimatePresence>
+                </div>
+                {/* Horizontal thumb strip */}
+                <div
+                  className="flex gap-2 overflow-x-auto pb-1"
+                  style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", msOverflowStyle: "none" }}
+                >
+                  <style>{`.look-strip::-webkit-scrollbar { display: none; }`}</style>
+                  {availableImages.map((src) => (
+                    <button
+                      key={src}
+                      type="button"
+                      onClick={() => setActiveImage(src)}
+                      className="flex-shrink-0 overflow-hidden rounded-sm transition-all duration-200"
+                      style={{
+                        width: "72px",
+                        aspectRatio: "1 / 1",
+                        border: src === activeImage ? "2px solid #1e1814" : "2px solid transparent",
+                        opacity: src === activeImage ? 1 : 0.7,
+                        scrollSnapAlign: "start",
+                      }}
+                    >
+                      <img src={src} alt="Thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Desktop: 2+1+2 editorial grid */}
+              <div className="hidden md:grid grid-cols-[minmax(140px,1fr)_minmax(0,1.35fr)_minmax(140px,1fr)] gap-6 items-center">
                 <div className="grid grid-rows-2 gap-4">
                   {sideImages.slice(0, 2).map((src) => (
                     <button
