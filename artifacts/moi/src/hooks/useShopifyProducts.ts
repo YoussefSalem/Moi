@@ -32,7 +32,6 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
     variants,
     colorImages: fallback.colorImages,
     colorGalleries: fallback.colorGalleries,
-    look: fallback.look,
     colorSwatches: (() => {
       const LOCAL_FALLBACK: Record<string, string> = {
         black: "#000000",
@@ -80,15 +79,13 @@ interface UseShopifyProductsResult {
   error: string | null;
 }
 
-export function useShopifyProducts(fallbacks: ProductConfig[], version = 1): UseShopifyProductsResult {
+export function useShopifyProducts(fallbacks: ProductConfig[]): UseShopifyProductsResult {
   const [products, setProducts] = useState<ProductConfig[]>(fallbacks);
   const [loading, setLoading] = useState(SHOPIFY_CONFIGURED);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!SHOPIFY_CONFIGURED) return;
-    // Reset to fallbacks immediately when version changes so old mapped data is discarded
-    setProducts(fallbacks);
 
     let cancelled = false;
     setLoading(true);
@@ -100,17 +97,14 @@ export function useShopifyProducts(fallbacks: ProductConfig[], version = 1): Use
           setLoading(false);
           return;
         }
-        // Preserve fallback order so products[0] / products[1] always match
-        const mapped = fallbacks.map((fb) => {
-          const sp = shopifyProducts.find((sp) => {
-            // 1. Match by handle (most reliable)
-            if (fb.handle && sp.handle && fb.handle.toLowerCase() === sp.handle.toLowerCase()) return true;
-            // 2. Match by title (case-insensitive substring)
-            if (fb.name && sp.title.toLowerCase().includes(fb.name.toLowerCase())) return true;
-            if (fb.name && fb.name.toLowerCase().includes(sp.title.toLowerCase())) return true;
-            return false;
-          });
-          return sp ? mapProductToConfig(sp, fb) : fb;
+        const mapped = shopifyProducts.map((sp) => {
+          // Match by title (case-insensitive substring) so order from Shopify doesn't matter.
+          const matched = fallbacks.find((fb) =>
+            fb.name && sp.title.toLowerCase().includes(fb.name.toLowerCase())
+          ) ?? fallbacks.find((fb) =>
+            fb.name && fb.name.toLowerCase().includes(sp.title.toLowerCase())
+          ) ?? fallbacks[0];
+          return mapProductToConfig(sp, matched);
         });
         setProducts(mapped);
         setLoading(false);

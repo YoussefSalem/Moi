@@ -24,12 +24,7 @@ export function useShopifyProductByHandle(
       .then((shopifyProduct) => {
         if (cancelled) return;
         if (shopifyProduct) {
-          // Preserve handle from fallback for downstream matching
-          const enrichedFallback = {
-            ...fallback,
-            handle: fallback.handle ?? handle,
-          };
-          setProduct(mapProductToConfig(shopifyProduct, enrichedFallback));
+          setProduct(mapProductToConfig(shopifyProduct, fallback));
         }
         setLoading(false);
       })

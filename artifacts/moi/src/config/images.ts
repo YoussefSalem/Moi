@@ -106,11 +106,11 @@ const ACC_BAG     = `${U}-1617922001439-4a2e6562f328?w=300&h=300&fit=crop&q=80`;
 const ACC_EARRING = `${U}-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&q=80`;
 
 // ── Moi Wavvy — Look View images (real brand photography) ─
-const WAVVY_LOOK_1 = "/images/wavvy-look-1.jpg?v=2";
-const WAVVY_LOOK_2 = "/images/wavvy-look-2.jpg?v=2";
-const WAVVY_LOOK_3 = "/images/wavvy-look-3.jpg?v=2";
-const WAVVY_LOOK_4 = "/images/wavvy-look-4.jpg?v=2";
-const WAVVY_LOOK_5 = "/images/wavvy-look-5.jpg?v=2";
+const WAVVY_LOOK_1 = "/images/wavvy-look-1.jpg";
+const WAVVY_LOOK_2 = "/images/wavvy-look-2.jpg";
+const WAVVY_LOOK_3 = "/images/wavvy-look-3.jpg";
+const WAVVY_LOOK_4 = "/images/wavvy-look-4.jpg";
+const WAVVY_LOOK_5 = "/images/wavvy-look-5.jpg";
 
 export const IMAGES = {
   /**
@@ -457,7 +457,6 @@ export const IMAGES = {
       extra:   WAVVY_LOOK_2,
     },
     name: "Moi wavvy",
-    handle: "moi-wavvy",
     colorLabel: "",
     description: "The ultimate throw-and-go. Effortless design, Wavy is light, breathable, and made for drifting.",
     price: "1.690 EGP",
@@ -493,7 +492,6 @@ export const IMAGES = {
       ivory: "#e3d4cb",
     },
     name: "Trio Bangles",
-    handle: "trio-bangles",
     colorLabel: "",
     description: "Three slim stacking bangles in a polished finish — worn together or layered freely. Lightweight, adjustable, and crafted to accompany every look.",
     price: "890 EGP",
@@ -523,7 +521,6 @@ export interface ProductConfig {
     readonly extra?: string;
   };
   readonly name: string;
-  readonly handle?: string;
   readonly colorLabel: string;
   readonly description: string;
   readonly price: string;

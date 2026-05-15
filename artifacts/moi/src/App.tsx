@@ -74,7 +74,7 @@ function AppContent() {
   const [page, setPage] = useState<"home" | "accessories" | "ambassador">("home");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS, 2);
+  const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
   useRestockChecker();
   useGlobalImagePreload(products);
 
