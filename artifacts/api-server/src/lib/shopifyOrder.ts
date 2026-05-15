@@ -128,6 +128,48 @@ export interface ShopifyLineItem {
   price: string;
 }
 
+export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{ orderId: number; orderNumber: number; total: string; lineItems: ShopifyLineItem[] } | null> {
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const adminToken = await getShopifyAdminToken();
+  if (!storeDomain || !adminToken) return null;
+
+  const completeRes = await fetch(
+    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?payment_pending=true&send_receipt=false&send_fulfillment_receipt=false`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": adminToken,
+      },
+    },
+  );
+
+  if (!completeRes.ok) return null;
+
+  const completeData = await completeRes.json() as {
+    draft_order: { order_id: number; total_price: string };
+  };
+  const orderId = completeData.draft_order.order_id;
+  const total = completeData.draft_order.total_price;
+
+  const orderRes = await fetch(
+    `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=order_number,line_items`,
+    { headers: { "X-Shopify-Access-Token": adminToken } },
+  );
+
+  let orderNumber = orderId;
+  let fetchedLineItems: ShopifyLineItem[] = [];
+  if (orderRes.ok) {
+    const orderData = await orderRes.json() as {
+      order: { order_number: number; line_items: unknown[] };
+    };
+    orderNumber = orderData.order.order_number ?? orderId;
+    fetchedLineItems = (orderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
+  }
+
+  return { orderId, orderNumber, total, lineItems: fetchedLineItems };
+}
+
 export async function createDraftOrder(params: {
   lines: OrderLine[];
   customer: CustomerInfo;
@@ -135,7 +177,8 @@ export async function createDraftOrder(params: {
   cartId?: string;
   discountCode?: string;
   extraTags?: string;
-}): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[] }> {
+  complete?: boolean;
+}): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; draftOrderId?: number }> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) throw new Error("Shopify Admin API not configured");
@@ -234,6 +277,12 @@ export async function createDraftOrder(params: {
     draft_order: { id: number; total_price: string };
   };
   const draftId = createData.draft_order.id;
+  const draftTotal = createData.draft_order.total_price;
+
+  // For instapay we return early with the draft ID — order is only completed when proof is submitted
+  if (params.complete === false) {
+    return { orderNumber: draftId, orderId: draftId, total: draftTotal, lineItems: [], draftOrderId: draftId };
+  }
 
   const completeRes = await fetch(
     `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?payment_pending=true&send_receipt=false&send_fulfillment_receipt=false`,

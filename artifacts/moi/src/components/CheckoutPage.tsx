@@ -80,6 +80,7 @@ interface OrderResult {
   paymobTxnId?: string;
   shopifyOrderId?: number;
   shopifyOrderNumber?: number;
+  draftOrderId?: number;
   instapayAccount?: string;
   instapayNumber?: string;
   customerName?: string;
@@ -288,6 +289,7 @@ export function CheckoutPage() {
     setRedirectCountdown(null);
     clearCart();
     setStep("form");
+    sessionStorage.removeItem("moi_instapay_order_result");
     closeCheckout();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [clearCart, closeCheckout]);
@@ -423,6 +425,7 @@ export function CheckoutPage() {
           success?: boolean;
           instapayAccount?: string;
           instapayNumber?: string;
+          draftOrderId?: number;
           shopifyOrderId?: number;
           shopifyOrderNumber?: number;
           total?: string;
@@ -435,16 +438,20 @@ export function CheckoutPage() {
           return;
         }
 
-        setOrderResult({
+        const orderResultPayload: OrderResult = {
           orderNumber: data.shopifyOrderNumber ?? data.shopifyOrderId ?? "",
           total: data.total ?? fmt(totalAmount),
+          draftOrderId: data.draftOrderId,
           shopifyOrderId: data.shopifyOrderId,
           shopifyOrderNumber: data.shopifyOrderNumber,
           instapayAccount: data.instapayAccount,
           instapayNumber: data.instapayNumber,
           customerName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
           customerPhone: form.phone.trim(),
-        });
+        };
+        setOrderResult(orderResultPayload);
+        // Persist instapay state so it survives tab switches on mobile
+        sessionStorage.setItem("moi_instapay_order_result", JSON.stringify(orderResultPayload));
         setStep("instapay-confirm");
       } catch {
         setStep("form");
@@ -506,6 +513,7 @@ export function CheckoutPage() {
     setPromoInput("");
     setGovernorateOpen(false);
     setForm({ firstName: "", lastName: "", phone: "", email: "", address: "", governorate: "", postalCode: "", city: "" });
+    sessionStorage.removeItem("moi_instapay_order_result");
     closeCheckout();
   }, [clearCart, closeCheckout]);
 
@@ -541,34 +549,50 @@ export function CheckoutPage() {
 
   // On mount: restore state if the user was redirected back from Paymob's 3DS page.
   // /api/paymob-return writes moi_paymob_result + sibling keys before redirecting to /.
+  // Also restore InstaPay state after a tab switch on mobile.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    // 1. Paymob restore
     const resultRaw = sessionStorage.getItem("moi_paymob_result");
-    if (!resultRaw) return;
+    if (resultRaw) {
+      const intentIdRaw = sessionStorage.getItem("moi_paymob_intent_id");
+      const orderTotalRaw = sessionStorage.getItem("moi_paymob_order_total");
 
-    const intentIdRaw = sessionStorage.getItem("moi_paymob_intent_id");
-    const orderTotalRaw = sessionStorage.getItem("moi_paymob_order_total");
+      ["moi_paymob_result", "moi_paymob_intent_id", "moi_paymob_order_total"].forEach((k) => sessionStorage.removeItem(k));
 
-    ["moi_paymob_result", "moi_paymob_intent_id", "moi_paymob_order_total"].forEach((k) => sessionStorage.removeItem(k));
-
-    try {
-      const result = JSON.parse(resultRaw) as { success: boolean; transactionId?: string; merchantOrderId?: string };
-      const txnId = result.transactionId || undefined;
-      setOrderResult({
-        orderNumber: "",
-        total: orderTotalRaw ?? "",
-        intentId: intentIdRaw ?? result.merchantOrderId ?? undefined,
-        paymobTxnId: txnId,
-      });
-      if (result.success) {
-        clearCart();
-        setStep("card-confirm");
-      } else {
-        setStep("card-failed");
+      try {
+        const result = JSON.parse(resultRaw) as { success: boolean; transactionId?: string; merchantOrderId?: string };
+        const txnId = result.transactionId || undefined;
+        setOrderResult({
+          orderNumber: "",
+          total: orderTotalRaw ?? "",
+          intentId: intentIdRaw ?? result.merchantOrderId ?? undefined,
+          paymobTxnId: txnId,
+        });
+        if (result.success) {
+          clearCart();
+          setStep("card-confirm");
+        } else {
+          setStep("card-failed");
+        }
+        openCheckout();
+      } catch {
+        // ignore malformed sessionStorage data
       }
-      openCheckout();
-    } catch {
-      // ignore malformed sessionStorage data
+      return;
+    }
+
+    // 2. InstaPay restore after tab switch
+    const instapayRaw = sessionStorage.getItem("moi_instapay_order_result");
+    if (instapayRaw) {
+      try {
+        const restored = JSON.parse(instapayRaw) as OrderResult;
+        setOrderResult(restored);
+        setStep("instapay-confirm");
+        openCheckout();
+      } catch {
+        sessionStorage.removeItem("moi_instapay_order_result");
+      }
     }
   }, []); // mount-only — intentionally omits deps to avoid re-running on state changes
 
@@ -732,6 +756,7 @@ export function CheckoutPage() {
               onDone={handleSuccessDone}
               onProofSubmitted={(orderNumber, shopifyOrderId, total) => {
                 setOrderResult((prev) => prev ? { ...prev, orderNumber, shopifyOrderId, total } : prev);
+                sessionStorage.removeItem("moi_instapay_order_result");
                 clearCart();
               }}
               fmt={fmt}
@@ -1281,8 +1306,7 @@ function InstapayConfirmation({
       setUploadProgress(20);
 
       const formData = new FormData();
-      formData.append("shopifyOrderId", String(orderResult.shopifyOrderId ?? ""));
-      formData.append("shopifyOrderNumber", String(orderResult.shopifyOrderNumber ?? orderResult.orderNumber ?? ""));
+      formData.append("draftOrderId", String(orderResult.draftOrderId ?? ""));
       formData.append("referenceNumber", referenceNumber.trim());
       if (orderResult.customerName) formData.append("customerName", orderResult.customerName);
       if (orderResult.customerPhone) formData.append("customerPhone", orderResult.customerPhone);

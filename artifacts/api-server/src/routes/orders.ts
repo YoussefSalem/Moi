@@ -104,6 +104,7 @@ router.post("/orders/instapay-init", async (req, res) => {
       cartId,
       discountCode,
       extraTags: "instapay-pending-verification",
+      complete: false,
     });
 
     req.log.info({ shopifyOrderId: result.orderId, shopifyOrderNumber: result.orderNumber }, "Instapay init — order created");
@@ -112,6 +113,7 @@ router.post("/orders/instapay-init", async (req, res) => {
       success: true,
       instapayAccount,
       instapayNumber,
+      draftOrderId: result.draftOrderId,
       shopifyOrderId: result.orderId,
       shopifyOrderNumber: result.orderNumber,
       total: result.total,

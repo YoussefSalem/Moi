@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 export const instapayProofs = pgTable("instapay_proofs", {
   id: serial("id").primaryKey(),
+  draftOrderId: bigint("draft_order_id", { mode: "number" }),
   shopifyOrderId: bigint("shopify_order_id", { mode: "number" }).notNull(),
   shopifyOrderNumber: bigint("shopify_order_number", { mode: "number" }).notNull(),
   customerPhone: text("customer_phone"),
