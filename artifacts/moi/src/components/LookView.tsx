@@ -135,10 +135,10 @@ export function LookView({ product, onClose }: LookViewProps) {
                       alt={product.name}
                       loading="eager"
                       decoding="async"
-                      initial={{ opacity: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.98 }}
-                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
                       className="relative z-10 w-full h-full object-cover object-top rounded-sm"
                     />
                   </AnimatePresence>
