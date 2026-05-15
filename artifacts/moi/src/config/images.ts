@@ -123,7 +123,7 @@ export const IMAGES = {
    * look.model  : full editorial model shot for the Look View (a9 substitute)
    */
   product1: {
-    productShot: BEIGE_MAIN,
+    productShot: WHITE_MAIN,
     filmstrip: [FS_A1, FS_A2, FS_A3, FS_A4, FS_A5, FS_A6, FS_A7, FS_A8],
     look: {
       model:   FS_A1,
@@ -164,13 +164,13 @@ export const IMAGES = {
       navy: "#3a5a7a",
       mint: "#98c8a8",
     },
-    name: "Moi wavvy",
+    name: "Moi Versa Top",
     colorLabel: "",
-    description: "The ultimate throw-and-go. Effortless design, Wavy is light, breathable, and made for drifting.",
+    description: "A versatile top designed to be styled in multiple ways.",
     price: "1.690 EGP",
     outer: "Outer shell: 100% Polyester",
     lining: "Lining: 96% Polyester, 4% Elastane",
-    ref: "2076/511/400",
+    ref: "2076/511/401",
     variants: [
       {
         id: "moi-versa-top-ivory-small",
