@@ -63,17 +63,26 @@ export function LookView({ product, onClose }: LookViewProps) {
       {product && (
         <motion.div
           key="look-view"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
+          initial={{ opacity: 0, y: 32 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 16 }}
+          transition={{ duration: 0.38, ease: [0.32, 0, 0.16, 1] }}
           className="fixed inset-0 z-[80] flex flex-col overflow-y-auto"
           style={{
-            background: `radial-gradient(ellipse 100% 100% at 50% 60%, ${gradColor} 0%, hsl(30 20% 97%) 65%)`,
+            backgroundColor: "hsl(30 20% 97%)",
             touchAction: "pan-y",
             overscrollBehavior: "contain",
+            willChange: "transform, opacity",
           }}
         >
+          {/* Ambient glow — separate layer, renders after mount so it never blocks entry */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `radial-gradient(ellipse 80% 70% at 50% 40%, ${gradColor} 0%, transparent 70%)`,
+              transition: "background 0.6s ease",
+            }}
+          />
           <div className="relative flex-1 flex flex-col min-h-screen" style={{ overscrollBehaviorY: "contain" }}>
             {/* ── Header ────────────────────────────── */}
             <div className="flex items-center justify-between px-8 md:px-16 pt-8 pb-4">
@@ -96,10 +105,7 @@ export function LookView({ product, onClose }: LookViewProps) {
             </div>
 
             {/* ── "THE LOOK" label ──────────────────── */}
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.7 }}
+            <h2
               className="text-center font-serif leading-none mb-8"
               style={{
                 color: "#1e1814",
@@ -112,7 +118,7 @@ export function LookView({ product, onClose }: LookViewProps) {
               }}
             >
               THE LOOK
-            </motion.h2>
+            </h2>
 
             {/* ── Editorial layout ─────────────────── */}
             <div className="mx-auto w-full max-w-6xl px-5 md:px-16 pb-10 md:pb-16 flex flex-col md:block">
@@ -120,15 +126,6 @@ export function LookView({ product, onClose }: LookViewProps) {
               <div className="md:hidden flex flex-col gap-3">
                 {/* Main image */}
                 <div className="relative w-full" style={{ height: "55vh" }}>
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      background: `radial-gradient(ellipse 90% 80% at 50% 60%, ${color?.rgba(0.2) ?? "rgba(180,160,130,0.14)"} 0%, transparent 70%)`,
-                      filter: "blur(24px)",
-                      transform: "translateZ(0) scale(1.15)",
-                      willChange: "opacity",
-                    }}
-                  />
                   <AnimatePresence initial={false} mode="wait">
                     <motion.img
                       key={activeImage ?? product.look.model}
@@ -139,8 +136,8 @@ export function LookView({ product, onClose }: LookViewProps) {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.25, ease: "easeInOut" }}
-                      className="relative z-10 w-full h-full object-cover object-top rounded-sm pointer-events-none select-none"
+                      transition={{ duration: 0.22, ease: "easeInOut" }}
+                      className="absolute inset-0 w-full h-full object-cover object-top rounded-sm pointer-events-none select-none"
                       draggable={false}
                     />
                   </AnimatePresence>
@@ -156,13 +153,14 @@ export function LookView({ product, onClose }: LookViewProps) {
                       key={src}
                       type="button"
                       onClick={() => setActiveImage(src)}
-                      className="flex-shrink-0 overflow-hidden rounded-sm transition-all duration-200"
+                      className="flex-shrink-0 overflow-hidden rounded-sm"
                       style={{
                         width: "72px",
                         aspectRatio: "1 / 1",
                         border: src === activeImage ? "2px solid #1e1814" : "2px solid transparent",
                         opacity: src === activeImage ? 1 : 0.7,
                         scrollSnapAlign: "start",
+                        transition: "border-color 0.2s ease, opacity 0.2s ease",
                       }}
                     >
                       <img src={src} alt="Thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
@@ -179,28 +177,14 @@ export function LookView({ product, onClose }: LookViewProps) {
                       key={src}
                       type="button"
                       onClick={() => setActiveImage(src)}
-                      className="overflow-hidden rounded-sm border border-stone-200 transition-opacity duration-200 hover:opacity-75"
+                      className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 transition-opacity duration-200"
                       style={{ aspectRatio: "1 / 1" }}
                     >
                       <img src={src} alt="Thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     </button>
                   ))}
                 </div>
-                <motion.div
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                  className="relative"
-                >
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      background: `radial-gradient(ellipse 90% 80% at 50% 60%, ${color?.rgba(0.2) ?? "rgba(180,160,130,0.14)"} 0%, transparent 70%)`,
-                      filter: "blur(24px)",
-                      transform: "translateZ(0) scale(1.2)",
-                      willChange: "opacity",
-                    }}
-                  />
+                <div className="relative">
                   <AnimatePresence initial={false} mode="wait">
                     <motion.img
                       key={activeImage ?? product.look.model}
@@ -208,21 +192,21 @@ export function LookView({ product, onClose }: LookViewProps) {
                       alt={product.name}
                       loading="lazy"
                       decoding="async"
-                      initial={{ opacity: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.98 }}
-                      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
                       className="relative z-10 w-full h-[70vh] object-cover object-top"
                     />
                   </AnimatePresence>
-                </motion.div>
+                </div>
                 <div className="grid grid-rows-2 gap-4">
                   {sideImages.slice(2, 4).map((src) => (
                     <button
                       key={src}
                       type="button"
                       onClick={() => setActiveImage(src)}
-                      className="overflow-hidden rounded-sm border border-stone-200 transition-opacity duration-200 hover:opacity-75"
+                      className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 transition-opacity duration-200"
                       style={{ aspectRatio: "1 / 1" }}
                     >
                       <img src={src} alt="Thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
@@ -233,10 +217,7 @@ export function LookView({ product, onClose }: LookViewProps) {
             </div>
 
             {/* ── Bottom product info strip ─────────── */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.7 }}
+            <div
               className="border-t flex flex-col md:flex-row items-start md:items-center justify-between gap-6 px-8 md:px-16 py-8"
               style={{ borderColor: "rgba(180,160,140,0.2)" }}
             >
@@ -263,7 +244,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                   {addedFeedback ? "Added ✓" : "Pre-Order"}
                 </motion.button>
               </div>
-            </motion.div>
+            </div>
           </div>
         </motion.div>
       )}
