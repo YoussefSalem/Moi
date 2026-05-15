@@ -50,7 +50,7 @@ export function LookView({ product, onClose }: LookViewProps) {
   const gradColor = color?.rgba(0.15) ?? "rgba(180,160,130,0.10)";
   const availableImages = useMemo(() => {
     if (!product) return [];
-    const items = [product.look.model, product.look.earring, product.look.shoes, product.look.bag];
+    const items = [product.look.model, product.look.earring, product.look.shoes, product.look.bag, product.look.extra].filter(Boolean) as string[];
     return items.filter((src, index, array) => array.indexOf(src) === index);
   }, [product]);
   const sideImages = useMemo(() => {

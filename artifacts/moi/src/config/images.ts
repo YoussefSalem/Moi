@@ -105,6 +105,13 @@ const ACC_SHOES   = `${U}-1445205170230-053b83016050?w=300&h=300&fit=crop&q=80`;
 const ACC_BAG     = `${U}-1617922001439-4a2e6562f328?w=300&h=300&fit=crop&q=80`;
 const ACC_EARRING = `${U}-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&q=80`;
 
+// ── Moi Wavvy — Look View images (real brand photography) ─
+const WAVVY_LOOK_1 = "/images/wavvy-look-1.jpg";
+const WAVVY_LOOK_2 = "/images/wavvy-look-2.jpg";
+const WAVVY_LOOK_3 = "/images/wavvy-look-3.jpg";
+const WAVVY_LOOK_4 = "/images/wavvy-look-4.jpg";
+const WAVVY_LOOK_5 = "/images/wavvy-look-5.jpg";
+
 export const IMAGES = {
   /**
    * HERO SECTION
@@ -443,10 +450,11 @@ export const IMAGES = {
     productShot: WHITE_MAIN,        // SWAP ME: replace with Taupe product shot
     filmstrip: [FS_A3, FS_A4, FS_A5, FS_A6, FS_A7, FS_A8, FS_A1, FS_A2],
     look: {
-      model:   FS_A3,        // SWAP ME: Taupe colorway editorial model shot
-      shoes:   ACC_SHOES,
-      bag:     ACC_BAG,
-      earring: ACC_EARRING,
+      model:   WAVVY_LOOK_3,
+      shoes:   WAVVY_LOOK_1,
+      bag:     WAVVY_LOOK_4,
+      earring: WAVVY_LOOK_5,
+      extra:   WAVVY_LOOK_2,
     },
     name: "Moi wavvy",
     colorLabel: "",
@@ -510,6 +518,7 @@ export interface ProductConfig {
     readonly shoes: string;
     readonly bag: string;
     readonly earring: string;
+    readonly extra?: string;
   };
   readonly name: string;
   readonly colorLabel: string;
