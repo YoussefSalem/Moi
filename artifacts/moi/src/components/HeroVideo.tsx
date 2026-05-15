@@ -52,7 +52,6 @@ export function HeroVideo() {
             `radial-gradient(ellipse 60% 40% at 100% 50%, ${gradEdge} 0%, transparent 70%)`,
             `radial-gradient(ellipse 100% 30% at 50% 100%, ${gradEdge} 0%, transparent 60%)`,
           ].join(", "),
-          transition: "background 2s ease",
         }}
       />
 
@@ -70,7 +69,7 @@ export function HeroVideo() {
           src={IMAGES.hero.fallbackUrl}
           alt="Moi fashion"
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: "center 22%" }}
+          style={{ objectPosition: "center 22%", willChange: "transform" }}
           loading="eager"
           decoding="async"
           fetchPriority="high"

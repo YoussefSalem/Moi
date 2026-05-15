@@ -1,6 +1,41 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* ── Global rendering performance ───────────────────────────── */
+
+/* Let the browser use the fastest scroll path (no scroll-linked effects) */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Promote the root stacking context onto the GPU immediately */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* All images: prevent layout shift during decode, smooth scaling */
+img {
+  image-rendering: auto;
+  backface-visibility: hidden;
+}
+
+/* Fixed header gets its own GPU layer so scrolling never forces a repaint of it */
+header[class*="fixed"] {
+  isolation: isolate;
+}
+
+/* Animated motion elements: pre-promote to compositor layer */
+[data-framer-motion] {
+  transform: translateZ(0);
+}
+
+/* Sections containing heavy content: contain layout recalculations */
+section {
+  contain: layout style;
+}
+
 @keyframes shimmer-sweep {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }

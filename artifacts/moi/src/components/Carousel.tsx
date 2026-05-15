@@ -71,7 +71,6 @@ export function Carousel() {
         className="relative w-full overflow-hidden py-0"
         style={{
           background: `radial-gradient(ellipse 100% 80% at 50% 50%, ${gradBg} 0%, hsl(30 15% 95%) 65%)`,
-          transition: "background 0.5s ease",
         }}
       >
         <div className="relative">

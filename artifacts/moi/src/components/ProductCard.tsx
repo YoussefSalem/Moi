@@ -291,7 +291,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
       className="w-full py-16 md:py-24 overflow-hidden"
       style={{
         background: `radial-gradient(ellipse 80% 70% at 50% 50%, ${gradBg} 0%, hsl(30 15% 95%) 70%)`,
-        transition: "background 0.5s ease",
       }}
     >
       <motion.div
@@ -325,9 +324,8 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               style={{
                 background: `radial-gradient(ellipse 90% 80% at 50% 60%, ${color?.rgba(0.18) ?? "rgba(180,160,140,0.12)"} 0%, transparent 70%)`,
                 filter: "blur(24px)",
-                transform: "scale(1.2)",
-                transition: "background 0.4s ease",
-                willChange: "transform",
+                transform: "translateZ(0) scale(1.2)",
+                willChange: "opacity",
               }}
             />
             <div

@@ -70,7 +70,6 @@ export function LookView({ product, onClose }: LookViewProps) {
           className="fixed inset-0 z-[80] flex flex-col overflow-y-auto"
           style={{
             background: `radial-gradient(ellipse 100% 100% at 50% 60%, ${gradColor} 0%, hsl(30 20% 97%) 65%)`,
-            transition: "background 0.4s ease",
             touchAction: "pan-y",
             overscrollBehavior: "contain",
           }}
@@ -126,9 +125,8 @@ export function LookView({ product, onClose }: LookViewProps) {
                     style={{
                       background: `radial-gradient(ellipse 90% 80% at 50% 60%, ${color?.rgba(0.2) ?? "rgba(180,160,130,0.14)"} 0%, transparent 70%)`,
                       filter: "blur(24px)",
-                      transform: "scale(1.15)",
-                      transition: "background 0.4s ease",
-                      willChange: "transform",
+                      transform: "translateZ(0) scale(1.15)",
+                      willChange: "opacity",
                     }}
                   />
                   <AnimatePresence initial={false} mode="wait">
@@ -199,8 +197,8 @@ export function LookView({ product, onClose }: LookViewProps) {
                     style={{
                       background: `radial-gradient(ellipse 90% 80% at 50% 60%, ${color?.rgba(0.2) ?? "rgba(180,160,130,0.14)"} 0%, transparent 70%)`,
                       filter: "blur(24px)",
-                      transform: "scale(1.2)",
-                      transition: "background 0.4s ease",
+                      transform: "translateZ(0) scale(1.2)",
+                      willChange: "opacity",
                     }}
                   />
                   <AnimatePresence initial={false} mode="wait">

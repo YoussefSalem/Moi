@@ -29,12 +29,14 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
   return (
     <>
       <header
-        className="fixed top-0 left-0 right-0 z-50 transition-all duration-500"
+        className="fixed top-0 left-0 right-0 z-50"
         style={{
+          willChange: "transform",
           backgroundColor: dark ? "rgba(30,24,20,0.08)" : scrolled ? "rgba(250, 248, 245, 0.97)" : "transparent",
           backdropFilter: dark || scrolled ? "blur(12px)" : "none",
           borderBottom: dark ? "1px solid rgba(30,24,20,0.12)" : scrolled ? "1px solid rgba(180,160,140,0.18)" : "1px solid transparent",
           boxShadow: dark ? "0 2px 20px rgba(20,16,12,0.04)" : scrolled ? "0 2px 20px rgba(20,16,12,0.06)" : "none",
+          transition: "background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease",
         }}
       >
         <div className="flex items-center justify-between px-6 md:px-12 h-16">
