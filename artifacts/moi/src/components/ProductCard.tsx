@@ -396,7 +396,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                   <motion.img
                     key={mainImage}
                     src={mainImage}
-                    alt={product.name}
+                    alt={`${product.name} - ${selectedColor} versatile top`}
                     className="absolute inset-0 w-full h-full"
                     style={{ objectFit: "contain", objectPosition: "center" }}
                     loading="eager"
@@ -458,9 +458,9 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
         <div className="flex flex-col gap-5 items-center md:items-center md:justify-center text-center">
           {/* Color */}
           <div className="flex flex-col gap-3">
-            <p className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
+            <h3 className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
               Color — <span style={{ color: "#1e1814" }}>{selectedColor}</span>
-            </p>
+            </h3>
             <div className="flex items-center gap-3 justify-center">
               {displayColors.map((option, index) => (
                 <button

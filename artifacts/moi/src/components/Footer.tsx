@@ -98,7 +98,7 @@ export function Footer() {
               <div>
                 <p className="text-[10px] tracking-[0.35em] uppercase text-white/45">Moi</p>
                 <p className="mt-3 max-w-xl text-sm md:text-base leading-7 text-white/65">
-                  Elegant support, thoughtful care, and a smooth shopping experience.
+                  Shop versatile tops, elegant clothing, and curated fashion accessories designed for effortless everyday style in Egypt.
                 </p>
               </div>
             </div>

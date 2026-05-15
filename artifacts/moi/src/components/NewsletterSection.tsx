@@ -62,7 +62,7 @@ export function NewsletterSection() {
                   Stay in Moi-tion.
                 </p>
                 <p className="max-w-2xl text-sm md:text-base leading-relaxed font-light" style={{ color: "#5a5048" }}>
-                  More Moi, never miss a moment — get first access to new drops, restocks, and pieces worth waiting for.
+                  Be the first to discover new versatile tops, fashion drops, and exclusive pieces — delivered straight to your inbox.
                 </p>
               </div>
 

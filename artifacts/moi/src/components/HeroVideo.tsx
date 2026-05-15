@@ -67,7 +67,7 @@ export function HeroVideo() {
       ) : (
         <motion.img
           src={IMAGES.hero.fallbackUrl}
-          alt="Moi fashion"
+          alt="Moi premium versatile top - elegant fashion collection"
           className="absolute inset-0 w-full h-full object-cover"
           style={{ objectPosition: "center 22%", willChange: "transform" }}
           loading="eager"
@@ -112,7 +112,7 @@ export function HeroVideo() {
             fontFamily: "'Cormorant Garamond', Georgia, serif",
           }}
         >
-          MOI
+          MOI <span className="sr-only">- Premium Versatile Tops & Fashion</span>
         </h1>
 
         <motion.button

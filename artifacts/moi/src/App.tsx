@@ -84,6 +84,14 @@ function AppContent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "hsl(30 15% 95%)" }}>
+      {/* Breadcrumb navigation for SEO */}
+      <nav aria-label="Breadcrumb" className="sr-only">
+        <ol>
+          <li><a href="/">Home</a></li>
+          {page === "accessories" && <li><a href="#accessories">Accessories</a></li>}
+          {page === "ambassador" && <li><a href="#ambassador">Ambassador</a></li>}
+        </ol>
+      </nav>
       <Header onNavigate={setPage} onSearch={() => setSearchOpen(true)} dark={page === "accessories" || page === "ambassador"} />
 
       {page === "home" ? (

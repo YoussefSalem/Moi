@@ -225,9 +225,9 @@ export function LookView({ product, onClose }: LookViewProps) {
               style={{ borderColor: "rgba(180,160,140,0.2)" }}
             >
               <div>
-                <p className="text-lg font-bold tracking-widest uppercase" style={{ color: "#1e1814" }}>
+                <h2 className="text-lg font-bold tracking-widest uppercase" style={{ color: "#1e1814" }}>
                   {product.name}
-                </p>
+                </h2>
               </div>
               <p className="text-lg font-light" style={{ color: "#1e1814" }}>
                 {product.price}
