@@ -178,7 +178,7 @@ export function Carousel() {
                     >
                       <img
                         src={src}
-                        alt=""
+                        alt={`Look ${i + 1} thumbnail`}
                         className="w-full h-full object-cover object-top transition-all duration-300"
                         style={{ opacity: i === lightboxIdx ? 1 : 0.45 }}
                       />

@@ -35,27 +35,27 @@ export function Footer() {
     {
       title: "Shop",
       links: [
-        { label: "New In", href: "#" },
-        { label: "Clothing", href: "#" },
-        { label: "Accessories", href: "#" },
-        { label: "Sale", href: "#" },
+        { label: "New In", href: "/new-in" },
+        { label: "Clothing", href: "/clothing" },
+        { label: "Accessories", href: "/accessories" },
+        { label: "Sale", href: "/sale" },
       ],
     },
     {
       title: "Company",
       links: [
-        { label: "About Moi", href: "#" },
-        { label: "Sustainability", href: "#" },
-        { label: "Press", href: "#" },
-        { label: "Careers", href: "#" },
+        { label: "About Moi", href: "/about" },
+        { label: "Sustainability", href: "/sustainability" },
+        { label: "Press", href: "/press" },
+        { label: "Careers", href: "/careers" },
       ],
     },
     {
       title: "Legal",
       links: [
-        { label: "Privacy Policy", href: "#" },
-        { label: "Terms", href: "#" },
-        { label: "Cookies", href: "#" },
+        { label: "Privacy Policy", href: "/privacy" },
+        { label: "Terms", href: "/terms" },
+        { label: "Cookies", href: "/cookies" },
       ],
     },
   ];

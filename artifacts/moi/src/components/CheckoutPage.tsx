@@ -1071,7 +1071,7 @@ export function CheckoutPage() {
                       className="w-full py-3.5 transition-opacity hover:opacity-90 flex items-center justify-center gap-2.5"
                       style={{ backgroundColor: "#000", borderRadius: "6px" }}
                     >
-                      <img src="/apple-logo.png" alt="" style={{ width: "22px", height: "22px", filter: "invert(1)" }} />
+                      <img src="/apple-logo.png" alt="Apple Pay" style={{ width: "22px", height: "22px", filter: "invert(1)" }} />
                       <span style={{ color: "#fff", fontSize: "16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif", fontWeight: 500, letterSpacing: "0.02em" }}>
                         Pay
                       </span>
