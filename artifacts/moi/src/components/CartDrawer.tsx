@@ -4,40 +4,49 @@ import { useCart } from "@/context/CartContext";
 import { IMAGES } from "@/config/images";
 import type { ShopifyCartLine } from "@/lib/shopify";
 
-// Build a flat color→image map from all product configs so we can resolve
-// the correct local thumbnail even when Shopify has no variant image set.
-const COLOR_IMAGE_MAP: Record<string, string> = {};
-const PRODUCT_IMAGE_MAP: Record<string, string> = {};
-for (const [key, cfg] of Object.entries(IMAGES)) {
+// Product-scoped color map: "productname::color" → image URL
+// This prevents color collisions across products (e.g. "Beige" exists in both the Cape and Bangles variants).
+const PRODUCT_COLOR_MAP: Record<string, string> = {};
+const PRODUCT_SHOT_MAP: Record<string, string> = {};
+
+for (const cfg of Object.values(IMAGES)) {
+  if (!("name" in cfg) || !cfg.name) continue;
+  const names = [cfg.name.toLowerCase(), cfg.name.toLowerCase().replace(/\./g, "").trim()];
+  if ("productShot" in cfg && cfg.productShot) {
+    for (const n of names) PRODUCT_SHOT_MAP[n] = cfg.productShot;
+  }
   if ("colorImages" in cfg && cfg.colorImages) {
     for (const [color, url] of Object.entries(cfg.colorImages as Record<string, string>)) {
-      COLOR_IMAGE_MAP[color.toLowerCase()] = url;
+      for (const n of names) {
+        PRODUCT_COLOR_MAP[`${n}::${color.toLowerCase()}`] = url;
+      }
     }
-  }
-  // Map product name → product shot for product-level fallback in cart
-  if ("name" in cfg && cfg.name && "productShot" in cfg && cfg.productShot) {
-    const name = cfg.name.toLowerCase();
-    PRODUCT_IMAGE_MAP[name] = cfg.productShot;
-    PRODUCT_IMAGE_MAP[name + "."] = cfg.productShot;
-    PRODUCT_IMAGE_MAP[name.replace(/\./g, "")] = cfg.productShot;
   }
 }
 
+function normalizeTitle(t: string) {
+  return t.toLowerCase().replace(/\./g, "").trim();
+}
+
 function resolveLineImage(line: ShopifyCartLine): string | null {
-  // 1. Derive from the Color selectedOption → local config image
+  const rawTitle = line.merchandise.product.title ?? "";
+  const normTitle = normalizeTitle(rawTitle);
+
+  // 1. Product + color scoped lookup (most accurate, no cross-product collisions)
   const colorOpt = line.merchandise.selectedOptions?.find(
     (o) => o.name.toLowerCase() === "color"
   );
   if (colorOpt) {
-    const hit = COLOR_IMAGE_MAP[colorOpt.value.toLowerCase()];
+    const color = colorOpt.value.toLowerCase();
+    const hit = PRODUCT_COLOR_MAP[`${normTitle}::${color}`] ?? PRODUCT_COLOR_MAP[`${rawTitle.toLowerCase()}::${color}`];
     if (hit) return hit;
   }
-  // 2. Product-level fallback — ALWAYS prefer local image over Shopify
-  const rawTitle = line.merchandise.product.title?.toLowerCase() ?? "";
-  const normalized = rawTitle.replace(/\./g, "").trim();
-  const hit = PRODUCT_IMAGE_MAP[rawTitle] || PRODUCT_IMAGE_MAP[normalized] || PRODUCT_IMAGE_MAP[rawTitle + "."];
-  if (hit) return hit;
-  // 3. Shopify images only as last resort
+
+  // 2. Product-level shot (no color match within this product → use main product image)
+  const productHit = PRODUCT_SHOT_MAP[normTitle] ?? PRODUCT_SHOT_MAP[rawTitle.toLowerCase()];
+  if (productHit) return productHit;
+
+  // 3. Shopify images as last resort
   if (line.merchandise.image?.url) return line.merchandise.image.url;
   if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
   return null;
