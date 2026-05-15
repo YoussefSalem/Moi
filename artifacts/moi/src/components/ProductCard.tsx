@@ -27,17 +27,22 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
 
-  // Preload all per-color images AND filmstrip so switching/scrolling is instant.
+  // Preload per-color images + filmstrip after idle — avoids competing with first render.
   useEffect(() => {
     const urls: string[] = [
       ...Object.values(product.colorImages ?? {}),
       ...(product.filmstrip ?? []),
       product.productShot,
     ].filter(Boolean) as string[];
-    for (const url of urls) {
-      const img = new Image();
-      img.src = url;
-    }
+    const schedule = "requestIdleCallback" in window
+      ? (cb: () => void) => (window as Window & typeof globalThis & { requestIdleCallback: (cb: () => void) => number }).requestIdleCallback(cb)
+      : (cb: () => void) => setTimeout(cb, 200);
+    schedule(() => {
+      for (const url of urls) {
+        const img = new Image();
+        img.src = url;
+      }
+    });
   }, [product.colorImages, product.filmstrip, product.productShot]);
 
   const colorOption = useMemo(() => {
@@ -286,7 +291,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
       className="w-full py-16 md:py-24 overflow-hidden"
       style={{
         background: `radial-gradient(ellipse 80% 70% at 50% 50%, ${gradBg} 0%, hsl(30 15% 95%) 70%)`,
-        transition: "background 1.5s ease",
+        transition: "background 0.5s ease",
       }}
     >
       <motion.div
@@ -321,7 +326,8 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 background: `radial-gradient(ellipse 90% 80% at 50% 60%, ${color?.rgba(0.18) ?? "rgba(180,160,140,0.12)"} 0%, transparent 70%)`,
                 filter: "blur(24px)",
                 transform: "scale(1.2)",
-                transition: "background 0.6s ease",
+                transition: "background 0.4s ease",
+                willChange: "transform",
               }}
             />
             <div

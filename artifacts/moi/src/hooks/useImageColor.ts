@@ -53,7 +53,7 @@ export function useImageColor(imageUrl: string | null): ImageColorResult | null 
       try {
         const result = fac.getColor(img, {
           algorithm: "dominant",
-          mode: "precision",
+          mode: "speed",
           ignoredColor: [[255, 255, 255, 255, 20], [0, 0, 0, 255, 20]],
         });
 

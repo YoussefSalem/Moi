@@ -43,18 +43,23 @@ export function Carousel() {
     return () => window.removeEventListener("keydown", onKey);
   }, [lightboxOpen, images.length]);
 
+  const rafRef = useRef<number | null>(null);
   const handleScroll = useCallback(() => {
-    if (!scrollRef.current) return;
-    const el = scrollRef.current;
-    const centerX = el.scrollLeft + el.clientWidth / 2;
-    const children = Array.from(el.children) as HTMLElement[];
-    let closest = 0;
-    let minDist = Infinity;
-    children.forEach((child, i) => {
-      const dist = Math.abs(child.offsetLeft + child.offsetWidth / 2 - centerX);
-      if (dist < minDist) { minDist = dist; closest = i; }
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      if (!scrollRef.current) return;
+      const el = scrollRef.current;
+      const centerX = el.scrollLeft + el.clientWidth / 2;
+      const children = Array.from(el.children) as HTMLElement[];
+      let closest = 0;
+      let minDist = Infinity;
+      children.forEach((child, i) => {
+        const dist = Math.abs(child.offsetLeft + child.offsetWidth / 2 - centerX);
+        if (dist < minDist) { minDist = dist; closest = i; }
+      });
+      setActiveIndex(closest);
     });
-    setActiveIndex(closest);
   }, []);
 
   const gradBg = color?.rgba(0.14) ?? "rgba(180,160,140,0.10)";
@@ -66,7 +71,7 @@ export function Carousel() {
         className="relative w-full overflow-hidden py-0"
         style={{
           background: `radial-gradient(ellipse 100% 80% at 50% 50%, ${gradBg} 0%, hsl(30 15% 95%) 65%)`,
-          transition: "background 1.5s ease",
+          transition: "background 0.5s ease",
         }}
       >
         <div className="relative">

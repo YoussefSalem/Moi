@@ -70,7 +70,7 @@ export function LookView({ product, onClose }: LookViewProps) {
           className="fixed inset-0 z-[80] flex flex-col overflow-y-auto"
           style={{
             background: `radial-gradient(ellipse 100% 100% at 50% 60%, ${gradColor} 0%, hsl(30 20% 97%) 65%)`,
-            transition: "background 1.5s ease",
+            transition: "background 0.4s ease",
           }}
         >
           <div className="relative flex-1 flex flex-col min-h-screen">
@@ -118,18 +118,15 @@ export function LookView({ product, onClose }: LookViewProps) {
               <div className="grid grid-cols-1 md:grid-cols-[minmax(140px,1fr)_minmax(0,1.35fr)_minmax(140px,1fr)] gap-4 md:gap-6 items-center">
                 <div className="grid grid-rows-2 gap-4">
                   {sideImages.slice(0, 2).map((src) => (
-                    <motion.button
+                    <button
                       key={src}
                       type="button"
                       onClick={() => setActiveImage(src)}
-                      initial={{ opacity: 0, x: -12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                      className="overflow-hidden rounded-sm border border-stone-200"
+                      className="overflow-hidden rounded-sm border border-stone-200 transition-opacity duration-200 hover:opacity-75"
                       style={{ aspectRatio: "1 / 1" }}
                     >
                       <img src={src} alt="Thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                    </motion.button>
+                    </button>
                   ))}
                 </div>
                 <motion.div
@@ -144,7 +141,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                       background: `radial-gradient(ellipse 90% 80% at 50% 60%, ${color?.rgba(0.2) ?? "rgba(180,160,130,0.14)"} 0%, transparent 70%)`,
                       filter: "blur(24px)",
                       transform: "scale(1.2)",
-                      transition: "background 1.5s ease",
+                      transition: "background 0.4s ease",
                     }}
                   />
                   <AnimatePresence initial={false} mode="wait">
@@ -164,18 +161,15 @@ export function LookView({ product, onClose }: LookViewProps) {
                 </motion.div>
                 <div className="grid grid-rows-2 gap-4">
                   {sideImages.slice(2, 4).map((src) => (
-                    <motion.button
+                    <button
                       key={src}
                       type="button"
                       onClick={() => setActiveImage(src)}
-                      initial={{ opacity: 0, x: 12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                      className="overflow-hidden rounded-sm border border-stone-200"
+                      className="overflow-hidden rounded-sm border border-stone-200 transition-opacity duration-200 hover:opacity-75"
                       style={{ aspectRatio: "1 / 1" }}
                     >
                       <img src={src} alt="Thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                    </motion.button>
+                    </button>
                   ))}
                 </div>
               </div>
