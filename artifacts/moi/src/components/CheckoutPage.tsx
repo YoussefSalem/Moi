@@ -11,7 +11,8 @@ const PRODUCT_SHOT_MAP: Record<string, string> = {};
 
 for (const cfg of Object.values(IMAGES)) {
   if (!("name" in cfg) || !cfg.name) continue;
-  const names = [cfg.name.toLowerCase(), cfg.name.toLowerCase().replace(/\./g, "").trim()];
+  const rawNames = [cfg.name, ...("shopifyTitle" in cfg && cfg.shopifyTitle ? [cfg.shopifyTitle as string] : [])];
+  const names = rawNames.flatMap((n) => [n.toLowerCase(), n.toLowerCase().replace(/\./g, "").trim()]);
   if ("productShot" in cfg && cfg.productShot) {
     for (const n of names) PRODUCT_SHOT_MAP[n] = cfg.productShot;
   }
@@ -28,24 +29,43 @@ function normalizeTitle(t: string) {
   return t.toLowerCase().replace(/\./g, "").trim();
 }
 
-function resolveLineImage(line: ShopifyCartLine): string | null {
+function resolveLineImage(line: ShopifyCartLine, localItems?: { variantId: string; color?: string; image?: string | null }[]): string | null {
+  const variantId = line.merchandise.id;
+  const localMatch = localItems?.find((li) => li.variantId === variantId);
+
   const rawTitle = line.merchandise.product.title ?? "";
   const normTitle = normalizeTitle(rawTitle);
 
-  const colorOpt = line.merchandise.selectedOptions?.find(
-    (o) => o.name.toLowerCase() === "color"
-  );
-  if (colorOpt) {
-    const color = colorOpt.value.toLowerCase();
-    const hit = PRODUCT_COLOR_MAP[`${normTitle}::${color}`] ?? PRODUCT_COLOR_MAP[`${rawTitle.toLowerCase()}::${color}`];
+  // Size-like option names to skip when scanning for the color option
+  const SIZE_OPTION_NAMES = new Set(["size", "titre", "taille", "tamanho", "gr\u00f6\u00dfe"]);
+
+  // Candidate colors: local storage first (most reliable), then Shopify selectedOptions
+  const colorCandidates: string[] = [];
+  if (localMatch?.color) colorCandidates.push(localMatch.color.toLowerCase());
+  for (const opt of (line.merchandise.selectedOptions ?? [])) {
+    if (!SIZE_OPTION_NAMES.has(opt.name.toLowerCase())) {
+      colorCandidates.push(opt.value.toLowerCase());
+    }
+  }
+
+  // 1. Product + color map lookup (hashed bundle URL, always fresh)
+  for (const color of colorCandidates) {
+    const hit = PRODUCT_COLOR_MAP[`${normTitle}::${color}`]
+      ?? PRODUCT_COLOR_MAP[`${rawTitle.toLowerCase()}::${color}`];
     if (hit) return hit;
   }
 
+  // 2. Product-level shot
   const productHit = PRODUCT_SHOT_MAP[normTitle] ?? PRODUCT_SHOT_MAP[rawTitle.toLowerCase()];
   if (productHit) return productHit;
 
+  // 3. Shopify CDN image
   if (line.merchandise.image?.url) return line.merchandise.image.url;
   if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
+
+  // 4. Last resort: stale localStorage URL
+  if (localMatch?.image) return localMatch.image;
+
   return null;
 }
 
@@ -209,7 +229,7 @@ export function CheckoutPage() {
         title: line.merchandise.product.title,
         variantTitle: line.merchandise.title === "Default Title" ? null : line.merchandise.title,
         quantity: line.quantity,
-        image: resolveLineImage(line),
+        image: resolveLineImage(line, localItems),
         price: formatShopifyLinePrice(line),
       }))
     : localLines.map((item) => ({
@@ -608,8 +628,8 @@ export function CheckoutPage() {
                     ? lines.map((line) => (
                         <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
-                            {resolveLineImage(line) && (
-                              <img src={resolveLineImage(line)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            {resolveLineImage(line, localItems) && (
+                              <img src={resolveLineImage(line, localItems)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             )}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
@@ -738,8 +758,8 @@ export function CheckoutPage() {
                     ? lines.map((line) => (
                         <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.1)" }}>
-                            {resolveLineImage(line) && (
-                              <img src={resolveLineImage(line)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            {resolveLineImage(line, localItems) && (
+                              <img src={resolveLineImage(line, localItems)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             )}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">

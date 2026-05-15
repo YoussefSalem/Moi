@@ -42,7 +42,7 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
     name: shopify.title || fallback.name,
     description: shopify.description || fallback.description,
     price: priceFormatted || fallback.price,
-    productShot: fallback.productShot ?? mainImage,
+    productShot: mainImage ?? fallback.productShot,
     filmstrip: (fallback.filmstrip?.length ? fallback.filmstrip : filmstripImages) as string[],
     look,
     variantId: firstAvailable?.id,
@@ -115,11 +115,16 @@ export function useShopifyProducts(fallbacks: ProductConfig[]): UseShopifyProduc
           return;
         }
         const mapped = shopifyProducts.map((sp) => {
-          // Match by title (case-insensitive substring) so order from Shopify doesn't matter.
-          const matched = fallbacks.find((fb) =>
-            fb.name && sp.title.toLowerCase().includes(fb.name.toLowerCase())
+          const spTitle = sp.title.toLowerCase();
+          const matched = fallbacks.find((fb) => {
+            if (!fb.name) return false;
+            const fbName = fb.name.toLowerCase();
+            const fbShopifyTitle = ("shopifyTitle" in fb && fb.shopifyTitle ? String(fb.shopifyTitle).toLowerCase() : "");
+            return spTitle.includes(fbName) || spTitle.includes(fbShopifyTitle) || fbName.includes(spTitle) || fbShopifyTitle.includes(spTitle);
+          }) ?? fallbacks.find((fb) =>
+            fb.name && spTitle.includes(fb.name.toLowerCase())
           ) ?? fallbacks.find((fb) =>
-            fb.name && fb.name.toLowerCase().includes(sp.title.toLowerCase())
+            fb.name && fb.name.toLowerCase().includes(spTitle)
           ) ?? fallbacks[0];
           return mapProductToConfig(sp, matched);
         });
