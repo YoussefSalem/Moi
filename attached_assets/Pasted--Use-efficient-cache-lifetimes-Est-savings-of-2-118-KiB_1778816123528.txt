@@ -1,0 +1,218 @@
+
+Use efficient cache lifetimes Est savings of 2,118 KiB
+A long cache lifetime can speed up repeat visits to your page. Learn more about caching.LCPFCPUnscored
+Request
+Cache TTL
+Transfer Size
+buy-moi.com 1st party
+2,118 KiB
+/assets/react-ven….js(buy-moi.com)
+None
+178 KiB
+/images/cashmere.webp(buy-moi.com)
+None
+169 KiB
+/images/beige.webp(buy-moi.com)
+None
+133 KiB
+/assets/beige-ZwO2tYZ3.webp(buy-moi.com)
+None
+121 KiB
+/assets/teal-DFcsj1LT.webp(buy-moi.com)
+None
+111 KiB
+/assets/vendor-BxOEF0rD.js(buy-moi.com)
+None
+100 KiB
+/assets/white-Dj8D0P9x.webp(buy-moi.com)
+None
+99 KiB
+/assets/white-Dj8D0P9x.webp(buy-moi.com)
+None
+99 KiB
+/assets/white-Dj8D0P9x.webp(buy-moi.com)
+None
+99 KiB
+/assets/navi-Cu5_Hvyd.webp(buy-moi.com)
+None
+95 KiB
+/assets/light-blue-DoEQskTp.webp(buy-moi.com)
+None
+87 KiB
+/assets/light-blue-DoEQskTp.webp(buy-moi.com)
+None
+87 KiB
+/assets/light-blue-DoEQskTp.webp(buy-moi.com)
+None
+87 KiB
+/hero-image.webp(buy-moi.com)
+None
+78 KiB
+/hero-image.webp(buy-moi.com)
+None
+78 KiB
+/assets/cashmere-main-new-DeLZxibJ.webp(buy-moi.com)
+None
+78 KiB
+/assets/yellow-6GJS-F9t.webp(buy-moi.com)
+None
+76 KiB
+/assets/mint-CEomChLi.webp(buy-moi.com)
+None
+68 KiB
+/assets/index-BIvLAFn1.js(buy-moi.com)
+None
+58 KiB
+/assets/CheckoutPage-DPYYBdJC.js(buy-moi.com)
+None
+51 KiB
+/assets/index-B8ZQkwIW.css(buy-moi.com)
+None
+48 KiB
+/assets/ui-lib-BGKomeAF.js(buy-moi.com)
+None
+41 KiB
+/assets/framer-mo….js(buy-moi.com)
+None
+32 KiB
+/assets/AccountPage--tczejCt.js(buy-moi.com)
+None
+11 KiB
+/assets/Footer-C5hz7ZjX.js(buy-moi.com)
+None
+10 KiB
+/assets/CartDrawe….js(buy-moi.com)
+None
+8 KiB
+/assets/LookView-CL8KY0af.js(buy-moi.com)
+None
+6 KiB
+/assets/CustomerA….js(buy-moi.com)
+None
+6 KiB
+/assets/SearchDra….js(buy-moi.com)
+None
+3 KiB
+Improve image delivery Est savings of 332 KiB
+Reducing the download time of images can improve the perceived load time of the page and LCP. Learn more about optimizing image sizeLCPFCPUnscored
+URL
+Resource Size
+Est Savings
+buy-moi.com 1st party
+713.7 KiB	332.4 KiB
+Moi Versa Top - White versatile top
+<img alt="Moi Versa Top - White versatile top" class="absolute inset-0 w-full h-full" loading="lazy" decoding="async" src="/assets/white-Dj8D0P9x.webp" style="object-fit: contain; object-position: center center; opacity: 1;">
+/assets/white-Dj8D0P9x.webp(buy-moi.com)
+99.0 KiB
+66.1 KiB
+This image file is larger than it needs to be (927x1200) for its displayed dimensions (534x691). Use responsive images to reduce the image download size.
+66.1 KiB
+Moi Versa Top - White versatile top
+<img alt="Moi Versa Top - White versatile top" class="absolute inset-0 w-full h-full" loading="lazy" decoding="async" src="/assets/white-Dj8D0P9x.webp" style="object-fit: contain; object-position: center center; opacity: 1;">
+/assets/white-Dj8D0P9x.webp(buy-moi.com)
+99.0 KiB
+66.1 KiB
+This image file is larger than it needs to be (927x1200) for its displayed dimensions (534x691). Use responsive images to reduce the image download size.
+66.1 KiB
+Moi Versa Top - White versatile top
+<img alt="Moi Versa Top - White versatile top" class="absolute inset-0 w-full h-full" loading="lazy" decoding="async" src="/assets/white-Dj8D0P9x.webp" style="object-fit: contain; object-position: center center; opacity: 1;">
+/assets/white-Dj8D0P9x.webp(buy-moi.com)
+99.0 KiB
+66.1 KiB
+This image file is larger than it needs to be (927x1200) for its displayed dimensions (534x691). Use responsive images to reduce the image download size.
+66.1 KiB
+MOI WAVVY - Light Blue versatile top
+<img alt="MOI WAVVY - Light Blue versatile top" class="absolute inset-0 w-full h-full" loading="lazy" decoding="async" src="/assets/light-blue-DoEQskTp.webp" style="object-fit: contain; object-position: center center; opacity: 1;">
+/assets/light-blue-DoEQskTp.webp(buy-moi.com)
+87.1 KiB
+31.3 KiB
+This image file is larger than it needs to be (700x826) for its displayed dimensions (560x661). Use responsive images to reduce the image download size.
+31.3 KiB
+MOI WAVVY - Light Blue versatile top
+<img alt="MOI WAVVY - Light Blue versatile top" class="absolute inset-0 w-full h-full" loading="lazy" decoding="async" src="/assets/light-blue-DoEQskTp.webp" style="object-fit: contain; object-position: center center; opacity: 1;">
+/assets/light-blue-DoEQskTp.webp(buy-moi.com)
+87.1 KiB
+31.3 KiB
+This image file is larger than it needs to be (700x826) for its displayed dimensions (560x661). Use responsive images to reduce the image download size.
+31.3 KiB
+MOI WAVVY - Light Blue versatile top
+<img alt="MOI WAVVY - Light Blue versatile top" class="absolute inset-0 w-full h-full" loading="lazy" decoding="async" src="/assets/light-blue-DoEQskTp.webp" style="object-fit: contain; object-position: center center; opacity: 1;">
+/assets/light-blue-DoEQskTp.webp(buy-moi.com)
+87.1 KiB
+31.3 KiB
+This image file is larger than it needs to be (700x826) for its displayed dimensions (560x661). Use responsive images to reduce the image download size.
+31.3 KiB
+Moi premium versatile top - elegant fashion collection
+<img alt="Moi premium versatile top - elegant fashion collection" class="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" fetchpriority="high" src="/hero-image.webp" style="object-position: center 22%; will-change: transform;">
+/hero-image.webp(buy-moi.com)
+77.8 KiB
+20.0 KiB
+Increasing the image compression factor could improve this image's download size.
+20.0 KiB
+Moi premium versatile top - elegant fashion collection
+<img alt="Moi premium versatile top - elegant fashion collection" class="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" fetchpriority="high" src="/hero-image.webp" style="object-position: center 22%; will-change: transform;">
+/hero-image.webp(buy-moi.com)
+77.8 KiB
+20.0 KiB
+Increasing the image compression factor could improve this image's download size.
+20.0 KiB
+Forced reflow
+A forced reflow occurs when JavaScript queries geometric properties (such as offsetWidth) after styles have been invalidated by a change to the DOM state. This can result in poor performance. Learn more about forced reflows and possible mitigations.Unscored
+Top function call
+Total reflow time
+/assets/vendor-BxOEF0rD.js:2:6166(buy-moi.com)
+40 ms
+Source
+Total reflow time
+[unattributed]
+40 ms
+/assets/vendor-BxOEF0rD.js:1:75385(buy-moi.com)
+40 ms
+Network dependency tree
+Avoid chaining critical requests by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.LCPUnscored
+Maximum critical path latency: 474 ms
+Initial Navigation
+https://buy-moi.com - 271 ms, 14.09 KiB
+/assets/index-BIvLAFn1.js(buy-moi.com) - 474 ms, 58.23 KiB
+Preconnected origins
+preconnect hints help the browser establish a connection earlier in the page load, saving time when the first request for that origin is made. The following are the origins that the page preconnected to.
+Origin
+Source
+https://fonts.googleapis.com/
+head > link
+<link rel="preconnect" href="https://fonts.googleapis.com">
+https://fonts.gstatic.com/
+head > link
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+https://moi-89490.myshopify.com/
+head > link
+<link rel="preconnect" href="https://moi-89490.myshopify.com" crossorigin="">
+Preconnect candidates
+Add preconnect hints to your most important origins, but try to use no more than 4.
+No additional origins are good candidates for preconnecting
+Document request latency Est savings of 9 KiB
+Your first network request is the most important. Reduce its latency by avoiding redirects, ensuring a fast server response, and enabling text compression.LCPFCPUnscored
+Avoids redirects
+Server responds quickly (observed 11 ms)
+No compression applied
+Layout shift culprits
+LCP breakdown
+3rd parties
+These insights are also available in the Chrome DevTools Performance Panel - record a trace to view more detailed information.
+Diagnostics
+Reduce unused JavaScript Est savings of 142 KiB
+Reduce unused JavaScript and defer loading scripts until they are required to decrease bytes consumed by network activity. Learn how to reduce unused JavaScript.LCPFCPUnscored
+URL
+Transfer Size
+Est Savings
+buy-moi.com 1st party
+327.7 KiB	141.7 KiB
+/assets/react-ven….js(buy-moi.com)
+177.3 KiB
+59.1 KiB
+/assets/vendor-BxOEF0rD.js(buy-moi.com)
+100.0 KiB
+51.5 KiB
+/assets/CheckoutPage-DPYYBdJC.js(buy-moi.com)
+50.4 KiB
+31.1 KiB
