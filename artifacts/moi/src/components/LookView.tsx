@@ -69,16 +69,18 @@ export function LookView({ product, onClose }: LookViewProps) {
           transition={{ duration: 0.38, ease: [0.32, 0, 0.16, 1] }}
           className="fixed inset-0 z-[80] overflow-y-auto"
           style={{
-            backgroundColor: "hsl(30 20% 97%)",
+            backgroundColor: "rgba(250,248,245,0.72)",
+            backdropFilter: "blur(18px) saturate(1.2)",
+            WebkitBackdropFilter: "blur(18px) saturate(1.2)",
             willChange: "transform, opacity",
           }}
         >
-          {/* Ambient glow — opacity-only transition (GPU composited, no repaint) */}
+          {/* Ambient glow — richer and more spread against translucent background */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: `radial-gradient(ellipse 80% 70% at 50% 40%, ${gradColor} 0%, transparent 70%)`,
-              transition: "opacity 0.6s ease",
+              background: `radial-gradient(ellipse 120% 90% at 50% 35%, ${gradColor} 0%, transparent 75%)`,
+              transition: "opacity 0.8s ease",
             }}
           />
 
@@ -86,9 +88,9 @@ export function LookView({ product, onClose }: LookViewProps) {
           <div
             className="sticky top-0 z-30 flex items-center justify-between px-5 md:px-16 pt-5 pb-3"
             style={{
-              backgroundColor: "hsl(30 20% 97%)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
+              backgroundColor: "rgba(250,248,245,0.55)",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
               paddingTop: "max(1.25rem, env(safe-area-inset-top))",
             }}
           >
@@ -118,7 +120,7 @@ export function LookView({ product, onClose }: LookViewProps) {
               fontSize: "clamp(2.5rem, 9vw, 11rem)",
               letterSpacing: "0.08em",
               fontWeight: 300,
-              opacity: 0.38,
+              opacity: 0.22,
               pointerEvents: "none",
               userSelect: "none",
             }}
