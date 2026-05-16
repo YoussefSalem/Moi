@@ -24,7 +24,7 @@ export function Footer() {
     {
       title: "Contact us",
       description: "Reach the team for product, order, or policy questions.",
-      body: "For more inquiries, email info@zuricairo.com or use the contact option in the footer menu. We aim to reply as quickly as possible.",
+      body: "For more inquiries, email Hello@buy-moi.com or use the contact option in the footer menu. We aim to reply as quickly as possible.",
     },
   ];
 
