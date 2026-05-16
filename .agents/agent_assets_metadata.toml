@@ -11,10 +11,10 @@ title = "Apple logo for payment button"
 id = "cRVR1lxkbTDeohsE36dSo"
 uri = "file://artifacts/moi/public/favicon-48x48.png"
 type = "image"
-title = "Moi brand favicon 48x48"
+title = "Moi italic M favicon no edges"
 
 [[generated]]
 id = "Vy_Ea41AZ3_UqJ4L63Cvx"
 uri = "file://artifacts/moi/public/favicon-180x180.png"
 type = "image"
-title = "Moi brand favicon 180x180"
+title = "Moi italic M touch icon no edges"
