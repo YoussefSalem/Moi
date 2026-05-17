@@ -221,7 +221,9 @@ export function CheckoutPage() {
   const subtotalAmount = lineItemsSubtotal;
   const cartDiscountedTotal = shopifyCart ? parseFloat(shopifyCart.cost.totalAmount.amount) : localSubtotal;
   const savings = Math.max(0, subtotalAmount - cartDiscountedTotal);
-  const totalAmount = cartDiscountedTotal + SHIPPING_EGP;
+  const freeShipping = cartDiscountedTotal >= 2000;
+  const shippingCost = freeShipping ? 0 : SHIPPING_EGP;
+  const totalAmount = cartDiscountedTotal + shippingCost;
   const currencyCode = shopifyCart?.cost.totalAmount.currencyCode ?? localItems[0]?.currencyCode ?? "EGP";
   const successItems = orderResult?.items ?? (lines
     ? lines.map((line) => ({
@@ -667,10 +669,16 @@ export function CheckoutPage() {
                 <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(30,24,20,0.12)" }}>
                   <div className="flex justify-between items-center mb-1">
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", fontWeight: 600 }}>Shipping</span>
-                      <span style={{ fontSize: "11px", fontStyle: "italic", color: "#7a9a6e", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
+                      <span style={{ fontSize: "15px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", fontWeight: 600 }}>Shipping</span>
+                      {!freeShipping && (
+                        <span style={{ fontSize: "13px", fontStyle: "italic", color: "#7a9a6e", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
+                      )}
                     </div>
-                    <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>{fmt(SHIPPING_EGP)}</span>
+                    <span style={{ fontSize: "15px", color: freeShipping ? "#6b8f5e" : "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
+                      {freeShipping ? (
+                        <span style={{ fontSize: "14px", fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", fontWeight: 400 }}>Complimentary</span>
+                      ) : fmt(SHIPPING_EGP)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center mt-3">
                     <span style={{ fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>Total</span>
@@ -889,10 +897,16 @@ export function CheckoutPage() {
                   </AnimatePresence>
                   <div className="flex justify-between">
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
-                      <span style={{ fontSize: "11px", fontStyle: "italic", color: "#7a9a6e", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
+                      <span style={{ fontSize: "15px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
+                      {!freeShipping && (
+                        <span style={{ fontSize: "13px", fontStyle: "italic", color: "#7a9a6e", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
+                      )}
                     </div>
-                    <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>{fmt(SHIPPING_EGP)}</span>
+                    <span style={{ fontSize: "15px", color: freeShipping ? "#6b8f5e" : "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
+                      {freeShipping ? (
+                        <span style={{ fontSize: "14px", fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", fontWeight: 400 }}>Complimentary</span>
+                      ) : fmt(SHIPPING_EGP)}
+                    </span>
                   </div>
                   <div className="flex justify-between pt-3" style={{ borderTop: "1px solid rgba(30,24,20,0.22)" }}>
                     <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.12em" }}>Total Amount</span>
