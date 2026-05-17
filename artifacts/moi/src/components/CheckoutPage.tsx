@@ -96,7 +96,7 @@ interface OrderResult {
   }>;
 }
 
-const SHIPPING_EGP = 120;
+const SHIPPING_EGP = 50;
 const GOVERNORATES = [
   "Cairo","Giza","Alexandria","Dakahlia","Red Sea","Beheira","Fayoum","Gharbia",
   "Ismailia","Menofia","Minya","Qaliubiya","New Valley","Suez","Aswan","Assiut",

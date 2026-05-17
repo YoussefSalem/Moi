@@ -360,7 +360,7 @@ export function CartDrawer() {
                   className="text-[9px] tracking-[0.2em] uppercase font-medium text-center"
                   style={{ color: "rgba(23,18,15,0.55)" }}
                 >
-                  120 EGP flat shipping · applied at checkout
+                  50 EGP flat shipping · applied at checkout
                 </p>
                 <button
                   type="button"
