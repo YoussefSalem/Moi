@@ -666,7 +666,10 @@ export function CheckoutPage() {
                 </div>
                 <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(30,24,20,0.12)" }}>
                   <div className="flex justify-between items-center mb-1">
-                    <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em" }}>Shipping</span>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em" }}>Shipping</span>
+                      <span style={{ fontSize: "10px", fontStyle: "italic", color: "rgba(30,24,20,0.38)", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
+                    </div>
                     <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif" }}>{fmt(SHIPPING_EGP)}</span>
                   </div>
                   <div className="flex justify-between items-center mt-3">
@@ -885,7 +888,10 @@ export function CheckoutPage() {
                     )}
                   </AnimatePresence>
                   <div className="flex justify-between">
-                    <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Shipping</span>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Shipping</span>
+                      <span style={{ fontSize: "10px", fontStyle: "italic", color: "rgba(30,24,20,0.38)", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
+                    </div>
                     <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(SHIPPING_EGP)}</span>
                   </div>
                   <div className="flex justify-between pt-3" style={{ borderTop: "1px solid rgba(30,24,20,0.22)" }}>

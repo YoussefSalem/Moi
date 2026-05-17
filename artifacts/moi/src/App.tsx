@@ -92,6 +92,22 @@ function AppContent() {
         <main>
           <HeroVideo />
 
+          {/* Subtle free-shipping note — integrated into the layout */}
+          <div className="text-center py-4" style={{ backgroundColor: "rgba(250,248,245,0.6)" }}>
+            <p
+              style={{
+                fontSize: "11px",
+                letterSpacing: "0.25em",
+                textTransform: "uppercase",
+                color: "rgba(30,24,20,0.38)",
+                fontFamily: "'Montserrat', sans-serif",
+                fontWeight: 400,
+              }}
+            >
+              Complimentary shipping on orders over 2,000 EGP
+            </p>
+          </div>
+
           <div id={product1.slug}>
             {loading ? <ProductSkeleton /> : (
               <ProductCard
