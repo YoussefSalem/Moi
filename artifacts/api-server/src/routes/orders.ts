@@ -208,7 +208,7 @@ router.post("/orders/create", async (req, res) => {
 
     void sendWhatsApp(
       customer.phone,
-      `✅ Your Moi order #${orderNumber} has been placed!\n\nTotal: ${total} EGP (includes 120 EGP shipping)\nPayment: Cash on Delivery\n\nOur team will contact you shortly. Thank you for shopping with Moi. 🖤`,
+      `✅ Your Moi order #${orderNumber} has been placed!\n\nTotal: ${total} EGP (includes 50 EGP shipping)\nPayment: Cash on Delivery\n\nOur team will contact you shortly. Thank you for shopping with Moi. 🖤`,
     );
 
     const trackingNumber = await createBostaShipment({
