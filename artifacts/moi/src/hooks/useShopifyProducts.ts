@@ -39,6 +39,7 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
 
   return {
     ...fallback,
+    slug: fallback.slug,
     name: shopify.title || fallback.name,
     description: shopify.description || fallback.description,
     price: priceFormatted || fallback.price,

@@ -133,6 +133,7 @@ export const IMAGES = {
    * look.model  : full editorial model shot for the Look View (a9 substitute)
    */
   product1: {
+    slug: "moi-wavvy",
     productShot: BEIGE_MAIN,
     filmstrip: [FS_A1, FS_A2, FS_A3, FS_A4, FS_A5, FS_A6, FS_A7, FS_A8],
     look: {
@@ -448,6 +449,7 @@ export const IMAGES = {
    * SWAP ME: replace productShot with the Taupe CDN a15 URL when it becomes available.
    */
   product2: {
+    slug: "moi-versa",
     productShot: WHITE_MAIN,        // SWAP ME: replace with Taupe product shot
     filmstrip: [FS_A3, FS_A4, FS_A5, FS_A6, FS_A7, FS_A8, FS_A1, FS_A2],
     look: {
@@ -472,6 +474,7 @@ export const IMAGES = {
    * SWAP ME: replace with branded product photography when available.
    */
   product3: {
+    slug: "trio-bangles",
     productShot: BANGLES_MAIN,
     filmstrip: [
       BANGLES_ALT_1,
@@ -518,6 +521,7 @@ export interface VariantOption {
 }
 
 export interface ProductConfig {
+  readonly slug: string;
   readonly productShot: string;
   readonly filmstrip: readonly string[];
   readonly look: {

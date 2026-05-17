@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
@@ -66,6 +66,16 @@ function AppContent() {
   const product1 = products[0] ?? IMAGES.product1;
   const product2 = products[1] ?? IMAGES.product2;
 
+  useEffect(() => {
+    if (page !== "home" || loading) return;
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+    const el = document.getElementById(hash);
+    if (el) {
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+    }
+  }, [page, loading, product1.slug, product2.slug]);
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: "hsl(30 15% 95%)" }}>
       {/* Breadcrumb navigation for SEO */}
@@ -82,7 +92,7 @@ function AppContent() {
         <main>
           <HeroVideo />
 
-          <div id="collection">
+          <div id={product1.slug}>
             {loading ? <ProductSkeleton /> : (
               <ProductCard
                 product={product1}
@@ -94,10 +104,12 @@ function AppContent() {
           <ProductDivider />
 
           {loading ? <ProductSkeleton /> : (
-            <ProductCard
-              product={product2}
-              onLookView={setLookProduct}
-            />
+            <div id={product2.slug}>
+              <ProductCard
+                product={product2}
+                onLookView={setLookProduct}
+              />
+            </div>
           )}
         </main>
       ) : page === "accessories" ? (
