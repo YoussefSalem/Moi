@@ -4,6 +4,7 @@ import { ArrowLeft, Check, ChevronDown, ChevronUp, Upload, X, CreditCard, Tag, S
 import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 import { IMAGES } from "@/config/images";
+import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
 import type { ShopifyCartLine } from "@/lib/shopify";
 
 const PRODUCT_COLOR_MAP: Record<string, string> = {};
@@ -459,6 +460,13 @@ export function CheckoutPage() {
       });
 
       clearCart();
+      trackPurchase({
+        content_ids: orderLines.map((l) => l.variantId),
+        currency: "EGP",
+        value: data.total ? parseFloat(data.total.replace(/[^0-9.]/g, "")) : totalAmount,
+        num_items: orderLines.reduce((s, l) => s + l.quantity, 0),
+        order_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
+      });
       setStep("cod-confirm");
     } catch {
       setStep("form");
@@ -486,7 +494,20 @@ export function CheckoutPage() {
     }
     setStep("card-confirm");
     clearCart();
-  }, [clearCart]);
+    const orderLines = isShopify && shopifyCart
+      ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
+      : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
+    const totalVal = isShopify && shopifyCart && shopifyCart.cost?.totalAmount?.amount
+      ? parseFloat(shopifyCart.cost.totalAmount.amount)
+      : totalAmount;
+    trackPurchase({
+      content_ids: orderLines.map((l) => l.variantId),
+      currency: "EGP",
+      value: totalVal,
+      num_items: orderLines.reduce((s, l) => s + l.quantity, 0),
+      order_id: txnId ?? "",
+    });
+  }, [clearCart, isShopify, shopifyCart, localItems, totalAmount]);
 
   const handleIframeFail = useCallback(() => {
     setPaymobIframeUrl(null);
@@ -720,6 +741,19 @@ export function CheckoutPage() {
                 setOrderResult((prev) => prev ? { ...prev, orderNumber, shopifyOrderId, total } : prev);
                 sessionStorage.removeItem("moi_instapay_order_result");
                 clearCart();
+                const proofOrderLines = isShopify && shopifyCart
+                  ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
+                  : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
+                const proofTotal = isShopify && shopifyCart && shopifyCart.cost?.totalAmount?.amount
+                  ? parseFloat(shopifyCart.cost.totalAmount.amount)
+                  : totalAmount;
+                trackPurchase({
+                  content_ids: proofOrderLines.map((l) => l.variantId),
+                  currency: "EGP",
+                  value: proofTotal,
+                  num_items: proofOrderLines.reduce((s, l) => s + l.quantity, 0),
+                  order_id: String(orderNumber),
+                });
               }}
               fmt={fmt}
             />

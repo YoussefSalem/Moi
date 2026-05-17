@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { IMAGES } from "@/config/images";
+import { trackInitiateCheckout } from "@/lib/metaPixel";
 import type { ShopifyCartLine } from "@/lib/shopify";
 import type { LocalCartItem } from "@/context/CartContext";
 
@@ -363,7 +364,23 @@ export function CartDrawer() {
                 </p>
                 <button
                   type="button"
-                  onClick={openCheckout}
+                  onClick={() => {
+                    const ids = isShopify && shopifyCart
+                      ? shopifyCart.lines.nodes.map((l) => l.merchandise.id)
+                      : localItems.map((i) => i.variantId);
+                    const totalVal = isShopify && shopifyCart
+                      ? shopifyCart.cost?.totalAmount?.amount
+                        ? parseFloat(shopifyCart.cost.totalAmount.amount)
+                        : 0
+                      : localItems.reduce((s, i) => s + (i.priceAmount ?? 0) * i.quantity, 0);
+                    trackInitiateCheckout({
+                      content_ids: ids,
+                      currency: "EGP",
+                      value: totalVal > 0 ? totalVal : undefined,
+                      num_items: isShopify && shopifyCart ? shopifyCart.lines.nodes.length : localItems.length,
+                    });
+                    openCheckout();
+                  }}
                   disabled={loading}
                   className="block w-full text-center py-4 text-[11px] tracking-[0.32em] uppercase font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
                   style={{ backgroundColor: "#1e1814" }}

@@ -11,6 +11,7 @@ import {
   formatMoney,
   SHOPIFY_CONFIGURED,
 } from "@/lib/shopify";
+import { trackAddToCart } from "@/lib/metaPixel";
 
 const CART_ID_KEY = "moi_cart_id";
 const LOCAL_CART_KEY = "moi_local_cart";
@@ -156,6 +157,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
         saveLocalCart(updated);
         return updated;
+      });
+      trackAddToCart({
+        content_name: params.title,
+        content_ids: params.variantId ? [params.variantId] : undefined,
+        currency: params.currencyCode,
+        value: params.priceAmount,
+        num_items: qty,
       });
       setCartOpen(true);
     } finally {
