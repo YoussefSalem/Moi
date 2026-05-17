@@ -270,9 +270,6 @@ export function buildCODOrderEmail(params: {
     bodyHtml: `
       <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.8;color:#5c504a;">
         We've also sent a WhatsApp confirmation to your number. Once your order is on its way, you'll receive a tracking update.
-      </p>
-      <p style="margin:12px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#7a9a6e;background:#f4f8f2;padding:10px 14px;border-radius:4px;">
-        Complimentary shipping on orders over 2,000 EGP &middot; Standard shipping: 50 EGP
       </p>`,
     orderNumber,
     total,

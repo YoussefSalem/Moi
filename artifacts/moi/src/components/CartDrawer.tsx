@@ -356,12 +356,23 @@ export function CartDrawer() {
                     {cartRawTotal}
                   </span>
                 </div>
-                <p
-                  className="text-[9px] tracking-[0.2em] uppercase font-medium text-center"
-                  style={{ color: "rgba(23,18,15,0.55)" }}
+                <div
+                  className="text-center py-3 px-4 mx-4 mb-2 rounded"
+                  style={{ backgroundColor: "rgba(248,252,245,0.9)", border: "1px solid rgba(160,190,150,0.22)" }}
                 >
-                  50 EGP flat shipping · free on orders over 2,000 EGP
-                </p>
+                  <p
+                    className="text-[12px] tracking-[0.25em] uppercase font-semibold text-center leading-tight"
+                    style={{ color: "#6b8f5e" }}
+                  >
+                    Free shipping on orders over 2,000 EGP
+                  </p>
+                  <p
+                    className="text-[10px] tracking-[0.15em] uppercase font-medium text-center mt-1"
+                    style={{ color: "rgba(107,143,94,0.65)" }}
+                  >
+                    standard shipping: 50 EGP
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => {
