@@ -156,9 +156,11 @@ function buildEmail({
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td>
-            <a href="${siteUrl}" style="text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.6em;color:#1a1714;text-transform:uppercase;">M O I</a>
+            <a href="${siteUrl}" style="text-decoration:none;display:inline-block;">
+              <img src="${siteUrl}/moi-m-logo.png" alt="Moi" width="48" height="48" style="display:block;border:0;" />
+            </a>
           </td>
-          <td style="text-align:right;">
+          <td style="text-align:right;vertical-align:middle;">
             <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:#9a8e82;">Order&nbsp;#${orderNumber}</span>
           </td>
         </tr>
