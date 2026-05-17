@@ -220,7 +220,7 @@ export async function createDraftOrder(params: {
       country_code: "EG",
     },
     shipping_line: {
-      price: "120.00",
+      price: "50.00",
       title: "Standard Delivery",
       custom: true,
     },

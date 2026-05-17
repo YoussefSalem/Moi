@@ -92,19 +92,31 @@ function AppContent() {
         <main>
           <HeroVideo />
 
-          {/* Subtle free-shipping note — integrated into the layout */}
-          <div className="text-center py-4" style={{ backgroundColor: "rgba(250,248,245,0.6)" }}>
+          {/* Free-shipping notice — premium, green-accented */}
+          <div className="text-center py-5" style={{ backgroundColor: "rgba(248,252,245,0.82)", borderBottom: "1px solid rgba(160,190,150,0.18)", borderTop: "1px solid rgba(160,190,150,0.18)" }}>
             <p
               style={{
-                fontSize: "11px",
-                letterSpacing: "0.25em",
+                fontSize: "13px",
+                letterSpacing: "0.35em",
                 textTransform: "uppercase",
-                color: "rgba(30,24,20,0.38)",
+                color: "#6b8f5e",
                 fontFamily: "'Montserrat', sans-serif",
-                fontWeight: 400,
+                fontWeight: 500,
               }}
             >
               Complimentary shipping on orders over 2,000 EGP
+            </p>
+            <p
+              style={{
+                fontSize: "10px",
+                letterSpacing: "0.15em",
+                color: "rgba(107,143,94,0.55)",
+                fontFamily: "'Cormorant Garamond', serif",
+                fontStyle: "italic",
+                marginTop: "2px",
+              }}
+            >
+              standard shipping: 50 EGP
             </p>
           </div>
 
