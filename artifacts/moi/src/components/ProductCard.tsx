@@ -552,7 +552,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
             {effectivePrice}
           </p>
 
-          {/* Pre-Order */}
+          {/* Order Now */}
           {isOutOfStock ? (
             <motion.button
               type="button"
@@ -584,9 +584,10 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
                 cursor: "pointer",
                 letterSpacing: "0.28em",
+                boxShadow: addedFeedback ? "none" : "0 0 24px rgba(30,24,20,0.18), 0 4px 14px rgba(0,0,0,0.12)",
               }}
             >
-              {addedFeedback ? "Added ✓" : "Pre-Order"}
+              {addedFeedback ? "Added ✓" : "Order Now"}
             </motion.button>
           )}
         </div>

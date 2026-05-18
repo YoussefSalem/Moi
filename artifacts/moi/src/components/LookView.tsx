@@ -247,9 +247,10 @@ export function LookView({ product, onClose }: LookViewProps) {
                   backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
                   color: addedFeedback ? "#1e1814" : "#fff",
                   border: "1px solid #1e1814",
+                  boxShadow: addedFeedback ? "none" : "0 0 24px rgba(30,24,20,0.18), 0 4px 14px rgba(0,0,0,0.12)",
                 }}
               >
-                {addedFeedback ? "Added \u2713" : "Pre-Order"}
+                {addedFeedback ? "Added \u2713" : "Order Now"}
               </motion.button>
             </div>
           </div>
