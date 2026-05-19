@@ -3,6 +3,7 @@ import { X, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { IMAGES } from "@/config/images";
 import { trackInitiateCheckout } from "@/lib/metaPixel";
+import { trackTikTokInitiateCheckout } from "@/lib/tiktokPixel";
 import type { ShopifyCartLine } from "@/lib/shopify";
 import type { LocalCartItem } from "@/context/CartContext";
 
@@ -384,11 +385,18 @@ export function CartDrawer() {
                         ? parseFloat(shopifyCart.cost.totalAmount.amount)
                         : 0
                       : localItems.reduce((s, i) => s + (i.priceAmount ?? 0) * i.quantity, 0);
+                    const numItems = isShopify && shopifyCart ? shopifyCart.lines.nodes.length : localItems.length;
                     trackInitiateCheckout({
                       content_ids: ids,
                       currency: "EGP",
                       value: totalVal > 0 ? totalVal : undefined,
-                      num_items: isShopify && shopifyCart ? shopifyCart.lines.nodes.length : localItems.length,
+                      num_items: numItems,
+                    });
+                    trackTikTokInitiateCheckout({
+                      content_id: ids?.[0],
+                      currency: "EGP",
+                      value: totalVal > 0 ? totalVal : undefined,
+                      quantity: numItems,
                     });
                     openCheckout();
                   }}

@@ -12,6 +12,7 @@ import {
   SHOPIFY_CONFIGURED,
 } from "@/lib/shopify";
 import { trackAddToCart } from "@/lib/metaPixel";
+import { trackTikTokAddToCart } from "@/lib/tiktokPixel";
 
 const CART_ID_KEY = "moi_cart_id";
 const LOCAL_CART_KEY = "moi_local_cart";
@@ -164,6 +165,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         currency: params.currencyCode,
         value: params.priceAmount,
         num_items: qty,
+      });
+      trackTikTokAddToCart({
+        content_name: params.title,
+        content_id: params.variantId,
+        currency: params.currencyCode,
+        value: params.priceAmount,
+        quantity: qty,
       });
       setCartOpen(true);
     } finally {

@@ -5,6 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 import { IMAGES } from "@/config/images";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
+import { trackTikTokPurchase } from "@/lib/tiktokPixel";
 import type { ShopifyCartLine } from "@/lib/shopify";
 
 const PRODUCT_COLOR_MAP: Record<string, string> = {};
@@ -462,11 +463,20 @@ export function CheckoutPage() {
       });
 
       clearCart();
+      const purchaseValue = data.total ? parseFloat(data.total.replace(/[^0-9.]/g, "")) : totalAmount;
+      const purchaseItems = orderLines.reduce((s, l) => s + l.quantity, 0);
       trackPurchase({
         content_ids: orderLines.map((l) => l.variantId),
         currency: "EGP",
-        value: data.total ? parseFloat(data.total.replace(/[^0-9.]/g, "")) : totalAmount,
-        num_items: orderLines.reduce((s, l) => s + l.quantity, 0),
+        value: purchaseValue,
+        num_items: purchaseItems,
+        order_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
+      });
+      trackTikTokPurchase({
+        content_id: orderLines[0]?.variantId,
+        currency: "EGP",
+        value: purchaseValue,
+        quantity: purchaseItems,
         order_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
       });
       setStep("cod-confirm");
@@ -758,11 +768,19 @@ export function CheckoutPage() {
                 const proofTotal = isShopify && shopifyCart && shopifyCart.cost?.totalAmount?.amount
                   ? parseFloat(shopifyCart.cost.totalAmount.amount)
                   : totalAmount;
+                const proofItems = proofOrderLines.reduce((s, l) => s + l.quantity, 0);
                 trackPurchase({
                   content_ids: proofOrderLines.map((l) => l.variantId),
                   currency: "EGP",
                   value: proofTotal,
-                  num_items: proofOrderLines.reduce((s, l) => s + l.quantity, 0),
+                  num_items: proofItems,
+                  order_id: String(orderNumber),
+                });
+                trackTikTokPurchase({
+                  content_id: proofOrderLines[0]?.variantId,
+                  currency: "EGP",
+                  value: proofTotal,
+                  quantity: proofItems,
                   order_id: String(orderNumber),
                 });
               }}
