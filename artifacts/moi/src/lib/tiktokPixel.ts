@@ -5,8 +5,11 @@
 
 function getTtq(): ((...args: unknown[]) => void) | undefined {
   if (typeof window === "undefined") return undefined;
-  const w = window as unknown as { ttq?: (...args: unknown[]) => void };
-  return w.ttq;
+  const w = window as unknown as { ttq?: unknown };
+  if (typeof w.ttq === "function") {
+    return w.ttq as (...args: unknown[]) => void;
+  }
+  return undefined;
 }
 
 export function trackTikTokEvent(
