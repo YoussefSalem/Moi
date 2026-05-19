@@ -18,10 +18,13 @@ export function trackEvent(
     }
   }
 
-  if (Object.keys(cleaned).length > 0) {
+  // Deduplication key: same event_id must be used on both browser + server
+  cleaned.event_id = `${eventName}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  if (Object.keys(cleaned).length > 1) {
     fbq("track", eventName, cleaned);
   } else {
-    fbq("track", eventName);
+    fbq("track", eventName, { event_id: cleaned.event_id });
   }
 }
 
