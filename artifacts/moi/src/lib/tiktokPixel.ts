@@ -3,11 +3,11 @@
  * Safe to call even before ttq loads — queue handles it.
  */
 
-function getTtq(): ((...args: unknown[]) => void) | undefined {
+function getTtq(): { track: (...args: unknown[]) => void } | undefined {
   if (typeof window === "undefined") return undefined;
-  const w = window as unknown as { ttq?: unknown };
-  if (typeof w.ttq === "function") {
-    return w.ttq as (...args: unknown[]) => void;
+  const w = window as unknown as { ttq?: { track?: (...args: unknown[]) => void } };
+  if (w.ttq && typeof w.ttq.track === "function") {
+    return w.ttq as { track: (...args: unknown[]) => void };
   }
   return undefined;
 }
@@ -27,9 +27,9 @@ export function trackTikTokEvent(
   }
 
   if (Object.keys(cleaned).length > 0) {
-    ttq("track", eventName, cleaned);
+    ttq.track(eventName, cleaned);
   } else {
-    ttq("track", eventName);
+    ttq.track(eventName);
   }
 }
 
