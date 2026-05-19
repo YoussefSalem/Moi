@@ -84,12 +84,18 @@
     t.src=v;s=b.getElementsByTagName(e)[0];
     s.parentNode.insertBefore(t,s)}(window,document,'script',
     'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init','2281707575977889');
-    fbq('track','PageView');
+    if (location.hostname === 'buy-moi.com' || location.hostname === 'www.buy-moi.com') {
+      fbq('init','2281707575977889');
+      fbq('track','PageView');
+    }
     </script>
-    <noscript><img height="1" width="1" style="display:none"
-    src="https://www.facebook.com/tr?id=2281707575977889&ev=PageView&noscript=1"
-    /></noscript>
+    <noscript>
+      <script>
+        if (location.hostname === 'buy-moi.com' || location.hostname === 'www.buy-moi.com') {
+          document.write('<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=2281707575977889&ev=PageView&noscript=1" />');
+        }
+      </script>
+    </noscript>
     <!-- End Meta Pixel Code -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
