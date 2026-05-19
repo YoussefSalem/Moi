@@ -220,7 +220,7 @@ export function CheckoutPage() {
       )
     : localSubtotal;
   const subtotalAmount = lineItemsSubtotal;
-  const cartDiscountedTotal = shopifyCart ? parseFloat(shopifyCart.cost.subtotalAmount.amount) : localSubtotal;
+  const cartDiscountedTotal = shopifyCart ? parseFloat(shopifyCart.cost.totalAmount.amount) : localSubtotal;
   const savings = Math.max(0, subtotalAmount - cartDiscountedTotal);
   const freeShipping = cartDiscountedTotal >= 2000;
   const shippingCost = freeShipping ? 0 : SHIPPING_EGP;
