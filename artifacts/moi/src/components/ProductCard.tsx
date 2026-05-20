@@ -673,21 +673,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                   </motion.button>
                 )}
 
-                {/* Material info */}
-                {(product.outer || product.lining) && (
-                  <div className="mt-6 flex flex-col gap-1 items-center md:items-start">
-                    {product.outer && (
-                      <p className="text-[9px] tracking-[0.18em] uppercase font-light" style={{ color: "rgba(120,108,96,0.65)" }}>
-                        {product.outer}
-                      </p>
-                    )}
-                    {product.lining && (
-                      <p className="text-[9px] tracking-[0.18em] uppercase font-light" style={{ color: "rgba(120,108,96,0.65)" }}>
-                        {product.lining}
-                      </p>
-                    )}
-                  </div>
-                )}
               </motion.div>
             </div>
           </div>
