@@ -92,8 +92,9 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
         const t = e.changedTouches[i];
         gesture.pointers.set(t.identifier, { x: t.clientX, y: t.clientY });
       }
+
       if (gesture.pointers.size === 1) {
-        const [pt] = Array.from(gesture.pointers.values());
+        const pt = Array.from(gesture.pointers.values())[0];
         gesture.startX = pt.x;
         gesture.startY = pt.y;
         gesture.lastX = pt.x;
@@ -105,6 +106,8 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
           gesture.startPanY = pan.y;
         }
       } else if (gesture.pointers.size === 2) {
+        // ── Pinch gesture starting: block native zoom ──
+        e.preventDefault();
         const pts = Array.from(gesture.pointers.values());
         gesture.startDist = getDist(pts[0], pts[1]);
         gesture.startScale = zoomScale;
@@ -158,7 +161,7 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
       }
     };
 
-    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchstart", onStart, { passive: false });
     el.addEventListener("touchmove", onMove, { passive: false });
     el.addEventListener("touchend", onEnd, { passive: true });
     el.addEventListener("touchcancel", onEnd, { passive: true });
@@ -207,7 +210,7 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
           <div
             ref={containerRef}
             className="flex-1 flex items-center justify-center relative overflow-hidden select-none"
-            style={{ touchAction: zoomScale > 1 ? "none" : "pan-y" }}
+            style={{ touchAction: "none" }}
             onDoubleClick={handleDoubleTap}
           >
             {/* Skeleton while loading */}
