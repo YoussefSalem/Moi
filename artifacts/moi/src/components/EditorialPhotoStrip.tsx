@@ -4,7 +4,23 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CinematicLightbox } from "@/components/CinematicLightbox";
 import { IMAGES } from "@/config/images";
 
-/* Build a deduplicated flat array of every unique product image. */
+/* Fisher-Yates shuffle with a simple string seed so order is stable across renders. */
+function seededShuffle<T>(array: readonly T[], seed: string): T[] {
+  const arr = Array.from(array);
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
+  const rng = () => {
+    h = (h * 16807 + 0) % 2147483647;
+    return (h - 1) / 2147483646;
+  };
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/* Build a deduplicated flat array of every unique product image, excluding generic filmstrip fallbacks. */
 function allUniqueProductImages(): readonly string[] {
   const seen = new Set<string>();
   const add = (src: string) => { if (src && !seen.has(src)) seen.add(src); };
@@ -12,7 +28,7 @@ function allUniqueProductImages(): readonly string[] {
   // Hero
   add(IMAGES.hero.fallbackUrl);
 
-  // All color galleries from every product (dedupes mains + alts automatically)
+  // All color galleries from every product
   for (const key of ["product1", "product2", "product3"] as const) {
     const p = IMAGES[key] as { colorGalleries?: Record<string, readonly string[]> };
     if (!p.colorGalleries) continue;
@@ -28,17 +44,11 @@ function allUniqueProductImages(): readonly string[] {
     for (const src of Object.values(p.look)) add(src);
   }
 
-  // Filmstrip images (product1 + product2, already deduped by Set)
-  for (const key of ["product1", "product2", "product3"] as const) {
-    const p = IMAGES[key] as { filmstrip?: readonly string[] };
-    if (!p.filmstrip) continue;
-    for (const src of p.filmstrip) add(src);
-  }
-
+  // Exclude filmstrip fallback assets — generic / not brand photography
   return Array.from(seen);
 }
 
-const COLLECTION_IMAGES = allUniqueProductImages();
+const COLLECTION_IMAGES = seededShuffle(allUniqueProductImages(), "moi-editorial-2025");
 
 export function EditorialPhotoStrip() {
   const ref = useRef<HTMLElement>(null);
