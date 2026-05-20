@@ -106,8 +106,6 @@ function AppContent() {
 
           <EditorialStrip />
 
-          <ProductDivider />
-
           {loading ? <ProductSkeleton /> : (
             <div id={product2.slug}>
               <ProductCard
