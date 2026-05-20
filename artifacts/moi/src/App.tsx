@@ -5,6 +5,7 @@ import { HeroVideo } from "@/components/HeroVideo";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductDivider } from "@/components/ProductDivider";
 import { EditorialStrip } from "@/components/EditorialStrip";
+import { EditorialPhotoStrip } from "@/components/EditorialPhotoStrip";
 import { CartProvider } from "@/context/CartContext";
 import { CustomerProvider } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
@@ -114,6 +115,8 @@ function AppContent() {
               />
             </div>
           )}
+
+          <EditorialPhotoStrip />
         </main>
       ) : page === "accessories" ? (
         <div>

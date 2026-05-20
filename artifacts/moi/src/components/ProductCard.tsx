@@ -305,10 +305,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               />
 
               {/* Image tap / swipe area */}
-              <div
-                className="relative w-full mx-auto"
-                style={{ maxWidth: "clamp(260px, 80vw, 420px)", margin: "0 auto" }}
-              >
+              <div className="relative w-full mx-auto">
                 {/* Desktop: image + side arrows in a row ── Mobile: swipe only */}
                 <div className="hidden md:flex items-center justify-center gap-4">
                   {/* Left arrow (desktop) */}
@@ -382,12 +379,12 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                       dragStartTimeRef.current = null;
                       setDraggingGallery(false);
                     }}
-                    style={{ touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none", cursor: "pointer" }}
+                    style={{ width: "min(380px, 100%)", flexShrink: 0, touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none", cursor: "pointer" }}
                   >
                     {/* Image frame */}
                     <div
                       className="relative w-full overflow-hidden"
-                      style={{ height: "clamp(340px, 58vw, 520px)", maxWidth: 420 }}
+                      style={{ height: "clamp(340px, 44vh, 520px)" }}
                     >
                       <AnimatePresence initial={false} mode="wait">
                         <motion.img

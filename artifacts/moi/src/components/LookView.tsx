@@ -230,11 +230,33 @@ export function LookView({ product, onClose }: LookViewProps) {
             style={{ borderColor: "rgba(180,160,140,0.2)" }}
           >
             <div>
-              <h2 className="text-lg font-bold tracking-widest uppercase" style={{ color: "#1e1814" }}>
+              <p
+                className="text-[10px] tracking-[0.45em] uppercase mb-1"
+                style={{ color: "rgba(120,108,96,0.7)", fontFamily: "'Montserrat', sans-serif" }}
+              >
+                New Arrival
+              </p>
+              <h2
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontSize: "clamp(1.4rem, 3vw, 2rem)",
+                  fontWeight: 300,
+                  letterSpacing: "0.06em",
+                  color: "#1e1814",
+                }}
+              >
                 {product.name}
               </h2>
             </div>
-            <p className="text-lg font-light" style={{ color: "#1e1814" }}>
+            <p
+              style={{
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: "clamp(0.95rem, 2vw, 1.1rem)",
+                fontWeight: 500,
+                letterSpacing: "0.12em",
+                color: "#1e1814",
+              }}
+            >
               {product.price}
             </p>
             <div className="flex gap-3">
