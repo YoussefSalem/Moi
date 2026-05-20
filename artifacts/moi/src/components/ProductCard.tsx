@@ -612,19 +612,56 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               )}
 
               {/* Price */}
-              <motion.p
+              <motion.div variants={itemVariants} className="flex items-baseline gap-3 mb-2 items-center md:items-start">
+                <p
+                  style={{
+                    color: "#1e1814",
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: "clamp(1.1rem, 3.8vw, 1.35rem)",
+                    fontWeight: 600,
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  {effectivePrice}
+                </p>
+                <p
+                  className="text-[9px] tracking-[0.2em] uppercase"
+                  style={{ color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}
+                >
+                  Cash on Delivery
+                </p>
+              </motion.div>
+
+              {/* Stock urgency */}
+              {selectedVariant && selectedVariant.inventoryQuantity > 0 && selectedVariant.inventoryQuantity <= 8 && !isOutOfStock && (
+                <motion.p
+                  variants={itemVariants}
+                  className="text-[9px] tracking-[0.15em] uppercase mb-2"
+                  style={{ color: "#b8704a", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}
+                >
+                  Only {selectedVariant.inventoryQuantity} left in stock
+                </motion.p>
+              )}
+
+              {/* Trust micro-bar */}
+              <motion.div
                 variants={itemVariants}
-                className="mb-7"
-                style={{
-                  color: "#1e1814",
-                  fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "clamp(1.05rem, 3.5vw, 1.25rem)",
-                  fontWeight: 500,
-                  letterSpacing: "0.12em",
-                }}
+                className="flex items-center gap-3 flex-wrap mb-6 justify-center md:justify-start"
               >
-                {effectivePrice}
-              </motion.p>
+                {[
+                  { label: "Ships within 24h", icon: "✓" },
+                  { label: "Free shipping 2,000+", icon: "✓" },
+                ].map((t, i) => (
+                  <span
+                    key={i}
+                    className="flex items-center gap-1 text-[9px] tracking-[0.12em] uppercase"
+                    style={{ color: "rgba(120,108,96,0.6)", fontFamily: "'Montserrat', sans-serif" }}
+                  >
+                    <span style={{ color: "#6b8f5e", fontSize: 10 }}>{t.icon}</span>
+                    {t.label}
+                  </span>
+                ))}
+              </motion.div>
 
               {/* CTA */}
               <motion.div variants={itemVariants} className="w-full flex flex-col items-center md:items-start">
@@ -633,21 +670,21 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                     type="button"
                     onClick={handleNotifyMe}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full md:w-auto flex items-center justify-center gap-2 border transition-all duration-300"
+                    className="w-full flex items-center justify-center gap-2 border transition-all duration-300"
                     style={{
-                      maxWidth: 320,
-                      padding: "15px 32px",
-                      fontSize: 9,
-                      letterSpacing: "0.38em",
+                      padding: "16px 24px",
+                      fontSize: 10,
+                      letterSpacing: "0.35em",
                       textTransform: "uppercase",
                       fontFamily: "'Montserrat', sans-serif",
+                      fontWeight: 500,
                       color: "#f5f0e8",
                       borderColor: "rgba(245,240,232,0.2)",
                       backgroundColor: "rgba(30,24,20,0.9)",
                       boxShadow: "0 12px 36px rgba(0,0,0,0.18)",
                     }}
                   >
-                    <Bell size={11} strokeWidth={1.8} />
+                    <Bell size={12} strokeWidth={1.8} />
                     Notify Me
                   </motion.button>
                 ) : (
@@ -655,21 +692,21 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                     type="button"
                     onClick={handleAddToCart}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full md:w-auto border transition-all duration-500"
+                    className="w-full border transition-all duration-500"
                     style={{
-                      maxWidth: 320,
-                      padding: "15px 40px",
-                      fontSize: 9,
-                      letterSpacing: "0.42em",
+                      padding: "16px 24px",
+                      fontSize: 10,
+                      letterSpacing: "0.38em",
                       textTransform: "uppercase",
                       fontFamily: "'Montserrat', sans-serif",
+                      fontWeight: 500,
                       color: addedFeedback ? "#1e1814" : "#faf8f5",
                       borderColor: "#1e1814",
                       backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
-                      boxShadow: addedFeedback ? "none" : "0 8px 28px rgba(30,24,20,0.22), 0 2px 10px rgba(0,0,0,0.1)",
+                      boxShadow: addedFeedback ? "none" : "0 10px 32px rgba(30,24,20,0.25), 0 4px 12px rgba(0,0,0,0.12)",
                     }}
                   >
-                    {addedFeedback ? "Added to Bag ✓" : "Order Now"}
+                    {addedFeedback ? "Added to Bag ✓" : "Buy Now — Add to Bag"}
                   </motion.button>
                 )}
 

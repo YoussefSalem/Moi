@@ -64,6 +64,30 @@ export function Footer() {
     <>
       <footer className="w-full px-6 md:px-12 py-14 md:py-18" style={{ backgroundColor: "#28211d" }}>
         <div className="max-w-6xl mx-auto">
+          {/* Trust badges row */}
+          <div className="flex items-center justify-center gap-6 md:gap-10 flex-wrap mb-8 pb-8 border-b border-white/8">
+            {[
+              { label: "Cash on Delivery", desc: "Pay when it arrives" },
+              { label: "24h Shipping", desc: "Orders ship same day" },
+              { label: "Free Shipping 2,000+", desc: "Complimentary delivery" },
+            ].map((b, i) => (
+              <div key={i} className="text-center">
+                <p
+                  className="text-[9px] tracking-[0.28em] uppercase font-medium"
+                  style={{ color: "rgba(220,208,190,0.7)", fontFamily: "'Montserrat', sans-serif" }}
+                >
+                  {b.label}
+                </p>
+                <p
+                  className="text-[8px] tracking-[0.12em] uppercase mt-1"
+                  style={{ color: "rgba(220,208,190,0.38)", fontFamily: "'Montserrat', sans-serif" }}
+                >
+                  {b.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+
           {/* Social links */}
           <div className="flex items-center justify-center gap-6 mb-10">
             <a

@@ -181,8 +181,32 @@ export function HeroVideo() {
             textTransform: "uppercase",
           }}
         >
-          Shop Now
+          Shop the Collection
         </motion.button>
+
+        {/* Trust bar */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: loaded ? 1 : 0 }}
+          transition={{ duration: 1, ease: "easeOut", delay: 1.2 }}
+          className="mt-6 flex items-center gap-4 flex-wrap justify-center"
+          style={{ fontFamily: "'Montserrat', sans-serif" }}
+        >
+          {[
+            { label: "Cash on Delivery", icon: "✓" },
+            { label: "Free Shipping 2,000+", icon: "✓" },
+            { label: "Ships in 24h", icon: "✓" },
+          ].map((t, i) => (
+            <span
+              key={i}
+              className="flex items-center gap-1.5 text-[9px] tracking-[0.15em] uppercase"
+              style={{ color: "rgba(255,255,255,0.55)" }}
+            >
+              <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 10 }}>{t.icon}</span>
+              {t.label}
+            </span>
+          ))}
+        </motion.div>
       </motion.div>
 
       {/* Scroll cue line */}

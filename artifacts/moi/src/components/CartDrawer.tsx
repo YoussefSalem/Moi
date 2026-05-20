@@ -404,7 +404,7 @@ export function CartDrawer() {
                   className="block w-full text-center py-4 text-[11px] tracking-[0.32em] uppercase font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
                   style={{ backgroundColor: "#1e1814" }}
                 >
-                  {loading ? "…" : "Checkout"}
+                  {loading ? "…" : "Proceed to Checkout →"}
                 </button>
               </motion.div>
             )}
