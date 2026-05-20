@@ -309,8 +309,160 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 className="relative w-full mx-auto"
                 style={{ maxWidth: "clamp(260px, 80vw, 420px)", margin: "0 auto" }}
               >
+                {/* Desktop: image + side arrows in a row ── Mobile: swipe only */}
+                <div className="hidden md:flex items-center justify-center gap-4">
+                  {/* Left arrow (desktop) */}
+                  {galleryImages.length > 1 && (
+                    <button
+                      type="button"
+                      aria-label="Previous image"
+                      onClick={(e) => { e.stopPropagation(); prevGallery(); }}
+                      className="shrink-0 flex items-center justify-center transition-all duration-300"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "rgba(30,24,20,0.35)",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(30,24,20,0.85)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(30,24,20,0.35)")}
+                    >
+                      <ChevronLeft size={22} strokeWidth={1.2} />
+                    </button>
+                  )}
+
+                  {/* Image tap / swipe area */}
+                  <div
+                    className="relative group"
+                    onPointerDown={(e) => {
+                      dragStartXRef.current = e.clientX;
+                      dragLastXRef.current = e.clientX;
+                      dragStartTimeRef.current = Date.now();
+                      setDraggingGallery(true);
+                    }}
+                    onPointerMove={(e) => {
+                      if (dragStartXRef.current === null) return;
+                      dragLastXRef.current = e.clientX;
+                    }}
+                    onPointerCancel={() => {
+                      const start = dragStartXRef.current;
+                      const last = dragLastXRef.current;
+                      dragStartXRef.current = null;
+                      dragLastXRef.current = null;
+                      dragStartTimeRef.current = null;
+                      setDraggingGallery(false);
+                      if (start !== null && last !== null) {
+                        const delta = last - start;
+                        if (Math.abs(delta) > 40) jumpGallery(delta < 0 ? 1 : -1);
+                      }
+                    }}
+                    onPointerUp={(e) => {
+                      const start = dragStartXRef.current;
+                      if (start === null) return;
+                      const endX = dragLastXRef.current ?? e.clientX;
+                      const delta = endX - start;
+                      const elapsed = Math.max(1, Date.now() - (dragStartTimeRef.current ?? Date.now()));
+                      const velocity = delta / elapsed;
+                      const shouldSwipe = Math.abs(delta) > 40 || Math.abs(velocity) > 0.4;
+                      dragStartXRef.current = null;
+                      dragLastXRef.current = null;
+                      dragStartTimeRef.current = null;
+                      setDraggingGallery(false);
+                      if (shouldSwipe) {
+                        jumpGallery(delta < 0 ? 1 : -1);
+                      } else {
+                        onLookView(product);
+                      }
+                    }}
+                    onPointerLeave={() => {
+                      dragStartXRef.current = null;
+                      dragLastXRef.current = null;
+                      dragStartTimeRef.current = null;
+                      setDraggingGallery(false);
+                    }}
+                    style={{ touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none", cursor: "pointer" }}
+                  >
+                    {/* Image frame */}
+                    <div
+                      className="relative w-full overflow-hidden"
+                      style={{ height: "clamp(340px, 58vw, 520px)", maxWidth: 420 }}
+                    >
+                      <AnimatePresence initial={false} mode="wait">
+                        <motion.img
+                          key={mainImage}
+                          src={mainImage}
+                          alt={`${product.name} — ${selectedColor}`}
+                          className="absolute inset-0 w-full h-full"
+                          style={{ objectFit: "contain", objectPosition: "center" }}
+                          loading="lazy"
+                          decoding="async"
+                          initial={{ opacity: 0, scale: 0.975 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 1.025 }}
+                          transition={{ duration: 0.28, ease: "easeInOut" }}
+                        />
+                      </AnimatePresence>
+
+                      {/* Shimmer */}
+                      <AnimatePresence>
+                        {isSwapping && (
+                          <motion.div
+                            key="shimmer"
+                            className="absolute inset-0 pointer-events-none shimmer"
+                            initial={{ opacity: 1 }}
+                            exit={{ opacity: 0, transition: { duration: 0.22 } }}
+                          />
+                        )}
+                      </AnimatePresence>
+
+                      {/* "See the Look" hover overlay (desktop) */}
+                      <div
+                        className="absolute inset-0 z-10 items-center justify-center hidden md:flex pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+                        style={{ opacity: draggingGallery ? 0 : undefined }}
+                      >
+                        <span
+                          className="text-[9px] tracking-[0.32em] uppercase font-medium px-5 py-2.5"
+                          style={{
+                            backgroundColor: "rgba(250,248,245,0.9)",
+                            color: "#1e1814",
+                            backdropFilter: "blur(10px)",
+                            WebkitBackdropFilter: "blur(10px)",
+                          }}
+                        >
+                          See the Look
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right arrow (desktop) */}
+                  {galleryImages.length > 1 && (
+                    <button
+                      type="button"
+                      aria-label="Next image"
+                      onClick={(e) => { e.stopPropagation(); nextGallery(); }}
+                      className="shrink-0 flex items-center justify-center transition-all duration-300"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "rgba(30,24,20,0.35)",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(30,24,20,0.85)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(30,24,20,0.35)")}
+                    >
+                      <ChevronRight size={22} strokeWidth={1.2} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Mobile: just image, no arrows */}
                 <div
-                  className="relative group"
+                  className="md:hidden relative w-full mx-auto"
                   onPointerDown={(e) => {
                     dragStartXRef.current = e.clientX;
                     dragLastXRef.current = e.clientX;
@@ -359,7 +511,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                   }}
                   style={{ touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none", cursor: "pointer" }}
                 >
-                  {/* Image frame */}
                   <div
                     className="relative w-full overflow-hidden"
                     style={{ height: "clamp(340px, 58vw, 520px)" }}
@@ -379,8 +530,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                         transition={{ duration: 0.28, ease: "easeInOut" }}
                       />
                     </AnimatePresence>
-
-                    {/* Shimmer */}
                     <AnimatePresence>
                       {isSwapping && (
                         <motion.div
@@ -391,86 +540,28 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                         />
                       )}
                     </AnimatePresence>
-
-                    {/* "See the Look" hover overlay (desktop) */}
-                    <div
-                      className="absolute inset-0 z-10 items-center justify-center hidden md:flex pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100"
-                      style={{ opacity: draggingGallery ? 0 : undefined }}
-                    >
-                      <span
-                        className="text-[9px] tracking-[0.32em] uppercase font-medium px-5 py-2.5"
-                        style={{
-                          backgroundColor: "rgba(250,248,245,0.9)",
-                          color: "#1e1814",
-                          backdropFilter: "blur(10px)",
-                          WebkitBackdropFilter: "blur(10px)",
-                        }}
-                      >
-                        See the Look
-                      </span>
-                    </div>
-
-                    {/* Desktop arrow nav — hidden on mobile, visible on hover */}
-                    {galleryImages.length > 1 && (
-                      <>
-                        <button
-                          type="button"
-                          aria-label="Previous image"
-                          onClick={(e) => { e.stopPropagation(); prevGallery(); }}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300"
-                          style={{
-                            width: 36,
-                            height: 36,
-                            backgroundColor: "rgba(250,248,245,0.88)",
-                            backdropFilter: "blur(6px)",
-                            WebkitBackdropFilter: "blur(6px)",
-                            color: "#1e1814",
-                            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-                          }}
-                        >
-                          <ChevronLeft size={16} strokeWidth={1.5} />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Next image"
-                          onClick={(e) => { e.stopPropagation(); nextGallery(); }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300"
-                          style={{
-                            width: 36,
-                            height: 36,
-                            backgroundColor: "rgba(250,248,245,0.88)",
-                            backdropFilter: "blur(6px)",
-                            WebkitBackdropFilter: "blur(6px)",
-                            color: "#1e1814",
-                            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-                          }}
-                        >
-                          <ChevronRight size={16} strokeWidth={1.5} />
-                        </button>
-                      </>
-                    )}
                   </div>
-
-                  {/* Gallery dots */}
-                  {galleryImages.length > 1 && (
-                    <div className="flex items-center justify-center gap-2 mt-4">
-                      {galleryImages.map((_, index) => (
-                        <button
-                          key={`${selectedColor}-${index}`}
-                          type="button"
-                          aria-label={`Image ${index + 1}`}
-                          onClick={(e) => { e.stopPropagation(); setGalleryIndex(index); }}
-                          className="transition-all duration-300 rounded-full"
-                          style={{
-                            width: index === galleryIndex ? 18 : 6,
-                            height: 6,
-                            backgroundColor: index === galleryIndex ? "#1e1814" : "rgba(30,24,20,0.2)",
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
                 </div>
+
+                {/* Gallery dots */}
+                {galleryImages.length > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-4">
+                    {galleryImages.map((_, index) => (
+                      <button
+                        key={`${selectedColor}-${index}`}
+                        type="button"
+                        aria-label={`Image ${index + 1}`}
+                        onClick={(e) => { e.stopPropagation(); setGalleryIndex(index); }}
+                        className="transition-all duration-300 rounded-full"
+                        style={{
+                          width: index === galleryIndex ? 18 : 6,
+                          height: 6,
+                          backgroundColor: index === galleryIndex ? "#1e1814" : "rgba(30,24,20,0.2)",
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
 
                 {/* "See the Look" — always visible on mobile */}
                 <motion.button
