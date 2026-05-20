@@ -87,22 +87,6 @@ export function EditorialStrip() {
           }}
         />
 
-        {/* Quote */}
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.48 }}
-          className="max-w-xs md:max-w-sm leading-relaxed"
-          style={{
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
-            fontSize: "clamp(1rem, 3.2vw, 1.25rem)",
-            fontStyle: "italic",
-            color: "rgba(220,208,190,0.62)",
-            letterSpacing: "0.02em",
-          }}
-        >
-          "Designed to move with you — from morning light to evening air."
-        </motion.p>
       </motion.div>
     </section>
   );
