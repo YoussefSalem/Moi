@@ -1,17 +1,29 @@
 import { useRef, useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { IMAGES } from "@/config/images";
 import { useImageColor } from "@/hooks/useImageColor";
 
 export function HeroVideo() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
 
   const color = useImageColor(IMAGES.hero.fallbackUrl);
-  const gradEdge = color?.rgba(0.22) ?? "rgba(180,160,130,0.15)";
+  const gradEdge = color?.rgba(0.18) ?? "rgba(180,160,130,0.12)";
+
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"],
+  });
+
+  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "38%"]);
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
+
   const handleShopNow = () => {
-    document.getElementById("collection")?.scrollIntoView({ behavior: "smooth" });
+    const el = document.getElementById("collection");
+    if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -20,18 +32,14 @@ export function HeroVideo() {
       setVideoFailed(true);
       return;
     }
-
     const video = videoRef.current;
     if (!video) return;
-
     video.muted = true;
     video.playsInline = true;
-
     const play = async () => {
       try { await video.play(); }
       catch { setVideoFailed(true); setLoaded(true); }
     };
-
     if (video.readyState >= 3) {
       setLoaded(true);
       play();
@@ -42,107 +50,159 @@ export function HeroVideo() {
   }, []);
 
   return (
-    <section className="relative w-full h-[100svh] overflow-hidden">
-      {/* Ambient edge glow — derived from hero image dominant color */}
+    <section
+      ref={sectionRef}
+      className="relative w-full overflow-hidden"
+      style={{ height: "100svh" }}
+    >
+      {/* Ambient edge glow */}
       <div
         className="absolute inset-0 pointer-events-none z-10"
         style={{
           background: [
-            `radial-gradient(ellipse 60% 40% at 0% 50%, ${gradEdge} 0%, transparent 70%)`,
-            `radial-gradient(ellipse 60% 40% at 100% 50%, ${gradEdge} 0%, transparent 70%)`,
-            `radial-gradient(ellipse 100% 30% at 50% 100%, ${gradEdge} 0%, transparent 60%)`,
+            `radial-gradient(ellipse 70% 50% at 0% 50%, ${gradEdge} 0%, transparent 70%)`,
+            `radial-gradient(ellipse 70% 50% at 100% 50%, ${gradEdge} 0%, transparent 70%)`,
+            `radial-gradient(ellipse 100% 40% at 50% 100%, ${gradEdge} 0%, transparent 60%)`,
           ].join(", "),
         }}
       />
 
-      {/* Video or Ken Burns image */}
-      {!videoFailed && IMAGES.hero.videoUrl ? (
-        <video
-          ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover object-top"
-          src={IMAGES.hero.videoUrl}
-          loop muted playsInline autoPlay
-          poster={IMAGES.hero.fallbackUrl}
-        />
-      ) : (
-        <motion.img
-          src={IMAGES.hero.fallbackUrl}
-          alt="Moi premium versatile top - elegant fashion collection"
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: "center 22%", willChange: "transform" }}
-          loading="eager"
-          decoding="async"
-          fetchPriority="high"
-          initial={{ scale: 1 }}
-          animate={{ scale: 1.06 }}
-          transition={{ duration: 14, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
-        />
-      )}
+      {/* Parallax image / video */}
+      <motion.div
+        className="absolute inset-0 w-full h-[115%] -top-[7.5%]"
+        style={{ y: imageY, willChange: "transform" }}
+      >
+        {!videoFailed && IMAGES.hero.videoUrl ? (
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover object-top"
+            src={IMAGES.hero.videoUrl}
+            loop muted playsInline autoPlay
+            poster={IMAGES.hero.fallbackUrl}
+          />
+        ) : (
+          <motion.img
+            src={IMAGES.hero.fallbackUrl}
+            alt="Moi premium versatile top — elegant fashion collection"
+            className="w-full h-full object-cover"
+            style={{ objectPosition: "center 22%" }}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            initial={{ scale: 1 }}
+            animate={{ scale: 1.05 }}
+            transition={{ duration: 18, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
+          />
+        )}
+      </motion.div>
 
-      {/* Primary gradient overlay */}
+      {/* Gradient overlay — two layers for depth */}
       <div
         className="absolute inset-0 z-[2]"
         style={{
           background:
-            "linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.04) 35%, rgba(0,0,0,0.04) 55%, rgba(0,0,0,0.55) 100%)",
+            "linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.03) 30%, rgba(0,0,0,0.03) 50%, rgba(0,0,0,0.62) 100%)",
+        }}
+      />
+      {/* Vignette side edges */}
+      <div
+        className="absolute inset-0 z-[2] pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 110% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.28) 100%)",
         }}
       />
 
-      {/* Text content — H1 renders immediately (no opacity gate) so LCP is not delayed */}
-      <div className="absolute bottom-0 left-0 right-0 pb-20 flex flex-col items-center text-center px-6 z-[3] md:pb-20">
-        <p
-          className="text-[10px] tracking-[0.55em] uppercase mb-4 font-light"
-          style={{ color: "rgba(255,255,255,0.72)", fontFamily: "'Montserrat', sans-serif" }}
+      {/* Hero text content — parallax scroll */}
+      <motion.div
+        className="absolute bottom-0 left-0 right-0 z-[3] flex flex-col items-center text-center"
+        style={{ y: textY, paddingBottom: "clamp(80px, 14vw, 140px)", opacity: overlayOpacity }}
+      >
+        {/* Collection label */}
+        <motion.p
+          className="text-[9px] md:text-[10px] tracking-[0.55em] uppercase font-light mb-5"
+          style={{ color: "rgba(255,255,255,0.68)", fontFamily: "'Montserrat', sans-serif" }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
         >
-          NEW COLLECTION
-        </p>
+          New Collection
+        </motion.p>
 
-        <h1
-          className="font-serif font-light mb-8"
+        {/* Brand name */}
+        <motion.h1
+          className="font-serif font-light"
           style={{
             color: "#fff",
-            fontSize: "clamp(4.3rem, 15vw, 11rem)",
-            letterSpacing: "0.02em",
-            lineHeight: 0.9,
+            fontSize: "clamp(5.2rem, 22vw, 13rem)",
+            letterSpacing: "0.03em",
+            lineHeight: 0.88,
             fontFamily: "'Cormorant Garamond', Georgia, serif",
           }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
         >
-          MOI <span className="sr-only">- Premium Versatile Tops & Fashion</span>
-        </h1>
+          MOI
+          <span className="sr-only"> — Premium Versatile Tops & Fashion</span>
+        </motion.h1>
 
+        {/* Tagline */}
+        <motion.p
+          className="mt-5 text-[10px] md:text-[11px] tracking-[0.28em] uppercase font-light"
+          style={{ color: "rgba(255,255,255,0.52)", fontFamily: "'Montserrat', sans-serif" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: loaded ? 1 : 0 }}
+          transition={{ duration: 1, ease: "easeOut", delay: 0.7 }}
+        >
+          Effortless. Versatile. Yours.
+        </motion.p>
+
+        {/* CTA */}
         <motion.button
           type="button"
           onClick={handleShopNow}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: loaded ? 1 : 0 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-          whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.14)" }}
-          whileTap={{ scale: 0.98 }}
-          className="inline-block px-12 py-4 text-[10px] tracking-[0.4em] uppercase font-light border transition-all duration-300"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: loaded ? 1 : 0, y: loaded ? 0 : 8 }}
+          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.9 }}
+          whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.13)" }}
+          whileTap={{ scale: 0.97 }}
+          className="mt-8 inline-block border transition-all duration-300"
           style={{
             color: "#fff",
-            borderColor: "rgba(255,255,255,0.55)",
-            backdropFilter: "blur(4px)",
-            backgroundColor: "rgba(255,255,255,0.06)",
+            borderColor: "rgba(255,255,255,0.48)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+            backgroundColor: "rgba(255,255,255,0.07)",
             fontFamily: "'Montserrat', sans-serif",
+            fontSize: "9px",
+            letterSpacing: "0.45em",
+            padding: "14px 36px",
+            textTransform: "uppercase",
           }}
         >
-          SHOP NOW
+          Shop Now
         </motion.button>
-      </div>
+      </motion.div>
 
-      {/* Scroll cue */}
+      {/* Scroll cue line */}
       <motion.div
+        className="absolute z-[4]"
+        style={{ bottom: 28, left: "50%", transform: "translateX(-50%)" }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 2, duration: 1 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[3]"
+        transition={{ delay: 2.4, duration: 1 }}
       >
         <motion.div
-          animate={{ y: [0, 9, 0] }}
-          transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
-          className="w-px h-10 mx-auto"
-          style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.55))" }}
+          animate={{ scaleY: [0.4, 1, 0.4], opacity: [0.3, 0.7, 0.3] }}
+          transition={{ repeat: Infinity, duration: 2.6, ease: "easeInOut" }}
+          style={{
+            width: 1,
+            height: 44,
+            background: "linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.6))",
+            margin: "0 auto",
+            transformOrigin: "top",
+          }}
         />
       </motion.div>
     </section>

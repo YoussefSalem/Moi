@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductDivider } from "@/components/ProductDivider";
+import { EditorialStrip } from "@/components/EditorialStrip";
 import { CartProvider } from "@/context/CartContext";
 import { CustomerProvider } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
@@ -92,14 +93,18 @@ function AppContent() {
         <main>
           <HeroVideo />
 
-          <div id={product1.slug}>
-            {loading ? <ProductSkeleton /> : (
-              <ProductCard
-                product={product1}
-                onLookView={setLookProduct}
-              />
-            )}
+          <div id="collection">
+            <div id={product1.slug}>
+              {loading ? <ProductSkeleton /> : (
+                <ProductCard
+                  product={product1}
+                  onLookView={setLookProduct}
+                />
+              )}
+            </div>
           </div>
+
+          <EditorialStrip />
 
           <ProductDivider />
 

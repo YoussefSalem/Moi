@@ -3,92 +3,58 @@ import { useRef } from "react";
 
 export function ProductDivider() {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
+  const inView = useInView(ref, { once: true, margin: "-60px" });
 
   return (
     <div
       ref={ref}
       className="relative w-full flex items-center justify-center overflow-hidden"
-      style={{ height: 96 }}
+      style={{ height: 80 }}
     >
-      {/* Left line — grows from center */}
+      {/* Left line */}
       <motion.div
-        className="absolute left-0"
+        className="absolute"
         style={{
-          height: 2,
+          left: 0,
+          height: 1,
           transformOrigin: "right",
-          width: "calc(50% - 18px)",
+          width: "calc(50% - 22px)",
           background:
-            "linear-gradient(to left, rgba(180,160,140,0.0) 0%, rgba(180,160,140,0.28) 18%, rgba(180,160,140,0.7) 50%, rgba(180,160,140,0.28) 82%, rgba(180,160,140,0.0) 100%)",
-          filter: "blur(0.2px)",
+            "linear-gradient(to left, transparent 0%, rgba(180,160,140,0.18) 20%, rgba(180,160,140,0.52) 55%, rgba(180,160,140,0.18) 80%, transparent 100%)",
         }}
         initial={{ scaleX: 0, opacity: 0 }}
-        animate={inView ? { scaleX: 1, opacity: 1, x: [0, 8, 0] } : {}}
-        transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1], delay: 0.1, x: { duration: 3.2, repeat: Infinity, ease: "easeInOut" } }}
+        animate={inView ? { scaleX: 1, opacity: 1 } : {}}
+        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
       />
 
-      {/* Right line — grows from center */}
+      {/* Right line */}
       <motion.div
-        className="absolute right-0"
+        className="absolute"
         style={{
-          height: 2,
+          right: 0,
+          height: 1,
           transformOrigin: "left",
-          width: "calc(50% - 18px)",
+          width: "calc(50% - 22px)",
           background:
-            "linear-gradient(to right, rgba(180,160,140,0.0) 0%, rgba(180,160,140,0.28) 18%, rgba(180,160,140,0.7) 50%, rgba(180,160,140,0.28) 82%, rgba(180,160,140,0.0) 100%)",
-          filter: "blur(0.2px)",
+            "linear-gradient(to right, transparent 0%, rgba(180,160,140,0.18) 20%, rgba(180,160,140,0.52) 55%, rgba(180,160,140,0.18) 80%, transparent 100%)",
         }}
         initial={{ scaleX: 0, opacity: 0 }}
-        animate={inView ? { scaleX: 1, opacity: 1, x: [0, -8, 0] } : {}}
-        transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1], delay: 0.1, x: { duration: 3.2, repeat: Infinity, ease: "easeInOut" } }}
+        animate={inView ? { scaleX: 1, opacity: 1 } : {}}
+        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
       />
 
-      {/* Center ornament — outer ring pulse */}
+      {/* Center diamond ornament */}
       <motion.div
-        className="absolute z-10 rounded-full"
+        className="relative z-10"
+        initial={{ scale: 0, opacity: 0, rotate: 0 }}
+        animate={inView ? { scale: 1, opacity: 1, rotate: 45 } : {}}
+        transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1], delay: 0.42 }}
         style={{
-          width: 40,
-          height: 40,
-          border: "1px solid rgba(180,160,140,0.35)",
+          width: 9,
+          height: 9,
+          border: "1px solid rgba(180,160,140,0.72)",
+          background: "rgba(250,248,245,0.9)",
         }}
-        initial={{ scale: 0.4, opacity: 0 }}
-        animate={inView
-          ? {
-              scale: [0.4, 1, 1.08, 1],
-              opacity: [0, 1, 1, 1],
-            }
-          : {}}
-        transition={{ duration: 0.9, ease: "easeOut", delay: 0.6 }}
-      />
-
-      <motion.div
-        className="absolute z-10 rounded-full"
-        style={{
-          width: 48,
-          height: 48,
-          border: "2px solid rgba(180,160,140,0.28)",
-          boxShadow: "0 0 0 10px rgba(180,160,140,0.04)",
-        }}
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={inView
-          ? {
-              scale: [0.5, 1, 1.08, 1],
-              opacity: [0, 1, 1, 1],
-            }
-          : {}}
-        transition={{ duration: 0.9, ease: "easeOut", delay: 0.45 }}
-      />
-
-      <motion.div
-        className="relative z-20 rounded-full"
-        style={{
-          width: 10,
-          height: 10,
-          background:
-            "radial-gradient(circle, rgba(180,160,140,0.95) 0%, rgba(180,160,140,0.75) 45%, rgba(180,160,140,0.2) 100%)",
-        }}
-        animate={inView ? { x: [0, 3, 0, -3, 0], scale: [1, 1.12, 1] } : { scale: 0 }}
-        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
       />
     </div>
   );

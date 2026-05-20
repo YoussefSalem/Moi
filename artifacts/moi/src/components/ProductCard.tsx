@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import { toast } from "sonner";
 import { Bell } from "lucide-react";
 import { useImageColor } from "@/hooks/useImageColor";
@@ -19,14 +19,16 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
-  // Use refs so event handlers always read the latest value synchronously
+
   const dragStartXRef = useRef<number | null>(null);
   const dragLastXRef = useRef<number | null>(null);
   const dragStartTimeRef = useRef<number | null>(null);
   const [draggingGallery, setDraggingGallery] = useState(false);
 
-  const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
+  const sectionRef = useRef<HTMLElement>(null);
+  const inView = useInView(sectionRef, { once: true, margin: "-60px" });
 
+  const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
 
   const colorOption = useMemo(() => {
     if (!hasShopifyVariants) return null;
@@ -112,8 +114,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   useEffect(() => {
     if (!sizeOption || !product.variants) return;
-    // Only auto-switch if the current size doesn't exist at all for this color
-    // (i.e. no variant found, not just out of stock). OOS sizes remain selectable.
     const sizeExistsForColor = product.variants.some((v) =>
       v.selectedOptions.some((o) => o.name.toLowerCase() === (sizeOption.optionName.toLowerCase() ?? "size") && o.value === selectedSize) &&
       (!colorOption || v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === selectedColor))
@@ -130,6 +130,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   }, [selectedColor, product.variants]);
 
   const effectivePrice = selectedVariant?.price ?? product.price;
+
   const resolvedColorImage = (() => {
     if (!product.colorImages) return undefined;
     const exact = product.colorImages[selectedColor];
@@ -138,6 +139,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     const key = Object.keys(product.colorImages).find((k) => k.toLowerCase() === lower);
     return key ? product.colorImages[key] : undefined;
   })();
+
   const colorGallery = (() => {
     const galleries = product.colorGalleries;
     if (galleries) {
@@ -147,25 +149,25 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
       const key = Object.keys(galleries).find((k) => k.toLowerCase() === lower);
       if (key && galleries[key]?.length) return galleries[key]!;
     }
-    // When no color gallery matches, show the main shot + filmstrip as swipeable images
     const filmstrip = product.filmstrip ?? [];
     return filmstrip.length > 0
       ? [product.productShot, ...filmstrip]
       : [resolvedColorImage ?? product.productShot];
   })();
+
   const galleryImages = colorGallery.length > 0 ? colorGallery : [resolvedColorImage ?? product.productShot];
   const mainImage = galleryImages[galleryIndex % galleryImages.length] ?? resolvedColorImage ?? product.productShot;
   const color = useImageColor(mainImage);
-  const gradBg = color?.rgba(0.12) ?? "rgba(180,160,140,0.08)";
+  const ambientRgba = color?.rgba(0.14) ?? "rgba(180,160,140,0.09)";
+  const ambientStrong = color?.rgba(0.22) ?? "rgba(180,160,140,0.14)";
 
-  // Show shimmer sweep for ~380ms whenever the displayed image changes.
   const [isSwapping, setIsSwapping] = useState(false);
   const prevImageRef = useRef(mainImage);
   useEffect(() => {
     if (mainImage === prevImageRef.current) return;
     prevImageRef.current = mainImage;
     setIsSwapping(true);
-    const t = setTimeout(() => setIsSwapping(false), 380);
+    const t = setTimeout(() => setIsSwapping(false), 360);
     return () => clearTimeout(t);
   }, [mainImage]);
 
@@ -190,6 +192,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const displaySizes = sizeOption?.values?.filter((s) =>
     !["one size", "os", "default title", "one-size"].includes(s.toLowerCase())
   ) ?? [];
+
   const hasSingleVariantPill = !sizeOption || sizeOption.values.length === 1 || sizeOption.values.every((s) =>
     ["one size", "os", "default title", "one-size"].includes(s.toLowerCase())
   );
@@ -229,18 +232,11 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
     const variantTitle = selectedVariant
       ? selectedVariant.selectedOptions.map((o) => o.value).join(" / ")
       : `${selectedColor} / ${selectedSize}`;
-
     try {
       const res = await fetch("/api/restock/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          productHandle: product.name,
-          variantId,
-          variantTitle,
-          productTitle: product.name,
-        }),
+        body: JSON.stringify({ email, productHandle: product.name, variantId, variantTitle, productTitle: product.name }),
       });
       const json = await res.json() as { success?: boolean; error?: string };
       if (!res.ok || !json.success) return { success: false, error: json.error ?? "Something went wrong." };
@@ -252,359 +248,462 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   const handleNotifyMe = async () => {
     if (customer?.email) {
-      // Logged-in: subscribe silently with their email
       const result = await subscribeToRestock(customer.email);
       if (result.success) {
-        toast.success("You're on the list.", {
-          description: `We'll email you when ${product.name} is back.`,
-          duration: 3000,
-        });
+        toast.success("You're on the list.", { description: `We'll email you when ${product.name} is back.`, duration: 3000 });
       } else {
         toast.error(result.error ?? "Could not subscribe. Please try again.");
       }
     } else {
-      // Guest: open email-capture modal
       setNotifyModalOpen(true);
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.08, delayChildren: 0.05 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 22 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
+  };
+
   return (
     <>
-    <section
-      className="w-full py-16 md:py-24 overflow-hidden"
-      style={{
-        background: `radial-gradient(ellipse 80% 70% at 50% 50%, ${gradBg} 0%, hsl(30 15% 95%) 70%)`,
-      }}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-        className="max-w-7xl mx-auto px-6 md:px-12 py-6 md:py-10 grid grid-cols-1 md:grid-cols-[minmax(260px,1fr)_minmax(320px,460px)_minmax(260px,1fr)] gap-10 md:gap-16 items-center"
+      <section
+        ref={sectionRef}
+        className="w-full overflow-hidden"
+        style={{
+          background: `radial-gradient(ellipse 100% 80% at 50% 40%, ${ambientRgba} 0%, hsl(30 15% 95%) 68%)`,
+          paddingTop: "clamp(48px, 9vw, 88px)",
+          paddingBottom: "clamp(56px, 10vw, 96px)",
+        }}
       >
-        {/* Left: name + description */}
-        <div className="flex flex-col gap-5 md:items-start md:justify-center md:text-left text-center">
-          <h2
-            className="text-xl md:text-2xl font-bold tracking-widest uppercase"
-            style={{ color: "#1e1814", letterSpacing: "0.12em" }}
-          >
-            {product.name}
-          </h2>
-          <p
-            className="text-sm leading-relaxed font-light mt-2 max-w-md"
-            style={{ color: "#5a5048" }}
-          >
-            {product.description}
-          </p>
-        </div>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate={inView ? "visible" : "hidden"}
+          className="w-full"
+        >
+          {/* ── Mobile layout: stacked ── Desktop layout: 2-col ── */}
+          <div className="max-w-6xl mx-auto px-5 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-16 items-center">
 
-        {/* Center: product image */}
-        <div className="flex justify-center relative min-h-[320px] md:min-h-[480px]">
-          <div className="relative w-full max-w-xs md:max-w-sm">
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: `radial-gradient(ellipse 90% 80% at 50% 60%, ${color?.rgba(0.18) ?? "rgba(180,160,140,0.12)"} 0%, transparent 70%)`,
-                filter: "blur(24px)",
-                transform: "translateZ(0) scale(1.2)",
-                willChange: "opacity",
-              }}
-            />
-            <div
-              className="block relative group focus:outline-none w-full"
-              onPointerDown={(e) => {
-                dragStartXRef.current = e.clientX;
-                dragLastXRef.current = e.clientX;
-                dragStartTimeRef.current = Date.now();
-                setDraggingGallery(true);
-              }}
-              onPointerMove={(e) => {
-                if (dragStartXRef.current === null) return;
-                dragLastXRef.current = e.clientX;
-              }}
-              onPointerCancel={() => {
-                // On touch + touchAction:pan-y, horizontal swipes fire pointercancel.
-                // Still resolve as a swipe if there was enough horizontal movement.
-                const start = dragStartXRef.current;
-                const last = dragLastXRef.current;
-                dragStartXRef.current = null;
-                dragLastXRef.current = null;
-                dragStartTimeRef.current = null;
-                setDraggingGallery(false);
-                if (start !== null && last !== null) {
-                  const delta = last - start;
-                  if (Math.abs(delta) > 40) jumpGallery(delta < 0 ? 1 : -1);
-                }
-              }}
-              onPointerUp={(e) => {
-                const start = dragStartXRef.current;
-                if (start === null) return;
-                const endX = dragLastXRef.current ?? e.clientX;
-                const delta = endX - start;
-                const elapsed = Math.max(1, Date.now() - (dragStartTimeRef.current ?? Date.now()));
-                const velocity = delta / elapsed;
-                const shouldSwipe = Math.abs(delta) > 40 || Math.abs(velocity) > 0.4;
-                dragStartXRef.current = null;
-                dragLastXRef.current = null;
-                dragStartTimeRef.current = null;
-                setDraggingGallery(false);
-                if (shouldSwipe) {
-                  jumpGallery(delta < 0 ? 1 : -1);
-                } else {
-                  onLookView(product);
-                }
-              }}
-              onPointerLeave={() => {
-                dragStartXRef.current = null;
-                dragLastXRef.current = null;
-                dragStartTimeRef.current = null;
-                setDraggingGallery(false);
-              }}
-              style={{
-                touchAction: "pan-y",
-                userSelect: "none",
-                WebkitUserSelect: "none",
-                cursor: "pointer",
-              }}
-            >
-              {/* Cross-fade between color images — fixed-height container prevents layout shift */}
+            {/* ── IMAGE COLUMN ── */}
+            <motion.div variants={itemVariants} className="relative w-full">
+              {/* Ambient glow behind image */}
               <div
-                className="relative z-10 w-full"
-                style={{ height: "clamp(320px, 48vh, 480px)" }}
-              >
-                {/* initial={false} prevents the first image from fading in from opacity:0 */}
-                {/* (which could stall when parent whileInView fires late). Color-swaps still animate. */}
-                <AnimatePresence initial={false} mode="wait">
-                  <motion.img
-                    key={mainImage}
-                    src={mainImage}
-                    alt={`${product.name} - ${selectedColor} versatile top`}
-                    className="absolute inset-0 w-full h-full"
-                    style={{ objectFit: "contain", objectPosition: "center" }}
-                    loading="lazy"
-                    decoding="async"
-                    initial={{ opacity: 0, scale: 0.97 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.03 }}
-                    transition={{ duration: 0.25, ease: "easeInOut" }}
-                  />
-                </AnimatePresence>
-                {/* Shimmer sweep overlay while swapping */}
-                <AnimatePresence>
-                  {isSwapping && (
-                    <motion.div
-                      key="shimmer-overlay"
-                      className="absolute inset-0 pointer-events-none shimmer"
-                      initial={{ opacity: 1 }}
-                      exit={{ opacity: 0, transition: { duration: 0.25 } }}
-                    />
-                  )}
-                </AnimatePresence>
-              </div>
-              <div
-                className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100"
-                style={{ opacity: draggingGallery ? 0 : undefined }}
-              >
-                <span
-                  className="text-[10px] tracking-[0.3em] uppercase font-medium px-4 py-2"
-                  style={{
-                    backgroundColor: "rgba(250,248,245,0.88)",
-                    color: "#1e1814",
-                    backdropFilter: "blur(8px)",
-                  }}
-                >
-                  See the Look
-                </span>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center justify-center gap-1.5">
-              {galleryImages.map((_, index) => (
-                <button
-                  key={`${selectedColor}-${index}`}
-                  type="button"
-                  aria-label={`Go to image ${index + 1}`}
-                  onClick={() => setGalleryIndex(index)}
-                  className="h-2 w-2 rounded-full transition-all duration-300"
-                  style={{
-                    backgroundColor: index === galleryIndex ? "#1e1814" : "rgba(30,24,20,0.22)",
-                    transform: index === galleryIndex ? "scale(1.1)" : "scale(1)",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Right: color + size + price + add to cart */}
-        <div className="flex flex-col gap-5 items-center md:items-center md:justify-center text-center">
-          {/* Color */}
-          <div className="flex flex-col gap-3">
-            <h3 className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
-              Color — <span style={{ color: "#1e1814" }}>{selectedColor}</span>
-            </h3>
-            <div className="flex items-center gap-3 justify-center">
-              {displayColors.map((option, index) => (
-                <button
-                  key={option.name}
-                  type="button"
-                  aria-label={option.name}
-                  aria-pressed={selectedColor === option.name}
-                  onClick={() => setSelectedColor(option.name)}
-                  className="relative group"
-                  style={{ width: 34, height: 34 }}
-                >
-                  <span
-                    className="absolute inset-0 rounded-full transition-transform duration-300 group-hover:scale-110"
-                    style={{
-                      backgroundColor: option.swatch,
-                      boxShadow:
-                        index === displayColors.length - 1 && option.swatch.startsWith("#1")
-                          ? "inset 0 0 0 1px rgba(255,255,255,0.16)"
-                          : "inset 0 0 0 1px rgba(30,24,20,0.08)",
-                    }}
-                  />
-                  <span
-                    className="absolute inset-[-5px] rounded-full border transition-opacity duration-300"
-                    style={{
-                      borderColor: "rgba(30,24,20,0.35)",
-                      opacity: selectedColor === option.name ? 1 : 0,
-                    }}
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Size / Variant */}
-          {hasSingleVariantPill ? (
-            <div className="flex flex-col gap-3">
-              <p className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
-                Variant
-              </p>
-              <button
-                type="button"
-                aria-pressed
-                className="min-w-24 px-5 py-3 text-[11px] tracking-[0.22em] uppercase font-medium border transition-all duration-300 relative overflow-hidden"
+                className="absolute inset-0 pointer-events-none"
                 style={{
-                  color: "#1e1814",
-                  borderColor: "#1e1814",
-                  backgroundColor: "rgba(30,24,20,0.04)",
-                  boxShadow: "inset 0 0 0 1px rgba(30,24,20,0.08)",
-                  cursor: "default",
+                  background: `radial-gradient(ellipse 80% 70% at 50% 55%, ${ambientStrong} 0%, transparent 72%)`,
+                  filter: "blur(32px)",
+                  transform: "scale(1.18) translateZ(0)",
                 }}
+              />
+
+              {/* Image tap / swipe area */}
+              <div
+                className="relative w-full mx-auto"
+                style={{ maxWidth: "clamp(260px, 80vw, 420px)", margin: "0 auto" }}
               >
-                {singleVariantLabel}
-              </button>
-            </div>
-          ) : displaySizes.length > 1 && <div className="flex flex-col gap-3">
-            <p className="text-[11px] tracking-[0.22em] uppercase font-medium" style={{ color: "#7a6e64" }}>
-              Size
-            </p>
-            <div className="flex items-center gap-3 justify-center flex-wrap">
-              {displaySizes.map((size) => {
-                const available = isSizeAvailable(size);
-                const isSelected = selectedSize === size;
-                return (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    type="button"
-                    aria-pressed={isSelected}
-                    title={!available ? "Out of stock — notify me when available" : undefined}
-                    className="min-w-24 px-5 py-3 text-[11px] tracking-[0.22em] uppercase font-medium border transition-all duration-300 relative overflow-hidden"
-                    style={{
-                      color: !available ? "rgba(30,24,20,0.38)" : isSelected ? "#1e1814" : "#7a6e64",
-                      borderColor: isSelected && !available
-                        ? "rgba(30,24,20,0.45)"
-                        : isSelected
-                        ? "#1e1814"
-                        : "rgba(30,24,20,0.14)",
-                      backgroundColor: isSelected ? "rgba(30,24,20,0.04)" : "rgba(250,248,245,0.78)",
-                      boxShadow: isSelected ? "inset 0 0 0 1px rgba(30,24,20,0.08)" : "none",
-                      cursor: "pointer",
-                    }}
+                <div
+                  className="relative group"
+                  onPointerDown={(e) => {
+                    dragStartXRef.current = e.clientX;
+                    dragLastXRef.current = e.clientX;
+                    dragStartTimeRef.current = Date.now();
+                    setDraggingGallery(true);
+                  }}
+                  onPointerMove={(e) => {
+                    if (dragStartXRef.current === null) return;
+                    dragLastXRef.current = e.clientX;
+                  }}
+                  onPointerCancel={() => {
+                    const start = dragStartXRef.current;
+                    const last = dragLastXRef.current;
+                    dragStartXRef.current = null;
+                    dragLastXRef.current = null;
+                    dragStartTimeRef.current = null;
+                    setDraggingGallery(false);
+                    if (start !== null && last !== null) {
+                      const delta = last - start;
+                      if (Math.abs(delta) > 40) jumpGallery(delta < 0 ? 1 : -1);
+                    }
+                  }}
+                  onPointerUp={(e) => {
+                    const start = dragStartXRef.current;
+                    if (start === null) return;
+                    const endX = dragLastXRef.current ?? e.clientX;
+                    const delta = endX - start;
+                    const elapsed = Math.max(1, Date.now() - (dragStartTimeRef.current ?? Date.now()));
+                    const velocity = delta / elapsed;
+                    const shouldSwipe = Math.abs(delta) > 40 || Math.abs(velocity) > 0.4;
+                    dragStartXRef.current = null;
+                    dragLastXRef.current = null;
+                    dragStartTimeRef.current = null;
+                    setDraggingGallery(false);
+                    if (shouldSwipe) {
+                      jumpGallery(delta < 0 ? 1 : -1);
+                    } else {
+                      onLookView(product);
+                    }
+                  }}
+                  onPointerLeave={() => {
+                    dragStartXRef.current = null;
+                    dragLastXRef.current = null;
+                    dragStartTimeRef.current = null;
+                    setDraggingGallery(false);
+                  }}
+                  style={{ touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none", cursor: "pointer" }}
+                >
+                  {/* Image frame */}
+                  <div
+                    className="relative w-full overflow-hidden"
+                    style={{ height: "clamp(340px, 58vw, 520px)" }}
                   >
-                    {/* Diagonal line for out-of-stock */}
-                    {!available && (
+                    <AnimatePresence initial={false} mode="wait">
+                      <motion.img
+                        key={mainImage}
+                        src={mainImage}
+                        alt={`${product.name} — ${selectedColor}`}
+                        className="absolute inset-0 w-full h-full"
+                        style={{ objectFit: "contain", objectPosition: "center" }}
+                        loading="lazy"
+                        decoding="async"
+                        initial={{ opacity: 0, scale: 0.975 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.025 }}
+                        transition={{ duration: 0.28, ease: "easeInOut" }}
+                      />
+                    </AnimatePresence>
+
+                    {/* Shimmer */}
+                    <AnimatePresence>
+                      {isSwapping && (
+                        <motion.div
+                          key="shimmer"
+                          className="absolute inset-0 pointer-events-none shimmer"
+                          initial={{ opacity: 1 }}
+                          exit={{ opacity: 0, transition: { duration: 0.22 } }}
+                        />
+                      )}
+                    </AnimatePresence>
+
+                    {/* "See the Look" hover overlay (desktop) */}
+                    <div
+                      className="absolute inset-0 z-10 items-center justify-center hidden md:flex pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+                      style={{ opacity: draggingGallery ? 0 : undefined }}
+                    >
                       <span
-                        aria-hidden="true"
+                        className="text-[9px] tracking-[0.32em] uppercase font-medium px-5 py-2.5"
                         style={{
-                          position: "absolute",
-                          top: 0, left: 0, right: 0, bottom: 0,
-                          pointerEvents: "none",
+                          backgroundColor: "rgba(250,248,245,0.9)",
+                          color: "#1e1814",
+                          backdropFilter: "blur(10px)",
+                          WebkitBackdropFilter: "blur(10px)",
                         }}
                       >
-                        <svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0 }}>
-                          <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(30,24,20,0.18)" strokeWidth="1" />
-                        </svg>
+                        See the Look
                       </span>
-                    )}
-                    {size}
+                    </div>
+                  </div>
+
+                  {/* Gallery dots */}
+                  {galleryImages.length > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-4">
+                      {galleryImages.map((_, index) => (
+                        <button
+                          key={`${selectedColor}-${index}`}
+                          type="button"
+                          aria-label={`Image ${index + 1}`}
+                          onClick={(e) => { e.stopPropagation(); setGalleryIndex(index); }}
+                          className="transition-all duration-300 rounded-full"
+                          style={{
+                            width: index === galleryIndex ? 18 : 6,
+                            height: 6,
+                            backgroundColor: index === galleryIndex ? "#1e1814" : "rgba(30,24,20,0.2)",
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* "See the Look" — always visible on mobile */}
+                <motion.button
+                  type="button"
+                  onClick={() => onLookView(product)}
+                  className="mt-5 w-full flex items-center justify-center gap-2 md:hidden"
+                  whileTap={{ scale: 0.98 }}
+                  style={{ paddingBottom: 2 }}
+                >
+                  <span
+                    className="text-[9px] tracking-[0.38em] uppercase font-medium"
+                    style={{ color: "#7a6e64", fontFamily: "'Montserrat', sans-serif" }}
+                  >
+                    See the Look
+                  </span>
+                  <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
+                </motion.button>
+              </div>
+            </motion.div>
+
+            {/* ── CONTENT COLUMN ── */}
+            <div
+              className="flex flex-col items-center md:items-start text-center md:text-left"
+              style={{ paddingTop: "clamp(32px, 6vw, 0px)" }}
+            >
+              {/* New arrival tag */}
+              <motion.p
+                variants={itemVariants}
+                className="text-[9px] tracking-[0.5em] uppercase font-light mb-4"
+                style={{ color: "rgba(120,108,96,0.7)", fontFamily: "'Montserrat', sans-serif" }}
+              >
+                New Arrival
+              </motion.p>
+
+              {/* Product name */}
+              <motion.h2
+                variants={itemVariants}
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontSize: "clamp(2rem, 6vw, 3.2rem)",
+                  fontWeight: 300,
+                  color: "#1e1814",
+                  letterSpacing: "0.04em",
+                  lineHeight: 1.1,
+                  marginBottom: 16,
+                }}
+              >
+                {product.name}
+              </motion.h2>
+
+              {/* Description */}
+              <motion.p
+                variants={itemVariants}
+                className="text-sm leading-relaxed font-light max-w-xs md:max-w-sm"
+                style={{ color: "#6a5e56", marginBottom: 28 }}
+              >
+                {product.description}
+              </motion.p>
+
+              {/* Divider */}
+              <motion.div
+                variants={itemVariants}
+                className="w-10 mb-6"
+                style={{ height: 1, backgroundColor: "rgba(180,160,140,0.4)" }}
+              />
+
+              {/* Color */}
+              {displayColors.length > 0 && (
+                <motion.div variants={itemVariants} className="flex flex-col gap-3 mb-6 items-center md:items-start w-full">
+                  <p
+                    className="text-[10px] tracking-[0.28em] uppercase font-medium"
+                    style={{ color: "#8a7e74", fontFamily: "'Montserrat', sans-serif" }}
+                  >
+                    Color —{" "}
+                    <span style={{ color: "#1e1814" }}>{selectedColor}</span>
+                  </p>
+                  <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
+                    {displayColors.map((option, index) => (
+                      <button
+                        key={option.name}
+                        type="button"
+                        aria-label={option.name}
+                        aria-pressed={selectedColor === option.name}
+                        onClick={() => setSelectedColor(option.name)}
+                        className="relative"
+                        style={{ width: 30, height: 30, flexShrink: 0 }}
+                      >
+                        <span
+                          className="absolute inset-0 rounded-full transition-transform duration-300 hover:scale-110"
+                          style={{
+                            backgroundColor: option.swatch,
+                            boxShadow:
+                              index === displayColors.length - 1 && option.swatch.startsWith("#1")
+                                ? "inset 0 0 0 1px rgba(255,255,255,0.16)"
+                                : "inset 0 0 0 1px rgba(30,24,20,0.1)",
+                          }}
+                        />
+                        <span
+                          className="absolute inset-[-5px] rounded-full border transition-opacity duration-300"
+                          style={{
+                            borderColor: "rgba(30,24,20,0.38)",
+                            opacity: selectedColor === option.name ? 1 : 0,
+                          }}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Size */}
+              {hasSingleVariantPill ? (
+                <motion.div variants={itemVariants} className="flex flex-col gap-2.5 mb-6 items-center md:items-start w-full">
+                  <p
+                    className="text-[10px] tracking-[0.28em] uppercase font-medium"
+                    style={{ color: "#8a7e74", fontFamily: "'Montserrat', sans-serif" }}
+                  >
+                    Variant
+                  </p>
+                  <button
+                    type="button"
+                    aria-pressed
+                    className="px-6 py-2.5 text-[10px] tracking-[0.22em] uppercase font-medium border"
+                    style={{
+                      color: "#1e1814",
+                      borderColor: "#1e1814",
+                      backgroundColor: "rgba(30,24,20,0.04)",
+                      cursor: "default",
+                    }}
+                  >
+                    {singleVariantLabel}
                   </button>
-                );
-              })}
+                </motion.div>
+              ) : displaySizes.length > 1 && (
+                <motion.div variants={itemVariants} className="flex flex-col gap-2.5 mb-6 items-center md:items-start w-full">
+                  <p
+                    className="text-[10px] tracking-[0.28em] uppercase font-medium"
+                    style={{ color: "#8a7e74", fontFamily: "'Montserrat', sans-serif" }}
+                  >
+                    Size
+                  </p>
+                  <div className="flex items-center gap-2.5 flex-wrap justify-center md:justify-start">
+                    {displaySizes.map((size) => {
+                      const available = isSizeAvailable(size);
+                      const isSelected = selectedSize === size;
+                      return (
+                        <button
+                          key={size}
+                          onClick={() => setSelectedSize(size)}
+                          type="button"
+                          aria-pressed={isSelected}
+                          title={!available ? "Out of stock — notify me" : undefined}
+                          className="relative overflow-hidden border transition-all duration-300"
+                          style={{
+                            minWidth: 72,
+                            padding: "10px 16px",
+                            fontSize: 10,
+                            letterSpacing: "0.22em",
+                            textTransform: "uppercase",
+                            fontWeight: 500,
+                            color: !available ? "rgba(30,24,20,0.36)" : isSelected ? "#1e1814" : "#7a6e64",
+                            borderColor: isSelected ? "#1e1814" : "rgba(30,24,20,0.16)",
+                            backgroundColor: isSelected ? "rgba(30,24,20,0.05)" : "rgba(250,248,245,0.8)",
+                          }}
+                        >
+                          {!available && (
+                            <span aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+                              <svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0 }}>
+                                <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(30,24,20,0.18)" strokeWidth="1" />
+                              </svg>
+                            </span>
+                          )}
+                          {size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Price */}
+              <motion.p
+                variants={itemVariants}
+                className="font-light tracking-widest mb-7"
+                style={{
+                  color: "#1e1814",
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontSize: "clamp(1.1rem, 3vw, 1.4rem)",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                {effectivePrice}
+              </motion.p>
+
+              {/* CTA */}
+              <motion.div variants={itemVariants} className="w-full flex flex-col items-center md:items-start">
+                {isOutOfStock ? (
+                  <motion.button
+                    type="button"
+                    onClick={handleNotifyMe}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full md:w-auto flex items-center justify-center gap-2 border transition-all duration-300"
+                    style={{
+                      maxWidth: 320,
+                      padding: "15px 32px",
+                      fontSize: 9,
+                      letterSpacing: "0.38em",
+                      textTransform: "uppercase",
+                      fontFamily: "'Montserrat', sans-serif",
+                      color: "#f5f0e8",
+                      borderColor: "rgba(245,240,232,0.2)",
+                      backgroundColor: "rgba(30,24,20,0.9)",
+                      boxShadow: "0 12px 36px rgba(0,0,0,0.18)",
+                    }}
+                  >
+                    <Bell size={11} strokeWidth={1.8} />
+                    Notify Me
+                  </motion.button>
+                ) : (
+                  <motion.button
+                    type="button"
+                    onClick={handleAddToCart}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full md:w-auto border transition-all duration-500"
+                    style={{
+                      maxWidth: 320,
+                      padding: "15px 40px",
+                      fontSize: 9,
+                      letterSpacing: "0.42em",
+                      textTransform: "uppercase",
+                      fontFamily: "'Montserrat', sans-serif",
+                      color: addedFeedback ? "#1e1814" : "#faf8f5",
+                      borderColor: "#1e1814",
+                      backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
+                      boxShadow: addedFeedback ? "none" : "0 8px 28px rgba(30,24,20,0.22), 0 2px 10px rgba(0,0,0,0.1)",
+                    }}
+                  >
+                    {addedFeedback ? "Added to Bag ✓" : "Order Now"}
+                  </motion.button>
+                )}
+
+                {/* Material info */}
+                {(product.outer || product.lining) && (
+                  <div className="mt-6 flex flex-col gap-1 items-center md:items-start">
+                    {product.outer && (
+                      <p className="text-[9px] tracking-[0.18em] uppercase font-light" style={{ color: "rgba(120,108,96,0.65)" }}>
+                        {product.outer}
+                      </p>
+                    )}
+                    {product.lining && (
+                      <p className="text-[9px] tracking-[0.18em] uppercase font-light" style={{ color: "rgba(120,108,96,0.65)" }}>
+                        {product.lining}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </motion.div>
             </div>
-          </div>}
+          </div>
+        </motion.div>
+      </section>
 
-          {/* Price */}
-          <p className="text-base font-light tracking-widest" style={{ color: "#1e1814" }}>
-            {effectivePrice}
-          </p>
-
-          {/* Order Now */}
-          {isOutOfStock ? (
-            <motion.button
-              type="button"
-              onClick={handleNotifyMe}
-              whileHover={{ x: [0, -2, 2, -1, 1, 0] }}
-              whileTap={{ x: [0, -1, 1, 0], scale: 0.98 }}
-              transition={{ duration: 0.35, ease: "easeInOut" }}
-              className="min-w-[220px] px-7 py-4 text-[10px] tracking-[0.35em] uppercase font-light border transition-all duration-300 self-center flex items-center justify-center gap-2"
-              style={{
-                color: "#f5f0e8",
-                borderColor: "rgba(245,240,232,0.22)",
-                backgroundColor: "rgba(30,24,20,0.92)",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.16)",
-                letterSpacing: "0.28em",
-              }}
-            >
-              <Bell size={12} strokeWidth={1.8} />
-              Notify me when available
-            </motion.button>
-          ) : (
-            <motion.button
-              type="button"
-              onClick={handleAddToCart}
-              whileTap={{ scale: 0.97 }}
-              className="min-w-[204px] px-7 py-4 text-[10px] tracking-[0.35em] uppercase font-light border transition-all duration-300 self-center"
-              style={{
-                color: addedFeedback ? "#1e1814" : "#fff",
-                borderColor: "#1e1814",
-                backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
-                cursor: "pointer",
-                letterSpacing: "0.28em",
-                boxShadow: addedFeedback ? "none" : "0 0 24px rgba(30,24,20,0.18), 0 4px 14px rgba(0,0,0,0.12)",
-              }}
-            >
-              {addedFeedback ? "Added ✓" : "Order Now"}
-            </motion.button>
-          )}
-        </div>
-      </motion.div>
-    </section>
-
-    <NotifyMeModal
-      open={notifyModalOpen}
-      productTitle={product.name}
-      variantTitle={
-        selectedVariant
-          ? selectedVariant.selectedOptions.map((o) => o.value).join(" / ")
-          : `${selectedColor} / ${selectedSize}`
-      }
-      onClose={() => setNotifyModalOpen(false)}
-      onSubmit={subscribeToRestock}
-    />
+      <NotifyMeModal
+        open={notifyModalOpen}
+        productTitle={product.name}
+        variantTitle={
+          selectedVariant
+            ? selectedVariant.selectedOptions.map((o) => o.value).join(" / ")
+            : `${selectedColor} / ${selectedSize}`
+        }
+        onClose={() => setNotifyModalOpen(false)}
+        onSubmit={subscribeToRestock}
+      />
     </>
   );
 }
