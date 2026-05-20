@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { toast } from "sonner";
-import { Bell } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight } from "lucide-react";
 import { useImageColor } from "@/hooks/useImageColor";
 import type { ProductConfig, VariantOption } from "@/config/images";
 import { useCart } from "@/context/CartContext";
@@ -409,6 +409,46 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                         See the Look
                       </span>
                     </div>
+
+                    {/* Desktop arrow nav — hidden on mobile, visible on hover */}
+                    {galleryImages.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          aria-label="Previous image"
+                          onClick={(e) => { e.stopPropagation(); prevGallery(); }}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300"
+                          style={{
+                            width: 36,
+                            height: 36,
+                            backgroundColor: "rgba(250,248,245,0.88)",
+                            backdropFilter: "blur(6px)",
+                            WebkitBackdropFilter: "blur(6px)",
+                            color: "#1e1814",
+                            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+                          }}
+                        >
+                          <ChevronLeft size={16} strokeWidth={1.5} />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Next image"
+                          onClick={(e) => { e.stopPropagation(); nextGallery(); }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300"
+                          style={{
+                            width: 36,
+                            height: 36,
+                            backgroundColor: "rgba(250,248,245,0.88)",
+                            backdropFilter: "blur(6px)",
+                            WebkitBackdropFilter: "blur(6px)",
+                            color: "#1e1814",
+                            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+                          }}
+                        >
+                          <ChevronRight size={16} strokeWidth={1.5} />
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   {/* Gallery dots */}
