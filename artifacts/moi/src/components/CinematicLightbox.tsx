@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -17,8 +17,9 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
   const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Touch gesture refs
-  const touchRefs = useRef({
+  // Mutable gesture state (no re-renders)
+  const gesture = useRef({
+    pointers: new Map<number, { x: number; y: number }>(),
     startX: 0,
     startY: 0,
     startTime: 0,
@@ -26,7 +27,8 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
     startScale: 1,
     startPanX: 0,
     startPanY: 0,
-    pointers: new Map<number, { x: number; y: number }>(),
+    lastX: 0,
+    lastY: 0,
     panning: false,
   }).current;
 
@@ -54,7 +56,7 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
     return () => window.removeEventListener("keydown", onKey);
   }, [open, images.length]);
 
-  // Reset zoom/pan and loading on image change
+  // Reset on image change
   useEffect(() => {
     setZoomScale(1);
     setPan({ x: 0, y: 0 });
@@ -68,84 +70,106 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
   const current = images[idx] ?? "";
   const currentAlt = current.split("/").pop()?.replace(/\.(webp|jpg|png)$/i, "").replace(/-/g, " ") ?? "Image";
 
-  // ── Touch handlers: swipe + pinch ──
-  const getDist = (p1: { x: number; y: number }, p2: { x: number; y: number }) => {
-    return Math.hypot(p2.x - p1.x, p2.y - p1.y);
-  };
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    const t = touchRefs;
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const touch = e.changedTouches[i];
-      t.pointers.set(touch.identifier, { x: touch.clientX, y: touch.clientY });
+  // ── CRITICAL: cached images don't fire onLoad ──
+  useLayoutEffect(() => {
+    const img = imgRef.current;
+    if (!img) return;
+    if (img.complete && img.naturalWidth > 0) {
+      setLoaded(true);
     }
+  }, [idx, current]);
 
-    if (t.pointers.size === 1) {
-      const [pt] = Array.from(t.pointers.values());
-      t.startX = pt.x;
-      t.startY = pt.y;
-      t.startTime = Date.now();
-      t.panning = zoomScale > 1;
-      if (zoomScale > 1) {
-        t.startPanX = pan.x;
-        t.startPanY = pan.y;
+  // ── Native touch listeners with passive:false for pinch ──
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !open) return;
+
+    const getDist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+      Math.hypot(b.x - a.x, b.y - a.y);
+
+    const onStart = (e: TouchEvent) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        gesture.pointers.set(t.identifier, { x: t.clientX, y: t.clientY });
       }
-    } else if (t.pointers.size === 2) {
-      const pts = Array.from(t.pointers.values());
-      t.startDist = getDist(pts[0], pts[1]);
-      t.startScale = zoomScale;
-    }
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    const t = touchRefs;
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const touch = e.changedTouches[i];
-      if (t.pointers.has(touch.identifier)) {
-        t.pointers.set(touch.identifier, { x: touch.clientX, y: touch.clientY });
+      if (gesture.pointers.size === 1) {
+        const [pt] = Array.from(gesture.pointers.values());
+        gesture.startX = pt.x;
+        gesture.startY = pt.y;
+        gesture.lastX = pt.x;
+        gesture.lastY = pt.y;
+        gesture.startTime = Date.now();
+        gesture.panning = zoomScale > 1;
+        if (zoomScale > 1) {
+          gesture.startPanX = pan.x;
+          gesture.startPanY = pan.y;
+        }
+      } else if (gesture.pointers.size === 2) {
+        const pts = Array.from(gesture.pointers.values());
+        gesture.startDist = getDist(pts[0], pts[1]);
+        gesture.startScale = zoomScale;
       }
-    }
+    };
 
-    if (t.pointers.size === 2) {
-      e.preventDefault();
-      const pts = Array.from(t.pointers.values());
-      const dist = getDist(pts[0], pts[1]);
-      const newScale = Math.min(Math.max(t.startScale * (dist / Math.max(t.startDist, 1)), 1), 3.5);
-      setZoomScale(newScale);
-    } else if (t.pointers.size === 1 && zoomScale > 1) {
-      e.preventDefault();
-      const [pt] = Array.from(t.pointers.values());
-      setPan({
-        x: t.startPanX + (pt.x - t.startX) / zoomScale,
-        y: t.startPanY + (pt.y - t.startY) / zoomScale,
-      });
-    }
-  };
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const t = touchRefs;
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      t.pointers.delete(e.changedTouches[i].identifier);
-    }
-
-    if (t.pointers.size === 0) {
-      // Snap zoom below 1.1 back to 1
-      if (zoomScale < 1.1) {
-        setZoomScale(1);
-        setPan({ x: 0, y: 0 });
-      }
-      // Swipe detection (single finger, no zoom)
-      if (zoomScale <= 1) {
-        const elapsed = Date.now() - t.startTime;
-        const dx = (Array.from(t.pointers.values())[0]?.x ?? t.startX) - t.startX;
-        const dy = (Array.from(t.pointers.values())[0]?.y ?? t.startY) - t.startY;
-        const velocity = Math.abs(dx) / Math.max(1, elapsed);
-        if ((Math.abs(dx) > 40 || velocity > 0.35) && Math.abs(dx) > Math.abs(dy)) {
-          go(dx < 0 ? 1 : -1);
+    const onMove = (e: TouchEvent) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (gesture.pointers.has(t.identifier)) {
+          gesture.pointers.set(t.identifier, { x: t.clientX, y: t.clientY });
         }
       }
-    }
-  };
+      gesture.lastX = e.changedTouches[0]?.clientX ?? gesture.lastX;
+      gesture.lastY = e.changedTouches[0]?.clientY ?? gesture.lastY;
+
+      if (gesture.pointers.size === 2) {
+        e.preventDefault();
+        const pts = Array.from(gesture.pointers.values());
+        const dist = getDist(pts[0], pts[1]);
+        const newScale = Math.min(Math.max(gesture.startScale * (dist / Math.max(gesture.startDist, 1)), 1), 3.5);
+        setZoomScale(newScale);
+      } else if (gesture.pointers.size === 1 && zoomScale > 1) {
+        e.preventDefault();
+        const pt = Array.from(gesture.pointers.values())[0];
+        setPan({
+          x: gesture.startPanX + (pt.x - gesture.startX) / zoomScale,
+          y: gesture.startPanY + (pt.y - gesture.startY) / zoomScale,
+        });
+      }
+    };
+
+    const onEnd = (e: TouchEvent) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        gesture.pointers.delete(e.changedTouches[i].identifier);
+      }
+      if (gesture.pointers.size === 0) {
+        if (zoomScale < 1.1) {
+          setZoomScale(1);
+          setPan({ x: 0, y: 0 });
+        }
+        if (zoomScale <= 1) {
+          const elapsed = Date.now() - gesture.startTime;
+          const dx = gesture.lastX - gesture.startX;
+          const dy = gesture.lastY - gesture.startY;
+          const velocity = Math.abs(dx) / Math.max(1, elapsed);
+          if ((Math.abs(dx) > 40 || velocity > 0.35) && Math.abs(dx) > Math.abs(dy)) {
+            go(dx < 0 ? 1 : -1);
+          }
+        }
+      }
+    };
+
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", onEnd, { passive: true });
+    el.addEventListener("touchcancel", onEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", onEnd);
+    };
+  }, [open, zoomScale, pan.x, pan.y, gesture, go]);
 
   const handleDoubleTap = () => {
     if (zoomScale > 1) {
@@ -184,17 +208,11 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
             ref={containerRef}
             className="flex-1 flex items-center justify-center relative overflow-hidden select-none"
             style={{ touchAction: zoomScale > 1 ? "none" : "pan-y" }}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
             onDoubleClick={handleDoubleTap}
           >
             {/* Skeleton while loading */}
             {!loaded && (
-              <div
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
-              >
+              <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "rgba(30,24,20,0.04)" }}>
                 <div
                   className="animate-pulse"
                   style={{
