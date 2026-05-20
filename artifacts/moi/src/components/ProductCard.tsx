@@ -614,12 +614,13 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               {/* Price */}
               <motion.p
                 variants={itemVariants}
-                className="font-light tracking-widest mb-7"
+                className="mb-7"
                 style={{
                   color: "#1e1814",
-                  fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontSize: "clamp(1.1rem, 3vw, 1.4rem)",
-                  letterSpacing: "0.08em",
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "clamp(1.05rem, 3.5vw, 1.25rem)",
+                  fontWeight: 500,
+                  letterSpacing: "0.12em",
                 }}
               >
                 {effectivePrice}
