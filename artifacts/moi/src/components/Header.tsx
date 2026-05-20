@@ -96,17 +96,24 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
-                    className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] rounded-full text-[8px] font-semibold flex items-center justify-center px-1"
+                    className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full text-[9px] font-medium flex items-center justify-center"
                     style={{
-                      backgroundColor: "#6b8f5e",
-                      color: "#fff",
-                      boxShadow: "0 1px 4px rgba(107,143,94,0.35)",
+                      backgroundColor: iconColor,
+                      color: iconColor === "#fff" ? "#1e1814" : "#fff",
                     }}
                   >
                     {itemCount > 9 ? "9+" : itemCount}
                   </motion.span>
                 )}
               </AnimatePresence>
+              {itemCount === 0 && (
+                <span
+                  className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full text-[9px] font-medium flex items-center justify-center"
+                  style={{ backgroundColor: iconColor, color: iconColor === "#fff" ? "#1e1814" : "#fff" }}
+                >
+                  0
+                </span>
+              )}
             </button>
           </div>
         </div>

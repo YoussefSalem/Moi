@@ -1,93 +1,93 @@
 import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useScroll, useTransform } from "framer-motion";
 
 export function EditorialStrip() {
   const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
+
+  const textY = useTransform(scrollYProgress, [0, 1], ["14px", "-14px"]);
+
+  const words = ["Effortless", "Versatile", "Yours"];
 
   return (
     <section
       ref={ref}
       className="relative w-full overflow-hidden"
       style={{
-        background: "hsl(30 15% 95%)",
-        paddingTop: "clamp(48px, 10vw, 80px)",
-        paddingBottom: "clamp(48px, 10vw, 80px)",
+        background: "linear-gradient(160deg, #1a1410 0%, #221c16 50%, #1a1410 100%)",
+        paddingTop: "clamp(64px, 12vw, 120px)",
+        paddingBottom: "clamp(64px, 12vw, 120px)",
       }}
     >
-      <div className="max-w-md mx-auto px-6 text-center">
-        {/* UGC-feeling heading */}
+      {/* Subtle noise texture overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(200,180,150,0.06) 0%, transparent 70%)",
+        }}
+      />
+
+      <motion.div
+        style={{ y: textY }}
+        className="relative z-10 flex flex-col items-center text-center px-8"
+      >
+        {/* Label */}
         <motion.p
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="text-[9px] tracking-[0.5em] uppercase mb-5"
-          style={{ color: "rgba(120,108,96,0.65)", fontFamily: "'Montserrat', sans-serif" }}
+          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          className="text-[9px] tracking-[0.6em] uppercase mb-8"
+          style={{
+            color: "rgba(200,185,165,0.48)",
+            fontFamily: "'Montserrat', sans-serif",
+          }}
         >
-          Loved by 2,000+ women
+          The Moi Philosophy
         </motion.p>
 
-        {/* Fake reviews */}
-        <div className="flex flex-col gap-5 mb-6">
-          {[
-            { name: "Sara M.", text: "The cashmere shade is gorgeous. Wore it to a dinner and got so many compliments.", days: "2 days ago" },
-            { name: "Nour K.", text: "Ordered Friday, arrived Saturday morning. Quality is way better than I expected.", days: "1 week ago" },
-          ].map((r, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 14 }}
+        {/* Three-word manifesto */}
+        <div className="flex items-center gap-6 md:gap-10 flex-wrap justify-center mb-10">
+          {words.map((word, i) => (
+            <motion.span
+              key={word}
+              initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: i * 0.12 }}
-              className="text-left px-5 py-4"
+              transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: i * 0.12 }}
               style={{
-                background: "rgba(255,255,255,0.6)",
-                border: "1px solid rgba(180,160,140,0.15)",
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontSize: "clamp(2.4rem, 8vw, 5.2rem)",
+                fontWeight: 300,
+                color: i === 1 ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.42)",
+                letterSpacing: "0.04em",
+                lineHeight: 1,
               }}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span
-                  className="text-[10px] tracking-[0.12em] uppercase font-medium"
-                  style={{ color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}
-                >
-                  {r.name}
-                </span>
-                <span
-                  className="text-[8px] tracking-[0.08em]"
-                  style={{ color: "rgba(120,108,96,0.5)", fontFamily: "'Montserrat', sans-serif" }}
-                >
-                  {r.days}
-                </span>
-              </div>
-              <p
-                className="text-[11px] leading-[1.7]"
-                style={{ color: "#5a5048", fontFamily: "'Montserrat', sans-serif" }}
-              >
-                {r.text}
-              </p>
-            </motion.div>
+              {word}
+            </motion.span>
           ))}
         </div>
 
-        {/* Star rating summary */}
+        {/* Thin horizontal rule */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={inView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          className="flex items-center justify-center gap-2"
-        >
-          <div className="flex items-center gap-0.5">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <span key={s} style={{ color: "#c8a85c", fontSize: 11 }}>★</span>
-            ))}
-          </div>
-          <span
-            className="text-[10px] tracking-[0.15em] uppercase"
-            style={{ color: "#7a6e64", fontFamily: "'Montserrat', sans-serif" }}
-          >
-            4.9 / 5 from 200+ reviews
-          </span>
-        </motion.div>
-      </div>
+          initial={{ scaleX: 0, opacity: 0 }}
+          animate={inView ? { scaleX: 1, opacity: 1 } : {}}
+          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.35 }}
+          className="mb-8"
+          style={{
+            height: 1,
+            width: "clamp(60px, 12vw, 100px)",
+            background: "rgba(200,185,165,0.28)",
+            transformOrigin: "center",
+          }}
+        />
+
+      </motion.div>
     </section>
   );
 }
