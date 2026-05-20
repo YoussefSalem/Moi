@@ -1,21 +1,59 @@
-import { useRef } from "react";
+import { useRef, useState, useCallback } from "react";
 import { motion, useInView } from "framer-motion";
+import { CinematicLightbox } from "@/components/CinematicLightbox";
+import { IMAGES } from "@/config/images";
 
-const LOOK_IMAGES = [
-  "/images/wavvy-look-1.webp",
-  "/images/wavvy-look-2.webp",
-  "/images/wavvy-look-3.webp",
-  "/images/wavvy-look-4.webp",
-  "/images/wavvy-look-5.webp",
-];
+/* Build a deduplicated flat array of every unique product image. */
+function allUniqueProductImages(): readonly string[] {
+  const seen = new Set<string>();
+  const add = (src: string) => { if (src && !seen.has(src)) seen.add(src); };
+
+  // Hero
+  add(IMAGES.hero.fallbackUrl);
+
+  // All color galleries from every product (dedupes mains + alts automatically)
+  for (const key of ["product1", "product2", "product3"] as const) {
+    const p = IMAGES[key] as { colorGalleries?: Record<string, readonly string[]> };
+    if (!p.colorGalleries) continue;
+    for (const gallery of Object.values(p.colorGalleries)) {
+      for (const src of gallery) add(src);
+    }
+  }
+
+  // Brand/editorial look photos
+  for (const key of ["product1", "product2", "product3"] as const) {
+    const p = IMAGES[key] as { look?: Record<string, string> };
+    if (!p.look) continue;
+    for (const src of Object.values(p.look)) add(src);
+  }
+
+  // Filmstrip images (product1 + product2, already deduped by Set)
+  for (const key of ["product1", "product2", "product3"] as const) {
+    const p = IMAGES[key] as { filmstrip?: readonly string[] };
+    if (!p.filmstrip) continue;
+    for (const src of p.filmstrip) add(src);
+  }
+
+  return Array.from(seen);
+}
+
+const COLLECTION_IMAGES = allUniqueProductImages();
 
 export function EditorialPhotoStrip() {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
+  const [lbOpen, setLbOpen] = useState(false);
+  const [lbIndex, setLbIndex] = useState(0);
+
+  const openAt = useCallback((i: number) => {
+    setLbIndex(i);
+    setLbOpen(true);
+  }, []);
 
   return (
     <section
       ref={ref}
+      data-strip
       className="relative w-full overflow-hidden"
       style={{
         backgroundColor: "hsl(30 15% 95%)",
@@ -48,20 +86,27 @@ export function EditorialPhotoStrip() {
         }}
       >
         <style>{`section[data-strip]::-webkit-scrollbar { display: none; }`}</style>
-        {LOOK_IMAGES.map((src, i) => (
-          <motion.div
+        {COLLECTION_IMAGES.map((src, i) => (
+          <motion.button
             key={src}
+            type="button"
+            aria-label={`Open image ${i + 1}`}
+            onClick={() => openAt(i)}
             className="flex-shrink-0 overflow-hidden"
             style={{
               width: "clamp(200px, 28vw, 340px)",
               scrollSnapAlign: "start",
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
             }}
             initial={{ opacity: 0, y: 24 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{
               duration: 0.85,
               ease: [0.22, 1, 0.36, 1],
-              delay: i * 0.08,
+              delay: i * 0.05,
             }}
           >
             <div
@@ -70,15 +115,16 @@ export function EditorialPhotoStrip() {
             >
               <motion.img
                 src={src}
-                alt={`Moi Wavvy look ${i + 1}`}
+                alt={`Moi collection image ${i + 1}`}
                 loading="lazy"
                 decoding="async"
                 className="w-full h-full object-cover object-top"
                 whileHover={{ scale: 1.03 }}
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                draggable={false}
               />
             </div>
-          </motion.div>
+          </motion.button>
         ))}
       </div>
 
@@ -92,6 +138,13 @@ export function EditorialPhotoStrip() {
       >
         Height of model: 178 cm — Size S
       </motion.p>
+
+      <CinematicLightbox
+        images={COLLECTION_IMAGES}
+        initialIndex={lbIndex}
+        open={lbOpen}
+        onClose={() => setLbOpen(false)}
+      />
     </section>
   );
 }

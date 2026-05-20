@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useImageColor } from "@/hooks/useImageColor";
 import type { ProductConfig } from "@/config/images";
 import { useCart } from "@/context/CartContext";
+import { CinematicLightbox } from "@/components/CinematicLightbox";
 
 interface LookViewProps {
   product: ProductConfig | null;
@@ -13,6 +14,8 @@ interface LookViewProps {
 export function LookView({ product, onClose }: LookViewProps) {
   const [activeImage, setActiveImage] = useState(product?.look.model ?? null);
   const [addedFeedback, setAddedFeedback] = useState(false);
+  const [lbOpen, setLbOpen] = useState(false);
+  const [lbIndex, setLbIndex] = useState(0);
   const color = useImageColor(product?.look.model ?? null);
   const { addToCart } = useCart();
 
@@ -59,6 +62,7 @@ export function LookView({ product, onClose }: LookViewProps) {
   }, [activeImage, availableImages, product]);
 
   return (
+    <>
     <AnimatePresence>
       {product && (
         <motion.div
@@ -132,8 +136,17 @@ export function LookView({ product, onClose }: LookViewProps) {
           <div className="mx-auto w-full max-w-6xl px-5 md:px-16 pb-10 md:pb-16 flex flex-col md:block">
             {/* Mobile: hero image + horizontal thumb strip */}
             <div className="md:hidden flex flex-col gap-3">
-              {/* Main image */}
-              <div className="relative w-full" style={{ height: "55vh" }}>
+              {/* Main image (clickable) */}
+              <button
+                type="button"
+                className="relative w-full block"
+                style={{ height: "55vh", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                onClick={() => {
+                  const i = availableImages.indexOf(activeImage ?? product.look.model);
+                  setLbIndex(i >= 0 ? i : 0);
+                  setLbOpen(true);
+                }}
+              >
                 <AnimatePresence initial={false} mode="wait">
                   <motion.img
                     key={activeImage ?? product.look.model}
@@ -145,11 +158,11 @@ export function LookView({ product, onClose }: LookViewProps) {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.22, ease: "easeInOut" }}
-                    className="absolute inset-0 w-full h-full object-cover object-top rounded-sm pointer-events-none select-none"
+                    className="absolute inset-0 w-full h-full object-cover object-top rounded-sm select-none"
                     draggable={false}
                   />
                 </AnimatePresence>
-              </div>
+              </button>
               {/* Horizontal thumb strip */}
               <div
                 className="flex gap-2 overflow-x-auto pb-1"
@@ -177,22 +190,34 @@ export function LookView({ product, onClose }: LookViewProps) {
               </div>
             </div>
 
-            {/* Desktop: 2+1+2 editorial grid */}
+            {/* Desktop: 2+1+2 editorial grid — all images open lightbox */}
             <div className="hidden md:grid grid-cols-[minmax(140px,1fr)_minmax(0,1.35fr)_minmax(140px,1fr)] gap-6 items-center">
               <div className="grid grid-rows-2 gap-4">
-                {sideImages.slice(0, 2).map((src) => (
-                  <button
-                    key={src}
-                    type="button"
-                    onClick={() => setActiveImage(src)}
-                    className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 transition-opacity duration-200"
-                    style={{ aspectRatio: "1 / 1" }}
-                  >
-                    <img src={src} alt="Look view thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                  </button>
-                ))}
+                {sideImages.slice(0, 2).map((src) => {
+                  const idx = availableImages.indexOf(src);
+                  return (
+                    <button
+                      key={src}
+                      type="button"
+                      onClick={() => { setLbIndex(idx); setLbOpen(true); }}
+                      className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 transition-opacity duration-200"
+                      style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer" }}
+                    >
+                      <img src={src} alt="Look view thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    </button>
+                  );
+                })}
               </div>
-              <div className="relative">
+              <button
+                type="button"
+                className="relative block w-full"
+                style={{ height: "70vh", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                onClick={() => {
+                  const i = availableImages.indexOf(activeImage ?? product.look.model);
+                  setLbIndex(i >= 0 ? i : 0);
+                  setLbOpen(true);
+                }}
+              >
                 <AnimatePresence initial={false} mode="wait">
                   <motion.img
                     key={activeImage ?? product.look.model}
@@ -204,22 +229,25 @@ export function LookView({ product, onClose }: LookViewProps) {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.25, ease: "easeInOut" }}
-                    className="relative z-10 w-full h-[70vh] object-cover object-top"
+                    className="relative z-10 w-full h-full object-cover object-top"
                   />
                 </AnimatePresence>
-              </div>
+              </button>
               <div className="grid grid-rows-2 gap-4">
-                {sideImages.slice(2, 4).map((src) => (
-                  <button
-                    key={src}
-                    type="button"
-                    onClick={() => setActiveImage(src)}
-                    className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 transition-opacity duration-200"
-                    style={{ aspectRatio: "1 / 1" }}
-                  >
-                    <img src={src} alt="Look view thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                  </button>
-                ))}
+                {sideImages.slice(2, 4).map((src) => {
+                  const idx = availableImages.indexOf(src);
+                  return (
+                    <button
+                      key={src}
+                      type="button"
+                      onClick={() => { setLbIndex(idx); setLbOpen(true); }}
+                      className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 transition-opacity duration-200"
+                      style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer" }}
+                    >
+                      <img src={src} alt="Look view thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -279,5 +307,13 @@ export function LookView({ product, onClose }: LookViewProps) {
         </motion.div>
       )}
     </AnimatePresence>
+
+      <CinematicLightbox
+        images={availableImages}
+        initialIndex={lbIndex}
+        open={lbOpen}
+        onClose={() => setLbOpen(false)}
+      />
+    </>
   );
 }
