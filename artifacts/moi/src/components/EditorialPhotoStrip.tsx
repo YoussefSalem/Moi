@@ -55,7 +55,7 @@ export function EditorialPhotoStrip() {
   const scrollBy = useCallback((dir: number) => {
     const strip = stripRef.current;
     if (!strip) return;
-    const card = strip.firstElementChild as HTMLElement | null;
+    const card = strip.querySelector("button[type='button']") as HTMLElement | null;
     const gap = 12;
     const step = (card?.offsetWidth ?? 300) + gap;
     strip.scrollTo({ left: strip.scrollLeft + dir * step, behavior: "smooth" });
