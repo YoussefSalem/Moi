@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback } from "react";
 import { motion, useInView } from "framer-motion";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CinematicLightbox } from "@/components/CinematicLightbox";
 import { IMAGES } from "@/config/images";
 
@@ -41,6 +42,7 @@ const COLLECTION_IMAGES = allUniqueProductImages();
 
 export function EditorialPhotoStrip() {
   const ref = useRef<HTMLElement>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const [lbOpen, setLbOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
@@ -48,6 +50,15 @@ export function EditorialPhotoStrip() {
   const openAt = useCallback((i: number) => {
     setLbIndex(i);
     setLbOpen(true);
+  }, []);
+
+  const scrollBy = useCallback((dir: number) => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    const card = strip.firstElementChild as HTMLElement | null;
+    const gap = 12;
+    const step = (card?.offsetWidth ?? 300) + gap;
+    strip.scrollTo({ left: strip.scrollLeft + dir * step, behavior: "smooth" });
   }, []);
 
   return (
@@ -72,19 +83,45 @@ export function EditorialPhotoStrip() {
         The Collection
       </motion.p>
 
-      {/* Scrollable strip */}
-      <div
-        className="flex gap-3 overflow-x-auto"
-        style={{
-          paddingLeft: "clamp(20px, 6vw, 80px)",
-          paddingRight: "clamp(20px, 6vw, 80px)",
-          scrollSnapType: "x mandatory",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-          touchAction: "pan-x",
-          cursor: "grab",
-        }}
-      >
+      {/* Scrollable strip with arrow nav (desktop) */}
+      <div className="relative flex items-center">
+        {/* Left arrow */}
+        <button
+          type="button"
+          aria-label="Scroll left"
+          onClick={() => scrollBy(-1)}
+          className="hidden md:flex z-10 shrink-0 items-center justify-center"
+          style={{
+            width: 40,
+            height: 40,
+            marginLeft: 16,
+            borderRadius: "50%",
+            backgroundColor: "rgba(250,248,245,0.92)",
+            border: "1px solid rgba(30,24,20,0.08)",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+            cursor: "pointer",
+            color: "rgba(30,24,20,0.45)",
+            transition: "color 0.25s ease",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(30,24,20,0.85)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(30,24,20,0.45)")}
+        >
+          <ChevronLeft size={18} strokeWidth={1.3} />
+        </button>
+
+        <div
+          ref={stripRef}
+          className="flex gap-3 overflow-x-auto flex-1"
+          style={{
+            paddingLeft: "clamp(20px, 6vw, 80px)",
+            paddingRight: "clamp(20px, 6vw, 80px)",
+            scrollSnapType: "x mandatory",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+            touchAction: "pan-x",
+            cursor: "grab",
+          }}
+        >
         <style>{`section[data-strip]::-webkit-scrollbar { display: none; }`}</style>
         {COLLECTION_IMAGES.map((src, i) => (
           <motion.button
@@ -126,6 +163,31 @@ export function EditorialPhotoStrip() {
             </div>
           </motion.button>
         ))}
+        </div>
+
+        {/* Right arrow */}
+        <button
+          type="button"
+          aria-label="Scroll right"
+          onClick={() => scrollBy(1)}
+          className="hidden md:flex z-10 shrink-0 items-center justify-center"
+          style={{
+            width: 40,
+            height: 40,
+            marginRight: 16,
+            borderRadius: "50%",
+            backgroundColor: "rgba(250,248,245,0.92)",
+            border: "1px solid rgba(30,24,20,0.08)",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+            cursor: "pointer",
+            color: "rgba(30,24,20,0.45)",
+            transition: "color 0.25s ease",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(30,24,20,0.85)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(30,24,20,0.45)")}
+        >
+          <ChevronRight size={18} strokeWidth={1.3} />
+        </button>
       </div>
 
       {/* Bottom brand note */}
