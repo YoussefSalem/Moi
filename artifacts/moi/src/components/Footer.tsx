@@ -2,7 +2,12 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Instagram } from "lucide-react";
 import { NewsletterSection } from "@/components/NewsletterSection";
-export function Footer() {
+
+interface FooterProps {
+  onNavigate?: (page: "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery") => void;
+}
+
+export function Footer({ onNavigate }: FooterProps) {
   const [openSection, setOpenSection] = useState<string | null>("return");
 
   const accordionSections: Array<{ title: string; description: string; body: string }> = [
@@ -144,9 +149,46 @@ export function Footer() {
 
           <NewsletterSection />
 
-          <div className="mt-12 pt-6 border-t border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <p className="text-[10px] tracking-[0.3em] uppercase text-white/35">© 2026 Moi. All rights reserved.</p>
-            <p className="text-[10px] tracking-[0.22em] uppercase text-white/35">Smooth, elegant, minimal.</p>
+          <div className="mt-12 pt-6 border-t border-white/10">
+            {/* Policy links — subtle, minimal */}
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mb-5">
+              {[
+                { label: "Privacy Policy", page: "privacy" as const },
+                { label: "Refund Policy", page: "refund" as const },
+                { label: "Return Policy", page: "return" as const },
+                { label: "Delivery Policy", page: "delivery" as const },
+              ].map((link) => (
+                <button
+                  key={link.page}
+                  type="button"
+                  onClick={() => onNavigate?.(link.page)}
+                  className="text-[9px] tracking-[0.25em] uppercase text-white/35 hover:text-white/70 transition-colors duration-300"
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
+                >
+                  {link.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Contact info — even more subtle */}
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mb-5">
+              <a href="mailto:hello@buy-moi.com" className="text-[9px] tracking-[0.2em] text-white/25 hover:text-white/55 transition-colors duration-300" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                hello@buy-moi.com
+              </a>
+              <span className="text-white/15 hidden md:inline">|</span>
+              <a href="tel:+201200520083" className="text-[9px] tracking-[0.2em] text-white/25 hover:text-white/55 transition-colors duration-300" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                +20 120 052 0083
+              </a>
+              <span className="text-white/15 hidden md:inline">|</span>
+              <span className="text-[9px] tracking-[0.2em] text-white/25" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                Alexandria, Egypt
+              </span>
+            </div>
+
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <p className="text-[10px] tracking-[0.3em] uppercase text-white/35">© 2026 Moi. All rights reserved.</p>
+              <p className="text-[10px] tracking-[0.22em] uppercase text-white/35">Smooth, elegant, minimal.</p>
+            </div>
           </div>
         </div>
       </footer>

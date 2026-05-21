@@ -14,6 +14,7 @@ import { useRestockChecker } from "@/hooks/useRestockChecker";
 // Heavy components — loaded only when needed
 const AccessoriesPage = lazy(() => import("@/components/AccessoriesPage").then(m => ({ default: m.AccessoriesPage })));
 const AmbassadorPage = lazy(() => import("@/components/AmbassadorPage").then(m => ({ default: m.AmbassadorPage })));
+const PolicyPage = lazy(() => import("@/components/PolicyPage").then(m => ({ default: m.PolicyPage })));
 const LookView = lazy(() => import("@/components/LookView").then(m => ({ default: m.LookView })));
 const Footer = lazy(() => import("@/components/Footer").then(m => ({ default: m.Footer })));
 const CartDrawer = lazy(() => import("@/components/CartDrawer").then(m => ({ default: m.CartDrawer })));
@@ -58,7 +59,7 @@ const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
 
 function AppContent() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
-  const [page, setPage] = useState<"home" | "accessories" | "ambassador">("home");
+  const [page, setPage] = useState<"home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery">("home");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
@@ -120,21 +121,25 @@ function AppContent() {
         <div>
           <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
             <AccessoriesPage onLookView={setLookProduct} />
-            <Footer />
+            <Footer onNavigate={setPage} />
           </Suspense>
         </div>
-      ) : (
+      ) : page === "ambassador" ? (
         <div>
           <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
             <AmbassadorPage />
-            <Footer />
+            <Footer onNavigate={setPage} />
           </Suspense>
         </div>
+      ) : (
+        <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
+          <PolicyPage policy={page} onClose={() => setPage("home")} />
+        </Suspense>
       )}
 
       {page === "home" && (
         <Suspense fallback={null}>
-          <Footer />
+          <Footer onNavigate={setPage} />
         </Suspense>
       )}
 
