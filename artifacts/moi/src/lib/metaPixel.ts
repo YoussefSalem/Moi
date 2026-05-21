@@ -13,9 +13,16 @@ export function trackEvent(
 
   const cleaned: Record<string, string | number | boolean> = {};
   for (const [key, value] of Object.entries(params ?? {})) {
-    if (value !== undefined && value !== null && value !== "") {
-      cleaned[key] = value;
-    }
+    if (value === undefined || value === null || value === "") continue;
+    if (typeof value === "number" && !Number.isFinite(value)) continue;
+    cleaned[key] = value;
+  }
+  // Always require currency when value is present (Meta standard)
+  if ("value" in cleaned && !("currency" in cleaned)) {
+    cleaned.currency = "EGP";
+  }
+  if ("currency" in cleaned && !("value" in cleaned)) {
+    cleaned.value = 0;
   }
 
   // Deduplication key: same event_id must be used on both browser + server

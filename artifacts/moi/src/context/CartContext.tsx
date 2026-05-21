@@ -162,8 +162,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       trackAddToCart({
         content_name: params.title,
         content_ids: params.variantId ? [params.variantId] : undefined,
-        currency: params.currencyCode,
-        value: params.priceAmount,
+        currency: params.currencyCode ?? "EGP",
+        value: Number.isFinite(params.priceAmount) && params.priceAmount != null ? params.priceAmount : 0,
         num_items: qty,
       });
       trackTikTokAddToCart({

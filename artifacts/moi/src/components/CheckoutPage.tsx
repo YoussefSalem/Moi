@@ -463,7 +463,7 @@ export function CheckoutPage() {
       });
 
       clearCart();
-      const purchaseValue = data.total ? parseFloat(data.total.replace(/[^0-9.]/g, "")) : totalAmount;
+      const purchaseValue = Number.isFinite(parseFloat(data.total?.replace(/[^0-9.]/g, "") ?? "NaN")) ? parseFloat(data.total!.replace(/[^0-9.]/g, "")) : (Number.isFinite(totalAmount) ? totalAmount : 0);
       const purchaseItems = orderLines.reduce((s, l) => s + l.quantity, 0);
       trackPurchase({
         content_ids: orderLines.map((l) => l.variantId),
@@ -511,7 +511,7 @@ export function CheckoutPage() {
       : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
     const totalVal = isShopify && shopifyCart && shopifyCart.cost?.totalAmount?.amount
       ? parseFloat(shopifyCart.cost.totalAmount.amount)
-      : totalAmount;
+      : (Number.isFinite(totalAmount) ? totalAmount : 0);
     trackPurchase({
       content_ids: orderLines.map((l) => l.variantId),
       currency: "EGP",
@@ -767,7 +767,7 @@ export function CheckoutPage() {
                   : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
                 const proofTotal = isShopify && shopifyCart && shopifyCart.cost?.totalAmount?.amount
                   ? parseFloat(shopifyCart.cost.totalAmount.amount)
-                  : totalAmount;
+                  : (Number.isFinite(totalAmount) ? totalAmount : 0);
                 const proofItems = proofOrderLines.reduce((s, l) => s + l.quantity, 0);
                 trackPurchase({
                   content_ids: proofOrderLines.map((l) => l.variantId),
