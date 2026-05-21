@@ -164,7 +164,7 @@ export function PolicyPage({ policy, onClose }: PolicyPageProps) {
           <div className="space-y-2 text-sm" style={{ color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif" }}>
             <p>Email: <a href="mailto:hello@buy-moi.com" className="underline underline-offset-2 hover:opacity-60 transition-opacity" style={{ color: "#1e1814" }}>hello@buy-moi.com</a></p>
             <p>Phone: <a href="tel:+201200520083" className="underline underline-offset-2 hover:opacity-60 transition-opacity" style={{ color: "#1e1814" }}>+20 120 052 0083</a></p>
-            <p>58 Sotar Street, Bab Sharq, Alexandria, Egypt</p>
+            <p>58 Sotar Street, Azarita, Bab Sharq, Alexandria, Egypt</p>
           </div>
         </div>
       </main>

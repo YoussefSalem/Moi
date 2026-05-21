@@ -181,7 +181,7 @@ export function Footer({ onNavigate }: FooterProps) {
               </a>
               <span className="text-white/15 hidden md:inline">|</span>
               <span className="text-[9px] tracking-[0.2em] text-white/25" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                Alexandria, Egypt
+                58 Sotar Street, Azarita, Bab Sharq, Alexandria, Egypt
               </span>
             </div>
 
