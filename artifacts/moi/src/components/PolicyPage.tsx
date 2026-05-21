@@ -113,8 +113,8 @@ export function PolicyPage({ policy, onClose }: PolicyPageProps) {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
-      {/* Header */}
-      <div className="sticky top-0 z-40 flex items-center justify-between px-6 md:px-12 h-16" style={{ backgroundColor: "rgba(250,248,245,0.97)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(180,160,140,0.18)" }}>
+      {/* Floating back button — sits below the site header (z-50) */}
+      <div className="fixed top-20 left-4 md:left-8 z-40">
         <button
           onClick={onClose}
           className="flex items-center gap-2 text-[11px] tracking-[0.25em] uppercase hover:opacity-50 transition-opacity"
@@ -123,12 +123,10 @@ export function PolicyPage({ policy, onClose }: PolicyPageProps) {
           <X size={16} strokeWidth={1.5} />
           Back
         </button>
-        <span className="font-serif tracking-[0.3em] text-lg" style={{ color: "#1e1814" }}>MOI</span>
-        <div className="w-16" />
       </div>
 
       {/* Content */}
-      <main className="max-w-2xl mx-auto px-6 md:px-8 py-14 md:py-20">
+      <main className="max-w-2xl mx-auto px-6 md:px-8 pt-24 md:pt-28 pb-14 md:pb-20">
         <p className="text-[9px] tracking-[0.4em] uppercase mb-3" style={{ color: "rgba(120,108,96,0.55)", fontFamily: "'Montserrat', sans-serif" }}>
           Legal
         </p>
