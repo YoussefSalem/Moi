@@ -758,7 +758,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                       );
                     })}
                   </div>
-                  {/* Size guide — appears once a size is selected */}
+                  {/* Size guide — updates when a size is selected */}
                   {selectedSize && (
                     <p
                       className="mt-2.5 text-[10px] leading-5 max-w-xs"
@@ -767,13 +767,13 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                         fontFamily: "'Montserrat', sans-serif",
                       }}
                     >
-                      {selectedSize.toLowerCase().includes("small") || selectedSize.toLowerCase().includes("medium") ? (
+                      {selectedSize.toLowerCase().includes("s") || selectedSize.toLowerCase().includes("m") ? (
                         <>
-                          <span style={{ color: "rgba(30,24,20,0.65)" }}>S / M</span> — a closer, streamlined fit.
+                          <span style={{ color: "rgba(30,24,20,0.65)" }}>{selectedSize}</span> — a closer fit. Best for heights up to 1.65 m.
                         </>
                       ) : (
                         <>
-                          <span style={{ color: "rgba(30,24,20,0.65)" }}>L / XL</span> — a relaxed fit with more room to move.
+                          <span style={{ color: "rgba(30,24,20,0.65)" }}>{selectedSize}</span> — a relaxed fit. Best for heights 1.65 m and above.
                         </>
                       )}
                     </p>
