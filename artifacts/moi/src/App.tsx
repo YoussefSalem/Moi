@@ -136,6 +136,19 @@ function AppContent() {
             </div>
           )}
 
+          {/* Subtle wavy divider */}
+          <div className="w-full flex justify-center py-2">
+            <svg width="80" height="12" viewBox="0 0 80 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M0 6 Q10 0 20 6 T40 6 T60 6 T80 6"
+                stroke="rgba(180,160,140,0.35)"
+                strokeWidth="1"
+                fill="none"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+
           <Suspense fallback={null}>
             <TikTokSocialProof />
           </Suspense>
