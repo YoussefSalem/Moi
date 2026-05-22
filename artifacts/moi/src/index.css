@@ -310,6 +310,15 @@ section {
   to { transform: rotate(360deg); }
 }
 
+/* Hero image crossfade when active thumbnail changes */
+@keyframes lookImgFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.look-img-fade {
+  animation: lookImgFade 0.22s ease-out forwards;
+}
+
 @keyframes moi-shine {
   0% { transform: translateX(-140%); opacity: 0; }
   18% { opacity: 0.65; }

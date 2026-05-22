@@ -188,12 +188,12 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
       {open && (
         <motion.div
           key="lb"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          initial={{ opacity: 0, scale: 0.985 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.99 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           className="fixed inset-0 z-[100] flex flex-col"
-          style={{ backgroundColor: "rgba(250,248,245,0.97)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}
+          style={{ backgroundColor: "#faf8f5", willChange: "opacity, transform" }}
           onClick={(e) => { if (e.target === e.currentTarget && zoomScale <= 1) onClose(); }}
         >
           {/* ── Header ── */}
@@ -236,13 +236,14 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
               className="max-w-full max-h-full object-contain"
               style={{
                 transform: `scale(${zoomScale}) translate(${pan.x}px, ${pan.y}px)`,
-                transition: zoomScale === 1 ? "transform 0.35s cubic-bezier(0.32,0,0.16,1)" : "none",
-                willChange: "transform",
+                transition: zoomScale === 1
+                  ? "transform 0.35s cubic-bezier(0.32,0,0.16,1), opacity 0.28s ease-out"
+                  : "opacity 0.28s ease-out",
+                willChange: "transform, opacity",
                 userSelect: "none",
                 WebkitUserSelect: "none",
                 WebkitTouchCallout: "none",
                 opacity: loaded ? 1 : 0,
-                transitionProperty: "transform, opacity",
               }}
               draggable={false}
               onLoad={() => setLoaded(true)}

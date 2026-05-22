@@ -230,9 +230,10 @@ export function LookView({ product, onClose }: LookViewProps) {
                           }}
                         >
                           <img
+                            key={activeImage ?? product.look.model}
                             src={activeImage ?? product.look.model}
                             alt={product.name}
-                            className="absolute inset-0 w-full h-full object-cover object-top rounded-sm"
+                            className="look-img-fade absolute inset-0 w-full h-full object-cover object-top rounded-sm"
                             draggable={false}
                           />
                         </button>
@@ -302,9 +303,10 @@ export function LookView({ product, onClose }: LookViewProps) {
                           }}
                         >
                           <img
+                            key={activeImage ?? product.look.model}
                             src={activeImage ?? product.look.model}
                             alt={product.name}
-                            className="w-full h-full object-cover object-top"
+                            className="look-img-fade w-full h-full object-cover object-top"
                             draggable={false}
                           />
                         </button>
