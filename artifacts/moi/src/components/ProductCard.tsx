@@ -758,17 +758,26 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                       );
                     })}
                   </div>
-                  {/* Size guide */}
-                  <p
-                    className="mt-2.5 text-[10px] leading-5 max-w-xs"
-                    style={{
-                      color: "rgba(120,108,96,0.5)",
-                      fontFamily: "'Montserrat', sans-serif",
-                    }}
-                  >
-                    <span style={{ color: "rgba(30,24,20,0.65)" }}>Small / Medium</span> — best for petite or shorter frames with a smaller waist.{" "}
-                    <span style={{ color: "rgba(30,24,20,0.65)" }}>Large / X-Large</span> — better for taller women or a fuller waist for a comfortable fit.
-                  </p>
+                  {/* Size guide — appears once a size is selected */}
+                  {selectedSize && (
+                    <p
+                      className="mt-2.5 text-[10px] leading-5 max-w-xs"
+                      style={{
+                        color: "rgba(120,108,96,0.5)",
+                        fontFamily: "'Montserrat', sans-serif",
+                      }}
+                    >
+                      {selectedSize.toLowerCase().includes("small") || selectedSize.toLowerCase().includes("medium") ? (
+                        <>
+                          <span style={{ color: "rgba(30,24,20,0.65)" }}>S / M</span> — a closer, streamlined fit.
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ color: "rgba(30,24,20,0.65)" }}>L / XL</span> — a relaxed fit with more room to move.
+                        </>
+                      )}
+                    </p>
+                  )}
                 </motion.div>
               )}
 
