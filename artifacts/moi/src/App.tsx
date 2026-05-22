@@ -14,6 +14,7 @@ import { useRestockChecker } from "@/hooks/useRestockChecker";
 // Heavy components — loaded only when needed
 const AccessoriesPage = lazy(() => import("@/components/AccessoriesPage").then(m => ({ default: m.AccessoriesPage })));
 const AmbassadorPage = lazy(() => import("@/components/AmbassadorPage").then(m => ({ default: m.AmbassadorPage })));
+const LimitedDrop = lazy(() => import("@/components/LimitedDrop").then(m => ({ default: m.LimitedDrop })));
 const PolicyPage = lazy(() => import("@/components/PolicyPage").then(m => ({ default: m.PolicyPage })));
 const LookView = lazy(() => import("@/components/LookView").then(m => ({ default: m.LookView })));
 const Footer = lazy(() => import("@/components/Footer").then(m => ({ default: m.Footer })));
@@ -111,6 +112,10 @@ function AppContent() {
       {page === "home" ? (
         <main>
           <HeroVideo />
+
+          <Suspense fallback={null}>
+            <LimitedDrop />
+          </Suspense>
 
           <div id="collection">
             <div id={product1.slug}>
