@@ -59,7 +59,15 @@ const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
 
 function AppContent() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
-  const [page, setPage] = useState<"home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery">("home");
+  function getInitialPage(): "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" {
+    if (typeof window === "undefined") return "home";
+    const hash = window.location.hash.slice(1);
+    if (hash === "accessories" || hash === "ambassador") return hash;
+    if (["privacy", "refund", "return", "delivery"].includes(hash)) return hash as "privacy" | "refund" | "return" | "delivery";
+    return "home";
+  }
+
+  const [page, setPage] = useState<"home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery">(getInitialPage);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
@@ -69,14 +77,24 @@ function AppContent() {
   const product2 = products[1] ?? IMAGES.product2;
 
   useEffect(() => {
-    if (page !== "home" || loading) return;
-    const hash = window.location.hash.slice(1);
-    if (!hash) return;
-    const el = document.getElementById(hash);
-    if (el) {
-      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+    if (page === "home") {
+      const hash = window.location.hash.slice(1);
+      if (!hash) return;
+      const el = document.getElementById(hash);
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+      }
     }
   }, [page, loading, product1.slug, product2.slug]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (page === "home") {
+      if (window.location.hash) window.history.replaceState(null, "", window.location.pathname);
+    } else {
+      window.location.hash = page;
+    }
+  }, [page]);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "hsl(30 15% 95%)" }}>
