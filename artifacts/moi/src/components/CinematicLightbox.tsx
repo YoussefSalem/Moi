@@ -188,12 +188,12 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
       {open && (
         <motion.div
           key="lb"
-          initial={{ opacity: 0, scale: 0.985 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.99 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
           className="fixed inset-0 z-[100] flex flex-col"
-          style={{ backgroundColor: "#faf8f5", willChange: "opacity, transform" }}
+          style={{ backgroundColor: "#faf8f5", willChange: "opacity" }}
           onClick={(e) => { if (e.target === e.currentTarget && zoomScale <= 1) onClose(); }}
         >
           {/* ── Header ── */}
@@ -239,7 +239,9 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
                 transition: zoomScale === 1
                   ? "transform 0.35s cubic-bezier(0.32,0,0.16,1), opacity 0.28s ease-out"
                   : "opacity 0.28s ease-out",
-                willChange: "transform, opacity",
+                // Only promote to GPU layer when actively zooming — prevents
+                // a full-res image layer consuming VRAM at rest
+                willChange: zoomScale > 1 ? "transform" : "auto",
                 userSelect: "none",
                 WebkitUserSelect: "none",
                 WebkitTouchCallout: "none",

@@ -42,7 +42,8 @@ img {
 .hero-breathe {
   animation: heroBreathe 18s ease-in-out infinite;
   transform-origin: center 22%;
-  will-change: transform;
+  /* No will-change — the animation runs fine without it, and a dedicated
+     GPU layer for a full-screen hero image wastes significant VRAM on mobile */
 }
 
 /* Fixed header gets its own GPU layer so scrolling never forces a repaint of it */

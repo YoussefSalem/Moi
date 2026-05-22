@@ -74,15 +74,10 @@ export function LookView({ product, onClose }: LookViewProps) {
 
     if (urls.length === 0) { setReady(true); return undefined; }
 
-    // cancelled flag: set by cleanup so stale async work never updates state
-    // after the component unmounts or the product changes. This prevents
-    // memory accumulation from Image objects across rapid open/close cycles.
     let cancelled = false;
 
     const markReady = () => {
       if (cancelled) return;
-      // Double-rAF: wait for the browser to paint the hidden panel before revealing.
-      // This ensures layout + paint are done — reveal is then a pure compositor flip.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (!cancelled) setReady(true);
@@ -90,36 +85,19 @@ export function LookView({ product, onClose }: LookViewProps) {
       });
     };
 
+    // ⚠️ DO NOT call img.decode() here.
+    // img.decode() forces full GPU texture upload for every image simultaneously.
+    // On iOS Safari, 5 large images decoded at once = 150-250 MB GPU memory → WebKit OOM kill.
+    // Instead: just wait the intentional delay, then reveal the panel.
+    // Individual images load progressively; the thumbLoading skeleton handles each one's UX.
     const kickoff = setTimeout(async () => {
-      const decodePromises = urls.map(async (url) => {
-        if (cancelled) return;
-        const img = new Image();
-        img.src = url;
-        try {
-          // img.decode() waits for GPU texture upload — not just HTTP complete
-          await img.decode();
-        } catch {
-          // silently ignore decode failures (e.g. network error)
-        }
-      });
-
-      // Minimum intentional pause: ensures animations always have time to
-      // initialize, preventing the panel from snapping in too fast even on
-      // fast connections. Runs in parallel with image decoding.
-      const minPause = new Promise<void>((res) => setTimeout(res, 350));
-
-      // Reveal only when BOTH the images are GPU-ready AND the min pause elapsed
-      await Promise.all([Promise.all(decodePromises), minPause]);
+      await new Promise<void>((res) => setTimeout(res, 350));
       markReady();
     }, 0);
-
-    // Hard fallback — never block longer than 1.2s
-    const fallback = setTimeout(markReady, 1200);
 
     return () => {
       cancelled = true;
       clearTimeout(kickoff);
-      clearTimeout(fallback);
     };
   }, [product]);
 
