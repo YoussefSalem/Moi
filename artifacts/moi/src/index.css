@@ -15,6 +15,18 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Mobile touch: remove blue flash, eliminate 300ms tap delay globally */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Prevent text selection jitter on interactive elements */
+button {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 /* All images: prevent layout shift during decode, smooth scaling */
 img {
   image-rendering: auto;

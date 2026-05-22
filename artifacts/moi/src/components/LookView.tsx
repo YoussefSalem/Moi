@@ -145,10 +145,14 @@ export function LookView({ product, onClose }: LookViewProps) {
               className="absolute inset-0"
               style={{
                 opacity: ready ? 1 : 0,
+                // Subtle upward drift — starts 14px below, rises as it fades in
+                transform: ready ? "translateY(0)" : "translateY(14px)",
                 pointerEvents: ready ? "auto" : "none",
-                // Slow, graceful reveal — fast start (snappy), long smooth tail (elegant)
-                transition: ready ? "opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1)" : "none",
-                willChange: "opacity",
+                // Fast start (feels snappy), long smooth tail (feels cinematic)
+                transition: ready
+                  ? "opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)"
+                  : "none",
+                willChange: "opacity, transform",
               }}
             >
               {/* Scroll container: completely separate from any animated/transformed wrapper */}
@@ -178,16 +182,17 @@ export function LookView({ product, onClose }: LookViewProps) {
                 >
                   <button
                     onClick={onClose}
-                    className="flex items-center gap-2 text-[11px] tracking-[0.25em] uppercase hover:opacity-50 transition-opacity"
-                    style={{ color: "#1e1814" }}
+                    className="flex items-center gap-2 text-[11px] tracking-[0.25em] uppercase active:opacity-40 transition-opacity duration-100"
+                    style={{ color: "#1e1814", touchAction: "manipulation", userSelect: "none", WebkitTapHighlightColor: "transparent", minHeight: 44, minWidth: 44 }}
                   >
                     <span style={{ fontFamily: "monospace", fontSize: 16 }}>&#8592;</span>
                     <span>Back</span>
                   </button>
                   <button
                     onClick={onClose}
-                    className="hover:opacity-50 transition-opacity"
+                    className="active:opacity-40 transition-opacity duration-100"
                     aria-label="Close"
+                    style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent", minHeight: 44, minWidth: 44, display: "flex", alignItems: "center", justifyContent: "center" }}
                   >
                     <X size={20} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                   </button>
@@ -216,8 +221,8 @@ export function LookView({ product, onClose }: LookViewProps) {
                       <div className="md:hidden flex flex-col gap-3">
                         <button
                           type="button"
-                          className="relative w-full"
-                          style={{ height: "56vh", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                          className="relative w-full active:opacity-90 transition-opacity duration-100"
+                          style={{ height: "56vh", background: "none", border: "none", padding: 0, cursor: "pointer", touchAction: "manipulation", WebkitTapHighlightColor: "transparent", userSelect: "none" }}
                           onClick={() => {
                             const i = availableImages.indexOf(activeImage ?? product.look.model);
                             setLbIndex(i >= 0 ? i : 0);
@@ -256,9 +261,12 @@ export function LookView({ product, onClose }: LookViewProps) {
                                   opacity: active ? 1 : 0.6,
                                   scrollSnapAlign: "start",
                                   transition: "border-color 0.15s, opacity 0.15s",
+                                  touchAction: "manipulation",
+                                  WebkitTapHighlightColor: "transparent",
+                                  userSelect: "none",
                                 }}
                               >
-                                <img src={src} alt="" className="w-full h-full object-cover" />
+                                <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
                               </button>
                             );
                           })}
@@ -275,18 +283,18 @@ export function LookView({ product, onClose }: LookViewProps) {
                                 key={src}
                                 type="button"
                                 onClick={() => { setLbIndex(idx); setLbOpen(true); }}
-                                className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 transition-opacity"
-                                style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer" }}
+                                className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 active:opacity-60 transition-opacity duration-150"
+                                style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
                               >
-                                <img src={src} alt="" className="w-full h-full object-cover" />
+                                <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
                               </button>
                             );
                           })}
                         </div>
                         <button
                           type="button"
-                          className="relative block w-full"
-                          style={{ height: "70vh", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                          className="relative block w-full active:opacity-90 transition-opacity duration-100"
+                          style={{ height: "70vh", background: "none", border: "none", padding: 0, cursor: "pointer", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
                           onClick={() => {
                             const i = availableImages.indexOf(activeImage ?? product.look.model);
                             setLbIndex(i >= 0 ? i : 0);
@@ -297,6 +305,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                             src={activeImage ?? product.look.model}
                             alt={product.name}
                             className="w-full h-full object-cover object-top"
+                            draggable={false}
                           />
                         </button>
                         <div className="grid grid-rows-2 gap-4">
@@ -307,10 +316,10 @@ export function LookView({ product, onClose }: LookViewProps) {
                                 key={src}
                                 type="button"
                                 onClick={() => { setLbIndex(idx); setLbOpen(true); }}
-                                className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 transition-opacity"
-                                style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer" }}
+                                className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 active:opacity-60 transition-opacity duration-150"
+                                style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
                               >
-                                <img src={src} alt="" className="w-full h-full object-cover" />
+                                <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
                               </button>
                             );
                           })}
