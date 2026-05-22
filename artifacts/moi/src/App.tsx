@@ -15,6 +15,7 @@ import { useRestockChecker } from "@/hooks/useRestockChecker";
 const AccessoriesPage = lazy(() => import("@/components/AccessoriesPage").then(m => ({ default: m.AccessoriesPage })));
 const AmbassadorPage = lazy(() => import("@/components/AmbassadorPage").then(m => ({ default: m.AmbassadorPage })));
 const LimitedDrop = lazy(() => import("@/components/LimitedDrop").then(m => ({ default: m.LimitedDrop })));
+const TikTokSocialProof = lazy(() => import("@/components/TikTokSocialProof").then(m => ({ default: m.TikTokSocialProof })));
 const PolicyPage = lazy(() => import("@/components/PolicyPage").then(m => ({ default: m.PolicyPage })));
 const LookView = lazy(() => import("@/components/LookView").then(m => ({ default: m.LookView })));
 const Footer = lazy(() => import("@/components/Footer").then(m => ({ default: m.Footer })));
@@ -123,6 +124,10 @@ function AppContent() {
               )}
             </div>
           </div>
+
+          <Suspense fallback={null}>
+            <TikTokSocialProof />
+          </Suspense>
 
           <EditorialStrip />
 

@@ -1,37 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, UserRound, Phone, Mail, Facebook, Instagram, MessageCircleMore, Video, CheckCircle, AlertCircle, Loader } from "lucide-react";
-
-const videos = [
-  {
-    title: "How brands under 1000 EGP actually look on 👀💸",
-    handle: "@etharrdiabb",
-    profileUrl: "https://www.tiktok.com/@etharrdiabb",
-    caption: "Real styling review — affordable local fashion that actually delivers.",
-    embedUrl: "https://www.tiktok.com/embed/v2/7642745763021262098",
-  },
-  {
-    title: "Get ready with me",
-    handle: "@thatsalmarocks",
-    profileUrl: "https://www.tiktok.com/@thatsalmarocks",
-    caption: "Morning routine & outfit check — effortless day-to-night dressing.",
-    embedUrl: "https://www.tiktok.com/embed/v2/7639398570302377223",
-  },
-  {
-    title: "Outfit of the day",
-    handle: "@shopmoi_",
-    profileUrl: "https://www.tiktok.com/@shopmoi_",
-    caption: "Styling picks that feel polished and easy to recreate.",
-    embedUrl: "https://www.tiktok.com/embed/v2/7639352601947016455",
-  },
-  {
-    title: "Everyday outfit inspo",
-    handle: "@thatsalmarocks",
-    profileUrl: "https://www.tiktok.com/@thatsalmarocks",
-    caption: "Real, wearable outfits that translate from screen to wardrobe.",
-    embedUrl: "https://www.tiktok.com/embed/v2/7641637259661430024",
-  },
-];
+import { Send, UserRound, Phone, Mail, Facebook, Instagram, MessageCircleMore, CheckCircle, AlertCircle, Loader } from "lucide-react";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -234,61 +203,7 @@ export function AmbassadorPage() {
             </div>
           </motion.form>
 
-          <motion.aside
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-            className="w-full max-w-6xl rounded-3xl p-6 md:p-8 border border-black/10"
-            style={{ backgroundColor: "#1f1916", boxShadow: "0 16px 40px rgba(20,16,12,0.10)" }}
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <Video size={16} className="text-white/70" />
-              <p className="text-[10px] tracking-[0.35em] uppercase text-white/50">TikTok social proof</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {videos.map((video, idx) => (
-                <div
-                  key={`${video.handle}-${idx}`}
-                  className="rounded-2xl border border-white/10 p-4"
-                  style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
-                >
-                  <p className="text-sm text-white/90">{video.title}</p>
-                  <a
-                    href={video.profileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1 inline-block text-[10px] tracking-[0.25em] uppercase text-white/40 hover:text-white/80 transition-colors"
-                  >
-                    {video.handle}
-                  </a>
-                  <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
-                    <div className="relative aspect-[9/16] overflow-hidden">
-                      {video.embedUrl ? (
-                        <iframe
-                          title={video.title}
-                          src={video.embedUrl}
-                          className="absolute inset-0 h-full w-full scale-[0.96] md:scale-100 origin-center"
-                          allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
-                          scrolling="no"
-                          sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
-                          style={{ overflow: "hidden" }}
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "linear-gradient(135deg, #1f1916 0%, #2a201c 50%, #1f1916 100%)" }}>
-                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-white/25 mb-3">
-                            <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-                          </svg>
-                          <p className="text-[10px] tracking-[0.3em] uppercase text-white/30 font-medium" style={{ fontFamily: "'Montserrat', sans-serif" }}>Coming soon</p>
-                          <div className="mt-4 w-12 h-px bg-white/10" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.aside>
+          {/* TikTok social proof moved to landing page */}
         </section>
       </div>
     </main>
