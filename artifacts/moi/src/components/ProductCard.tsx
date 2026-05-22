@@ -683,13 +683,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
               {/* Size */}
               {hasSingleVariantPill ? (
-                <motion.div variants={itemVariants} className="flex flex-col gap-2.5 mb-6 items-center md:items-start w-full">
-                  <p
-                    className="text-[10px] tracking-[0.28em] uppercase font-medium"
-                    style={{ color: "#8a7e74", fontFamily: "'Montserrat', sans-serif" }}
-                  >
-                    Variant
-                  </p>
+                <motion.div variants={itemVariants} className="flex flex-col gap-2 mb-4 items-center md:items-start w-full">
                   <button
                     type="button"
                     aria-pressed
@@ -705,14 +699,14 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                   </button>
                 </motion.div>
               ) : displaySizes.length > 1 && (
-                <motion.div variants={itemVariants} className="flex flex-col gap-2.5 mb-6 items-center md:items-start w-full">
+                <motion.div variants={itemVariants} className="flex flex-col gap-2 mb-4 items-center md:items-start w-full">
                   <p
                     className="text-[10px] tracking-[0.28em] uppercase font-medium"
                     style={{ color: "#8a7e74", fontFamily: "'Montserrat', sans-serif" }}
                   >
                     Size
                   </p>
-                  <div className="flex items-center gap-2.5 flex-wrap justify-center md:justify-start">
+                  <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
                     {displaySizes.map((size) => {
                       const available = isSizeAvailable(size);
                       const isSelected = selectedSize === size;
