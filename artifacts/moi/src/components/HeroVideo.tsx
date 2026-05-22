@@ -22,6 +22,7 @@ export function HeroVideo() {
   });
 
   const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
+  const mobileImageY = useTransform(scrollYProgress, [0, 1], ["0%", "8%"]);
   const textY = useTransform(scrollYProgress, [0, 1], ["0%", "38%"]);
   const overlayOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
 
@@ -71,11 +72,11 @@ export function HeroVideo() {
         }}
       />
 
-      {/* Parallax image / video — on mobile: opacity fade only, no position shift */}
+      {/* Parallax image / video — mobile: subtle 8% parallax; desktop: full 22% */}
       <motion.div
         className="absolute inset-0 w-full h-[115%] -top-[7.5%]"
         style={IS_MOBILE
-          ? { opacity: overlayOpacity, willChange: "opacity" }
+          ? { y: mobileImageY, willChange: "transform" }
           : { y: imageY, willChange: "transform" }
         }
       >

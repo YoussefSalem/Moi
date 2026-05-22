@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import type { ProductConfig } from "@/config/images";
@@ -14,12 +14,19 @@ const GRAD_COLOR = "rgba(180,160,130,0.08)";
 
 export function LookView({ product, onClose }: LookViewProps) {
   const [activeImage, setActiveImage] = useState<string | null>(null);
+  // displaySrc is what's actually rendered — lags activeImage by ~180ms for crossfade
+  const [displaySrc, setDisplaySrc] = useState<string>("");
+  // fading: image is transitioning out (opacity → 0)
+  const [fading, setFading] = useState(false);
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [lbOpen, setLbOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
   const [ready, setReady] = useState(false);
   const [thumbLoading, setThumbLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  // Stable img refs — NO key-based remounting (kills GPU layers on mobile)
+  const mobileHeroRef = useRef<HTMLImageElement>(null);
+  const desktopHeroRef = useRef<HTMLImageElement>(null);
   const { addToCart } = useCart();
 
   useEffect(() => {
@@ -34,8 +41,24 @@ export function LookView({ product, onClose }: LookViewProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // After displaySrc changes, immediately check if it's already in browser cache.
+  // onLoad doesn't fire for cached images, so this prevents thumbLoading getting stuck.
+  useLayoutEffect(() => {
+    for (const ref of [mobileHeroRef, desktopHeroRef]) {
+      const img = ref.current;
+      if (img && img.complete && img.naturalWidth > 0) {
+        setThumbLoading(false);
+        break;
+      }
+    }
+  }, [displaySrc]);
+
   useEffect(() => {
-    setActiveImage(product?.look.model ?? null);
+    const initialSrc = product?.look.model ?? "";
+    setActiveImage(initialSrc || null);
+    setDisplaySrc(initialSrc);
+    setFading(false);
+    setThumbLoading(false);
     setAddedFeedback(false);
     setReady(false);
 
@@ -242,17 +265,25 @@ export function LookView({ product, onClose }: LookViewProps) {
                             setLbOpen(true);
                           }}
                         >
+                          {/* Stable DOM node — NO key remounting. Crossfade via opacity transition.
+                              Remounting on every tap creates GPU layers → mobile tab crash. */}
                           <img
-                            key={activeImage ?? product.look.model}
-                            src={activeImage ?? product.look.model}
+                            ref={mobileHeroRef}
+                            src={displaySrc || product.look.model}
                             alt={product.name}
-                            className="look-img-fade absolute inset-0 w-full h-full object-cover object-top rounded-sm"
+                            className="absolute inset-0 w-full h-full object-cover object-top rounded-sm"
+                            style={{
+                              opacity: fading || thumbLoading ? 0 : 1,
+                              transition: fading
+                                ? "opacity 0.18s ease-in"
+                                : "opacity 0.25s ease-out",
+                            }}
                             draggable={false}
                             onLoad={() => setThumbLoading(false)}
                             onError={() => setThumbLoading(false)}
                           />
-                          {/* Skeleton pulse while new thumbnail image loads */}
-                          {thumbLoading && (
+                          {/* Skeleton pulse while new image loads (between fade-out and onLoad) */}
+                          {thumbLoading && !fading && (
                             <div
                               className="absolute inset-0 animate-pulse rounded-sm pointer-events-none"
                               style={{ backgroundColor: "rgba(30,24,20,0.07)" }}
@@ -275,7 +306,16 @@ export function LookView({ product, onClose }: LookViewProps) {
                               <button
                                 key={src}
                                 type="button"
-                                onClick={() => { setActiveImage(src); setThumbLoading(true); }}
+                                onClick={() => {
+                                  if (src === displaySrc) return;
+                                  setActiveImage(src);
+                                  setFading(true);
+                                  setThumbLoading(true);
+                                  setTimeout(() => {
+                                    setDisplaySrc(src);
+                                    setFading(false);
+                                  }, 180);
+                                }}
                                 className="flex-shrink-0 overflow-hidden rounded-sm"
                                 style={{
                                   width: 68,
@@ -325,11 +365,19 @@ export function LookView({ product, onClose }: LookViewProps) {
                           }}
                         >
                           <img
-                            key={activeImage ?? product.look.model}
-                            src={activeImage ?? product.look.model}
+                            ref={desktopHeroRef}
+                            src={displaySrc || product.look.model}
                             alt={product.name}
-                            className="look-img-fade w-full h-full object-cover object-top"
+                            className="w-full h-full object-cover object-top"
+                            style={{
+                              opacity: fading || thumbLoading ? 0 : 1,
+                              transition: fading
+                                ? "opacity 0.18s ease-in"
+                                : "opacity 0.25s ease-out",
+                            }}
                             draggable={false}
+                            onLoad={() => setThumbLoading(false)}
+                            onError={() => setThumbLoading(false)}
                           />
                         </button>
                         <div className="grid grid-rows-2 gap-4">
