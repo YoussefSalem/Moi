@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { trackShopifyProductView } from "@/lib/shopifyAnalytics";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { toast } from "sonner";
 import { Bell, ChevronLeft, ChevronRight } from "lucide-react";
@@ -47,6 +48,18 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   const sectionRef = useRef<HTMLElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: "-60px" });
+
+  // Shopify Analytics: fire product_viewed once when card enters the viewport
+  useEffect(() => {
+    if (!inView) return;
+    const priceNum = parseFloat(product.price.replace(/[^\d.]/g, "").replace(",", "."));
+    trackShopifyProductView({
+      productId: product.variantId,
+      productTitle: product.name,
+      price: Number.isFinite(priceNum) ? priceNum : undefined,
+      currencyCode: "EGP",
+    });
+  }, [inView, product.variantId, product.name, product.price]);
 
   const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
 

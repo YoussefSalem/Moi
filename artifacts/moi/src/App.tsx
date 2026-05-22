@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
 import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
@@ -96,6 +97,11 @@ function AppContent() {
     } else {
       window.location.hash = page;
     }
+  }, [page]);
+
+  // Shopify Analytics: page_viewed fires on mount and on every in-app navigation
+  useEffect(() => {
+    trackShopifyPageView();
   }, [page]);
 
   return (

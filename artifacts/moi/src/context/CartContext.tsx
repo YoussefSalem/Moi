@@ -13,6 +13,10 @@ import {
 } from "@/lib/shopify";
 import { trackAddToCart } from "@/lib/metaPixel";
 import { trackTikTokAddToCart } from "@/lib/tiktokPixel";
+import {
+  trackShopifyAddToCart,
+  trackShopifyCheckoutStarted,
+} from "@/lib/shopifyAnalytics";
 
 const CART_ID_KEY = "moi_cart_id";
 const LOCAL_CART_KEY = "moi_local_cart";
@@ -173,6 +177,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         value: params.priceAmount,
         quantity: qty,
       });
+      trackShopifyAddToCart({
+        variantId: params.variantId,
+        productTitle: params.title ?? "",
+        price: Number.isFinite(params.priceAmount) && params.priceAmount != null
+          ? params.priceAmount
+          : undefined,
+        quantity: qty,
+        currencyCode: params.currencyCode ?? "EGP",
+      });
       setCartOpen(true);
     } finally {
       setLoading(false);
@@ -276,6 +289,35 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     ? shopifySubtotal
     : localItems.length > 0 ? formatMoney(String(localTotal), localCurrency) : "";
 
+  const openCheckout = useCallback(() => {
+    setCartOpen(false);
+    setCheckoutOpen(true);
+    // Fire checkout_started to Shopify Analytics, alongside existing Meta & TikTok pixels
+    trackShopifyCheckoutStarted({
+      cartId: shopifyCart?.id,
+      totalPrice: shopifyCart
+        ? parseFloat(shopifyCart.cost.totalAmount.amount)
+        : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0),
+      currencyCode:
+        shopifyCart?.cost.totalAmount.currencyCode ??
+        localItems[0]?.currencyCode ??
+        "EGP",
+      lineItems: shopifyCart
+        ? shopifyCart.lines.nodes.map((l) => ({
+            variantId: l.merchandise.id,
+            title: l.merchandise.product.title,
+            price: parseFloat(l.merchandise.price.amount),
+            quantity: l.quantity,
+          }))
+        : localItems.map((i) => ({
+            variantId: i.variantId,
+            title: i.title,
+            price: i.priceAmount,
+            quantity: i.quantity,
+          })),
+    });
+  }, [shopifyCart, localItems]);
+
   return (
     <CartContext.Provider value={{
       shopifyCart,
@@ -286,7 +328,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       itemCount,
       openCart: () => setCartOpen(true),
       closeCart: () => setCartOpen(false),
-      openCheckout: () => { setCartOpen(false); setCheckoutOpen(true); },
+      openCheckout,
       closeCheckout: () => setCheckoutOpen(false),
       addToCart,
       removeItem,
