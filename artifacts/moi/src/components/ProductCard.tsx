@@ -758,6 +758,17 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                       );
                     })}
                   </div>
+                  {/* Size guide */}
+                  <p
+                    className="mt-2.5 text-[10px] leading-5 max-w-xs"
+                    style={{
+                      color: "rgba(120,108,96,0.5)",
+                      fontFamily: "'Montserrat', sans-serif",
+                    }}
+                  >
+                    <span style={{ color: "rgba(30,24,20,0.65)" }}>Small / Medium</span> — best for petite or shorter frames with a smaller waist.{" "}
+                    <span style={{ color: "rgba(30,24,20,0.65)" }}>Large / X-Large</span> — better for taller women or a fuller waist for a comfortable fit.
+                  </p>
                 </motion.div>
               )}
 
