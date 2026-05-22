@@ -43,6 +43,11 @@ const IS_PRODUCTION =
   (window.location.hostname === "buy-moi.com" ||
     window.location.hostname === "www.buy-moi.com");
 
+/** Temporarily allow firing in dev for testing via `?debug_analytics=1` */
+const DEBUG_ANALYTICS =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).has("debug_analytics");
+
 // ─── Shop GID ────────────────────────────────────────────────────────────────
 // Fetched once via the Storefront API and cached in-memory for the page session.
 // Returns e.g. "gid://shopify/Shop/89490".
@@ -112,7 +117,7 @@ function getStoredUtm(): UtmParams {
 interface AnalyticsEvent { event_name: string; payload: Record<string, unknown> }
 
 async function publish(events: AnalyticsEvent[]): Promise<void> {
-  if (!IS_PRODUCTION || !ANALYTICS_ENDPOINT || !STOREFRONT_TOKEN) return;
+  if ((!IS_PRODUCTION && !DEBUG_ANALYTICS) || !ANALYTICS_ENDPOINT || !STOREFRONT_TOKEN) return;
   try {
     await fetch(ANALYTICS_ENDPOINT, {
       method: "POST",
