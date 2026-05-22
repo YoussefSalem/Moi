@@ -18,6 +18,7 @@ export function LookView({ product, onClose }: LookViewProps) {
   const [lbOpen, setLbOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
   const [ready, setReady] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { addToCart } = useCart();
 
   useEffect(() => {
@@ -37,25 +38,31 @@ export function LookView({ product, onClose }: LookViewProps) {
     setAddedFeedback(false);
     setReady(false);
 
-    // Preload all look images so the panel opens instantly with cached assets
     if (product) {
+      setLoading(true);
       const urls = [product.look.model, product.look.shoes, product.look.bag, product.look.earring, product.look.extra]
         .filter(Boolean) as string[];
       let loaded = 0;
       if (urls.length === 0) {
         setReady(true);
+        setLoading(false);
         return undefined;
       }
       urls.forEach((url) => {
         const img = new Image();
         img.onload = img.onerror = () => {
           loaded++;
-          if (loaded >= urls.length) setReady(true);
+          if (loaded >= urls.length) {
+            setReady(true);
+            setLoading(false);
+          }
         };
         img.src = url;
       });
-      // Fallback: show panel after 600ms even if images aren't cached
-      const t = setTimeout(() => setReady(true), 600);
+      const t = setTimeout(() => {
+        setReady(true);
+        setLoading(false);
+      }, 800);
       return () => clearTimeout(t);
     }
     return undefined;
@@ -88,241 +95,264 @@ export function LookView({ product, onClose }: LookViewProps) {
 
   return (
     <>
-    <AnimatePresence>
-      {product && (
-        <motion.div
-          key="look-view"
-          initial={{ opacity: 0, scale: 0.985 }}
-          animate={{ opacity: ready ? 1 : 0, scale: ready ? 1 : 0.985 }}
-          exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.25, ease: [0.32, 0, 0.16, 1] }}
-          className="fixed inset-0 z-[80] overflow-y-auto"
-          style={{
-            backgroundColor: "rgba(250,248,245,0.95)",
-            // GPU-promoted layer: pure compositor animation, no backdrop-filter paint
-            transform: "translateZ(0)",
-            willChange: "transform, opacity",
-          }}
-        >
-          {/* Ambient glow — static, no transition to avoid repaints */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: `radial-gradient(ellipse 120% 90% at 50% 35%, ${gradColor} 0%, transparent 75%)`,
-            }}
-          />
-
-          {/* Header — sticky so it never scrolls away on mobile */}
-          <div
-            className="sticky top-0 z-30 flex items-center justify-between px-5 md:px-16 pt-5 pb-3"
+      {/* Loading overlay - shown while images are preloading */}
+      <AnimatePresence>
+        {product && loading && (
+          <motion.div
+            key="look-loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-4"
             style={{
               backgroundColor: "rgba(250,248,245,0.95)",
-              paddingTop: "max(1.25rem, env(safe-area-inset-top))",
+              transform: "translateZ(0)",
             }}
           >
-            <button
-              onClick={onClose}
-              className="flex items-center gap-2 text-[11px] tracking-[0.25em] uppercase hover:opacity-50 transition-opacity"
-              style={{ color: "#1e1814" }}
+            <div
+              className="rounded-full"
+              style={{
+                width: 40,
+                height: 40,
+                border: "2px solid rgba(30,24,20,0.08)",
+                borderTopColor: "#1e1814",
+                animation: "lookSpin 0.8s linear infinite",
+              }}
+            />
+            <p
+              className="text-[10px] tracking-[0.28em] uppercase font-medium"
+              style={{ color: "rgba(120,108,96,0.6)", fontFamily: "'Montserrat', sans-serif" }}
             >
-              <span style={{ fontFamily: "monospace", fontSize: 16 }}>←</span>
-              <span>Back</span>
-            </button>
+              Loading look
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            <button
-              onClick={onClose}
-              className="hover:opacity-50 transition-opacity"
-              aria-label="Close"
-            >
-              <X size={20} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-            </button>
-          </div>
-
-          {/* ── "THE LOOK" label ──────────────────── */}
-          <h2
-            className="text-center font-serif leading-none mb-8"
+      {/* Look panel - shown only once images are cached */}
+      <AnimatePresence>
+        {product && ready && (
+          <motion.div
+            key="look-view"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.3, ease: [0.32, 0, 0.16, 1] }}
+            className="fixed inset-0 z-[80] overflow-y-auto"
             style={{
-              color: "#1e1814",
-              fontSize: "clamp(2.5rem, 9vw, 11rem)",
-              letterSpacing: "0.08em",
-              fontWeight: 300,
-              opacity: 0.22,
-              pointerEvents: "none",
-              userSelect: "none",
+              backgroundColor: "rgba(250,248,245,0.95)",
+              transform: "translateZ(0)",
+              willChange: "transform, opacity",
             }}
           >
-            THE LOOK
-          </h2>
+            {/* Ambient glow - static, no transition */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: `radial-gradient(ellipse 120% 90% at 50% 35%, ${gradColor} 0%, transparent 75%)`,
+              }}
+            />
 
-          {/* ── Editorial layout ─────────────────── */}
-          <div className="mx-auto w-full max-w-6xl px-5 md:px-16 pb-10 md:pb-16 flex flex-col md:block">
-            {/* Mobile: hero image + horizontal thumb strip */}
-            <div className="md:hidden flex flex-col gap-3">
-              {/* Main image (clickable) */}
+            {/* Header */}
+            <div
+              className="sticky top-0 z-30 flex items-center justify-between px-5 md:px-16 pt-5 pb-3"
+              style={{
+                backgroundColor: "rgba(250,248,245,0.95)",
+                paddingTop: "max(1.25rem, env(safe-area-inset-top))",
+              }}
+            >
               <button
-                type="button"
-                className="relative w-full block"
-                style={{ height: "55vh", background: "none", border: "none", padding: 0, cursor: "pointer" }}
-                onClick={() => {
-                  const i = availableImages.indexOf(activeImage ?? product.look.model);
-                  setLbIndex(i >= 0 ? i : 0);
-                  setLbOpen(true);
-                }}
+                onClick={onClose}
+                className="flex items-center gap-2 text-[11px] tracking-[0.25em] uppercase hover:opacity-50 transition-opacity"
+                style={{ color: "#1e1814" }}
               >
-                <AnimatePresence initial={false} mode="wait">
-                  <motion.img
+                <span style={{ fontFamily: "monospace", fontSize: 16 }}>&#8592;</span>
+                <span>Back</span>
+              </button>
+
+              <button
+                onClick={onClose}
+                className="hover:opacity-50 transition-opacity"
+                aria-label="Close"
+              >
+                <X size={20} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+              </button>
+            </div>
+
+            {/* THE LOOK label */}
+            <h2
+              className="text-center font-serif leading-none mb-8"
+              style={{
+                color: "#1e1814",
+                fontSize: "clamp(2.5rem, 9vw, 11rem)",
+                letterSpacing: "0.08em",
+                fontWeight: 300,
+                opacity: 0.22,
+                pointerEvents: "none",
+                userSelect: "none",
+              }}
+            >
+              THE LOOK
+            </h2>
+
+            {/* Editorial layout */}
+            <div className="mx-auto w-full max-w-6xl px-5 md:px-16 pb-10 md:pb-16 flex flex-col md:block">
+              {/* Mobile: hero image + horizontal thumb strip */}
+              <div className="md:hidden flex flex-col gap-3">
+                {/* Main image - plain img for instant display */}
+                <button
+                  type="button"
+                  className="relative w-full block"
+                  style={{ height: "55vh", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                  onClick={() => {
+                    const i = availableImages.indexOf(activeImage ?? product.look.model);
+                    setLbIndex(i >= 0 ? i : 0);
+                    setLbOpen(true);
+                  }}
+                >
+                  <img
                     key={activeImage ?? product.look.model}
                     src={activeImage ?? product.look.model}
                     alt={product.name}
                     loading="eager"
                     decoding="async"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.22, ease: "easeInOut" }}
                     className="absolute inset-0 w-full h-full object-cover object-top rounded-sm select-none"
                     draggable={false}
                   />
-                </AnimatePresence>
-              </button>
-              {/* Horizontal thumb strip */}
-              <div
-                className="flex gap-2 overflow-x-auto pb-1"
-                style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", msOverflowStyle: "none", touchAction: "pan-x" }}
-              >
-                <style>{`.look-strip::-webkit-scrollbar { display: none; }`}</style>
-                {availableImages.map((src) => (
-                  <button
-                    key={src}
-                    type="button"
-                    onClick={() => setActiveImage(src)}
-                    className="flex-shrink-0 overflow-hidden rounded-sm"
-                    style={{
-                      width: "72px",
-                      aspectRatio: "1 / 1",
-                      border: src === activeImage ? "2px solid #1e1814" : "2px solid transparent",
-                      opacity: src === activeImage ? 1 : 0.7,
-                      scrollSnapAlign: "start",
-                      transition: "border-color 0.2s ease, opacity 0.2s ease",
-                    }}
-                  >
-                    <img src={src} alt="Look view thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Desktop: 2+1+2 editorial grid — all images open lightbox */}
-            <div className="hidden md:grid grid-cols-[minmax(140px,1fr)_minmax(0,1.35fr)_minmax(140px,1fr)] gap-6 items-center">
-              <div className="grid grid-rows-2 gap-4">
-                {sideImages.slice(0, 2).map((src) => {
-                  const idx = availableImages.indexOf(src);
-                  return (
+                </button>
+                {/* Horizontal thumb strip */}
+                <div
+                  className="flex gap-2 overflow-x-auto pb-1"
+                  style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", msOverflowStyle: "none", touchAction: "pan-x" }}
+                >
+                  <style>{`.look-strip::-webkit-scrollbar { display: none; }`}</style>
+                  {availableImages.map((src) => (
                     <button
                       key={src}
                       type="button"
-                      onClick={() => { setLbIndex(idx); setLbOpen(true); }}
-                      className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 transition-opacity duration-200"
-                      style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer" }}
+                      onClick={() => setActiveImage(src)}
+                      className="flex-shrink-0 overflow-hidden rounded-sm"
+                      style={{
+                        width: "72px",
+                        aspectRatio: "1 / 1",
+                        border: src === activeImage ? "2px solid #1e1814" : "2px solid transparent",
+                        opacity: src === activeImage ? 1 : 0.7,
+                        scrollSnapAlign: "start",
+                        transition: "border-color 0.2s ease, opacity 0.2s ease",
+                      }}
                     >
                       <img src={src} alt="Look view thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-              <button
-                type="button"
-                className="relative block w-full"
-                style={{ height: "70vh", background: "none", border: "none", padding: 0, cursor: "pointer" }}
-                onClick={() => {
-                  const i = availableImages.indexOf(activeImage ?? product.look.model);
-                  setLbIndex(i >= 0 ? i : 0);
-                  setLbOpen(true);
-                }}
-              >
-                <AnimatePresence initial={false} mode="wait">
-                  <motion.img
+
+              {/* Desktop: 2+1+2 editorial grid */}
+              <div className="hidden md:grid grid-cols-[minmax(140px,1fr)_minmax(0,1.35fr)_minmax(140px,1fr)] gap-6 items-center">
+                <div className="grid grid-rows-2 gap-4">
+                  {sideImages.slice(0, 2).map((src) => {
+                    const idx = availableImages.indexOf(src);
+                    return (
+                      <button
+                        key={src}
+                        type="button"
+                        onClick={() => { setLbIndex(idx); setLbOpen(true); }}
+                        className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 transition-opacity duration-200"
+                        style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer" }}
+                      >
+                        <img src={src} alt="Look view thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  className="relative block w-full"
+                  style={{ height: "70vh", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                  onClick={() => {
+                    const i = availableImages.indexOf(activeImage ?? product.look.model);
+                    setLbIndex(i >= 0 ? i : 0);
+                    setLbOpen(true);
+                  }}
+                >
+                  <img
                     key={activeImage ?? product.look.model}
                     src={activeImage ?? product.look.model}
                     alt={product.name}
-                    loading="lazy"
+                    loading="eager"
                     decoding="async"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.25, ease: "easeInOut" }}
                     className="relative z-10 w-full h-full object-cover object-top"
                   />
-                </AnimatePresence>
-              </button>
-              <div className="grid grid-rows-2 gap-4">
-                {sideImages.slice(2, 4).map((src) => {
-                  const idx = availableImages.indexOf(src);
-                  return (
-                    <button
-                      key={src}
-                      type="button"
-                      onClick={() => { setLbIndex(idx); setLbOpen(true); }}
-                      className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 transition-opacity duration-200"
-                      style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer" }}
-                    >
-                      <img src={src} alt="Look view thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                    </button>
-                  );
-                })}
+                </button>
+                <div className="grid grid-rows-2 gap-4">
+                  {sideImages.slice(2, 4).map((src) => {
+                    const idx = availableImages.indexOf(src);
+                    return (
+                      <button
+                        key={src}
+                        type="button"
+                        onClick={() => { setLbIndex(idx); setLbOpen(true); }}
+                        className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 transition-opacity duration-200"
+                        style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer" }}
+                      >
+                        <img src={src} alt="Look view thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* ── Bottom product info strip ─────────── */}
-          <div
-            className="border-t flex flex-col md:flex-row items-start md:items-center justify-between gap-6 px-8 md:px-16 py-8"
-            style={{ borderColor: "rgba(180,160,140,0.2)" }}
-          >
-            <div>
-              <h2
+            {/* Bottom product info strip */}
+            <div
+              className="border-t flex flex-col md:flex-row items-start md:items-center justify-between gap-6 px-8 md:px-16 py-8"
+              style={{ borderColor: "rgba(180,160,140,0.2)" }}
+            >
+              <div>
+                <h2
+                  style={{
+                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontSize: "clamp(1.4rem, 3vw, 2rem)",
+                    fontWeight: 300,
+                    letterSpacing: "0.06em",
+                    color: "#1e1814",
+                  }}
+                >
+                  {product.name}
+                </h2>
+              </div>
+              <p
                 style={{
-                  fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontSize: "clamp(1.4rem, 3vw, 2rem)",
-                  fontWeight: 300,
-                  letterSpacing: "0.06em",
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "clamp(0.95rem, 2vw, 1.1rem)",
+                  fontWeight: 500,
+                  letterSpacing: "0.12em",
                   color: "#1e1814",
                 }}
               >
-                {product.name}
-              </h2>
+                {product.price}
+              </p>
+              <div className="flex gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleAddToBag}
+                  className="px-10 py-3.5 text-[11px] tracking-[0.2em] uppercase font-medium transition-all duration-300"
+                  style={{
+                    backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
+                    color: addedFeedback ? "#1e1814" : "#fff",
+                    border: "1px solid #1e1814",
+                    boxShadow: addedFeedback ? "none" : "0 0 24px rgba(30,24,20,0.18), 0 4px 14px rgba(0,0,0,0.12)",
+                  }}
+                >
+                  {addedFeedback ? "Added \u2713" : "Order Now"}
+                </motion.button>
+              </div>
             </div>
-            <p
-              style={{
-                fontFamily: "'Montserrat', sans-serif",
-                fontSize: "clamp(0.95rem, 2vw, 1.1rem)",
-                fontWeight: 500,
-                letterSpacing: "0.12em",
-                color: "#1e1814",
-              }}
-            >
-              {product.price}
-            </p>
-            <div className="flex gap-3">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleAddToBag}
-                className="px-10 py-3.5 text-[11px] tracking-[0.2em] uppercase font-medium transition-all duration-300"
-                style={{
-                  backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
-                  color: addedFeedback ? "#1e1814" : "#fff",
-                  border: "1px solid #1e1814",
-                  boxShadow: addedFeedback ? "none" : "0 0 24px rgba(30,24,20,0.18), 0 4px 14px rgba(0,0,0,0.12)",
-                }}
-              >
-                {addedFeedback ? "Added \u2713" : "Order Now"}
-              </motion.button>
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <CinematicLightbox
         images={availableImages}

@@ -294,6 +294,10 @@ section {
   opacity: 1 !important;
 }
 
+@keyframes lookSpin {
+  to { transform: rotate(360deg); }
+}
+
 @keyframes moi-shine {
   0% { transform: translateX(-140%); opacity: 0; }
   18% { opacity: 0.65; }
