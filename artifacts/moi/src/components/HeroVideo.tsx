@@ -1,7 +1,8 @@
 import { useRef, useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { IMAGES } from "@/config/images";
-import { useImageColor } from "@/hooks/useImageColor";
+
+const HERO_GRAD_EDGE = "rgba(180,160,130,0.12)";
 
 export function HeroVideo() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -9,8 +10,7 @@ export function HeroVideo() {
   const [loaded, setLoaded] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
 
-  const color = useImageColor(IMAGES.hero.fallbackUrl);
-  const gradEdge = color?.rgba(0.18) ?? "rgba(180,160,130,0.12)";
+  const gradEdge = HERO_GRAD_EDGE;
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,

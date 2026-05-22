@@ -108,6 +108,15 @@ export function useShopifyProducts(fallbacks: ProductConfig[]): UseShopifyProduc
     let cancelled = false;
     setLoading(true);
 
+    const ric: (cb: IdleRequestCallback, opts?: IdleRequestOptions) => number =
+      typeof requestIdleCallback === "function"
+        ? requestIdleCallback
+        : (cb) => setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline), 600) as unknown as number;
+
+    let ricId: number;
+    ricId = ric(() => {
+    if (cancelled) return;
+
     getProducts(10)
       .then((shopifyProducts) => {
         if (cancelled) return;
@@ -137,8 +146,15 @@ export function useShopifyProducts(fallbacks: ProductConfig[]): UseShopifyProduc
         setError(err instanceof Error ? err.message : "Failed to load products");
         setLoading(false);
       });
+    }, { timeout: 4000 });
 
-    return () => { cancelled = true; };
+    const cic: (id: number) => void =
+      typeof cancelIdleCallback === "function" ? cancelIdleCallback : clearTimeout;
+
+    return () => {
+      cancelled = true;
+      if (ricId) cic(ricId);
+    };
   }, []);
 
   return { products, loading, error };

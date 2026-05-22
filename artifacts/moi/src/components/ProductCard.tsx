@@ -179,7 +179,10 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   const galleryImages = colorGallery.length > 0 ? colorGallery : [resolvedColorImage ?? product.productShot];
   const mainImage = galleryImages[galleryIndex % galleryImages.length] ?? resolvedColorImage ?? product.productShot;
-  const color = useImageColor(mainImage);
+
+  const initialImageRef = useRef(product.productShot);
+  const colorImageUrl = inView ? initialImageRef.current : null;
+  const color = useImageColor(colorImageUrl);
   const ambientRgba = color?.rgba(0.14) ?? "rgba(180,160,140,0.09)";
   const ambientStrong = color?.rgba(0.22) ?? "rgba(180,160,140,0.14)";
 
