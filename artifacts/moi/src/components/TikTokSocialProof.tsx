@@ -45,7 +45,7 @@ export function TikTokSocialProof() {
           {/* Headline */}
           <div className="text-center mb-10 md:mb-14">
             <p
-              className="text-[9px] tracking-[0.45em] uppercase mb-4"
+              className="tracking-[0.45em] uppercase mb-4 text-[11px]"
               style={{
                 color: "rgba(120,108,96,0.55)",
                 fontFamily: "'Montserrat', sans-serif",
