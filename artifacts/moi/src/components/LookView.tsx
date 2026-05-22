@@ -133,18 +133,25 @@ export function LookView({ product, onClose }: LookViewProps) {
             className="fixed inset-0 z-[80]"
             style={{ backgroundColor: "#faf8f5", transform: "translateZ(0)" }}
           >
-            {/* Spinner — visible while !ready */}
+            {/* Spinner — visible while !ready, staggered ring → text */}
             <AnimatePresence>
               {!ready && (
                 <motion.div
                   key="spinner"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
+                  initial="hidden"
+                  animate="show"
+                  exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                  variants={{
+                    hidden: {},
+                    show: { transition: { staggerChildren: 0.12 } },
+                  }}
                   className="absolute inset-0 flex flex-col items-center justify-center gap-4"
                 >
-                  <div
+                  <motion.div
+                    variants={{
+                      hidden: { opacity: 0, scale: 0.8 },
+                      show: { opacity: 1, scale: 1, transition: { duration: 0.3, ease: [0.34, 1.56, 0.64, 1] } },
+                    }}
                     style={{
                       width: 36,
                       height: 36,
@@ -154,7 +161,11 @@ export function LookView({ product, onClose }: LookViewProps) {
                       animation: "lookSpin 0.8s linear infinite",
                     }}
                   />
-                  <p
+                  <motion.p
+                    variants={{
+                      hidden: { opacity: 0, y: 4 },
+                      show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+                    }}
                     style={{
                       fontFamily: "'Montserrat', sans-serif",
                       fontSize: "10px",
@@ -164,21 +175,22 @@ export function LookView({ product, onClose }: LookViewProps) {
                     }}
                   >
                     Loading look
-                  </p>
+                  </motion.p>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Panel content — crossfades in when ready */}
+            {/* Panel content — "summoned" scale+fade reveal when ready */}
             <AnimatePresence>
               {ready && (
                 <motion.div
                   key="panel"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  initial={{ opacity: 0, scale: 0.97, y: 16 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                   className="absolute inset-0 overflow-y-auto"
+                  style={{ transformOrigin: "center 30%" }}
                 >
             {/* Subtle ambient gradient */}
             <div
