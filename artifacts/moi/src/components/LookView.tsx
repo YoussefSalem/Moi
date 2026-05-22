@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import type { ProductConfig } from "@/config/images";
@@ -18,6 +18,7 @@ export function LookView({ product, onClose }: LookViewProps) {
   const [lbOpen, setLbOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
   const [ready, setReady] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
   const { addToCart } = useCart();
 
   useEffect(() => {
@@ -32,7 +33,6 @@ export function LookView({ product, onClose }: LookViewProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // Preload all look images before revealing the panel
   useEffect(() => {
     setActiveImage(product?.look.model ?? null);
     setAddedFeedback(false);
@@ -50,20 +50,40 @@ export function LookView({ product, onClose }: LookViewProps) {
 
     if (urls.length === 0) { setReady(true); return undefined; }
 
-    let loaded = 0;
     let settled = false;
-    const markReady = () => { if (!settled) { settled = true; setReady(true); } };
 
-    // Defer so the spinner always gets at least one rendered frame before onload fires
-    const kickoff = setTimeout(() => {
-      urls.forEach((url) => {
-        const img = new Image();
-        img.onload = img.onerror = () => { loaded++; if (loaded >= urls.length) markReady(); };
-        img.src = url;
+    const markReady = () => {
+      if (settled) return;
+      settled = true;
+      // Double-rAF: wait for the browser to paint the hidden panel before revealing.
+      // This ensures layout + paint are done — reveal is then a pure compositor flip.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setReady(true);
+        });
       });
+    };
+
+    const kickoff = setTimeout(async () => {
+      const decodePromises = urls.map(async (url) => {
+        const img = new Image();
+        img.src = url;
+        try {
+          // img.decode() waits for GPU texture upload — not just HTTP complete
+          await img.decode();
+        } catch {
+          // silently ignore decode failures (e.g. network error)
+        }
+      });
+
+      // Wait for all images to be GPU-ready, then reveal
+      await Promise.all(decodePromises);
+      markReady();
     }, 0);
 
-    const fallback = setTimeout(markReady, 1000);
+    // Hard fallback — never block longer than 1.2s
+    const fallback = setTimeout(markReady, 1200);
+
     return () => { clearTimeout(kickoff); clearTimeout(fallback); };
   }, [product]);
 
@@ -83,7 +103,13 @@ export function LookView({ product, onClose }: LookViewProps) {
 
   const availableImages = useMemo(() => {
     if (!product) return [];
-    const raw = [product.look.model, product.look.earring, product.look.shoes, product.look.bag, product.look.extra].filter(Boolean) as string[];
+    const raw = [
+      product.look.model,
+      product.look.earring,
+      product.look.shoes,
+      product.look.bag,
+      product.look.extra,
+    ].filter(Boolean) as string[];
     return raw.filter((s, i, a) => a.indexOf(s) === i);
   }, [product]);
 
@@ -94,13 +120,6 @@ export function LookView({ product, onClose }: LookViewProps) {
 
   return (
     <>
-      {/*
-        Architecture for 144Hz mobile smoothness:
-        1. Outer overlay: opacity-only transition — compositor-only, zero repaints
-        2. Spinner: scale wrapper (framer) wraps plain div (CSS spin) — no transform conflict
-        3. Panel motion.div: translateY + opacity only — NO scale on scrollable containers
-        4. Scroll container: separate plain div inside the panel — not the animated element
-      */}
       <AnimatePresence>
         {product && (
           <motion.div
@@ -108,142 +127,89 @@ export function LookView({ product, onClose }: LookViewProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
+            transition={{ duration: 0.18 }}
             className="fixed inset-0 z-[80]"
             style={{ backgroundColor: "#faf8f5", willChange: "opacity" }}
           >
-            {/* ── Loading spinner — visible while !ready ──────────────────── */}
-            <AnimatePresence>
-              {!ready && (
-                <motion.div
-                  key="spinner"
-                  initial="hidden"
-                  animate="show"
-                  exit={{ opacity: 0, transition: { duration: 0.18, ease: "easeIn" } }}
-                  variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1 } } }}
-                  className="absolute inset-0 flex flex-col items-center justify-center gap-4"
+
+            {/*
+              KEY PERFORMANCE TRICK:
+              The panel is rendered in the DOM immediately (even while !ready)
+              but is invisible + non-interactive. This lets the browser do all
+              layout and paint work while the spinner is showing.
+              When ready flips, the reveal is a pure compositor opacity change —
+              zero paint cost, zero jank at 144Hz.
+            */}
+            <div
+              ref={panelRef}
+              className="absolute inset-0"
+              style={{
+                opacity: ready ? 1 : 0,
+                pointerEvents: ready ? "auto" : "none",
+                // Slow, graceful reveal — fast start (snappy), long smooth tail (elegant)
+                transition: ready ? "opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1)" : "none",
+                willChange: "opacity",
+              }}
+            >
+              {/* Scroll container: completely separate from any animated/transformed wrapper */}
+              <div
+                className="absolute inset-0 overflow-y-auto"
+                style={{
+                  WebkitOverflowScrolling: "touch",
+                  touchAction: "pan-y",
+                  overscrollBehavior: "contain",
+                }}
+              >
+                {/* Ambient gradient */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: `radial-gradient(ellipse 100% 70% at 50% 20%, ${GRAD_COLOR} 0%, transparent 70%)`,
+                  }}
+                />
+
+                {/* Sticky header */}
+                <div
+                  className="sticky top-0 z-30 flex items-center justify-between px-5 md:px-16 pb-3"
+                  style={{
+                    backgroundColor: "rgba(250,248,245,0.97)",
+                    paddingTop: "max(1.25rem, env(safe-area-inset-top))",
+                  }}
                 >
-                  {/*
-                    Scale wrapper handled by framer-motion.
-                    The CSS spin lives on a child plain div so `transform` doesn't conflict.
-                  */}
-                  <motion.div
-                    variants={{
-                      hidden: { opacity: 0, scale: 0.72 },
-                      show: {
-                        opacity: 1,
-                        scale: 1,
-                        transition: { duration: 0.32, ease: [0.34, 1.56, 0.64, 1] },
-                      },
-                    }}
-                    style={{ willChange: "transform, opacity" }}
+                  <button
+                    onClick={onClose}
+                    className="flex items-center gap-2 text-[11px] tracking-[0.25em] uppercase hover:opacity-50 transition-opacity"
+                    style={{ color: "#1e1814" }}
                   >
-                    <div
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: "50%",
-                        border: "1.5px solid rgba(30,24,20,0.07)",
-                        borderTopColor: "#1e1814",
-                        animation: "lookSpin 0.75s linear infinite",
-                      }}
-                    />
-                  </motion.div>
-
-                  <motion.p
-                    variants={{
-                      hidden: { opacity: 0, y: 6 },
-                      show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
-                    }}
-                    style={{
-                      fontFamily: "'Montserrat', sans-serif",
-                      fontSize: "9.5px",
-                      letterSpacing: "0.3em",
-                      textTransform: "uppercase",
-                      color: "rgba(120,108,96,0.6)",
-                      willChange: "transform, opacity",
-                    }}
+                    <span style={{ fontFamily: "monospace", fontSize: 16 }}>&#8592;</span>
+                    <span>Back</span>
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="hover:opacity-50 transition-opacity"
+                    aria-label="Close"
                   >
-                    Loading look
-                  </motion.p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    <X size={20} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                  </button>
+                </div>
 
-            {/* ── Panel — translateY + opacity only (no scale on scroll container) ── */}
-            <AnimatePresence>
-              {ready && (
-                <motion.div
-                  key="panel"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute inset-0"
-                  style={{ willChange: "transform, opacity" }}
+                {/* THE LOOK watermark */}
+                <h2
+                  className="text-center font-serif leading-none mb-8 select-none pointer-events-none"
+                  style={{
+                    color: "#1e1814",
+                    fontSize: "clamp(2.5rem, 9vw, 11rem)",
+                    letterSpacing: "0.08em",
+                    fontWeight: 300,
+                    opacity: 0.18,
+                  }}
                 >
-                  {/*
-                    Scroll container is a plain div, completely separate from the
-                    animated wrapper above — animating scale on overflow-y-auto
-                    forces GPU re-rasterisation on every frame (kills 144Hz).
-                  */}
-                  <div
-                    className="absolute inset-0 overflow-y-auto"
-                    style={{
-                      WebkitOverflowScrolling: "touch",
-                      touchAction: "pan-y",
-                      overscrollBehavior: "contain",
-                    }}
-                  >
-                    {/* Ambient gradient */}
-                    <div
-                      className="absolute inset-0 pointer-events-none"
-                      style={{
-                        background: `radial-gradient(ellipse 100% 70% at 50% 20%, ${GRAD_COLOR} 0%, transparent 70%)`,
-                      }}
-                    />
+                  THE LOOK
+                </h2>
 
-                    {/* Sticky header */}
-                    <div
-                      className="sticky top-0 z-30 flex items-center justify-between px-5 md:px-16 pb-3"
-                      style={{
-                        backgroundColor: "rgba(250,248,245,0.97)",
-                        paddingTop: "max(1.25rem, env(safe-area-inset-top))",
-                        backdropFilter: "none",
-                      }}
-                    >
-                      <button
-                        onClick={onClose}
-                        className="flex items-center gap-2 text-[11px] tracking-[0.25em] uppercase hover:opacity-50 transition-opacity"
-                        style={{ color: "#1e1814" }}
-                      >
-                        <span style={{ fontFamily: "monospace", fontSize: 16 }}>&#8592;</span>
-                        <span>Back</span>
-                      </button>
-                      <button
-                        onClick={onClose}
-                        className="hover:opacity-50 transition-opacity"
-                        aria-label="Close"
-                      >
-                        <X size={20} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-                      </button>
-                    </div>
-
-                    {/* THE LOOK watermark */}
-                    <h2
-                      className="text-center font-serif leading-none mb-8 select-none pointer-events-none"
-                      style={{
-                        color: "#1e1814",
-                        fontSize: "clamp(2.5rem, 9vw, 11rem)",
-                        letterSpacing: "0.08em",
-                        fontWeight: 300,
-                        opacity: 0.18,
-                      }}
-                    >
-                      THE LOOK
-                    </h2>
-
-                    {/* ── Editorial layout ───────────────── */}
+                {product && (
+                  <>
+                    {/* Editorial layout */}
                     <div className="mx-auto w-full max-w-6xl px-5 md:px-16 pb-10 md:pb-16">
 
                       {/* Mobile: stacked hero + thumb strip */}
@@ -258,7 +224,6 @@ export function LookView({ product, onClose }: LookViewProps) {
                             setLbOpen(true);
                           }}
                         >
-                          {/* Plain img — already preloaded, renders instantly */}
                           <img
                             src={activeImage ?? product.look.model}
                             alt={product.name}
@@ -267,7 +232,6 @@ export function LookView({ product, onClose }: LookViewProps) {
                           />
                         </button>
 
-                        {/* Horizontal thumb strip */}
                         <div
                           className="flex gap-2 overflow-x-auto pb-1"
                           style={{
@@ -354,7 +318,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                       </div>
                     </div>
 
-                    {/* ── Bottom product strip ──────────── */}
+                    {/* Bottom product strip */}
                     <div
                       className="border-t flex flex-col md:flex-row items-start md:items-center justify-between gap-6 px-8 md:px-16 py-8"
                       style={{ borderColor: "rgba(180,160,140,0.2)" }}
@@ -386,11 +350,12 @@ export function LookView({ product, onClose }: LookViewProps) {
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.97 }}
                           onClick={handleAddToBag}
-                          className="px-10 py-3.5 text-[11px] tracking-[0.2em] uppercase font-medium transition-colors duration-200"
+                          className="px-10 py-3.5 text-[11px] tracking-[0.2em] uppercase font-medium"
                           style={{
                             backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
                             color: addedFeedback ? "#1e1814" : "#fff",
                             border: "1px solid #1e1814",
+                            transition: "background-color 0.2s, color 0.2s, box-shadow 0.2s",
                             boxShadow: addedFeedback
                               ? "none"
                               : "0 0 20px rgba(30,24,20,0.15), 0 4px 12px rgba(0,0,0,0.1)",
@@ -400,10 +365,65 @@ export function LookView({ product, onClose }: LookViewProps) {
                         </motion.button>
                       </div>
                     </div>
-                  </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Spinner — overlaid on top, fades out once ready */}
+            <AnimatePresence>
+              {!ready && (
+                <motion.div
+                  key="spinner"
+                  initial="hidden"
+                  animate="show"
+                  exit={{ opacity: 0, transition: { duration: 0.25, ease: "easeIn" } }}
+                  variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1 } } }}
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none"
+                >
+                  {/* Scale wrapper (framer) — child plain div handles CSS rotation, no transform conflict */}
+                  <motion.div
+                    variants={{
+                      hidden: { opacity: 0, scale: 0.7 },
+                      show: {
+                        opacity: 1,
+                        scale: 1,
+                        transition: { duration: 0.35, ease: [0.34, 1.56, 0.64, 1] },
+                      },
+                    }}
+                    style={{ willChange: "transform, opacity" }}
+                  >
+                    <div
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: "50%",
+                        border: "1.5px solid rgba(30,24,20,0.07)",
+                        borderTopColor: "#1e1814",
+                        animation: "lookSpin 0.75s linear infinite",
+                      }}
+                    />
+                  </motion.div>
+
+                  <motion.p
+                    variants={{
+                      hidden: { opacity: 0, y: 6 },
+                      show: { opacity: 1, y: 0, transition: { duration: 0.32, ease: "easeOut" } },
+                    }}
+                    style={{
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: "9.5px",
+                      letterSpacing: "0.3em",
+                      textTransform: "uppercase",
+                      color: "rgba(120,108,96,0.6)",
+                    }}
+                  >
+                    Loading look
+                  </motion.p>
                 </motion.div>
               )}
             </AnimatePresence>
+
           </motion.div>
         )}
       </AnimatePresence>
