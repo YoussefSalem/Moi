@@ -187,11 +187,13 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const ambientStrong = color?.rgba(0.22) ?? "rgba(180,160,140,0.14)";
 
   const [isSwapping, setIsSwapping] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const prevImageRef = useRef(mainImage);
   useEffect(() => {
     if (mainImage === prevImageRef.current) return;
     prevImageRef.current = mainImage;
     setIsSwapping(true);
+    setImgLoaded(false);
     const t = setTimeout(() => setIsSwapping(false), 360);
     return () => clearTimeout(t);
   }, [mainImage]);
@@ -437,20 +439,23 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                           loading="lazy"
                           decoding="async"
                           initial={{ opacity: 0, scale: 0.975 }}
-                          animate={{ opacity: 1, scale: 1 }}
+                          animate={{ opacity: imgLoaded ? 1 : 0, scale: imgLoaded ? 1 : 0.975 }}
                           exit={{ opacity: 0, scale: 1.025 }}
                           transition={{ duration: 0.28, ease: "easeInOut" }}
+                          onLoad={() => setImgLoaded(true)}
+                          onError={() => setImgLoaded(true)}
                         />
                       </AnimatePresence>
 
-                      {/* Shimmer */}
+                      {/* Skeleton — visible while new image loads */}
                       <AnimatePresence>
-                        {isSwapping && (
+                        {(!imgLoaded || isSwapping) && (
                           <motion.div
-                            key="shimmer"
-                            className="absolute inset-0 pointer-events-none shimmer"
+                            key="skeleton"
+                            className="absolute inset-0 pointer-events-none animate-pulse"
+                            style={{ backgroundColor: "rgba(30,24,20,0.06)" }}
                             initial={{ opacity: 1 }}
-                            exit={{ opacity: 0, transition: { duration: 0.22 } }}
+                            exit={{ opacity: 0, transition: { duration: 0.3 } }}
                           />
                         )}
                       </AnimatePresence>
@@ -561,18 +566,22 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                         loading="lazy"
                         decoding="async"
                         initial={{ opacity: 0, scale: 0.975 }}
-                        animate={{ opacity: 1, scale: 1 }}
+                        animate={{ opacity: imgLoaded ? 1 : 0, scale: imgLoaded ? 1 : 0.975 }}
                         exit={{ opacity: 0, scale: 1.025 }}
                         transition={{ duration: 0.28, ease: "easeInOut" }}
+                        onLoad={() => setImgLoaded(true)}
+                        onError={() => setImgLoaded(true)}
                       />
                     </AnimatePresence>
+                    {/* Skeleton — visible while new image loads */}
                     <AnimatePresence>
-                      {isSwapping && (
+                      {(!imgLoaded || isSwapping) && (
                         <motion.div
-                          key="shimmer"
-                          className="absolute inset-0 pointer-events-none shimmer"
+                          key="skeleton"
+                          className="absolute inset-0 pointer-events-none animate-pulse"
+                          style={{ backgroundColor: "rgba(30,24,20,0.06)" }}
                           initial={{ opacity: 1 }}
-                          exit={{ opacity: 0, transition: { duration: 0.22 } }}
+                          exit={{ opacity: 0, transition: { duration: 0.3 } }}
                         />
                       )}
                     </AnimatePresence>

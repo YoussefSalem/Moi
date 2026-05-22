@@ -9,6 +9,7 @@ export function Carousel() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(0);
+  const [lbImgLoaded, setLbImgLoaded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const color = useImageColor(images[activeIndex]);
 
@@ -31,6 +32,10 @@ export function Carousel() {
     setLightboxOpen(false);
     document.body.style.overflow = "";
   };
+
+  useEffect(() => {
+    setLbImgLoaded(false);
+  }, [lightboxIdx]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -196,6 +201,13 @@ export function Carousel() {
 
               {/* Right: full-size image */}
               <div className="flex-1 flex items-center justify-center relative bg-black">
+                {/* Skeleton while image loads */}
+                {!lbImgLoaded && (
+                  <div
+                    className="absolute inset-0 animate-pulse"
+                    style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+                  />
+                )}
                 <AnimatePresence initial={false} mode="wait">
                   <motion.img
                     key={lightboxIdx}
@@ -205,9 +217,11 @@ export function Carousel() {
                     loading="lazy"
                     decoding="async"
                     initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    animate={{ opacity: lbImgLoaded ? 1 : 0, x: lbImgLoaded ? 0 : 20 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
+                    onLoad={() => setLbImgLoaded(true)}
+                    onError={() => setLbImgLoaded(true)}
                   />
                 </AnimatePresence>
               </div>

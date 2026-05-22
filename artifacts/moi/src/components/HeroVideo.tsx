@@ -60,6 +60,14 @@ export function HeroVideo() {
       className="relative w-full overflow-hidden"
       style={{ height: "100svh" }}
     >
+      {/* Skeleton shown while hero image/video is loading */}
+      {!loaded && (
+        <div
+          className="absolute inset-0 z-[1] animate-pulse"
+          style={{ backgroundColor: "#e8e3dc" }}
+        />
+      )}
+
       {/* Ambient edge glow */}
       <div
         className="absolute inset-0 pointer-events-none z-10"
