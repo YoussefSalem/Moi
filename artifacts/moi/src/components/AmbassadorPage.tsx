@@ -4,6 +4,13 @@ import { Send, UserRound, Phone, Mail, Facebook, Instagram, MessageCircleMore, V
 
 const videos = [
   {
+    title: "How brands under 1000 EGP actually look on 👀💸",
+    handle: "@etharrdiabb",
+    profileUrl: "https://www.tiktok.com/@etharrdiabb",
+    caption: "Real styling review — affordable local fashion that actually delivers.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7642745763021262098",
+  },
+  {
     title: "Get ready with me",
     handle: "@thatsalmarocks",
     profileUrl: "https://www.tiktok.com/@thatsalmarocks",
@@ -238,7 +245,7 @@ export function AmbassadorPage() {
               <Video size={16} className="text-white/70" />
               <p className="text-[10px] tracking-[0.35em] uppercase text-white/50">TikTok social proof</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {videos.map((video, idx) => (
                 <div
                   key={`${video.handle}-${idx}`}
