@@ -71,10 +71,13 @@ export function HeroVideo() {
         }}
       />
 
-      {/* Parallax image / video — parallax disabled on mobile to prevent scroll jitter */}
+      {/* Parallax image / video — on mobile: opacity fade only, no position shift */}
       <motion.div
         className="absolute inset-0 w-full h-[115%] -top-[7.5%]"
-        style={IS_MOBILE ? {} : { y: imageY, willChange: "transform" }}
+        style={IS_MOBILE
+          ? { opacity: overlayOpacity, willChange: "opacity" }
+          : { y: imageY, willChange: "transform" }
+        }
       >
         {!videoFailed && IMAGES.hero.videoUrl ? (
           <video
@@ -114,11 +117,11 @@ export function HeroVideo() {
         }}
       />
 
-      {/* Hero text content — parallax on desktop only */}
+      {/* Hero text content — mobile: opacity fade only; desktop: parallax + fade */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 z-[3] flex flex-col items-center text-center"
         style={IS_MOBILE
-          ? { paddingBottom: "clamp(80px, 14vw, 140px)" }
+          ? { paddingBottom: "clamp(80px, 14vw, 140px)", opacity: overlayOpacity, willChange: "opacity" }
           : { y: textY, paddingBottom: "clamp(80px, 14vw, 140px)", opacity: overlayOpacity }
         }
       >

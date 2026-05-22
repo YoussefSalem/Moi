@@ -18,6 +18,7 @@ export function LookView({ product, onClose }: LookViewProps) {
   const [lbOpen, setLbOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
   const [ready, setReady] = useState(false);
+  const [thumbLoading, setThumbLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const { addToCart } = useCart();
 
@@ -50,22 +51,25 @@ export function LookView({ product, onClose }: LookViewProps) {
 
     if (urls.length === 0) { setReady(true); return undefined; }
 
-    let settled = false;
+    // cancelled flag: set by cleanup so stale async work never updates state
+    // after the component unmounts or the product changes. This prevents
+    // memory accumulation from Image objects across rapid open/close cycles.
+    let cancelled = false;
 
     const markReady = () => {
-      if (settled) return;
-      settled = true;
+      if (cancelled) return;
       // Double-rAF: wait for the browser to paint the hidden panel before revealing.
       // This ensures layout + paint are done — reveal is then a pure compositor flip.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          setReady(true);
+          if (!cancelled) setReady(true);
         });
       });
     };
 
     const kickoff = setTimeout(async () => {
       const decodePromises = urls.map(async (url) => {
+        if (cancelled) return;
         const img = new Image();
         img.src = url;
         try {
@@ -89,7 +93,11 @@ export function LookView({ product, onClose }: LookViewProps) {
     // Hard fallback — never block longer than 1.2s
     const fallback = setTimeout(markReady, 1200);
 
-    return () => { clearTimeout(kickoff); clearTimeout(fallback); };
+    return () => {
+      cancelled = true;
+      clearTimeout(kickoff);
+      clearTimeout(fallback);
+    };
   }, [product]);
 
   const handleAddToBag = async () => {
@@ -240,7 +248,16 @@ export function LookView({ product, onClose }: LookViewProps) {
                             alt={product.name}
                             className="look-img-fade absolute inset-0 w-full h-full object-cover object-top rounded-sm"
                             draggable={false}
+                            onLoad={() => setThumbLoading(false)}
+                            onError={() => setThumbLoading(false)}
                           />
+                          {/* Skeleton pulse while new thumbnail image loads */}
+                          {thumbLoading && (
+                            <div
+                              className="absolute inset-0 animate-pulse rounded-sm pointer-events-none"
+                              style={{ backgroundColor: "rgba(30,24,20,0.07)" }}
+                            />
+                          )}
                         </button>
 
                         <div
@@ -258,7 +275,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                               <button
                                 key={src}
                                 type="button"
-                                onClick={() => setActiveImage(src)}
+                                onClick={() => { setActiveImage(src); setThumbLoading(true); }}
                                 className="flex-shrink-0 overflow-hidden rounded-sm"
                                 style={{
                                   width: 68,
