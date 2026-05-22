@@ -15,6 +15,7 @@ import { trackAddToCart } from "@/lib/metaPixel";
 import { trackTikTokAddToCart } from "@/lib/tiktokPixel";
 import {
   trackShopifyAddToCart,
+  trackShopifyCartViewed,
   trackShopifyCheckoutStarted,
 } from "@/lib/shopifyAnalytics";
 
@@ -326,7 +327,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       checkoutOpen,
       loading,
       itemCount,
-      openCart: () => setCartOpen(true),
+      openCart: () => {
+        setCartOpen(true);
+        trackShopifyCartViewed({
+          cartId: shopifyCart?.id,
+          totalPrice: shopifyCart
+            ? parseFloat(shopifyCart.cost.totalAmount.amount)
+            : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0),
+          currencyCode: shopifyCart?.cost.totalAmount.currencyCode
+            ?? localItems[0]?.currencyCode
+            ?? "EGP",
+        });
+      },
       closeCart: () => setCartOpen(false),
       openCheckout,
       closeCheckout: () => setCheckoutOpen(false),

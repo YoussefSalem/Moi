@@ -6,6 +6,7 @@ import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 import { IMAGES } from "@/config/images";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
 import { trackTikTokPurchase } from "@/lib/tiktokPixel";
+import { trackShopifyPurchase } from "@/lib/shopifyAnalytics";
 import type { ShopifyCartLine } from "@/lib/shopify";
 
 const PRODUCT_COLOR_MAP: Record<string, string> = {};
@@ -479,6 +480,13 @@ export function CheckoutPage() {
         quantity: purchaseItems,
         order_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
       });
+      trackShopifyPurchase({
+        orderId: String(data.shopifyOrderId ?? data.orderNumber ?? ""),
+        orderNumber: data.orderNumber,
+        totalPrice: purchaseValue,
+        currencyCode: "EGP",
+        lineItems: orderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
+      });
       setStep("cod-confirm");
     } catch {
       setStep("form");
@@ -518,6 +526,12 @@ export function CheckoutPage() {
       value: totalVal,
       num_items: orderLines.reduce((s, l) => s + l.quantity, 0),
       order_id: txnId ?? "",
+    });
+    trackShopifyPurchase({
+      orderId: txnId ?? "",
+      totalPrice: totalVal,
+      currencyCode: "EGP",
+      lineItems: orderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
     });
   }, [clearCart, isShopify, shopifyCart, localItems, totalAmount]);
 
@@ -782,6 +796,13 @@ export function CheckoutPage() {
                   value: proofTotal,
                   quantity: proofItems,
                   order_id: String(orderNumber),
+                });
+                trackShopifyPurchase({
+                  orderId: String(shopifyOrderId ?? orderNumber),
+                  orderNumber: orderNumber,
+                  totalPrice: proofTotal,
+                  currencyCode: "EGP",
+                  lineItems: proofOrderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
                 });
               }}
               fmt={fmt}
