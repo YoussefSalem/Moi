@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { useImageColor } from "@/hooks/useImageColor";
 import type { ProductConfig } from "@/config/images";
 import { useCart } from "@/context/CartContext";
 import { CinematicLightbox } from "@/components/CinematicLightbox";
@@ -11,12 +10,14 @@ interface LookViewProps {
   onClose: () => void;
 }
 
+const GRAD_COLOR = "rgba(180,160,130,0.10)";
+
 export function LookView({ product, onClose }: LookViewProps) {
   const [activeImage, setActiveImage] = useState(product?.look.model ?? null);
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [lbOpen, setLbOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
-  const color = useImageColor(product?.look.model ?? null);
+  const [ready, setReady] = useState(false);
   const { addToCart } = useCart();
 
   useEffect(() => {
@@ -34,6 +35,30 @@ export function LookView({ product, onClose }: LookViewProps) {
   useEffect(() => {
     setActiveImage(product?.look.model ?? null);
     setAddedFeedback(false);
+    setReady(false);
+
+    // Preload all look images so the panel opens instantly with cached assets
+    if (product) {
+      const urls = [product.look.model, product.look.shoes, product.look.bag, product.look.earring, product.look.extra]
+        .filter(Boolean) as string[];
+      let loaded = 0;
+      if (urls.length === 0) {
+        setReady(true);
+        return undefined;
+      }
+      urls.forEach((url) => {
+        const img = new Image();
+        img.onload = img.onerror = () => {
+          loaded++;
+          if (loaded >= urls.length) setReady(true);
+        };
+        img.src = url;
+      });
+      // Fallback: show panel after 600ms even if images aren't cached
+      const t = setTimeout(() => setReady(true), 600);
+      return () => clearTimeout(t);
+    }
+    return undefined;
   }, [product]);
 
   const handleAddToBag = async () => {
@@ -50,7 +75,7 @@ export function LookView({ product, onClose }: LookViewProps) {
     setTimeout(() => setAddedFeedback(false), 1800);
   };
 
-  const gradColor = color?.rgba(0.15) ?? "rgba(180,160,130,0.10)";
+  const gradColor = GRAD_COLOR;
   const availableImages = useMemo(() => {
     if (!product) return [];
     const items = [product.look.model, product.look.earring, product.look.shoes, product.look.bag, product.look.extra].filter(Boolean) as string[];
@@ -67,24 +92,23 @@ export function LookView({ product, onClose }: LookViewProps) {
       {product && (
         <motion.div
           key="look-view"
-          initial={{ opacity: 0, y: 32 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 16 }}
-          transition={{ duration: 0.38, ease: [0.32, 0, 0.16, 1] }}
+          initial={{ opacity: 0, scale: 0.985 }}
+          animate={{ opacity: ready ? 1 : 0, scale: ready ? 1 : 0.985 }}
+          exit={{ opacity: 0, scale: 0.98 }}
+          transition={{ duration: 0.25, ease: [0.32, 0, 0.16, 1] }}
           className="fixed inset-0 z-[80] overflow-y-auto"
           style={{
-            backgroundColor: "rgba(250,248,245,0.72)",
-            backdropFilter: "blur(18px) saturate(1.2)",
-            WebkitBackdropFilter: "blur(18px) saturate(1.2)",
+            backgroundColor: "rgba(250,248,245,0.95)",
+            // GPU-promoted layer: pure compositor animation, no backdrop-filter paint
+            transform: "translateZ(0)",
             willChange: "transform, opacity",
           }}
         >
-          {/* Ambient glow — richer and more spread against translucent background */}
+          {/* Ambient glow — static, no transition to avoid repaints */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
               background: `radial-gradient(ellipse 120% 90% at 50% 35%, ${gradColor} 0%, transparent 75%)`,
-              transition: "opacity 0.8s ease",
             }}
           />
 
@@ -92,9 +116,7 @@ export function LookView({ product, onClose }: LookViewProps) {
           <div
             className="sticky top-0 z-30 flex items-center justify-between px-5 md:px-16 pt-5 pb-3"
             style={{
-              backgroundColor: "rgba(250,248,245,0.55)",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
+              backgroundColor: "rgba(250,248,245,0.95)",
               paddingTop: "max(1.25rem, env(safe-area-inset-top))",
             }}
           >
@@ -258,12 +280,6 @@ export function LookView({ product, onClose }: LookViewProps) {
             style={{ borderColor: "rgba(180,160,140,0.2)" }}
           >
             <div>
-              <p
-                className="text-[10px] tracking-[0.45em] uppercase mb-1"
-                style={{ color: "rgba(120,108,96,0.7)", fontFamily: "'Montserrat', sans-serif" }}
-              >
-                New Arrival
-              </p>
               <h2
                 style={{
                   fontFamily: "'Cormorant Garamond', Georgia, serif",
