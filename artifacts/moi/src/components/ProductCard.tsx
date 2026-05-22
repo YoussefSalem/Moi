@@ -740,22 +740,22 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               )}
 
               {/* Scarcity note */}
-              <motion.p
-                variants={itemVariants}
-                className="mb-2"
-                animate={{ opacity: [0.55, 1, 0.55] }}
-                transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-                style={{
-                  color: "#9e2a2b",
-                  fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "9px",
-                  letterSpacing: "0.3em",
-                  textTransform: "uppercase",
-                  textShadow: "0 0 18px rgba(158,42,43,0.18), 0 0 6px rgba(158,42,43,0.08)",
-                }}
-              >
-                Almost sold out
-              </motion.p>
+              {!product.name.toLowerCase().includes("versa") && (
+                <motion.p
+                  variants={itemVariants}
+                  className="mb-2"
+                  style={{
+                    color: "#9e2a2b",
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: "9px",
+                    letterSpacing: "0.3em",
+                    textTransform: "uppercase",
+                    textShadow: "0 0 14px rgba(158,42,43,0.22), 0 0 28px rgba(158,42,43,0.10)",
+                  }}
+                >
+                  Almost sold out
+                </motion.p>
+              )}
 
               {/* Price */}
               <motion.p
