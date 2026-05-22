@@ -2,6 +2,10 @@ import { useRef, useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { IMAGES } from "@/config/images";
 
+// Checked once at module load — doesn't need to be reactive.
+// Parallax is disabled on mobile to prevent images shifting during scroll.
+const IS_MOBILE = typeof window !== "undefined" && window.innerWidth < 768;
+
 const HERO_GRAD_EDGE = "rgba(180,160,130,0.12)";
 
 export function HeroVideo() {
@@ -67,10 +71,10 @@ export function HeroVideo() {
         }}
       />
 
-      {/* Parallax image / video */}
+      {/* Parallax image / video — parallax disabled on mobile to prevent scroll jitter */}
       <motion.div
         className="absolute inset-0 w-full h-[115%] -top-[7.5%]"
-        style={{ y: imageY, willChange: "transform" }}
+        style={IS_MOBILE ? {} : { y: imageY, willChange: "transform" }}
       >
         {!videoFailed && IMAGES.hero.videoUrl ? (
           <video
@@ -81,17 +85,14 @@ export function HeroVideo() {
             poster={IMAGES.hero.fallbackUrl}
           />
         ) : (
-          <motion.img
+          <img
             src={IMAGES.hero.fallbackUrl}
             alt="Moi premium versatile top — elegant fashion collection"
-            className="w-full h-full object-cover"
+            className="hero-breathe w-full h-full object-cover"
             style={{ objectPosition: "center 22%" }}
             loading="eager"
             decoding="async"
             fetchPriority="high"
-            initial={{ scale: 1 }}
-            animate={{ scale: 1.05 }}
-            transition={{ duration: 18, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
           />
         )}
       </motion.div>
@@ -113,10 +114,13 @@ export function HeroVideo() {
         }}
       />
 
-      {/* Hero text content — parallax scroll */}
+      {/* Hero text content — parallax on desktop only */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 z-[3] flex flex-col items-center text-center"
-        style={{ y: textY, paddingBottom: "clamp(80px, 14vw, 140px)", opacity: overlayOpacity }}
+        style={IS_MOBILE
+          ? { paddingBottom: "clamp(80px, 14vw, 140px)" }
+          : { y: textY, paddingBottom: "clamp(80px, 14vw, 140px)", opacity: overlayOpacity }
+        }
       >
         {/* Collection label */}
         <motion.p

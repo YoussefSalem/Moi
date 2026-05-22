@@ -33,6 +33,18 @@ img {
   backface-visibility: hidden;
 }
 
+/* Hero fallback image: slow breathe handled entirely in CSS compositor,
+   zero JS RAF overhead competing with scroll */
+@keyframes heroBreathe {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.055); }
+}
+.hero-breathe {
+  animation: heroBreathe 18s ease-in-out infinite;
+  transform-origin: center 22%;
+  will-change: transform;
+}
+
 /* Fixed header gets its own GPU layer so scrolling never forces a repaint of it */
 header[class*="fixed"] {
   isolation: isolate;

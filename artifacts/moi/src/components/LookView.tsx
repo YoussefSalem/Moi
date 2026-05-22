@@ -76,8 +76,13 @@ export function LookView({ product, onClose }: LookViewProps) {
         }
       });
 
-      // Wait for all images to be GPU-ready, then reveal
-      await Promise.all(decodePromises);
+      // Minimum intentional pause: ensures animations always have time to
+      // initialize, preventing the panel from snapping in too fast even on
+      // fast connections. Runs in parallel with image decoding.
+      const minPause = new Promise<void>((res) => setTimeout(res, 350));
+
+      // Reveal only when BOTH the images are GPU-ready AND the min pause elapsed
+      await Promise.all([Promise.all(decodePromises), minPause]);
       markReady();
     }, 0);
 
