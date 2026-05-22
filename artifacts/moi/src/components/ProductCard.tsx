@@ -802,7 +802,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                   style={{
                     color: "rgba(158,42,43,0.65)",
                     fontFamily: "'Montserrat', sans-serif",
-                    fontSize: "10px",
+                    fontSize: "11px",
                     letterSpacing: "0.18em",
                     textShadow: "0 0 12px rgba(158,42,43,0.12)",
                   }}
