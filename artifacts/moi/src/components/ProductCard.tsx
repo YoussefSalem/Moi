@@ -739,6 +739,21 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 </motion.div>
               )}
 
+              {/* Limited drop note */}
+              <motion.p
+                variants={itemVariants}
+                className="mb-2"
+                style={{
+                  color: "rgba(120,108,96,0.45)",
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "9px",
+                  letterSpacing: "0.3em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Limited Summer Drop
+              </motion.p>
+
               {/* Price */}
               <motion.p
                 variants={itemVariants}

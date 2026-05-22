@@ -113,10 +113,6 @@ function AppContent() {
         <main>
           <HeroVideo />
 
-          <Suspense fallback={null}>
-            <LimitedDrop />
-          </Suspense>
-
           <div id="collection">
             <div id={product1.slug}>
               {loading ? <ProductSkeleton /> : (
