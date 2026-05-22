@@ -547,7 +547,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 >
                   <div
                     className="relative w-full overflow-hidden"
-                    style={{ height: "clamp(260px, 50vw, 400px)" }}
+                    style={{ height: "clamp(320px, 65vw, 480px)" }}
                   >
                     <AnimatePresence initial={false} mode="wait">
                       <motion.img
@@ -602,8 +602,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
             {/* ── CONTENT COLUMN ── */}
             <div
-              className="flex flex-col items-center md:items-start text-center md:text-left"
-              style={{ paddingTop: 0 }}
+              className="flex flex-col items-center md:items-start text-center md:text-left mt-5 md:mt-0"
             >
               {/* Product name */}
               <motion.h2
