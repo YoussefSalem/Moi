@@ -125,10 +125,6 @@ function AppContent() {
             </div>
           </div>
 
-          <Suspense fallback={null}>
-            <TikTokSocialProof />
-          </Suspense>
-
           <EditorialStrip />
 
           {loading ? <ProductSkeleton /> : (
@@ -139,6 +135,10 @@ function AppContent() {
               />
             </div>
           )}
+
+          <Suspense fallback={null}>
+            <TikTokSocialProof />
+          </Suspense>
 
         </main>
       ) : page === "accessories" ? (
