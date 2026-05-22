@@ -5,6 +5,7 @@ import { HeroVideo } from "@/components/HeroVideo";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductDivider } from "@/components/ProductDivider";
 import { EditorialStrip } from "@/components/EditorialStrip";
+import { LookView } from "@/components/LookView";
 import { CartProvider } from "@/context/CartContext";
 import { CustomerProvider } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
@@ -17,7 +18,6 @@ const AmbassadorPage = lazy(() => import("@/components/AmbassadorPage").then(m =
 const LimitedDrop = lazy(() => import("@/components/LimitedDrop").then(m => ({ default: m.LimitedDrop })));
 const TikTokSocialProof = lazy(() => import("@/components/TikTokSocialProof").then(m => ({ default: m.TikTokSocialProof })));
 const PolicyPage = lazy(() => import("@/components/PolicyPage").then(m => ({ default: m.PolicyPage })));
-const LookView = lazy(() => import("@/components/LookView").then(m => ({ default: m.LookView })));
 const Footer = lazy(() => import("@/components/Footer").then(m => ({ default: m.Footer })));
 const CartDrawer = lazy(() => import("@/components/CartDrawer").then(m => ({ default: m.CartDrawer })));
 const CheckoutPage = lazy(() => import("@/components/CheckoutPage").then(m => ({ default: m.CheckoutPage })));
@@ -180,8 +180,9 @@ function AppContent() {
         </Suspense>
       )}
 
+      <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
+
       <Suspense fallback={null}>
-        <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
         <CartDrawer />
         <CheckoutPage />
         <CustomerAuthModal />
