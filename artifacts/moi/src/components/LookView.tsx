@@ -120,55 +120,66 @@ export function LookView({ product, onClose }: LookViewProps) {
 
   return (
     <>
-      {/* Spinner overlay — shown the instant product is set, before images are ready */}
+      {/* Single overlay — mounts when product is set, never unmounts until closed.
+          Inside, crossfade between spinner and panel to avoid any blip. */}
       <AnimatePresence>
-        {product && !ready && (
+        {product && (
           <motion.div
-            key="look-loading"
+            key="look-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-4"
-            style={{ backgroundColor: "#faf8f5" }}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                border: "2px solid rgba(30,24,20,0.08)",
-                borderTopColor: "#1e1814",
-                animation: "lookSpin 0.8s linear infinite",
-              }}
-            />
-            <p
-              style={{
-                fontFamily: "'Montserrat', sans-serif",
-                fontSize: "10px",
-                letterSpacing: "0.28em",
-                textTransform: "uppercase",
-                color: "rgba(120,108,96,0.65)",
-              }}
-            >
-              Loading look
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Panel — fades in only once all images are preloaded */}
-      <AnimatePresence>
-        {product && ready && (
-          <motion.div
-            key="look-view"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed inset-0 z-[80] overflow-y-auto"
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="fixed inset-0 z-[80]"
             style={{ backgroundColor: "#faf8f5", transform: "translateZ(0)" }}
           >
+            {/* Spinner — visible while !ready */}
+            <AnimatePresence>
+              {!ready && (
+                <motion.div
+                  key="spinner"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-4"
+                >
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      border: "2px solid rgba(30,24,20,0.08)",
+                      borderTopColor: "#1e1814",
+                      animation: "lookSpin 0.8s linear infinite",
+                    }}
+                  />
+                  <p
+                    style={{
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: "10px",
+                      letterSpacing: "0.28em",
+                      textTransform: "uppercase",
+                      color: "rgba(120,108,96,0.65)",
+                    }}
+                  >
+                    Loading look
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Panel content — crossfades in when ready */}
+            <AnimatePresence>
+              {ready && (
+                <motion.div
+                  key="panel"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="absolute inset-0 overflow-y-auto"
+                >
             {/* Subtle ambient gradient */}
             <div
               className="absolute inset-0 pointer-events-none"
@@ -362,6 +373,9 @@ export function LookView({ product, onClose }: LookViewProps) {
                 </motion.button>
               </div>
             </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
