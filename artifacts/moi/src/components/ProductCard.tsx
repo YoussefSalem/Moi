@@ -353,6 +353,23 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                   )}
 
                   {/* Image tap / swipe area */}
+                  {/* See the Look — above image */}
+                  <motion.button
+                    type="button"
+                    onClick={() => onLookView(product)}
+                    className="mb-3 w-full flex items-center justify-center gap-2"
+                    whileTap={{ scale: 0.98 }}
+                    variants={itemVariants}
+                  >
+                    <span
+                      className="text-[9px] tracking-[0.38em] uppercase font-medium"
+                      style={{ color: "#7a6e64", fontFamily: "'Montserrat', sans-serif" }}
+                    >
+                      See the Look
+                    </span>
+                    <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
+                  </motion.button>
+
                   <div
                     className="relative group"
                     onPointerDown={(e) => {
@@ -406,7 +423,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                     {/* Image frame */}
                     <div
                       className="relative w-full overflow-hidden"
-                      style={{ height: "clamp(340px, 44vh, 520px)" }}
+                      style={{ height: "clamp(280px, 38vh, 440px)" }}
                     >
                       <AnimatePresence initial={false} mode="wait">
                         <motion.img
@@ -436,23 +453,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                         )}
                       </AnimatePresence>
 
-                      {/* "See the Look" hover overlay (desktop) */}
-                      <div
-                        className="absolute inset-0 z-10 items-center justify-center hidden md:flex pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100"
-                        style={{ opacity: draggingGallery ? 0 : undefined }}
-                      >
-                        <span
-                          className="text-[9px] tracking-[0.32em] uppercase font-medium px-5 py-2.5"
-                          style={{
-                            backgroundColor: "rgba(250,248,245,0.9)",
-                            color: "#1e1814",
-                            backdropFilter: "blur(10px)",
-                            WebkitBackdropFilter: "blur(10px)",
-                          }}
-                        >
-                          See the Look
-                        </span>
-                      </div>
                     </div>
                   </div>
 
@@ -480,6 +480,21 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 </div>
 
                 {/* Mobile: just image, no arrows */}
+                <motion.button
+                  type="button"
+                  onClick={() => onLookView(product)}
+                  className="md:hidden mb-3 w-full flex items-center justify-center gap-2"
+                  whileTap={{ scale: 0.98 }}
+                  variants={itemVariants}
+                >
+                  <span
+                    className="text-[9px] tracking-[0.38em] uppercase font-medium"
+                    style={{ color: "#7a6e64", fontFamily: "'Montserrat', sans-serif" }}
+                  >
+                    See the Look
+                  </span>
+                  <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
+                </motion.button>
                 <div
                   className="md:hidden relative w-full mx-auto"
                   onPointerDown={(e) => {
@@ -532,7 +547,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 >
                   <div
                     className="relative w-full overflow-hidden"
-                    style={{ height: "clamp(340px, 58vw, 520px)" }}
+                    style={{ height: "clamp(260px, 50vw, 400px)" }}
                   >
                     <AnimatePresence initial={false} mode="wait">
                       <motion.img
@@ -582,50 +597,25 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                   </div>
                 )}
 
-                {/* "See the Look" — always visible on mobile */}
-                <motion.button
-                  type="button"
-                  onClick={() => onLookView(product)}
-                  className="mt-5 w-full flex items-center justify-center gap-2 md:hidden"
-                  whileTap={{ scale: 0.98 }}
-                  style={{ paddingBottom: 2 }}
-                >
-                  <span
-                    className="text-[9px] tracking-[0.38em] uppercase font-medium"
-                    style={{ color: "#7a6e64", fontFamily: "'Montserrat', sans-serif" }}
-                  >
-                    See the Look
-                  </span>
-                  <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
-                </motion.button>
               </div>
             </motion.div>
 
             {/* ── CONTENT COLUMN ── */}
             <div
               className="flex flex-col items-center md:items-start text-center md:text-left"
-              style={{ paddingTop: "clamp(32px, 6vw, 0px)" }}
+              style={{ paddingTop: 0 }}
             >
-              {/* New arrival tag */}
-              <motion.p
-                variants={itemVariants}
-                className="text-[9px] tracking-[0.5em] uppercase font-light mb-4"
-                style={{ color: "rgba(120,108,96,0.7)", fontFamily: "'Montserrat', sans-serif" }}
-              >
-                New Arrival
-              </motion.p>
-
               {/* Product name */}
               <motion.h2
                 variants={itemVariants}
                 style={{
                   fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontSize: "clamp(2rem, 6vw, 3.2rem)",
+                  fontSize: "clamp(1.8rem, 5.5vw, 2.8rem)",
                   fontWeight: 300,
                   color: "#1e1814",
                   letterSpacing: "0.04em",
                   lineHeight: 1.1,
-                  marginBottom: 16,
+                  marginBottom: 10,
                 }}
               >
                 {product.name}
@@ -635,7 +625,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               <motion.p
                 variants={itemVariants}
                 className="text-sm leading-relaxed font-light max-w-xs md:max-w-sm"
-                style={{ color: "#6a5e56", marginBottom: 28 }}
+                style={{ color: "#6a5e56", marginBottom: 18 }}
               >
                 {product.description}
               </motion.p>
@@ -643,7 +633,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               {/* Divider */}
               <motion.div
                 variants={itemVariants}
-                className="w-10 mb-6"
+                className="w-10 mb-4"
                 style={{ height: 1, backgroundColor: "rgba(180,160,140,0.4)" }}
               />
 
