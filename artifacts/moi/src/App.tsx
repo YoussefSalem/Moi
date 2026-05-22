@@ -137,10 +137,10 @@ function AppContent() {
           )}
 
           {/* Section end divider */}
-          <div className="w-full flex justify-center py-4 md:py-6">
-            <svg className="w-40 md:w-56" height="16" viewBox="0 0 160 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div className="w-full py-4 md:py-6 px-6 md:px-12">
+            <svg className="w-full" height="16" viewBox="0 0 1200 16" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path
-                d="M0 8 Q20 0 40 8 T80 8 T120 8 T160 8"
+                d="M0 8 Q75 0 150 8 T300 8 T450 8 T600 8 T750 8 T900 8 T1050 8 T1200 8"
                 stroke="rgba(180,160,140,0.45)"
                 strokeWidth="1.5"
                 fill="none"
