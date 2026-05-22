@@ -136,13 +136,13 @@ function AppContent() {
             </div>
           )}
 
-          {/* Subtle wavy divider */}
-          <div className="w-full flex justify-center py-2">
-            <svg width="80" height="12" viewBox="0 0 80 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+          {/* Section end divider */}
+          <div className="w-full flex justify-center py-4 md:py-6">
+            <svg className="w-40 md:w-56" height="16" viewBox="0 0 160 16" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path
-                d="M0 6 Q10 0 20 6 T40 6 T60 6 T80 6"
-                stroke="rgba(180,160,140,0.35)"
-                strokeWidth="1"
+                d="M0 8 Q20 0 40 8 T80 8 T120 8 T160 8"
+                stroke="rgba(180,160,140,0.45)"
+                strokeWidth="1.5"
                 fill="none"
                 strokeLinecap="round"
               />
