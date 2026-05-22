@@ -328,7 +328,24 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
               {/* Image tap / swipe area */}
               <div className="relative w-full mx-auto">
-                {/* Desktop: image + side arrows in a row ── Mobile: swipe only */}
+                {/* See the Look — desktop, above image */}
+                <motion.button
+                  type="button"
+                  onClick={() => onLookView(product)}
+                  className="hidden md:flex mb-3 w-full items-center justify-center gap-2"
+                  whileTap={{ scale: 0.98 }}
+                  variants={itemVariants}
+                >
+                  <span
+                    className="text-[9px] tracking-[0.38em] uppercase font-medium"
+                    style={{ color: "#7a6e64", fontFamily: "'Montserrat', sans-serif" }}
+                  >
+                    See the Look
+                  </span>
+                  <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
+                </motion.button>
+
+                {/* Desktop: image + side arrows in a row — Mobile: swipe only */}
                 <div className="hidden md:flex items-center justify-center gap-4">
                   {/* Left arrow (desktop) */}
                   {galleryImages.length > 1 && (
@@ -351,24 +368,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                       <ChevronLeft size={22} strokeWidth={1.2} />
                     </button>
                   )}
-
-                  {/* Image tap / swipe area */}
-                  {/* See the Look — above image */}
-                  <motion.button
-                    type="button"
-                    onClick={() => onLookView(product)}
-                    className="mb-3 w-full flex items-center justify-center gap-2"
-                    whileTap={{ scale: 0.98 }}
-                    variants={itemVariants}
-                  >
-                    <span
-                      className="text-[9px] tracking-[0.38em] uppercase font-medium"
-                      style={{ color: "#7a6e64", fontFamily: "'Montserrat', sans-serif" }}
-                    >
-                      See the Look
-                    </span>
-                    <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
-                  </motion.button>
 
                   <div
                     className="relative group"
