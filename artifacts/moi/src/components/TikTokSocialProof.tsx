@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { Video } from "lucide-react";
+import { Video, Play } from "lucide-react";
+import { useRef, useState } from "react";
 
 const videos = [
   {
@@ -31,6 +32,98 @@ const videos = [
     embedUrl: "https://www.tiktok.com/embed/v2/7641637259661430024?hide_related=1",
   },
 ];
+
+function VideoCard({ video, idx }: { video: typeof videos[0]; idx: number }) {
+  const [overlayVisible, setOverlayVisible] = useState(true);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handlePlay = () => {
+    setOverlayVisible(false);
+    // Re-show overlay after 7 seconds — before TikTok's related videos appear
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setOverlayVisible(true), 7000);
+  };
+
+  return (
+    <div
+      key={`${video.handle}-${idx}`}
+      className="rounded-2xl border border-white/10 p-4"
+      style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
+    >
+      <p className="text-sm text-white/90">{video.title}</p>
+      <a
+        href={video.profileUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-1 inline-block text-[10px] tracking-[0.25em] uppercase text-white/40 hover:text-white/80 transition-colors"
+      >
+        {video.handle}
+      </a>
+      <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
+      <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
+        <div className="relative overflow-hidden" style={{ aspectRatio: "9/16.5" }}>
+          {video.embedUrl ? (
+            <>
+              <iframe
+                title={video.title}
+                src={video.embedUrl}
+                className="absolute inset-0 h-full w-full"
+                allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
+                scrolling="no"
+                sandbox="allow-scripts allow-same-origin allow-presentation"
+                style={{ overflow: "hidden" }}
+              />
+              {/* Freeze-frame overlay — hides related videos by covering them */}
+              <div
+                className="absolute inset-0 z-10 flex flex-col items-center justify-center cursor-pointer"
+                style={{
+                  pointerEvents: overlayVisible ? "auto" : "none",
+                  opacity: overlayVisible ? 1 : 0,
+                  transition: "opacity 0.35s ease",
+                  backgroundColor: "rgba(0,0,0,0.72)",
+                }}
+                onClick={handlePlay}
+              >
+                <motion.div
+                  initial={{ scale: 0.85, opacity: 0 }}
+                  animate={{ scale: overlayVisible ? 1 : 0.85, opacity: overlayVisible ? 1 : 0 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                  className="flex flex-col items-center gap-3"
+                >
+                  <div
+                    className="flex items-center justify-center rounded-full"
+                    style={{
+                      width: 56,
+                      height: 56,
+                      backgroundColor: "rgba(255,255,255,0.12)",
+                      border: "1px solid rgba(255,255,255,0.25)",
+                    }}
+                  >
+                    <Play size={22} fill="white" className="text-white" style={{ marginLeft: 3 }} />
+                  </div>
+                  <p
+                    className="text-[10px] tracking-[0.3em] uppercase"
+                    style={{ color: "rgba(255,255,255,0.55)", fontFamily: "'Montserrat', sans-serif" }}
+                  >
+                    {overlayVisible ? "Tap to watch" : ""}
+                  </p>
+                </motion.div>
+              </div>
+            </>
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "linear-gradient(135deg, #1f1916 0%, #2a201c 50%, #1f1916 100%)" }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-white/25 mb-3">
+                <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+              </svg>
+              <p className="text-[10px] tracking-[0.3em] uppercase text-white/30 font-medium" style={{ fontFamily: "'Montserrat', sans-serif" }}>Coming soon</p>
+              <div className="mt-4 w-12 h-px bg-white/10" />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function TikTokSocialProof() {
   return (
@@ -81,47 +174,7 @@ export function TikTokSocialProof() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {videos.map((video, idx) => (
-                <div
-                  key={`${video.handle}-${idx}`}
-                  className="rounded-2xl border border-white/10 p-4"
-                  style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
-                >
-                  <p className="text-sm text-white/90">{video.title}</p>
-                  <a
-                    href={video.profileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1 inline-block text-[10px] tracking-[0.25em] uppercase text-white/40 hover:text-white/80 transition-colors"
-                  >
-                    {video.handle}
-                  </a>
-                  <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
-                    <div className="relative overflow-hidden" style={{ aspectRatio: "9/16.5" }}>
-                      {video.embedUrl ? (
-                        <>
-                          <iframe
-                            title={video.title}
-                            src={video.embedUrl}
-                            className="absolute inset-0 h-full w-full"
-                            allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
-                            scrolling="no"
-                            sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
-                            style={{ overflow: "hidden" }}
-                          />
-                        </>
-                      ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "linear-gradient(135deg, #1f1916 0%, #2a201c 50%, #1f1916 100%)" }}>
-                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-white/25 mb-3">
-                            <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-                          </svg>
-                          <p className="text-[10px] tracking-[0.3em] uppercase text-white/30 font-medium" style={{ fontFamily: "'Montserrat', sans-serif" }}>Coming soon</p>
-                          <div className="mt-4 w-12 h-px bg-white/10" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <VideoCard key={`${video.handle}-${idx}`} video={video} idx={idx} />
               ))}
             </div>
           </div>
