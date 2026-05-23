@@ -350,6 +350,41 @@ export async function tagShopifyOrder(orderId: number, tag: string): Promise<voi
 }
 
 /**
+ * Shopify drops `referring_site` and `landing_site` when a draft order is
+ * completed via API (no browser session). Re-apply them explicitly so
+ * "Items sold by referrer" reporting stays accurate.
+ */
+export async function setShopifyOrderReferrer(
+  orderId: number,
+  attr: { referringSite?: string; landingSite?: string } | undefined,
+): Promise<void> {
+  if (!attr?.referringSite && !attr?.landingSite) return;
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const adminToken = await getShopifyAdminToken();
+  if (!storeDomain || !adminToken) return;
+
+  const payload: Record<string, unknown> = { id: orderId };
+  if (attr.referringSite) payload.referring_site = attr.referringSite;
+  if (attr.landingSite) payload.landing_site = attr.landingSite;
+
+  try {
+    await fetch(
+      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": adminToken,
+        },
+        body: JSON.stringify({ order: payload }),
+      },
+    );
+  } catch (err) {
+    logger.warn({ err, orderId, attr }, "setShopifyOrderReferrer failed");
+  }
+}
+
+/**
  * Finds a Shopify order by its `bosta-{trackingNumber}` tag.
  * O(1) API call — no full order scan needed.
  */

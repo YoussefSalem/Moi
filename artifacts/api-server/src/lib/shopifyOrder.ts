@@ -1,4 +1,4 @@
-import { getShopifyAdminToken } from "./integrations";
+import { getShopifyAdminToken, setShopifyOrderReferrer } from "./integrations";
 
 const EGYPT_PROVINCE_CODES: Record<string, string> = {
   "Cairo": "C",
@@ -150,6 +150,28 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return null;
 
+  // Read the draft first so we can recover attribution stored as a note_attribute
+  let draftAttr: { referringSite?: string; landingSite?: string } | undefined;
+  try {
+    const draftRes = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}.json?fields=note_attributes`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+    if (draftRes.ok) {
+      const draftData = await draftRes.json() as {
+        draft_order?: { note_attributes?: Array<{ name: string; value: string }> };
+      };
+      const raw = draftData.draft_order?.note_attributes?.find((n) => n.name === "__attribution")?.value;
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        draftAttr = {
+          ...(typeof parsed.referringSite === "string" ? { referringSite: parsed.referringSite } : {}),
+          ...(typeof parsed.landingSite === "string" ? { landingSite: parsed.landingSite } : {}),
+        };
+      }
+    }
+  } catch { /* ignore */ }
+
   const completeRes = await fetch(
     `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?payment_pending=true&send_receipt=false&send_fulfillment_receipt=false`,
     {
@@ -182,6 +204,11 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
     };
     orderNumber = orderData.order.order_number ?? orderId;
     fetchedLineItems = (orderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
+  }
+
+  // Re-apply referring_site / landing_site because Shopify strips them during API completion
+  if (draftAttr) {
+    void setShopifyOrderReferrer(orderId, draftAttr);
   }
 
   return { orderId, orderNumber, total, lineItems: fetchedLineItems };
@@ -295,6 +322,16 @@ export async function createDraftOrder(params: {
     if (attr.ttclid) {
       (draftPayload.note_attributes as unknown[]).push({ name: "ttclid", value: attr.ttclid });
     }
+    // Persist full attribution on the draft so it survives the later completion step
+    // (Shopify strips referring_site / landing_site when completing via API).
+    (draftPayload.note_attributes as unknown[]).push({
+      name: "__attribution",
+      value: JSON.stringify({
+        sourceName: attr.sourceName,
+        referringSite: attr.referringSite,
+        landingSite: attr.landingSite,
+      }),
+    });
   }
 
   if (params.cartId) {
@@ -380,6 +417,15 @@ export async function createDraftOrder(params: {
     };
     orderNumber = orderData.order.order_number ?? orderId;
     fetchedLineItems = (orderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
+  }
+
+  // Re-apply referrer fields because Shopify strips them during API completion
+  const attr = params.attribution;
+  if (attr && (attr.referringSite || attr.landingSite)) {
+    void setShopifyOrderReferrer(orderId, {
+      referringSite: attr.referringSite,
+      landingSite: attr.landingSite,
+    });
   }
 
   return { orderNumber, orderId, total, lineItems: fetchedLineItems };
