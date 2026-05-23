@@ -109,10 +109,10 @@ export function TikTokSocialProof() {
                             sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
                             style={{ overflow: "hidden" }}
                           />
-                          {/* Blocker: hides the "Related videos" popup that TikTok shows on pause */}
+                          {/* Blocker: hides the "Related videos" popup TikTok shows on pause */}
                           <div
                             className="absolute left-0 right-0 pointer-events-none z-10"
-                            style={{ bottom: 0, height: "28%", background: "linear-gradient(to top, #000 40%, transparent 100%)" }}
+                            style={{ bottom: 0, height: "58%", background: "linear-gradient(to top, #000 70%, transparent 100%)" }}
                           />
                         </>
                       ) : (
