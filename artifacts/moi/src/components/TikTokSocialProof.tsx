@@ -7,28 +7,28 @@ const videos = [
     handle: "@etharrdiabb",
     profileUrl: "https://www.tiktok.com/@etharrdiabb",
     caption: "Real styling review \u2014 affordable local fashion that actually delivers.",
-    embedUrl: "https://www.tiktok.com/embed/v2/7642745763021262098?rel=0",
+    embedUrl: "https://www.tiktok.com/embed/v2/7642745763021262098?hide_related=1",
   },
   {
     title: "Get ready with me",
     handle: "@thatsalmarocks",
     profileUrl: "https://www.tiktok.com/@thatsalmarocks",
     caption: "Morning routine & outfit check \u2014 effortless day-to-night dressing.",
-    embedUrl: "https://www.tiktok.com/embed/v2/7639398570302377223?rel=0",
+    embedUrl: "https://www.tiktok.com/embed/v2/7639398570302377223?hide_related=1",
   },
   {
     title: "Outfit of the day",
     handle: "@shopmoi_",
     profileUrl: "https://www.tiktok.com/@shopmoi_",
     caption: "Styling picks that feel polished and easy to recreate.",
-    embedUrl: "https://www.tiktok.com/embed/v2/7639352601947016455?rel=0",
+    embedUrl: "https://www.tiktok.com/embed/v2/7639352601947016455?hide_related=1",
   },
   {
     title: "Everyday outfit inspo",
     handle: "@thatsalmarocks",
     profileUrl: "https://www.tiktok.com/@thatsalmarocks",
     caption: "Real, wearable outfits that translate from screen to wardrobe.",
-    embedUrl: "https://www.tiktok.com/embed/v2/7641637259661430024?rel=0",
+    embedUrl: "https://www.tiktok.com/embed/v2/7641637259661430024?hide_related=1",
   },
 ];
 
@@ -108,11 +108,6 @@ export function TikTokSocialProof() {
                             scrolling="no"
                             sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
                             style={{ overflow: "hidden" }}
-                          />
-                          {/* Blocker: hides the "Related videos" popup TikTok shows on pause */}
-                          <div
-                            className="absolute left-0 right-0 pointer-events-none z-10"
-                            style={{ bottom: 0, height: "58%", background: "linear-gradient(to top, #000 70%, transparent 100%)" }}
                           />
                         </>
                       ) : (
