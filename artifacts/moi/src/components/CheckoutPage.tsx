@@ -487,6 +487,14 @@ export function CheckoutPage() {
         currencyCode: "EGP",
         lineItems: orderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
       });
+      if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
+        (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "purchase", {
+          transaction_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
+          value: purchaseValue,
+          currency: "EGP",
+          items: orderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })),
+        });
+      }
       setStep("cod-confirm");
     } catch {
       setStep("form");
@@ -533,6 +541,14 @@ export function CheckoutPage() {
       currencyCode: "EGP",
       lineItems: orderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
     });
+    if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
+      (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "purchase", {
+        transaction_id: txnId ?? "",
+        value: totalVal,
+        currency: "EGP",
+        items: orderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })),
+      });
+    }
   }, [clearCart, isShopify, shopifyCart, localItems, totalAmount]);
 
   const handleIframeFail = useCallback(() => {
@@ -804,6 +820,14 @@ export function CheckoutPage() {
                   currencyCode: "EGP",
                   lineItems: proofOrderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
                 });
+                if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
+                  (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "purchase", {
+                    transaction_id: String(orderNumber ?? shopifyOrderId ?? ""),
+                    value: proofTotal,
+                    currency: "EGP",
+                    items: proofOrderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })),
+                  });
+                }
               }}
               fmt={fmt}
             />

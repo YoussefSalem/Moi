@@ -3,6 +3,8 @@
  * Safe to call even before fbq loads — queue handles it.
  */
 
+import { getAttribution } from "./adAttribution";
+
 export function trackEvent(
   eventName: string,
   params?: Record<string, string | number | boolean | undefined>
@@ -24,6 +26,11 @@ export function trackEvent(
   if ("currency" in cleaned && !("value" in cleaned)) {
     cleaned.value = 0;
   }
+
+  // Attach Meta attribution cookies for ad platform cross-device matching
+  const attr = getAttribution();
+  if (attr.fbc) cleaned.fbc = attr.fbc;
+  if (attr.fbp) cleaned.fbp = attr.fbp;
 
   // Deduplication key: same event_id must be used on both browser + server
   cleaned.event_id = `${eventName}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;

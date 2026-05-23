@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
+import { captureAttribution } from "@/lib/adAttribution";
 import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
@@ -101,7 +102,15 @@ function AppContent() {
 
   // Shopify Analytics: page_viewed fires on mount and on every in-app navigation
   useEffect(() => {
+    captureAttribution();
     trackShopifyPageView();
+    if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
+      (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "page_view", {
+        page_title: document.title,
+        page_location: window.location.href,
+        page_path: window.location.pathname + window.location.hash,
+      });
+    }
   }, [page]);
 
   return (

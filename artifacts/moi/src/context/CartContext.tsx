@@ -178,6 +178,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         value: params.priceAmount,
         quantity: qty,
       });
+      // Google Analytics 4 — add_to_cart
+      if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
+        (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "add_to_cart", {
+          currency: params.currencyCode ?? "EGP",
+          value: Number.isFinite(params.priceAmount) ? params.priceAmount : 0,
+          items: [{
+            item_id: params.variantId,
+            item_name: params.title,
+            quantity: qty,
+            price: params.priceAmount,
+            currency: params.currencyCode ?? "EGP",
+          }],
+        });
+      }
       trackShopifyAddToCart({
         variantId: params.variantId,
         productTitle: params.title ?? "",
@@ -294,6 +308,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCartOpen(false);
     setCheckoutOpen(true);
     // Fire checkout_started to Shopify Analytics, alongside existing Meta & TikTok pixels
+    const checkoutTotal = shopifyCart
+      ? parseFloat(shopifyCart.cost.totalAmount.amount)
+      : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
+    const checkoutCurrency = shopifyCart?.cost.totalAmount.currencyCode ?? localItems[0]?.currencyCode ?? "EGP";
+    const checkoutItems = shopifyCart
+      ? shopifyCart.lines.nodes.map((l) => ({
+          item_id: l.merchandise.id,
+          item_name: l.merchandise.product.title,
+          price: parseFloat(l.merchandise.price.amount),
+          quantity: l.quantity,
+          currency: l.merchandise.price.currencyCode ?? "EGP",
+        }))
+      : localItems.map((i) => ({
+          item_id: i.variantId,
+          item_name: i.title,
+          price: i.priceAmount,
+          quantity: i.quantity,
+          currency: i.currencyCode ?? "EGP",
+        }));
+    if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
+      (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "begin_checkout", {
+        currency: checkoutCurrency,
+        value: checkoutTotal,
+        items: checkoutItems,
+      });
+    }
     trackShopifyCheckoutStarted({
       cartId: shopifyCart?.id,
       totalPrice: shopifyCart

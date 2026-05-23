@@ -24,6 +24,8 @@
  *   - In dev, append `?debug_analytics=1` to see every request in the console.
  */
 
+import { getAttribution } from "./adAttribution";
+
 const STORE_DOMAIN = import.meta.env.VITE_SHOPIFY_STORE_DOMAIN as string | undefined;
 const STOREFRONT_TOKEN = import.meta.env.VITE_SHOPIFY_STOREFRONT_TOKEN as string | undefined;
 const API_VERSION = "2024-04";
@@ -186,9 +188,12 @@ async function publish(events: AnalyticsEvent[]): Promise<void> {
 
 // ─── Base payload ──────────────────────────────────────────────────────────────────────
 // Included in every event.  Shopify requires shopId for correct store attribution.
+// Ad click IDs (fbclid, gclid, ttclid) are also forwarded so Shopify Analytics
+// can attribute sessions to the correct ad platform.
 async function basePayload(): Promise<Record<string, unknown>> {
   const shopId = await fetchShopId();
   const utm = getStoredUtm();
+  const attr = getAttribution();
   return {
     shopId:           shopId ?? undefined,
     sessionId:        getSessionToken(),
@@ -198,6 +203,9 @@ async function basePayload(): Promise<Record<string, unknown>> {
     url:              typeof window !== "undefined" ? window.location.href : undefined,
     referrer:         typeof document !== "undefined" && document.referrer ? document.referrer : undefined,
     timestamp:        new Date().toISOString(),
+    ...(attr.fbclid ? { fbclid: attr.fbclid } : {}),
+    ...(attr.gclid ? { gclid: attr.gclid } : {}),
+    ...(attr.ttclid ? { ttclid: attr.ttclid } : {}),
     ...(Object.keys(utm).length > 0 ? { utm } : {}),
   };
 }
