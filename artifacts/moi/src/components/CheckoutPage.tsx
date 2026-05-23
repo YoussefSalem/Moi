@@ -756,10 +756,6 @@ export function CheckoutPage() {
                   }
                 </div>
                 <div className="mt-4 pt-4 space-y-3" style={{ borderTop: "1px solid rgba(30,24,20,0.12)" }}>
-                  <div className="flex justify-between">
-                    <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
-                    <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(subtotalAmount)}</span>
-                  </div>
                   {savings > 0 && promoApplied && (
                     <div style={{
                       backgroundColor: "rgba(52,95,67,0.09)", border: "1px solid rgba(52,95,67,0.28)",
@@ -770,15 +766,18 @@ export function CheckoutPage() {
                         <Tag size={11} strokeWidth={2} style={{ color: "#2f6644" }} />
                         <div>
                           <p style={{ fontSize: "10px", color: "#2f6644", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>Promo applied</p>
-                          <p style={{ fontSize: "10px", color: "rgba(47,102,68,0.75)", fontFamily: "'Montserrat', sans-serif" }}>{promoApplied.code}</p>
+                          <p style={{ fontSize: "10px", color: "rgba(47,102,68,0.75)", fontFamily: "'Montserrat', sans-serif" }}>{promoApplied.code} — -{fmt(savings)}</p>
                         </div>
                       </div>
                       <div style={{ textAlign: "right" }}>
-                        <p style={{ fontSize: "14px", color: "#2f6644", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>-{fmt(savings)}</p>
-                        <p style={{ fontSize: "10px", color: "rgba(47,102,68,0.7)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>{Math.round((savings / subtotalAmount) * 100)}% off</p>
+                        <p style={{ fontSize: "14px", color: "#2f6644", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{Math.round((savings / subtotalAmount) * 100)}% off</p>
                       </div>
                     </div>
                   )}
+                  <div className="flex justify-between">
+                    <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
+                    <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(discountedSubtotal)}</span>
+                  </div>
                   {!freeShipping && discountedSubtotal > 0 && (
                     <div style={{
                       backgroundColor: "rgba(248,252,245,0.9)", border: "1px solid rgba(160,190,150,0.22)",
@@ -977,10 +976,6 @@ export function CheckoutPage() {
                 </div>
 
                 <div className="mt-4 space-y-3">
-                  <div className="flex justify-between">
-                    <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
-                    <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(subtotalAmount)}</span>
-                  </div>
                   <AnimatePresence>
                     {promoApplied && savings > 0 && (
                       <motion.div
@@ -1021,31 +1016,26 @@ export function CheckoutPage() {
                               fontSize: "11px", color: "rgba(47,102,68,0.75)",
                               fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em",
                             }}>
-                              {promoApplied.code}
+                              {promoApplied.code} — -{fmt(savings)}
                             </span>
                           </div>
                         </div>
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px" }}>
+                        {subtotalAmount > 0 && (
                           <span style={{
-                            fontSize: "16px", color: "#2f6644",
+                            fontSize: "14px", color: "#2f6644",
                             fontFamily: "'Montserrat', sans-serif", fontWeight: 700,
-                            letterSpacing: "0.02em",
+                            letterSpacing: "0.02em", flexShrink: 0,
                           }}>
-                            -{fmt(savings)}
+                            {Math.round((savings / subtotalAmount) * 100)}% off
                           </span>
-                          {subtotalAmount > 0 && (
-                            <span style={{
-                              fontSize: "10px", color: "rgba(47,102,68,0.7)",
-                              fontFamily: "'Montserrat', sans-serif",
-                              letterSpacing: "0.12em", textTransform: "uppercase",
-                            }}>
-                              {Math.round((savings / subtotalAmount) * 100)}% off
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
+                  <div className="flex justify-between">
+                    <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
+                    <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(discountedSubtotal)}</span>
+                  </div>
                   {/* "X away from free delivery" nudge */}
                   {!freeShipping && discountedSubtotal > 0 && (
                     <div style={{
