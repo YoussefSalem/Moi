@@ -183,16 +183,14 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
           Effortless. Versatile. Yours.
         </motion.p>
 
-        {/* CTA */}
+        {/* CTA — subtle opacity fade only, no offset/scale transforms that fight the compositor */}
         <motion.button
           type="button"
           onClick={handleShopNow}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: loaded ? 1 : 0, y: loaded ? 0 : 8 }}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.9 }}
-          whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.13)" }}
-          whileTap={{ scale: 0.97 }}
-          className="mt-8 inline-block border transition-all duration-300"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.55, ease: "easeOut", delay: 0.4 }}
+          className="mt-8 inline-block border transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] hover:bg-white/15"
           style={{
             color: "#fff",
             borderColor: "rgba(255,255,255,0.48)",
