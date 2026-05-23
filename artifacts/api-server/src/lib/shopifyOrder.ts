@@ -337,19 +337,18 @@ export async function createDraftOrder(params: {
   if (params.cartId) {
     const cart = await fetchStorefrontCart(params.cartId);
     if (cart) {
-      const applicableCode = cart.discountCodes.find((d) => d.applicable);
       const discountAmount = cart.subtotalAmount - cart.totalAmount;
+      const codeInCart = cart.discountCodes.find(
+        (d) => d.code.toLowerCase() === (params.discountCode || "").toLowerCase(),
+      );
 
-      if (applicableCode && discountAmount > 0) {
+      // Trust the cart total as ground truth — if subtotal > total, a discount is active.
+      if (discountAmount > 0.01) {
         draftPayload.applied_discount = {
-          title: applicableCode.code,
+          title: codeInCart?.code || params.discountCode || "Discount",
           value_type: "fixed_amount",
           value: discountAmount.toFixed(2),
         };
-      } else if (params.discountCode && cart.discountCodes.length > 0) {
-        throw new Error(
-          `Discount code "${params.discountCode}" is not applicable to this order.`,
-        );
       }
     }
   }
