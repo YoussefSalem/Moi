@@ -98,7 +98,7 @@ export function TikTokSocialProof() {
                   <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
                     {/* Clip only the "Watch now" ribbon at the bottom (~60px); top profile bar stays visible */}
-                    <div className="relative overflow-hidden" style={{ aspectRatio: "9/16", minHeight: 500 }}>
+                    <div className="relative overflow-hidden min-h-[520px] md:min-h-[640px] lg:min-h-[720px]" style={{ aspectRatio: "9/16" }}>
                       {video.embedUrl ? (
                         <iframe
                           title={video.title}
