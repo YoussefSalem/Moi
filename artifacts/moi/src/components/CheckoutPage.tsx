@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, ChevronUp, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -232,13 +232,14 @@ export function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
   const [promoOpen, setPromoOpen] = useState(false);
   const [promoInput, setPromoInput] = useState("");
-  const [promoApplied, setPromoApplied] = useState<{ code: string; discountAmount: number } | null>(null);
+  const [promoApplied, setPromoApplied] = useState<{ code: string } | null>(null);
   const [promoError, setPromoError] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
   const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
+  const isApplyingRef = useRef(false); // Prevents recursive re-apply while we update cart
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", phone: "", email: "",
@@ -248,10 +249,9 @@ export function CheckoutPage() {
   const lines = isShopify && shopifyCart ? shopifyCart.lines.nodes : null;
   const localLines = !isShopify ? localItems : [];
   const localSubtotal = localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
-  // Shopify's Storefront API does NOT reduce cart.cost.totalAmount for discount
-  // codes applied via cartDiscountCodesUpdate — the discount only resolves at
-  // order-creation time. So we sum raw line prices and use promoApplied.discountAmount
-  // (fetched from the Admin API via /api/orders/discount-lookup) for the display.
+  // Discount is always derived from the live Shopify cart so it recalculates
+  // automatically when items are added or removed. Shopify's cart.cost.totalAmount
+  // reflects applied discount codes immediately after cartDiscountCodesUpdate.
   const lineItemsSubtotal = shopifyCart
     ? shopifyCart.lines.nodes.reduce(
         (sum, line) => sum + parseFloat(line.merchandise.price.amount) * line.quantity,
@@ -259,11 +259,13 @@ export function CheckoutPage() {
       )
     : localSubtotal;
   const subtotalAmount = lineItemsSubtotal;
-  // Use the discount amount resolved from the Admin API (stored in promoApplied),
-  // falling back to the cart-computed savings for automatic discounts.
+  // Discount amount is always derived from the live Shopify cart so it
+  // recalculates automatically when items are added or removed. When a user-
+  // applied promo code is active, Shopify's cart.cost.totalAmount already
+  // reflects it; when no code is applied, cartSavings handles automatic discounts.
   const cartDiscountedTotal = shopifyCart ? parseFloat(shopifyCart.cost.totalAmount.amount) : localSubtotal;
   const cartSavings = Math.max(0, subtotalAmount - cartDiscountedTotal);
-  const savings = promoApplied ? promoApplied.discountAmount : cartSavings;
+  const savings = cartSavings;
   const discountedSubtotal = subtotalAmount - savings;
   const freeShipping = discountedSubtotal >= 2000;
   const shippingCost = freeShipping ? 0 : SHIPPING_EGP;
@@ -303,13 +305,14 @@ export function CheckoutPage() {
     setPromoLoading(true);
     setPromoError("");
     try {
+      isApplyingRef.current = true;
       const code = promoInput.trim().toUpperCase();
       // applyDiscount calls Shopify's cartDiscountCodesUpdate and returns whether
       // the code is applicable plus the actual discount amount (raw line total minus
       // Shopify's updated totalAmount, which reflects the discount immediately).
       const result = await applyDiscount(code);
       if (result.applicable && result.discountAmount > 0) {
-        setPromoApplied({ code: result.code, discountAmount: result.discountAmount });
+        setPromoApplied({ code: result.code });
         setPromoError("");
       } else {
         setPromoError("This code is invalid or doesn't apply to your cart.");
@@ -319,6 +322,7 @@ export function CheckoutPage() {
     } catch {
       setPromoError("Could not verify the code. Please try again.");
     } finally {
+      isApplyingRef.current = false;
       setPromoLoading(false);
     }
   }, [promoInput, applyDiscount]);
@@ -620,6 +624,28 @@ export function CheckoutPage() {
     setStep("form");
     setPaymentMethod("cod");
   }, []);
+
+  // When cart contents change (items added/removed) and a promo code is active,
+  // silently re-apply it so Shopify recalculates the discount on the new subtotal.
+  // The isApplyingRef guard prevents this from firing during the explicit
+  // handleApplyPromo flow and from cascading during the re-apply itself.
+  useEffect(() => {
+    if (!shopifyCart || !promoApplied) return;
+    if (isApplyingRef.current) return;
+    // Get the actual discount code from Shopify's cart
+    const code = shopifyCart.discountCodes.find((d) => d.applicable)?.code;
+    if (!code) { setPromoApplied(null); return; }
+    // No need to re-apply if the code on the cart is already our active one
+    if (code.toUpperCase() === promoApplied.code.toUpperCase()) return;
+    // Cart changed (or Shopify dropped the code). Re-apply.
+    isApplyingRef.current = true;
+    void applyDiscount(promoApplied.code)
+      .then((r) => {
+        if (!r.applicable) setPromoApplied(null);
+      })
+      .catch(() => setPromoApplied(null))
+      .finally(() => { isApplyingRef.current = false; });
+  }, [shopifyCart?.lines.nodes.map((l) => `${l.id}:${l.quantity}`).join(",")]);
 
   // On mount: restore state if the user was redirected back from Paymob's 3DS page.
   // /api/paymob-return writes moi_paymob_result + sibling keys before redirecting to /.
