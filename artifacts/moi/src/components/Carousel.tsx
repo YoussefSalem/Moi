@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Heart } from "lucide-react";
-import { useImageColor } from "@/hooks/useImageColor";
 import { IMAGES } from "@/config/images";
 
 export function Carousel() {
@@ -11,7 +10,6 @@ export function Carousel() {
   const [lightboxIdx, setLightboxIdx] = useState(0);
   const [lbImgLoaded, setLbImgLoaded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const color = useImageColor(images[activeIndex]);
 
   // Preload all filmstrip images immediately.
   useEffect(() => {

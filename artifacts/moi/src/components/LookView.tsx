@@ -10,7 +10,7 @@ interface LookViewProps {
   onClose: () => void;
 }
 
-const GRAD_COLOR = "rgba(180,160,130,0.08)";
+const GRAD_COLOR = "rgba(210,195,175,0.08)";
 
 export function LookView({ product, onClose }: LookViewProps) {
   const [activeImage, setActiveImage] = useState<string | null>(null);

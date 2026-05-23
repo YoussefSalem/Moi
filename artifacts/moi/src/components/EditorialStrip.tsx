@@ -29,7 +29,7 @@ export function EditorialStrip() {
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(200,180,150,0.06) 0%, transparent 70%)",
+            "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(210,195,175,0.07) 0%, transparent 70%)",
         }}
       />
 

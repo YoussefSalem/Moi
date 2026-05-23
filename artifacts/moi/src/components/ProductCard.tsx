@@ -3,7 +3,6 @@ import { trackShopifyProductView } from "@/lib/shopifyAnalytics";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { toast } from "sonner";
 import { Bell, ChevronLeft, ChevronRight } from "lucide-react";
-import { useImageColor } from "@/hooks/useImageColor";
 import type { ProductConfig, VariantOption } from "@/config/images";
 import { useCart } from "@/context/CartContext";
 import { useCustomer } from "@/context/CustomerContext";
@@ -193,11 +192,9 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const galleryImages = colorGallery.length > 0 ? colorGallery : [resolvedColorImage ?? product.productShot];
   const mainImage = galleryImages[galleryIndex % galleryImages.length] ?? resolvedColorImage ?? product.productShot;
 
-  const initialImageRef = useRef(product.productShot);
-  const colorImageUrl = inView ? initialImageRef.current : null;
-  const color = useImageColor(colorImageUrl);
-  const ambientRgba = color?.rgba(0.14) ?? "rgba(180,160,140,0.09)";
-  const ambientStrong = color?.rgba(0.22) ?? "rgba(180,160,140,0.14)";
+  // Soft warm beige ambient — consistent across all products, never extracts from image
+  const AMBIENT_RGBA = "rgba(210,195,175,0.10)";
+  const AMBIENT_STRONG = "rgba(210,195,175,0.14)";
 
   const [isSwapping, setIsSwapping] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);

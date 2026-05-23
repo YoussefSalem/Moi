@@ -19,7 +19,7 @@ export function LimitedDrop() {
         className="absolute inset-0 opacity-30 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse at 30% 50%, rgba(210,190,165,0.18), transparent 60%)",
+            "radial-gradient(ellipse at 30% 50%, rgba(210,195,175,0.14), transparent 60%)",
         }}
       />
 

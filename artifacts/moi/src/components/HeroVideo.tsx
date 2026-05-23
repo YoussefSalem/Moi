@@ -6,7 +6,7 @@ import { IMAGES } from "@/config/images";
 // Parallax is disabled on mobile to prevent images shifting during scroll.
 const IS_MOBILE = typeof window !== "undefined" && window.innerWidth < 768;
 
-const HERO_GRAD_EDGE = "rgba(180,160,130,0.12)";
+const HERO_GRAD_EDGE = "rgba(210,195,175,0.10)";
 
 export function HeroVideo() {
   const videoRef = useRef<HTMLVideoElement>(null);
