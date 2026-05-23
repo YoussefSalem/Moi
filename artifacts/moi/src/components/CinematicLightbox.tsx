@@ -34,22 +34,12 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
   useEffect(() => {
     if (open) {
       setIdx(initialIndex);
-      setZoomScale(1);
-      setPan({ x: 0, y: 0 });
-      setLoaded(false);
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
   }, [open, initialIndex]);
-
-  // Reset on image change
-  useEffect(() => {
-    setZoomScale(1);
-    setPan({ x: 0, y: 0 });
-    setLoaded(false);
-  }, [idx]);
 
   const go = useCallback((delta: number) => {
     setIdx((i) => (i + delta + images.length) % images.length);
@@ -66,14 +56,21 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
     ?.replace(/\.(webp|jpg|png)$/i, "")
     .replace(/-/g, " ") ?? "Image";
 
-  // Cached images don't fire onLoad — check immediately after mount.
-  // Also preload via Image() to catch the load event even when React's
-  // onLoad prop misses a synchronous (cached-image) load on a remounted node.
+  // SINGLE SOURCE OF TRUTH for loaded state — runs synchronously after paint.
+  // Reset zoom/pan to neutral, set loaded=false, then immediately check if the
+  // image is already cached (or preload it). This prevents the race where one
+  // effect sets loaded=false while another tries to set it=true.
   useLayoutEffect(() => {
-    const img = imgRef.current;
-    if (!img) return;
-    if (img.complete && img.naturalWidth > 0) { setLoaded(true); return; }
+    setZoomScale(1);
+    setPan({ x: 0, y: 0 });
 
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      setLoaded(true);
+      return;
+    }
+
+    setLoaded(false);
     const preload = new Image();
     preload.src = current;
     const done = () => setLoaded(true);
