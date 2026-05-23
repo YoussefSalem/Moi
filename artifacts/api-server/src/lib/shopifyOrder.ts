@@ -1,5 +1,6 @@
 import { getShopifyAdminToken, setShopifyOrderReferrer } from "./integrations";
 import { countDiscountCodeUses, insertDiscountCodeUse } from "@workspace/db";
+import { logger } from "./logger";
 
 const EGYPT_PROVINCE_CODES: Record<string, string> = {
   "Cairo": "C",
@@ -256,14 +257,16 @@ export async function lookupDiscountCode(
  */
 export async function recordDiscountCodeUse(
   code: string,
-  orderId?: number,
-  orderNumber?: number,
+  orderId?: number | bigint,
+  orderNumber?: number | bigint,
   paymentMethod?: string,
 ): Promise<void> {
   try {
     await insertDiscountCodeUse(code.trim(), orderId ?? null, orderNumber ?? null, paymentMethod ?? null);
-  } catch {
+    logger.info({ code, orderId, orderNumber, paymentMethod }, "Discount code use recorded");
+  } catch (err) {
     // Don't throw — usage recording failure must not block the order
+    logger.error({ err, code, orderId, orderNumber }, "Failed to record discount code use");
   }
 }
 

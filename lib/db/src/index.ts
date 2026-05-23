@@ -34,14 +34,12 @@ export async function countDiscountCodeUses(code: string): Promise<number> {
  */
 export async function insertDiscountCodeUse(
   code: string,
-  orderId?: number | null,
-  orderNumber?: number | null,
+  orderId?: number | bigint | null,
+  orderNumber?: number | bigint | null,
   paymentMethod?: string | null,
 ): Promise<void> {
-  await db.insert(discountCodeUses).values({
-    code: code.toUpperCase(),
-    orderId: orderId ?? null,
-    orderNumber: orderNumber ?? null,
-    paymentMethod: paymentMethod ?? null,
-  });
+  await db.execute(sql`
+    INSERT INTO discount_code_uses (code, order_id, order_number, payment_method)
+    VALUES (${code.toUpperCase()}, ${orderId ?? null}, ${orderNumber ?? null}, ${paymentMethod ?? null})
+  `);
 }

@@ -1,10 +1,11 @@
-import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, bigint, timestamp } from "drizzle-orm/pg-core";
 
 export const discountCodeUses = pgTable("discount_code_uses", {
   id: serial("id").primaryKey(),
   code: text("code").notNull(),
-  orderId: integer("order_id"),
-  orderNumber: integer("order_number"),
+  /** Shopify order IDs exceed 32-bit integer range */
+  orderId: bigint("order_id", { mode: "number" }),
+  orderNumber: bigint("order_number", { mode: "number" }),
   paymentMethod: text("payment_method"),
   usedAt: timestamp("used_at").defaultNow().notNull(),
 });
