@@ -202,7 +202,7 @@ function AppContent() {
         </Suspense>
       )}
 
-      <LoadingScreen ready={heroReady && !loading} />
+      <LoadingScreen ready={page !== "home" ? !loading : heroReady && !loading} />
       <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
 
       <Suspense fallback={null}>
