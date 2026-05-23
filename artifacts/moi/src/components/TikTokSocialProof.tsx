@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Video } from "lucide-react";
+import { Video, ExternalLink } from "lucide-react";
 
 const videos = [
   {
@@ -91,9 +91,10 @@ export function TikTokSocialProof() {
                     href={video.profileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-1 inline-block text-[10px] tracking-[0.25em] uppercase text-white/40 hover:text-white/80 transition-colors"
+                    className="mt-1 inline-flex items-center gap-1.5 text-[10px] tracking-[0.25em] uppercase text-white/50 hover:text-white/90 hover:underline underline-offset-2 transition-colors"
                   >
                     {video.handle}
+                    <ExternalLink size={10} strokeWidth={2} className="opacity-50" />
                   </a>
                   <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
@@ -106,7 +107,7 @@ export function TikTokSocialProof() {
                           allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
                           scrolling="no"
                           sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
-                          style={{ overflow: "hidden" }}
+                          style={{ overflow: "hidden", marginTop: "-54px", height: "calc(100% + 54px)" }}
                         />
                       ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "linear-gradient(135deg, #1f1916 0%, #2a201c 50%, #1f1916 100%)" }}>
