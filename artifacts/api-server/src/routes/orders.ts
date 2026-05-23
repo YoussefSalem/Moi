@@ -9,6 +9,7 @@ import {
   createDraftOrder,
   extractVariantId,
   lookupDiscountCode,
+  recordDiscountCodeUse,
   type OrderLine,
   type CustomerInfo,
   type OrderAttribution,
@@ -132,6 +133,11 @@ router.post("/orders/instapay-init", async (req, res) => {
 
     req.log.info({ shopifyOrderId: result.orderId, shopifyOrderNumber: result.orderNumber }, "Instapay init — order created");
 
+    // Record discount code use so Shopify's usage_limit is enforced across API orders
+    if (discountCode && result.discountAmount) {
+      void recordDiscountCodeUse(discountCode, result.orderId, result.orderNumber, "instapay");
+    }
+
     res.status(200).json({
       success: true,
       instapayAccount,
@@ -209,6 +215,11 @@ router.post("/orders/create", async (req, res) => {
     const { orderNumber, orderId, total, lineItems } = result;
 
     req.log.info({ orderNumber, orderId }, "COD order created");
+
+    // Record discount code use so Shopify's usage_limit is enforced across API orders
+    if (discountCode && result.discountAmount) {
+      void recordDiscountCodeUse(discountCode, orderId, orderNumber, "cod");
+    }
 
     // Branded order confirmation email (fire-and-forget)
     if (customer.email) {

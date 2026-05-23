@@ -10,7 +10,7 @@ import {
   createShopifyFulfillment,
   addShopifyFulfillmentEvent,
 } from "../lib/integrations";
-import { createDraftOrder, type OrderLine, type CustomerInfo, type ShopifyLineItem, type OrderAttribution } from "../lib/shopifyOrder";
+import { createDraftOrder, recordDiscountCodeUse, type OrderLine, type CustomerInfo, type ShopifyLineItem, type OrderAttribution } from "../lib/shopifyOrder";
 import { sendEmail, buildOrderConfirmationEmail } from "../lib/email";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
@@ -142,6 +142,11 @@ router.post("/webhooks/paymob", async (req, res) => {
       .where(eq(paymobIntents.intentId, intentId));
 
     req.log.info({ intentId, shopifyOrderId, shopifyOrderNumber, paymobTxnId }, "Paymob webhook: Shopify order created");
+
+    // Record discount code use so Shopify's usage_limit is enforced across API orders
+    if (intent.discountCode && shopifyDiscountAmount) {
+      void recordDiscountCodeUse(intent.discountCode, shopifyOrderId, shopifyOrderNumber, "card");
+    }
 
     // Send branded order confirmation email to customer (fire-and-forget)
     if (customer.email) {

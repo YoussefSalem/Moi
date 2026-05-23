@@ -23,3 +23,4 @@ export * from "./instapayProofs";
 export * from "./customerOtpCodes";
 export * from "./paymobIntents";
 export * from "./customerProfiles";
+export * from "./discountCodeUses";

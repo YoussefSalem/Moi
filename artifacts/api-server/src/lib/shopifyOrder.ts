@@ -1,4 +1,5 @@
 import { getShopifyAdminToken, setShopifyOrderReferrer } from "./integrations";
+import { countDiscountCodeUses, insertDiscountCodeUse } from "@workspace/db";
 
 const EGYPT_PROVINCE_CODES: Record<string, string> = {
   "Cairo": "C",
@@ -182,12 +183,9 @@ export async function fetchStorefrontCart(
 
 /**
  * Look up a discount code via the Admin API and compute the discount amount
- * against the given subtotal. Returns null if the code is invalid/not found.
- *
- * Shopify Storefront API carts do NOT reflect applied discount codes in
- * cost.totalAmount or discountAllocations — the discount is only applied at
- * order creation time. This function bypasses the cart and asks the Admin API
- * directly for the price rule associated with the code.
+ * against the given subtotal. Returns null if the code is invalid, not found,
+ * or has reached its usage limit (combining Shopify's native usage_count with
+ * our own DB-tracked uses from API-created draft orders).
  */
 export async function lookupDiscountCode(
   code: string,
@@ -205,7 +203,7 @@ export async function lookupDiscountCode(
     if (!codeRes.ok) return null;
 
     const codeData = await codeRes.json() as {
-      discount_code?: { price_rule_id: number; code: string };
+      discount_code?: { price_rule_id: number; code: string; usage_count: number };
     };
     const discountCode = codeData.discount_code;
     if (!discountCode) return null;
@@ -221,10 +219,22 @@ export async function lookupDiscountCode(
         value_type: "fixed_amount" | "percentage";
         value: string;
         status?: string;
+        usage_limit: number | null;
       };
     };
     const rule = ruleData.price_rule;
     if (!rule || rule.status === "disabled") return null;
+
+    // Enforce usage limits: Shopify only increments usage_count for native
+    // checkout flows, not API-created draft orders. We track API uses in our
+    // own DB and add them to Shopify's count before checking the limit.
+    if (rule.usage_limit !== null && rule.usage_limit !== undefined) {
+      const shopifyUses = discountCode.usage_count ?? 0;
+      const dbUses = await countDiscountCodeUses(code.trim());
+      if (shopifyUses + dbUses >= rule.usage_limit) {
+        return null; // Usage limit reached
+      }
+    }
 
     // Shopify stores values as negative numbers (e.g. "-15.0" for 15% off, "-50.00" for 50 EGP off)
     const value = Math.abs(parseFloat(rule.value));
@@ -236,6 +246,24 @@ export async function lookupDiscountCode(
     return { discountAmount, discountCode: discountCode.code };
   } catch {
     return null;
+  }
+}
+
+/**
+ * Record a discount code use after a successful API order. Shopify does not
+ * increment usage_count for draft orders, so we track it ourselves in the DB.
+ * Errors are swallowed — a DB write failure must not block the order response.
+ */
+export async function recordDiscountCodeUse(
+  code: string,
+  orderId?: number,
+  orderNumber?: number,
+  paymentMethod?: string,
+): Promise<void> {
+  try {
+    await insertDiscountCodeUse(code.trim(), orderId ?? null, orderNumber ?? null, paymentMethod ?? null);
+  } catch {
+    // Don't throw — usage recording failure must not block the order
   }
 }
 
