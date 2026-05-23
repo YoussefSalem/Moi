@@ -1,13 +1,25 @@
 import { motion } from "framer-motion";
 import { Video } from "lucide-react";
 
-const videos = [
+type VideoType = "video" | "carousel";
+
+interface VideoItem {
+  title: string;
+  handle: string;
+  profileUrl: string;
+  caption: string;
+  embedUrl: string;
+  type: VideoType;
+}
+
+const videos: VideoItem[] = [
   {
     title: "How brands under 1000 EGP actually look on \ud83d\udc40\ud83d\udcb8",
     handle: "@etharrdiabb",
     profileUrl: "https://www.tiktok.com/@etharrdiabb",
     caption: "Real styling review \u2014 affordable local fashion that actually delivers.",
     embedUrl: "https://www.tiktok.com/embed/v2/7642745763021262098",
+    type: "video",
   },
   {
     title: "Get ready with me",
@@ -15,6 +27,7 @@ const videos = [
     profileUrl: "https://www.tiktok.com/@thatsalmarocks",
     caption: "Morning routine & outfit check \u2014 effortless day-to-night dressing.",
     embedUrl: "https://www.tiktok.com/embed/v2/7639398570302377223",
+    type: "carousel",
   },
   {
     title: "Outfit of the day",
@@ -22,6 +35,7 @@ const videos = [
     profileUrl: "https://www.tiktok.com/@shopmoi_",
     caption: "Styling picks that feel polished and easy to recreate.",
     embedUrl: "https://www.tiktok.com/embed/v2/7639352601947016455",
+    type: "video",
   },
   {
     title: "Everyday outfit inspo",
@@ -29,6 +43,7 @@ const videos = [
     profileUrl: "https://www.tiktok.com/@thatsalmarocks",
     caption: "Real, wearable outfits that translate from screen to wardrobe.",
     embedUrl: "https://www.tiktok.com/embed/v2/7641637259661430024",
+    type: "video",
   },
 ];
 
@@ -97,15 +112,14 @@ export function TikTokSocialProof() {
                   </a>
                   <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
-                    {/* 9:16 visible window. Iframe is 103% height and top-anchored so the bottom
-                        "Watch now" bar is clipped while the controls above it stay visible. */}
-                    <div className="relative overflow-hidden aspect-[9/16]">
+                    {/* Smart per-type sizing: carousel = shorter embed, video = taller embed */}
+                    <div className={`relative overflow-hidden ${video.type === "carousel" ? "aspect-[9/16]" : "aspect-[9/17.5]"}`}>
                       {video.embedUrl ? (
                         <iframe
                           title={video.title}
                           src={video.embedUrl}
                           className="absolute left-0 top-0 w-full"
-                          style={{ height: "103%" }}
+                          style={video.type === "carousel" ? { height: "103%" } : { height: "100%" }}
                           allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
                           scrolling="no"
                           sandbox="allow-scripts allow-same-origin allow-presentation"
