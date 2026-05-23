@@ -97,14 +97,15 @@ export function TikTokSocialProof() {
                   </a>
                   <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
-                    {/* 9:17.5 + iframe pushed up 2% hides image-scroller promo bar while keeping video controls visible */}
-                    <div className="relative overflow-hidden aspect-[9/17.5]">
+                    {/* 9:16 visible window. Iframe is 103% height and top-anchored so the bottom
+                        "Watch now" bar is clipped while the controls above it stay visible. */}
+                    <div className="relative overflow-hidden aspect-[9/16]">
                       {video.embedUrl ? (
                         <iframe
                           title={video.title}
                           src={video.embedUrl}
                           className="absolute left-0 top-0 w-full"
-                          style={{ height: "102%" }}
+                          style={{ height: "103%" }}
                           allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
                           scrolling="no"
                           sandbox="allow-scripts allow-same-origin allow-presentation"
