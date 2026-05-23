@@ -277,6 +277,41 @@ export interface ShopifyLineItem {
   price: string;
 }
 
+async function applyDiscountCodeToOrder(
+  storeDomain: string,
+  adminToken: string,
+  orderId: number,
+  code: string,
+  amount: number,
+): Promise<void> {
+  try {
+    const res = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": adminToken,
+        },
+        body: JSON.stringify({
+          order: {
+            id: orderId,
+            discount_codes: [{ code, amount: amount.toFixed(2), type: "fixed_amount" }],
+          },
+        }),
+      },
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      logger.warn({ orderId, code, status: res.status, body: text }, "applyDiscountCodeToOrder: Shopify update failed");
+    } else {
+      logger.info({ orderId, code }, "applyDiscountCodeToOrder: discount_codes set on Shopify order — usage_count should increment");
+    }
+  } catch (err) {
+    logger.warn({ err, orderId, code }, "applyDiscountCodeToOrder: network error");
+  }
+}
+
 export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{ orderId: number; orderNumber: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string } | null> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
@@ -347,6 +382,11 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
   // Re-apply referring_site / landing_site because Shopify strips them during API completion
   if (draftAttr) {
     void setShopifyOrderReferrer(orderId, draftAttr);
+  }
+
+  // Associate the discount code with the real order so Shopify increments usage_count
+  if (draftDiscountCode && draftDiscountAmount && draftDiscountAmount > 0.01) {
+    void applyDiscountCodeToOrder(storeDomain, adminToken, orderId, draftDiscountCode, draftDiscountAmount);
   }
 
   return { orderId, orderNumber, total, lineItems: fetchedLineItems, discountAmount: draftDiscountAmount, discountCode: draftDiscountCode };
@@ -598,6 +638,11 @@ export async function createDraftOrder(params: {
       referringSite: attr.referringSite,
       landingSite: attr.landingSite,
     });
+  }
+
+  // Associate the discount code with the real order so Shopify increments usage_count
+  if (cartDiscountCode && cartDiscountAmount > 0.01) {
+    void applyDiscountCodeToOrder(storeDomain, adminToken, orderId, cartDiscountCode, cartDiscountAmount);
   }
 
   return { orderNumber, orderId, total, lineItems: fetchedLineItems, discountAmount: cartDiscountAmount > 0.01 ? cartDiscountAmount : undefined, discountCode: cartDiscountCode || undefined };
