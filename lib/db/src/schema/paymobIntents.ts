@@ -14,6 +14,8 @@ export const paymobIntents = pgTable("paymob_intents", {
   status: text("status").notNull().default("pending"),
   shopifyOrderId: bigint("shopify_order_id", { mode: "number" }),
   paymobTxnId: text("paymob_txn_id"),
+  /** Marketing attribution captured from the session (UTM, fbclid, gclid, ttclid) */
+  attribution: jsonb("attribution"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

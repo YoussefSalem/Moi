@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
 import { createPaymobIntention } from "../lib/paymob";
-import { fetchStorefrontCart, type OrderLine, type CustomerInfo } from "../lib/shopifyOrder";
+import { fetchStorefrontCart, type OrderLine, type CustomerInfo, type OrderAttribution } from "../lib/shopifyOrder";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
 
@@ -15,6 +15,7 @@ router.post("/orders/paymob-init", async (req, res) => {
     customer?: unknown;
     cartId?: unknown;
     discountCode?: unknown;
+    attribution?: unknown;
   };
 
   if (!Array.isArray(body.lines) || body.lines.length === 0) {
@@ -47,6 +48,25 @@ router.post("/orders/paymob-init", async (req, res) => {
   const lines = body.lines as OrderLine[];
   const discountCode = typeof body.discountCode === "string" && body.discountCode.trim() ? body.discountCode.trim() : undefined;
   const cartId = typeof body.cartId === "string" && body.cartId.trim() ? body.cartId.trim() : undefined;
+
+  // Extract attribution from request body
+  let attribution: OrderAttribution | undefined;
+  if (body.attribution && typeof body.attribution === "object") {
+    const a = body.attribution as Record<string, unknown>;
+    attribution = {};
+    if (typeof a.sourceName === "string") attribution.sourceName = a.sourceName;
+    if (typeof a.referringSite === "string") attribution.referringSite = a.referringSite;
+    if (typeof a.landingSite === "string") attribution.landingSite = a.landingSite;
+    if (typeof a.fbclid === "string") attribution.fbclid = a.fbclid;
+    if (typeof a.gclid === "string") attribution.gclid = a.gclid;
+    if (typeof a.ttclid === "string") attribution.ttclid = a.ttclid;
+    if (a.utm && typeof a.utm === "object") {
+      attribution.utm = Object.fromEntries(
+        Object.entries(a.utm as Record<string, unknown>).filter(([, v]) => typeof v === "string"),
+      );
+    }
+    if (Object.keys(attribution).length === 0) attribution = undefined;
+  }
 
   if (!cartId) {
     res.status(400).json({ error: "Cart ID is required for card payments." });
@@ -85,6 +105,7 @@ router.post("/orders/paymob-init", async (req, res) => {
     amountCents,
     total,
     status: "pending",
+    attribution: attribution as Record<string, unknown> | null ?? null,
   });
 
   req.log.info({ intentId, amountCents, total }, "Paymob intent saved — creating Paymob intention");

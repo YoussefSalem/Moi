@@ -47,6 +47,23 @@ export interface CustomerInfo {
   city: string;
 }
 
+export interface OrderAttribution {
+  /** Marketing source name for Shopify channel attribution (e.g. 'pos', 'web', 'facebook', 'instagram') */
+  sourceName?: string;
+  /** Full referring URL (e.g. https://www.facebook.com/) */
+  referringSite?: string;
+  /** Full landing page URL with UTM params */
+  landingSite?: string;
+  /** UTM parameters from the session */
+  utm?: Record<string, string>;
+  /** Meta click ID */
+  fbclid?: string;
+  /** Google click ID */
+  gclid?: string;
+  /** TikTok click ID */
+  ttclid?: string;
+}
+
 export interface StorefrontCartResult {
   subtotalAmount: number;
   totalAmount: number;
@@ -178,6 +195,8 @@ export async function createDraftOrder(params: {
   discountCode?: string;
   extraTags?: string;
   complete?: boolean;
+  /** Marketing attribution to pass to Shopify for channel/sales source reporting */
+  attribution?: OrderAttribution;
 }): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; draftOrderId?: number }> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
@@ -235,6 +254,34 @@ export async function createDraftOrder(params: {
   };
 
   if (params.customer.email) draftPayload.email = params.customer.email;
+
+  // Marketing attribution -- critical for "Referring channel" reporting in Shopify Analytics
+  if (params.attribution) {
+    const attr = params.attribution;
+    // source_name maps to Shopify's channel attribution (facebook, instagram, web, etc.)
+    if (attr.sourceName) draftPayload.source_name = attr.sourceName;
+    // referring_site is the full referrer URL
+    if (attr.referringSite) draftPayload.referring_site = attr.referringSite;
+    // landing_site is the full URL the customer first landed on
+    if (attr.landingSite) draftPayload.landing_site = attr.landingSite;
+    // Add UTM params as note_attributes for internal reference
+    if (attr.utm && Object.keys(attr.utm).length > 0) {
+      const utmAttrs = Object.entries(attr.utm).map(([k, v]) => ({
+        name: `utm_${k}`,
+        value: v,
+      }));
+      (draftPayload.note_attributes as unknown[]).push(...utmAttrs);
+    }
+    if (attr.fbclid) {
+      (draftPayload.note_attributes as unknown[]).push({ name: "fbclid", value: attr.fbclid });
+    }
+    if (attr.gclid) {
+      (draftPayload.note_attributes as unknown[]).push({ name: "gclid", value: attr.gclid });
+    }
+    if (attr.ttclid) {
+      (draftPayload.note_attributes as unknown[]).push({ name: "ttclid", value: attr.ttclid });
+    }
+  }
 
   if (params.cartId) {
     const cart = await fetchStorefrontCart(params.cartId);

@@ -7,6 +7,7 @@ import { IMAGES } from "@/config/images";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
 import { trackTikTokPurchase } from "@/lib/tiktokPixel";
 import { trackShopifyPurchase } from "@/lib/shopifyAnalytics";
+import { getAttribution } from "@/lib/adAttribution";
 import type { ShopifyCartLine } from "@/lib/shopify";
 
 const PRODUCT_COLOR_MAP: Record<string, string> = {};
@@ -179,6 +180,29 @@ async function compressImage(file: File, maxPx = 1400, quality = 0.82): Promise<
   });
 }
 
+/** Build marketing attribution payload from sessionStorage for order creation */
+function buildOrderAttribution() {
+  const attr = getAttribution();
+  const utm = attr.utm || {};
+  // Determine source_name for Shopify channel attribution
+  let sourceName: string | undefined;
+  if (utm.source === "facebook" || utm.source === "fb" || attr.fbclid) sourceName = "facebook";
+  else if (utm.source === "instagram" || utm.source === "ig") sourceName = "instagram";
+  else if (utm.source === "google" || attr.gclid) sourceName = "google";
+  else if (utm.source === "tiktok" || attr.ttclid) sourceName = "tiktok";
+  else if (utm.source) sourceName = utm.source;
+
+  return {
+    ...(sourceName ? { sourceName } : {}),
+    ...(attr.firstLandingUrl ? { landingSite: attr.firstLandingUrl } : {}),
+    ...(document.referrer ? { referringSite: document.referrer } : {}),
+    ...(Object.keys(utm).length > 0 ? { utm } : {}),
+    ...(attr.fbclid ? { fbclid: attr.fbclid } : {}),
+    ...(attr.gclid ? { gclid: attr.gclid } : {}),
+    ...(attr.ttclid ? { ttclid: attr.ttclid } : {}),
+  };
+}
+
 export function CheckoutPage() {
   const {
     shopifyCart,
@@ -335,6 +359,7 @@ export function CheckoutPage() {
             customer: customerPayload,
             cartId: shopifyCart?.id ?? null,
             discountCode: promoApplied?.code ?? null,
+            attribution: buildOrderAttribution(),
           }),
         });
 
@@ -385,6 +410,7 @@ export function CheckoutPage() {
             customer: customerPayload,
             cartId: shopifyCart?.id ?? null,
             discountCode: promoApplied?.code ?? null,
+            attribution: buildOrderAttribution(),
           }),
         });
 
@@ -438,6 +464,7 @@ export function CheckoutPage() {
           paymentMethod: "cod",
           cartId: shopifyCart?.id ?? null,
           discountCode: promoApplied?.code ?? null,
+          attribution: buildOrderAttribution(),
         }),
       });
 

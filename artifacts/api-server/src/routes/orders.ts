@@ -10,6 +10,7 @@ import {
   extractVariantId,
   type OrderLine,
   type CustomerInfo,
+  type OrderAttribution,
 } from "../lib/shopifyOrder";
 import { sendEmail, buildCODOrderEmail } from "../lib/email";
 
@@ -21,6 +22,26 @@ interface CreateOrderBody {
   paymentMethod?: unknown;
   discountCode?: unknown;
   cartId?: unknown;
+  attribution?: unknown;
+}
+
+function extractAttribution(body: CreateOrderBody): OrderAttribution | undefined {
+  const raw = body.attribution;
+  if (!raw || typeof raw !== "object") return undefined;
+  const a = raw as Record<string, unknown>;
+  const attr: OrderAttribution = {};
+  if (typeof a.sourceName === "string") attr.sourceName = a.sourceName;
+  if (typeof a.referringSite === "string") attr.referringSite = a.referringSite;
+  if (typeof a.landingSite === "string") attr.landingSite = a.landingSite;
+  if (typeof a.fbclid === "string") attr.fbclid = a.fbclid;
+  if (typeof a.gclid === "string") attr.gclid = a.gclid;
+  if (typeof a.ttclid === "string") attr.ttclid = a.ttclid;
+  if (a.utm && typeof a.utm === "object") {
+    attr.utm = Object.fromEntries(
+      Object.entries(a.utm as Record<string, unknown>).filter(([, v]) => typeof v === "string"),
+    );
+  }
+  return Object.keys(attr).length > 0 ? attr : undefined;
 }
 
 function validateLines(lines: unknown[]): OrderLine[] | null {
@@ -105,6 +126,7 @@ router.post("/orders/instapay-init", async (req, res) => {
       discountCode,
       extraTags: "instapay-pending-verification",
       complete: false,
+      attribution: extractAttribution(body),
     });
 
     req.log.info({ shopifyOrderId: result.orderId, shopifyOrderNumber: result.orderNumber }, "Instapay init — order created");
@@ -181,6 +203,7 @@ router.post("/orders/create", async (req, res) => {
       paymentMethod: "cod",
       cartId,
       discountCode,
+      attribution: extractAttribution(body),
     });
 
     req.log.info({ orderNumber, orderId }, "COD order created");

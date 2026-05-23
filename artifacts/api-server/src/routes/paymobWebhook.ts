@@ -10,7 +10,7 @@ import {
   createShopifyFulfillment,
   addShopifyFulfillmentEvent,
 } from "../lib/integrations";
-import { createDraftOrder, type OrderLine, type CustomerInfo, type ShopifyLineItem } from "../lib/shopifyOrder";
+import { createDraftOrder, type OrderLine, type CustomerInfo, type ShopifyLineItem, type OrderAttribution } from "../lib/shopifyOrder";
 import { sendEmail, buildOrderConfirmationEmail } from "../lib/email";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
@@ -81,6 +81,7 @@ router.post("/webhooks/paymob", async (req, res) => {
         cartId: paymobIntents.cartId,
         discountCode: paymobIntents.discountCode,
         total: paymobIntents.total,
+        attribution: paymobIntents.attribution,
       });
 
     if (claimed.length === 0) {
@@ -91,8 +92,18 @@ router.post("/webhooks/paymob", async (req, res) => {
     const intent = claimed[0];
     const customer = intent.customer as CustomerInfo;
     const lines = intent.lines as OrderLine[];
+    const attr = intent.attribution as Record<string, unknown> | null;
+    const attribution: OrderAttribution | undefined = attr ? {
+      ...(typeof attr.sourceName === "string" ? { sourceName: attr.sourceName } : {}),
+      ...(typeof attr.referringSite === "string" ? { referringSite: attr.referringSite } : {}),
+      ...(typeof attr.landingSite === "string" ? { landingSite: attr.landingSite } : {}),
+      ...(typeof attr.fbclid === "string" ? { fbclid: attr.fbclid } : {}),
+      ...(typeof attr.gclid === "string" ? { gclid: attr.gclid } : {}),
+      ...(typeof attr.ttclid === "string" ? { ttclid: attr.ttclid } : {}),
+      ...(attr.utm && typeof attr.utm === "object" ? { utm: Object.fromEntries(Object.entries(attr.utm as Record<string, unknown>).filter(([, v]) => typeof v === "string")) } : {}),
+    } : undefined;
 
-    req.log.info({ intentId, paymobTxnId, amount }, "Paymob webhook: creating Shopify order");
+    req.log.info({ intentId, paymobTxnId, amount, hasAttribution: !!attribution }, "Paymob webhook: creating Shopify order");
 
     // Create Shopify order from stored intent data
     let shopifyOrderId: number;
@@ -106,6 +117,7 @@ router.post("/webhooks/paymob", async (req, res) => {
         cartId: intent.cartId ?? undefined,
         discountCode: intent.discountCode ?? undefined,
         extraTags: `paymob-card-paid,paymob-txn-${paymobTxnId}`,
+        attribution,
       });
       shopifyOrderId = result.orderId;
       shopifyOrderNumber = result.orderNumber;
