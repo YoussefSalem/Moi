@@ -100,7 +100,10 @@ function AppContent() {
     if (page === "home") {
       if (window.location.hash) window.history.replaceState(null, "", window.location.pathname);
     } else {
-      window.location.hash = page;
+      const currentHash = window.location.hash.slice(1);
+      if (currentHash !== page) {
+        window.location.hash = page;
+      }
     }
   }, [page]);
 
