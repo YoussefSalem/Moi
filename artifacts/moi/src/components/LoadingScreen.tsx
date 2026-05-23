@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface LoadingScreenProps {
@@ -8,11 +8,15 @@ interface LoadingScreenProps {
 
 export function LoadingScreen({ ready }: LoadingScreenProps) {
   const [visible, setVisible] = useState(true);
+  const shownAt = useRef(Date.now());
 
   useEffect(() => {
     if (!ready) return;
-    // Keep the loader visible for a short beat so the transition feels intentional
-    const t = setTimeout(() => setVisible(false), 400);
+    // Enforce a minimum display time of 800ms so the loader never flashes
+    // even if everything loads instantly — the user always sees a smooth entrance.
+    const elapsed = Date.now() - shownAt.current;
+    const remaining = Math.max(0, 800 - elapsed);
+    const t = setTimeout(() => setVisible(false), remaining);
     return () => clearTimeout(t);
   }, [ready]);
 

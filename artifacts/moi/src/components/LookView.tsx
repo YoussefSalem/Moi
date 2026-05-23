@@ -88,16 +88,35 @@ export function LookView({ product, onClose }: LookViewProps) {
     // ⚠️ DO NOT call img.decode() here.
     // img.decode() forces full GPU texture upload for every image simultaneously.
     // On iOS Safari, 5 large images decoded at once = 150-250 MB GPU memory → WebKit OOM kill.
-    // Instead: just wait the intentional delay, then reveal the panel.
-    // Individual images load progressively; the thumbLoading skeleton handles each one's UX.
-    const kickoff = setTimeout(async () => {
-      await new Promise<void>((res) => setTimeout(res, 350));
-      markReady();
-    }, 0);
+    //
+    // Instead: wait for the first (hero) image to load naturally, then reveal.
+    // The heavy DOM is already in the DOM but hidden via `display:none` (not opacity)
+    // so it causes zero layout/paint cost while the spinner is showing.
+    const heroImg = new Image();
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const onHeroReady = () => {
+      if (cancelled) return;
+      timeoutId = setTimeout(() => {
+        if (!cancelled) setReady(true);
+      }, 120);
+    };
+
+    heroImg.addEventListener("load", onHeroReady);
+    heroImg.addEventListener("error", onHeroReady);
+    heroImg.src = urls[0]!;
+    if (heroImg.complete && heroImg.naturalWidth > 0) {
+      onHeroReady();
+    }
+
+    // Warm the other images in the background (no blocking)
+    urls.slice(1).forEach((src) => { const img = new Image(); img.src = src; });
 
     return () => {
       cancelled = true;
-      clearTimeout(kickoff);
+      heroImg.removeEventListener("load", onHeroReady);
+      heroImg.removeEventListener("error", onHeroReady);
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, [product]);
 
@@ -147,25 +166,20 @@ export function LookView({ product, onClose }: LookViewProps) {
           >
 
             {/*
-              KEY PERFORMANCE TRICK:
-              The panel is rendered in the DOM immediately (even while !ready)
-              but is invisible + non-interactive. This lets the browser do all
-              layout and paint work while the spinner is showing.
-              When ready flips, the reveal is a pure compositor opacity change —
-              zero paint cost, zero jank at 144Hz.
+              Instead of rendering heavy DOM hidden via opacity (causes 1-sec
+              freeze on first visit while images are cold), we render nothing
+              until `ready`. When ready flips, a smooth opacity+transform fade
+              brings the content in. This is the simplest path to zero jank.
             */}
             <div
               ref={panelRef}
               className="absolute inset-0"
               style={{
+                display: ready ? "block" : "none",
+                // Once visible, smooth fade in with upward drift
                 opacity: ready ? 1 : 0,
-                // Subtle upward drift — starts 14px below, rises as it fades in
                 transform: ready ? "translateY(0)" : "translateY(14px)",
-                pointerEvents: ready ? "auto" : "none",
-                // Fast start (feels snappy), long smooth tail (feels cinematic)
-                transition: ready
-                  ? "opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)"
-                  : "none",
+                transition: "opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)",
                 willChange: "opacity, transform",
               }}
             >
