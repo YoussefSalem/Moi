@@ -273,6 +273,171 @@ router.post("/admin/instapay-proofs/:id/reject", async (req, res) => {
   res.status(200).json({ ok: true });
 });
 
+/**
+ * POST /api/admin/test-discount-counter
+ *
+ * Dev/debug endpoint. Creates a minimal Shopify order with a discount code via
+ * the Orders API (the only way usage_count increments for API orders), checks
+ * the before/after usage_count via Admin GraphQL, then deletes the test order.
+ * Protected by admin auth.
+ */
+router.post("/admin/test-discount-counter", requireAdminAuth, async (req, res) => {
+  const body = req.body as { discountCode?: string; keepOrder?: boolean };
+  const code = ((body.discountCode as string | undefined) || "DODO15").trim().toUpperCase();
+  const keepOrder = body.keepOrder === true;
+
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const adminToken = await getShopifyAdminToken();
+  const staticToken = process.env.SHOPIFY_ADMIN_API_TOKEN ?? adminToken;
+
+  if (!storeDomain || !adminToken) {
+    res.status(503).json({ error: "Shopify not configured" });
+    return;
+  }
+
+  async function queryUsageCount(token: string): Promise<{ usageLimit: number | null; asyncUsageCount: number } | null> {
+    try {
+      const r = await fetch(`https://${storeDomain}/admin/api/2024-04/graphql.json`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
+        body: JSON.stringify({
+          query: `{ codeDiscountNodeByCode(code: "${code}") { codeDiscount { ... on DiscountCodeBasic { usageLimit asyncUsageCount } } } }`,
+        }),
+      });
+      if (!r.ok) return null;
+      const d = await r.json() as {
+        data?: { codeDiscountNodeByCode?: { codeDiscount?: { usageLimit?: number | null; asyncUsageCount?: number } | null } | null };
+      };
+      const dc = d?.data?.codeDiscountNodeByCode?.codeDiscount;
+      if (dc === undefined || dc === null) return null;
+      return { usageLimit: dc.usageLimit ?? null, asyncUsageCount: dc.asyncUsageCount ?? 0 };
+    } catch { return null; }
+  }
+
+  // Try OAuth token first, then static token for read queries
+  async function getUsageCount(): Promise<{ usageLimit: number | null; asyncUsageCount: number } | null> {
+    return (await queryUsageCount(adminToken)) ?? (staticToken ? await queryUsageCount(staticToken) : null);
+  }
+
+  // Find a variant to use in the test order.
+  // Try Admin REST (needs read_products), then fall back to Storefront API.
+  let variantId: number | null = null;
+  let variantPrice = "500.00";
+
+  for (const token of [adminToken, staticToken].filter(Boolean)) {
+    try {
+      const r = await fetch(`https://${storeDomain}/admin/api/2024-04/products.json?limit=1&fields=id,variants`, {
+        headers: { "X-Shopify-Access-Token": token! },
+      });
+      if (r.ok) {
+        const d = await r.json() as { products?: Array<{ variants?: Array<{ id: number; price: string }> }> };
+        const v = d.products?.[0]?.variants?.[0];
+        if (v?.id) { variantId = v.id; variantPrice = v.price; break; }
+      }
+    } catch { /* try next */ }
+  }
+
+  // Fallback: use Storefront API (always available)
+  if (!variantId) {
+    const storefrontToken = process.env.VITE_SHOPIFY_STOREFRONT_TOKEN;
+    if (storefrontToken) {
+      try {
+        const sfRes = await fetch(`https://${storeDomain}/api/2024-04/graphql.json`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Shopify-Storefront-Access-Token": storefrontToken,
+          },
+          body: JSON.stringify({
+            query: `{ products(first:1) { edges { node { variants(first:1) { edges { node { id price { amount } } } } } } } }`,
+          }),
+        });
+        if (sfRes.ok) {
+          const sfData = await sfRes.json() as {
+            data?: { products?: { edges?: Array<{ node?: { variants?: { edges?: Array<{ node?: { id?: string; price?: { amount?: string } } }> } } }> } };
+          };
+          const sfVariant = sfData.data?.products?.edges?.[0]?.node?.variants?.edges?.[0]?.node;
+          if (sfVariant?.id) {
+            // GID → integer: "gid://shopify/ProductVariant/12345" → 12345
+            const numericId = sfVariant.id.split("/").pop();
+            if (numericId) {
+              variantId = parseInt(numericId, 10);
+              variantPrice = sfVariant.price?.amount ?? "500.00";
+            }
+          }
+        }
+      } catch { /* ignore */ }
+    }
+  }
+
+  if (!variantId) {
+    res.status(422).json({
+      error: "Could not find a product variant (tried Admin REST + Storefront API).",
+    });
+    return;
+  }
+
+  const before = await getUsageCount();
+
+  // Create a minimal test order via Orders API with discount_codes
+  const createRes = await fetch(`https://${storeDomain}/admin/api/2024-04/orders.json`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+    body: JSON.stringify({
+      order: {
+        send_receipt: false,
+        send_fulfillment_receipt: false,
+        financial_status: "pending",
+        line_items: [{ variant_id: variantId, quantity: 1, price: variantPrice }],
+        discount_codes: [{ code, amount: "100.00", type: "fixed_amount" }],
+      },
+    }),
+  });
+
+  const createData = await createRes.json() as { order?: { id: number; order_number: number }; errors?: unknown };
+  const orderId = createData.order?.id;
+  const orderNumber = createData.order?.order_number;
+
+  if (!orderId) {
+    res.status(500).json({ error: "Test order creation failed", shopifyErrors: createData.errors });
+    return;
+  }
+
+  // Short pause — Shopify sometimes updates asyncUsageCount asynchronously
+  await new Promise((r) => setTimeout(r, 1500));
+  const after = await getUsageCount();
+
+  // Clean up unless caller asked to keep the order (for manual Shopify admin inspection)
+  if (!keepOrder) {
+    await fetch(`https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json`, {
+      method: "DELETE",
+      headers: { "X-Shopify-Access-Token": adminToken },
+    }).catch(() => { /* best effort */ });
+  }
+
+  const incremented = after !== null && before !== null
+    ? after.asyncUsageCount > before.asyncUsageCount
+    : null;
+
+  req.log.info({ code, orderId, orderNumber, before, after, incremented, keepOrder }, "test-discount-counter result");
+
+  res.status(200).json({
+    discountCode: code,
+    testOrderNumber: orderNumber,
+    testOrderId: orderId,
+    orderKept: keepOrder,
+    before,
+    after,
+    usageCountIncremented: incremented,
+    success: incremented === true,
+    note: incremented === null
+      ? keepOrder
+        ? `Order #${orderNumber} kept alive — check Shopify admin Discounts → ${code} → "Used" count, then delete order #${orderNumber} manually`
+        : "Could not read usage_count (read_discounts scope missing) — order was auto-deleted"
+      : undefined,
+  });
+});
+
 // GET /admin/paymob-config
 router.get("/admin/paymob-config", (_req, res) => {
   res.status(200).json(getMaskedConfig());
