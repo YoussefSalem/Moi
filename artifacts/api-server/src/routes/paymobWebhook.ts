@@ -109,6 +109,8 @@ router.post("/webhooks/paymob", async (req, res) => {
     let shopifyOrderId: number;
     let shopifyOrderNumber: number;
     let shopifyLineItems: ShopifyLineItem[] = [];
+    let shopifyDiscountAmount: number | undefined;
+    let shopifyDiscountCode: string | undefined;
     try {
       const result = await createDraftOrder({
         lines,
@@ -122,6 +124,8 @@ router.post("/webhooks/paymob", async (req, res) => {
       shopifyOrderId = result.orderId;
       shopifyOrderNumber = result.orderNumber;
       shopifyLineItems = result.lineItems;
+      shopifyDiscountAmount = result.discountAmount;
+      shopifyDiscountCode = result.discountCode;
     } catch (err) {
       req.log.error({ err, intentId }, "Paymob webhook: Shopify order creation failed — marking intent failed");
       await db
@@ -141,6 +145,7 @@ router.post("/webhooks/paymob", async (req, res) => {
 
     // Send branded order confirmation email to customer (fire-and-forget)
     if (customer.email) {
+      const shippingPrice = parseFloat(amount) >= 2000 ? "0.00" : "50.00";
       const { html, text } = buildOrderConfirmationEmail({
         orderNumber: shopifyOrderNumber,
         customerName: customer.firstName,
@@ -150,6 +155,9 @@ router.post("/webhooks/paymob", async (req, res) => {
         governorate: customer.governorate,
         city: customer.city,
         lineItems: shopifyLineItems,
+        discountAmount: shopifyDiscountAmount ? shopifyDiscountAmount.toFixed(2) : undefined,
+        discountCode: shopifyDiscountCode || undefined,
+        shippingAmount: shippingPrice,
       });
       void sendEmail({ to: customer.email, subject: `Your Moi order #${shopifyOrderNumber} is confirmed`, html, text })
         .then(() => req.log.info({ email: customer.email, shopifyOrderNumber }, "Order confirmation email sent"))

@@ -97,6 +97,8 @@ router.post(
     orderId = completed.orderId;
     orderNumber = completed.orderNumber;
     totalPrice = completed.total;
+    const discountAmount = completed.discountAmount;
+    const discountCode = completed.discountCode;
 
     // Fetch authoritative email from the completed order
     try {
@@ -178,11 +180,15 @@ router.post(
 
     // 5. Branded pending-verification email to customer (fire-and-forget)
     if (customerEmail) {
+      const shippingPrice = parseFloat(amountDisplay) >= 2000 ? "0.00" : "50.00";
       const { html, text } = buildInstapayPendingEmail({
         orderNumber: orderNumber,
         customerName: customerName,
         total: amountDisplay,
         referenceNumber: referenceNumber.trim(),
+        discountAmount: discountAmount ? discountAmount.toFixed(2) : undefined,
+        discountCode: discountCode || undefined,
+        shippingAmount: shippingPrice,
       });
       void sendEmail({
         to: customerEmail,

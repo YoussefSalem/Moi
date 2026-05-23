@@ -197,7 +197,7 @@ router.post("/orders/create", async (req, res) => {
   );
 
   try {
-    const { orderNumber, orderId, total, lineItems } = await createDraftOrder({
+    const result = await createDraftOrder({
       lines,
       customer,
       paymentMethod: "cod",
@@ -205,11 +205,13 @@ router.post("/orders/create", async (req, res) => {
       discountCode,
       attribution: extractAttribution(body),
     });
+    const { orderNumber, orderId, total, lineItems } = result;
 
     req.log.info({ orderNumber, orderId }, "COD order created");
 
     // Branded order confirmation email (fire-and-forget)
     if (customer.email) {
+      const shippingPrice = parseFloat(total) >= 2000 ? "0.00" : "50.00";
       const { html, text } = buildCODOrderEmail({
         orderNumber,
         customerName: customer.firstName,
@@ -218,6 +220,9 @@ router.post("/orders/create", async (req, res) => {
         governorate: customer.governorate,
         city: customer.city,
         lineItems: lineItems,
+        discountAmount: result.discountAmount ? result.discountAmount.toFixed(2) : undefined,
+        discountCode: result.discountCode || undefined,
+        shippingAmount: shippingPrice,
       });
       void sendEmail({
         to: customer.email,

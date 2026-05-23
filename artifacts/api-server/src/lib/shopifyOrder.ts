@@ -182,13 +182,15 @@ export interface ShopifyLineItem {
   price: string;
 }
 
-export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{ orderId: number; orderNumber: number; total: string; lineItems: ShopifyLineItem[] } | null> {
+export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{ orderId: number; orderNumber: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string } | null> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return null;
 
-  // Read the draft first so we can recover attribution stored as a note_attribute
+  // Read the draft first so we can recover attribution and discount stored as note_attributes
   let draftAttr: { referringSite?: string; landingSite?: string } | undefined;
+  let draftDiscountAmount: number | undefined;
+  let draftDiscountCode: string | undefined;
   try {
     const draftRes = await fetch(
       `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}.json?fields=note_attributes`,
@@ -206,6 +208,10 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
           ...(typeof parsed.landingSite === "string" ? { landingSite: parsed.landingSite } : {}),
         };
       }
+      const discountRaw = draftData.draft_order?.note_attributes?.find((n) => n.name === "__discount_amount")?.value;
+      const codeRaw = draftData.draft_order?.note_attributes?.find((n) => n.name === "__discount_code")?.value;
+      if (discountRaw) draftDiscountAmount = parseFloat(discountRaw);
+      if (codeRaw) draftDiscountCode = codeRaw;
     }
   } catch { /* ignore */ }
 
@@ -248,7 +254,7 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
     void setShopifyOrderReferrer(orderId, draftAttr);
   }
 
-  return { orderId, orderNumber, total, lineItems: fetchedLineItems };
+  return { orderId, orderNumber, total, lineItems: fetchedLineItems, discountAmount: draftDiscountAmount, discountCode: draftDiscountCode };
 }
 
 export async function createDraftOrder(params: {
@@ -261,7 +267,7 @@ export async function createDraftOrder(params: {
   complete?: boolean;
   /** Marketing attribution to pass to Shopify for channel/sales source reporting */
   attribution?: OrderAttribution;
-}): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; draftOrderId?: number }> {
+}): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; draftOrderId?: number; discountAmount?: number; discountCode?: string }> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) throw new Error("Shopify Admin API not configured");
@@ -289,6 +295,8 @@ export async function createDraftOrder(params: {
   // Determine shipping based on cart total: free over 2,000 EGP
   let shippingPrice = "50.00";
   let shippingTitle = "Standard Delivery";
+  let cartDiscountAmount = 0;
+  let cartDiscountCode = "";
 
   if (params.cartId) {
     const cart = await fetchStorefrontCart(params.cartId);
@@ -297,6 +305,11 @@ export async function createDraftOrder(params: {
         shippingPrice = "0.00";
         shippingTitle = "Free Delivery";
       }
+      cartDiscountAmount = cart.discountAmount;
+      const codeInCart = cart.discountCodes.find(
+        (d) => d.code.toLowerCase() === (params.discountCode || "").toLowerCase(),
+      );
+      cartDiscountCode = codeInCart?.code || params.discountCode || "";
     }
   }
 
@@ -328,7 +341,18 @@ export async function createDraftOrder(params: {
       { name: "customer_phone", value: params.customer.phone },
       { name: "governorate", value: params.customer.governorate },
       ...(params.customer.postalCode ? [{ name: "postal_code", value: params.customer.postalCode }] : []),
+      ...(cartDiscountAmount > 0.01 ? [
+        { name: "__discount_amount", value: cartDiscountAmount.toFixed(2) },
+        { name: "__discount_code", value: cartDiscountCode || "Discount" },
+      ] : []),
     ],
+    ...(cartDiscountAmount > 0.01 ? {
+      applied_discount: {
+        title: cartDiscountCode || "Discount",
+        value_type: "fixed_amount",
+        value: cartDiscountAmount.toFixed(2),
+      },
+    } : {}),
   };
 
   if (params.customer.email) draftPayload.email = params.customer.email;
@@ -371,25 +395,6 @@ export async function createDraftOrder(params: {
     });
   }
 
-  if (params.cartId) {
-    const cart = await fetchStorefrontCart(params.cartId);
-    if (cart) {
-      const discountAmount = cart.subtotalAmount - cart.totalAmount;
-      const codeInCart = cart.discountCodes.find(
-        (d) => d.code.toLowerCase() === (params.discountCode || "").toLowerCase(),
-      );
-
-      // Trust the cart's discountAllocations as ground truth for the discount amount.
-      if (cart.discountAmount > 0.01) {
-        draftPayload.applied_discount = {
-          title: codeInCart?.code || params.discountCode || "Discount",
-          value_type: "fixed_amount",
-          value: cart.discountAmount.toFixed(2),
-        };
-      }
-    }
-  }
-
   const createRes = await fetch(
     `https://${storeDomain}/admin/api/2024-04/draft_orders.json`,
     {
@@ -415,7 +420,7 @@ export async function createDraftOrder(params: {
 
   // For instapay we return early with the draft ID — order is only completed when proof is submitted
   if (params.complete === false) {
-    return { orderNumber: draftId, orderId: draftId, total: draftTotal, lineItems: [], draftOrderId: draftId };
+    return { orderNumber: draftId, orderId: draftId, total: draftTotal, lineItems: [], draftOrderId: draftId, discountAmount: cartDiscountAmount > 0.01 ? cartDiscountAmount : undefined, discountCode: cartDiscountCode || undefined };
   }
 
   const completeRes = await fetch(
@@ -464,5 +469,5 @@ export async function createDraftOrder(params: {
     });
   }
 
-  return { orderNumber, orderId, total, lineItems: fetchedLineItems };
+  return { orderNumber, orderId, total, lineItems: fetchedLineItems, discountAmount: cartDiscountAmount > 0.01 ? cartDiscountAmount : undefined, discountCode: cartDiscountCode || undefined };
 }
