@@ -755,21 +755,60 @@ export function CheckoutPage() {
                       ))
                   }
                 </div>
-                <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(30,24,20,0.12)" }}>
-                  <div className="flex justify-between items-center mb-1">
+                <div className="mt-4 pt-4 space-y-3" style={{ borderTop: "1px solid rgba(30,24,20,0.12)" }}>
+                  <div className="flex justify-between">
+                    <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
+                    <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(subtotalAmount)}</span>
+                  </div>
+                  {savings > 0 && promoApplied && (
+                    <div style={{
+                      backgroundColor: "rgba(52,95,67,0.09)", border: "1px solid rgba(52,95,67,0.28)",
+                      borderRadius: "2px", padding: "8px 12px",
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Tag size={11} strokeWidth={2} style={{ color: "#2f6644" }} />
+                        <div>
+                          <p style={{ fontSize: "10px", color: "#2f6644", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>Promo applied</p>
+                          <p style={{ fontSize: "10px", color: "rgba(47,102,68,0.75)", fontFamily: "'Montserrat', sans-serif" }}>{promoApplied.code}</p>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <p style={{ fontSize: "14px", color: "#2f6644", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>-{fmt(savings)}</p>
+                        <p style={{ fontSize: "10px", color: "rgba(47,102,68,0.7)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>{Math.round((savings / subtotalAmount) * 100)}% off</p>
+                      </div>
+                    </div>
+                  )}
+                  {!freeShipping && discountedSubtotal > 0 && (
+                    <div style={{
+                      backgroundColor: "rgba(248,252,245,0.9)", border: "1px solid rgba(160,190,150,0.22)",
+                      borderRadius: "2px", padding: "8px 12px",
+                    }}>
+                      <p style={{ fontSize: "10px", letterSpacing: "0.22em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e", marginBottom: "1px" }}>
+                        You're {fmt(2000 - discountedSubtotal)} away from free delivery
+                      </p>
+                      <p style={{ fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "rgba(107,143,94,0.65)" }}>
+                        standard shipping: {fmt(SHIPPING_EGP)}
+                      </p>
+                    </div>
+                  )}
+                  {freeShipping && (
+                    <div style={{ backgroundColor: "rgba(248,252,245,0.9)", border: "1px solid rgba(160,190,150,0.35)", borderRadius: "2px", padding: "8px 12px", textAlign: "center" }}>
+                      <p style={{ fontSize: "10px", letterSpacing: "0.22em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e" }}>Free delivery unlocked</p>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: "15px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", fontWeight: 600 }}>Shipping</span>
+                      <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
                       {!freeShipping && (
-                        <span style={{ fontSize: "13px", fontStyle: "italic", color: "#7a9a6e", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
+                        <span style={{ fontSize: "12px", fontStyle: "italic", color: "rgba(107,143,94,0.7)", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
                       )}
                     </div>
-                    <span style={{ fontSize: "15px", color: freeShipping ? "#6b8f5e" : "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
-                      {freeShipping ? (
-                        <span style={{ fontSize: "14px", fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", fontWeight: 400 }}>Complimentary</span>
-                      ) : fmt(SHIPPING_EGP)}
+                    <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
+                      {freeShipping ? <span style={{ fontSize: "13px", fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", fontWeight: 400 }}>Complimentary</span> : fmt(SHIPPING_EGP)}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center mt-3">
+                  <div className="flex justify-between items-center pt-3" style={{ borderTop: "1px solid rgba(30,24,20,0.22)" }}>
                     <span style={{ fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>Total</span>
                     <span style={{ fontSize: "18px", color: "#1e1814", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, letterSpacing: "0.03em" }}>
                       {orderResult?.total ?? fmt(totalAmount)}
@@ -1007,16 +1046,56 @@ export function CheckoutPage() {
                       </motion.div>
                     )}
                   </AnimatePresence>
+                  {/* "X away from free delivery" nudge */}
+                  {!freeShipping && discountedSubtotal > 0 && (
+                    <div style={{
+                      backgroundColor: "rgba(248,252,245,0.9)",
+                      border: "1px solid rgba(160,190,150,0.22)",
+                      borderRadius: "2px",
+                      padding: "10px 14px",
+                    }}>
+                      <p style={{
+                        fontSize: "11px", letterSpacing: "0.22em", textTransform: "uppercase",
+                        fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e",
+                        marginBottom: "2px",
+                      }}>
+                        You're {fmt(2000 - discountedSubtotal)} away from free delivery
+                      </p>
+                      <p style={{
+                        fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase",
+                        fontFamily: "'Montserrat', sans-serif", fontWeight: 500,
+                        color: "rgba(107,143,94,0.65)",
+                      }}>
+                        standard shipping: {fmt(SHIPPING_EGP)}
+                      </p>
+                    </div>
+                  )}
+                  {freeShipping && (
+                    <div style={{
+                      backgroundColor: "rgba(248,252,245,0.9)",
+                      border: "1px solid rgba(160,190,150,0.35)",
+                      borderRadius: "2px",
+                      padding: "10px 14px",
+                      textAlign: "center",
+                    }}>
+                      <p style={{
+                        fontSize: "11px", letterSpacing: "0.22em", textTransform: "uppercase",
+                        fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e",
+                      }}>
+                        Free delivery unlocked
+                      </p>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: "15px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
+                      <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
                       {!freeShipping && (
-                        <span style={{ fontSize: "13px", fontStyle: "italic", color: "#7a9a6e", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
+                        <span style={{ fontSize: "12px", fontStyle: "italic", color: "rgba(107,143,94,0.7)", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
                       )}
                     </div>
-                    <span style={{ fontSize: "15px", color: freeShipping ? "#6b8f5e" : "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
+                    <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
                       {freeShipping ? (
-                        <span style={{ fontSize: "14px", fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", fontWeight: 400 }}>Complimentary</span>
+                        <span style={{ fontSize: "13px", fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", fontWeight: 400 }}>Complimentary</span>
                       ) : fmt(SHIPPING_EGP)}
                     </span>
                   </div>
