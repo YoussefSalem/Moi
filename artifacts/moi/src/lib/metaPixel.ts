@@ -5,6 +5,15 @@
 
 import { getAttribution } from "./adAttribution";
 
+const ECOMMERCE_EVENTS = new Set([
+  "InitiateCheckout",
+  "Purchase",
+  "AddToCart",
+  "ViewContent",
+  "AddPaymentInfo",
+  "CompleteRegistration",
+]);
+
 export function trackEvent(
   eventName: string,
   params?: Record<string, string | number | boolean | undefined>
@@ -19,9 +28,29 @@ export function trackEvent(
     if (typeof value === "number" && !Number.isFinite(value)) continue;
     cleaned[key] = value;
   }
-  // Always require currency when value is present (Meta standard)
+
+  // E-commerce validation: drop events with zero/negative value (Meta flags these as invalid)
+  const isEcommerce = ECOMMERCE_EVENTS.has(eventName);
+  if (isEcommerce && "value" in cleaned) {
+    const val = cleaned.value as number;
+    if (typeof val !== "number" || val <= 0) {
+      delete cleaned.value;
+      delete cleaned.currency;
+      delete cleaned.num_items;
+      delete cleaned.content_ids;
+      delete cleaned.contents;
+    } else {
+      // Meta expects value rounded to exactly 2 decimals
+      cleaned.value = Math.round(val * 100) / 100;
+    }
+  }
+
+  // Currency must be uppercase 3-letter ISO code and always paired with value
   if ("value" in cleaned && !("currency" in cleaned)) {
     cleaned.currency = "EGP";
+  }
+  if ("currency" in cleaned) {
+    cleaned.currency = String(cleaned.currency).toUpperCase().slice(0, 3);
   }
   if ("currency" in cleaned && !("value" in cleaned)) {
     cleaned.value = 0;
