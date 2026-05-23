@@ -779,28 +779,20 @@ export function CheckoutPage() {
                     <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(discountedSubtotal)}</span>
                   </div>
                   {!freeShipping && discountedSubtotal > 0 && (
-                    <div style={{
-                      backgroundColor: "rgba(248,252,245,0.9)", border: "1px solid rgba(160,190,150,0.22)",
-                      borderRadius: "2px", padding: "8px 12px",
-                    }}>
-                      <p style={{ fontSize: "16px", letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e", marginBottom: "1px" }}>
-                        You're {fmt(2000 - discountedSubtotal)} away from free delivery
-                      </p>
-                      <p style={{ fontSize: "14px", letterSpacing: "0.15em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "rgba(107,143,94,0.75)" }}>
-                        standard shipping: {fmt(SHIPPING_EGP)}
-                      </p>
-                    </div>
+                    <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "#6b8f5e" }}>
+                      {fmt(2000 - discountedSubtotal)} EGP away from free delivery
+                    </p>
                   )}
                   {freeShipping && (
                     <div style={{ backgroundColor: "rgba(248,252,245,0.9)", border: "1px solid rgba(160,190,150,0.35)", borderRadius: "2px", padding: "8px 12px", textAlign: "center" }}>
-                      <p style={{ fontSize: "14px", letterSpacing: "0.22em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e" }}>Free delivery unlocked</p>
+                      <p style={{ fontSize: "11px", letterSpacing: "0.22em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e" }}>Free delivery unlocked</p>
                     </div>
                   )}
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       <span style={{ fontSize: "15px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
                       {!freeShipping && (
-                        <span style={{ fontSize: "16px", fontStyle: "italic", color: "rgba(107,143,94,0.8)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>— free over 2,000 EGP</span>
+                        <span style={{ fontSize: "18px", fontStyle: "italic", color: "rgba(107,143,94,0.85)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>— free over 2,000 EGP</span>
                       )}
                     </div>
                     <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
@@ -1038,27 +1030,9 @@ export function CheckoutPage() {
                   </div>
                   {/* "X away from free delivery" nudge */}
                   {!freeShipping && discountedSubtotal > 0 && (
-                    <div style={{
-                      backgroundColor: "rgba(248,252,245,0.9)",
-                      border: "1px solid rgba(160,190,150,0.22)",
-                      borderRadius: "2px",
-                      padding: "10px 14px",
-                    }}>
-                      <p style={{
-                        fontSize: "16px", letterSpacing: "0.2em", textTransform: "uppercase",
-                        fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e",
-                        marginBottom: "2px",
-                      }}>
-                        You're {fmt(2000 - discountedSubtotal)} away from free delivery
-                      </p>
-                      <p style={{
-                        fontSize: "14px", letterSpacing: "0.15em", textTransform: "uppercase",
-                        fontFamily: "'Montserrat', sans-serif", fontWeight: 500,
-                        color: "rgba(107,143,94,0.75)",
-                      }}>
-                        standard shipping: {fmt(SHIPPING_EGP)}
-                      </p>
-                    </div>
+                    <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "#6b8f5e" }}>
+                      {fmt(2000 - discountedSubtotal)} EGP away from free delivery
+                    </p>
                   )}
                   {freeShipping && (
                     <div style={{
@@ -1080,7 +1054,7 @@ export function CheckoutPage() {
                     <div className="flex items-center gap-2">
                       <span style={{ fontSize: "15px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
                       {!freeShipping && (
-                        <span style={{ fontSize: "16px", fontStyle: "italic", color: "rgba(107,143,94,0.8)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>— free over 2,000 EGP</span>
+                        <span style={{ fontSize: "18px", fontStyle: "italic", color: "rgba(107,143,94,0.85)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>— free over 2,000 EGP</span>
                       )}
                     </div>
                     <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
