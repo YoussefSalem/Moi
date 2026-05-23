@@ -79,7 +79,7 @@ export function TikTokSocialProof() {
               <Video size={16} className="text-white/70" />
               <p className="text-[10px] tracking-[0.35em] uppercase text-white/50">TikTok social proof</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {videos.map((video, idx) => (
                 <div
                   key={`${video.handle}-${idx}`}
@@ -97,7 +97,7 @@ export function TikTokSocialProof() {
                   </a>
                   <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
-                    <div className="relative overflow-hidden" style={{ aspectRatio: "9/16.5" }}>
+                    <div className="relative overflow-hidden" style={{ aspectRatio: "9/16", minHeight: 420 }}>
                       {video.embedUrl ? (
                         <>
                           <iframe
@@ -106,8 +106,7 @@ export function TikTokSocialProof() {
                             className="absolute inset-0 h-full w-full"
                             allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
                             scrolling="no"
-                            sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
-                            style={{ overflow: "hidden" }}
+                            sandbox="allow-scripts allow-same-origin allow-presentation"
                           />
                         </>
                       ) : (
