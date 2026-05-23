@@ -31,10 +31,13 @@ const STORE_DOMAIN = import.meta.env.VITE_SHOPIFY_STORE_DOMAIN as string | undef
 const STOREFRONT_TOKEN = import.meta.env.VITE_SHOPIFY_STOREFRONT_TOKEN as string | undefined;
 const API_VERSION = "2024-04";
 
-/** POST analytics events to Shopify's headless analytics endpoint */
-const ANALYTICS_ENDPOINT = STORE_DOMAIN
-  ? `https://${STORE_DOMAIN}/api/${API_VERSION}/analytics`
-  : null;
+/** Analytics POST endpoint — server proxy avoids CORS on production domain */
+const ANALYTICS_ENDPOINT = (() => {
+  if (!STORE_DOMAIN) return null;
+  // Route through our API server (same origin, no CORS) — the shared proxy
+  // routes /api/* to the API server automatically in dev and production.
+  return "/api/analytics/shopify";
+})();
 
 /** Storefront GraphQL endpoint — used to resolve the shop GID */
 const STOREFRONT_ENDPOINT = STORE_DOMAIN

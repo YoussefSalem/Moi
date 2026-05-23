@@ -234,7 +234,7 @@ function App() {
     <CustomerProvider>
       <CartProvider>
         <AppContent />
-        {typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debug_analytics") && <AnalyticsDebug />}
+        <AnalyticsDebug />
         <Toaster
           position="top-center"
           toastOptions={{
