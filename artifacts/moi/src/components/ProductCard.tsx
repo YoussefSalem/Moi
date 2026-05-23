@@ -315,7 +315,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
         ref={sectionRef}
         className="w-full overflow-hidden"
         style={{
-          background: `radial-gradient(ellipse 100% 80% at 50% 40%, ${ambientRgba} 0%, hsl(30 15% 95%) 68%)`,
+          background: `radial-gradient(ellipse 100% 80% at 50% 40%, ${AMBIENT_RGBA} 0%, hsl(30 15% 95%) 68%)`,
           paddingTop: "clamp(56px, 10vw, 96px)",
           paddingBottom: "clamp(64px, 11vw, 104px)",
         }}
@@ -335,7 +335,7 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
-                  background: `radial-gradient(ellipse 80% 70% at 50% 55%, ${ambientStrong} 0%, transparent 72%)`,
+                  background: `radial-gradient(ellipse 80% 70% at 50% 55%, ${AMBIENT_STRONG} 0%, transparent 72%)`,
                   filter: "blur(32px)",
                   transform: "scale(1.18) translateZ(0)",
                 }}

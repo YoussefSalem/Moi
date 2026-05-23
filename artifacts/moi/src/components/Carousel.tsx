@@ -65,7 +65,7 @@ export function Carousel() {
     });
   }, []);
 
-  const gradBg = color?.rgba(0.14) ?? "rgba(180,160,140,0.10)";
+  const BEIGE_BG = "rgba(210,195,175,0.10)";
 
   return (
     <>
@@ -73,7 +73,7 @@ export function Carousel() {
         id="collection"
         className="relative w-full overflow-hidden py-0"
         style={{
-          background: `radial-gradient(ellipse 100% 80% at 50% 50%, ${gradBg} 0%, hsl(30 15% 95%) 65%)`,
+          background: `radial-gradient(ellipse 100% 80% at 50% 50%, ${BEIGE_BG} 0%, hsl(30 15% 95%) 65%)`,
         }}
       >
         <div className="relative">
