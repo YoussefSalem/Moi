@@ -800,7 +800,7 @@ export function CheckoutPage() {
                     <div className="flex items-center gap-2">
                       <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
                       {!freeShipping && (
-                        <span style={{ fontSize: "12px", fontStyle: "italic", color: "rgba(107,143,94,0.7)", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
+                        <span style={{ fontSize: "13px", fontStyle: "italic", color: "rgba(107,143,94,0.7)", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
                       )}
                     </div>
                     <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
@@ -1080,7 +1080,7 @@ export function CheckoutPage() {
                     <div className="flex items-center gap-2">
                       <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
                       {!freeShipping && (
-                        <span style={{ fontSize: "12px", fontStyle: "italic", color: "rgba(107,143,94,0.7)", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
+                        <span style={{ fontSize: "13px", fontStyle: "italic", color: "rgba(107,143,94,0.7)", fontFamily: "'Cormorant Garamond', serif" }}>— free over 2,000 EGP</span>
                       )}
                     </div>
                     <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
