@@ -10,7 +10,7 @@ import {
   createShopifyFulfillment,
   addShopifyFulfillmentEvent,
 } from "../lib/integrations";
-import { createDraftOrder, recordDiscountCodeUse, type OrderLine, type CustomerInfo, type ShopifyLineItem, type OrderAttribution } from "../lib/shopifyOrder";
+import { createShopifyDirectOrder, recordDiscountCodeUse, type OrderLine, type CustomerInfo, type ShopifyLineItem, type OrderAttribution } from "../lib/shopifyOrder";
 import { sendEmail, buildOrderConfirmationEmail } from "../lib/email";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
@@ -112,7 +112,7 @@ router.post("/webhooks/paymob", async (req, res) => {
     let shopifyDiscountAmount: number | undefined;
     let shopifyDiscountCode: string | undefined;
     try {
-      const result = await createDraftOrder({
+      const result = await createShopifyDirectOrder({
         lines,
         customer,
         paymentMethod: "card",
@@ -120,6 +120,7 @@ router.post("/webhooks/paymob", async (req, res) => {
         discountCode: intent.discountCode ?? undefined,
         extraTags: `paymob-card-paid,paymob-txn-${paymobTxnId}`,
         attribution,
+        financialStatus: "paid",
       });
       shopifyOrderId = result.orderId;
       shopifyOrderNumber = result.orderNumber;

@@ -7,6 +7,7 @@ import {
 } from "../lib/integrations";
 import {
   createDraftOrder,
+  createShopifyDirectOrder,
   extractVariantId,
   lookupDiscountCode,
   recordDiscountCodeUse,
@@ -204,7 +205,7 @@ router.post("/orders/create", async (req, res) => {
   );
 
   try {
-    const result = await createDraftOrder({
+    const result = await createShopifyDirectOrder({
       lines,
       customer,
       paymentMethod: "cod",
