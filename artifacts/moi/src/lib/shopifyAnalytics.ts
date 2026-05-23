@@ -25,6 +25,7 @@
  */
 
 import { getAttribution } from "./adAttribution";
+import { logAnalyticsDebug } from "@/components/AnalyticsDebug";
 
 const STORE_DOMAIN = import.meta.env.VITE_SHOPIFY_STORE_DOMAIN as string | undefined;
 const STOREFRONT_TOKEN = import.meta.env.VITE_SHOPIFY_STOREFRONT_TOKEN as string | undefined;
@@ -77,6 +78,7 @@ function fetchShopId(): Promise<string | null> {
   if (_shopIdPromise) return _shopIdPromise;
   if (!STOREFRONT_ENDPOINT || !STOREFRONT_TOKEN) {
     logError("Missing STORE_DOMAIN or STOREFRONT_TOKEN — cannot fetch shopId");
+    logAnalyticsDebug("Missing STORE_DOMAIN or STOREFRONT_TOKEN", "error");
     return (_shopIdPromise = Promise.resolve(null));
   }
   _shopIdPromise = fetch(STOREFRONT_ENDPOINT, {
@@ -96,13 +98,16 @@ function fetchShopId(): Promise<string | null> {
     .then((json) => {
       if (json.errors) {
         logError("shopId GraphQL errors:", json.errors);
+        logAnalyticsDebug(`shopId GraphQL error: ${JSON.stringify(json.errors).slice(0, 80)}`, "error");
       }
       const id = json?.data?.shop?.id ?? null;
       log("shopId resolved:", id);
+      if (id) logAnalyticsDebug(`shopId OK: ${id}`, "success");
       return id;
     })
     .catch((err) => {
       logError("shopId fetch exception:", err);
+      logAnalyticsDebug(`shopId fetch error: ${String(err).slice(0, 80)}`, "error");
       return null;
     });
   return _shopIdPromise;
@@ -119,6 +124,7 @@ function getSessionToken(): string {
       t = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
       sessionStorage.setItem(KEY, t);
       log("new session token:", t);
+      logAnalyticsDebug(`new session: ${t.slice(0, 16)}…`, "info");
     }
     return t;
   } catch {
@@ -158,11 +164,13 @@ interface AnalyticsEvent { payload: Record<string, unknown> }
 async function publish(events: AnalyticsEvent[]): Promise<void> {
   if ((!IS_PRODUCTION && !DEBUG_ANALYTICS) || !ANALYTICS_ENDPOINT || !STOREFRONT_TOKEN) {
     log("blocked — not production or missing token/endpoint");
+    logAnalyticsDebug("blocked: not production / missing token", "error");
     return;
   }
 
   const body = { events: events.map((e) => ({ schemaId: SCHEMA_ID, payload: e.payload })) };
   log("sending", body);
+  logAnalyticsDebug(`sending ${events.map((e) => e.payload.event_name).join(", ")}`, "info");
 
   try {
     const res = await fetch(ANALYTICS_ENDPOINT, {
@@ -178,11 +186,14 @@ async function publish(events: AnalyticsEvent[]): Promise<void> {
     if (!res.ok) {
       const text = await res.text().catch(() => "(no body)");
       logError("HTTP error:", res.status, text);
+      logAnalyticsDebug(`HTTP ${res.status}: ${text.slice(0, 60)}`, "error");
     } else {
       log("HTTP 200 OK");
+      logAnalyticsDebug(`HTTP 200 OK — ${events.map((e) => e.payload.event_name).join(", ")}`, "success");
     }
   } catch (err) {
     logError("fetch exception:", err);
+    logAnalyticsDebug(`fetch error: ${String(err).slice(0, 60)}`, "error");
   }
 }
 

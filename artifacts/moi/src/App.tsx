@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
 import { captureAttribution } from "@/lib/adAttribution";
+import { AnalyticsDebug } from "@/components/AnalyticsDebug";
 import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
@@ -233,6 +234,7 @@ function App() {
     <CustomerProvider>
       <CartProvider>
         <AppContent />
+        {typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debug_analytics") && <AnalyticsDebug />}
         <Toaster
           position="top-center"
           toastOptions={{
