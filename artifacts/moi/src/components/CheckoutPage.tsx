@@ -192,10 +192,22 @@ function buildOrderAttribution() {
   else if (utm.source === "tiktok" || attr.ttclid) sourceName = "tiktok";
   else if (utm.source) sourceName = utm.source;
 
+  // Derive referring_site from the source — document.referrer is unreliable for
+  // ad traffic (Meta/Google redirect chains strip it, iOS privacy hides it).
+  const REF_MAP: Record<string, string> = {
+    facebook: "https://www.facebook.com/",
+    instagram: "https://www.instagram.com/",
+    google: "https://www.google.com/",
+    tiktok: "https://www.tiktok.com/",
+  };
+  // Prefer the explicit referring site if the browser still has it, otherwise
+  // derive from source name so Shopify always has a value to report against.
+  const referringSite = document.referrer || (sourceName ? REF_MAP[sourceName] : undefined);
+
   return {
     ...(sourceName ? { sourceName } : {}),
     ...(attr.firstLandingUrl ? { landingSite: attr.firstLandingUrl } : {}),
-    ...(document.referrer ? { referringSite: document.referrer } : {}),
+    ...(referringSite ? { referringSite } : {}),
     ...(Object.keys(utm).length > 0 ? { utm } : {}),
     ...(attr.fbclid ? { fbclid: attr.fbclid } : {}),
     ...(attr.gclid ? { gclid: attr.gclid } : {}),
