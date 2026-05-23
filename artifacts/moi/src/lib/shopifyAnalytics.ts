@@ -21,6 +21,7 @@
  *     enabling "Sessions by traffic source" in Shopify Analytics.
  *   - Uses keepalive:true so in-flight requests survive navigation / page unload.
  *   - Silent no-op outside buy-moi.com — dev / staging traffic is never sent.
+ *   - In dev, append `?debug_analytics=1` to see every request in the console.
  */
 
 const STORE_DOMAIN = import.meta.env.VITE_SHOPIFY_STORE_DOMAIN as string | undefined;
@@ -48,7 +49,24 @@ const DEBUG_ANALYTICS =
   typeof window !== "undefined" &&
   new URLSearchParams(window.location.search).has("debug_analytics");
 
-// ─── Shop GID ────────────────────────────────────────────────────────────────
+/** Schema ID required by Shopify's Customer Events API for headless storefronts */
+const SCHEMA_ID = "custom-storefront-customer-events-api/1.0";
+
+// ─── Debug logger ──────────────────────────────────────────────────────────────────────
+function log(...args: unknown[]): void {
+  if (DEBUG_ANALYTICS) {
+    // eslint-disable-next-line no-console
+    console.log("[ShopifyAnalytics]", ...args);
+  }
+}
+function logError(...args: unknown[]): void {
+  if (DEBUG_ANALYTICS) {
+    // eslint-disable-next-line no-console
+    console.error("[ShopifyAnalytics]", ...args);
+  }
+}
+
+// ─── Shop GID ──────────────────────────────────────────────────────────────────────
 // Fetched once via the Storefront API and cached in-memory for the page session.
 // Returns e.g. "gid://shopify/Shop/89490".
 let _shopIdPromise: Promise<string | null> | null = null;
@@ -56,6 +74,7 @@ let _shopIdPromise: Promise<string | null> | null = null;
 function fetchShopId(): Promise<string | null> {
   if (_shopIdPromise) return _shopIdPromise;
   if (!STOREFRONT_ENDPOINT || !STOREFRONT_TOKEN) {
+    logError("Missing STORE_DOMAIN or STOREFRONT_TOKEN — cannot fetch shopId");
     return (_shopIdPromise = Promise.resolve(null));
   }
   _shopIdPromise = fetch(STOREFRONT_ENDPOINT, {
@@ -66,9 +85,24 @@ function fetchShopId(): Promise<string | null> {
     },
     body: JSON.stringify({ query: "{ shop { id } }" }),
   })
-    .then((r) => r.json() as Promise<{ data?: { shop?: { id?: string } } }>)
-    .then((json) => json?.data?.shop?.id ?? null)
-    .catch(() => null);
+    .then((r) => {
+      if (!r.ok) {
+        logError("shopId fetch failed:", r.status, r.statusText);
+      }
+      return r.json() as Promise<{ data?: { shop?: { id?: string } }; errors?: unknown[] }>;
+    })
+    .then((json) => {
+      if (json.errors) {
+        logError("shopId GraphQL errors:", json.errors);
+      }
+      const id = json?.data?.shop?.id ?? null;
+      log("shopId resolved:", id);
+      return id;
+    })
+    .catch((err) => {
+      logError("shopId fetch exception:", err);
+      return null;
+    });
   return _shopIdPromise;
 }
 
@@ -82,6 +116,7 @@ function getSessionToken(): string {
     if (!t) {
       t = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
       sessionStorage.setItem(KEY, t);
+      log("new session token:", t);
     }
     return t;
   } catch {
@@ -101,7 +136,7 @@ function captureAndPersistUtm(): UtmParams {
   (["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const)
     .forEach((k) => { const v = p.get(k); if (v) utm[k] = v; });
   if (Object.keys(utm).length > 0) {
-    try { sessionStorage.setItem("moi_sa_utm", JSON.stringify(utm)); } catch { /* ignore */ }
+    try { sessionStorage.setItem("moi_sa_utm", JSON.stringify(utm)); log("UTM captured:", utm); } catch { /* ignore */ }
   }
   return utm;
 }
@@ -114,24 +149,42 @@ function getStoredUtm(): UtmParams {
 }
 
 // ─── Low-level publisher ──────────────────────────────────────────────────────
-interface AnalyticsEvent { event_name: string; payload: Record<string, unknown> }
+// Shopify's Customer Events API requires each event to have a schemaId.
+// The payload contains the event_name and all event-specific data.
+interface AnalyticsEvent { payload: Record<string, unknown> }
 
 async function publish(events: AnalyticsEvent[]): Promise<void> {
-  if ((!IS_PRODUCTION && !DEBUG_ANALYTICS) || !ANALYTICS_ENDPOINT || !STOREFRONT_TOKEN) return;
+  if ((!IS_PRODUCTION && !DEBUG_ANALYTICS) || !ANALYTICS_ENDPOINT || !STOREFRONT_TOKEN) {
+    log("blocked — not production or missing token/endpoint");
+    return;
+  }
+
+  const body = { events: events.map((e) => ({ schemaId: SCHEMA_ID, payload: e.payload })) };
+  log("sending", body);
+
   try {
-    await fetch(ANALYTICS_ENDPOINT, {
+    const res = await fetch(ANALYTICS_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Shopify-Storefront-Access-Token": STOREFRONT_TOKEN,
       },
       keepalive: true,
-      body: JSON.stringify({ events }),
+      body: JSON.stringify(body),
     });
-  } catch { /* analytics failures are always silent */ }
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "(no body)");
+      logError("HTTP error:", res.status, text);
+    } else {
+      log("HTTP 200 OK");
+    }
+  } catch (err) {
+    logError("fetch exception:", err);
+  }
 }
 
-// ─── Base payload ─────────────────────────────────────────────────────────────
+// ─── Base payload ──────────────────────────────────────────────────────────────────────
 // Included in every event.  Shopify requires shopId for correct store attribution.
 async function basePayload(): Promise<Record<string, unknown>> {
   const shopId = await fetchShopId();
@@ -149,13 +202,13 @@ async function basePayload(): Promise<Record<string, unknown>> {
   };
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// ─── Public API ──────────────────────────────────────────────────────────────────────
 
 /** Fire on every page load and in-app navigation. Feeds "Online store sessions". */
 export function trackShopifyPageView(): void {
   captureAndPersistUtm();
   void basePayload().then((base) =>
-    publish([{ event_name: "page_viewed", payload: base }]),
+    publish([{ payload: { event_name: "page_viewed", ...base } }]),
   );
 }
 
@@ -169,8 +222,8 @@ export function trackShopifyProductView(params: {
 }): void {
   void basePayload().then((base) =>
     publish([{
-      event_name: "product_viewed",
       payload: {
+        event_name: "product_viewed",
         ...base,
         products: [{
           productGid: params.productId,
@@ -193,8 +246,8 @@ export function trackShopifyCartViewed(params: {
 }): void {
   void basePayload().then((base) =>
     publish([{
-      event_name: "cart_viewed",
       payload: {
+        event_name: "cart_viewed",
         ...base,
         cartId:     params.cartId,
         totalPrice: params.totalPrice != null ? params.totalPrice.toFixed(2) : undefined,
@@ -216,8 +269,8 @@ export function trackShopifyAddToCart(params: {
 }): void {
   void basePayload().then((base) =>
     publish([{
-      event_name: "add_to_cart",
       payload: {
+        event_name: "add_to_cart",
         ...base,
         cartId: params.cartId,
         products: [{
@@ -242,8 +295,8 @@ export function trackShopifyCheckoutStarted(params: {
 }): void {
   void basePayload().then((base) =>
     publish([{
-      event_name: "checkout_started",
       payload: {
+        event_name: "checkout_started",
         ...base,
         cartId:     params.cartId,
         totalPrice: params.totalPrice != null ? params.totalPrice.toFixed(2) : undefined,
@@ -277,8 +330,8 @@ export function trackShopifyPurchase(params: {
 }): void {
   void basePayload().then((base) =>
     publish([{
-      event_name: "purchase",
       payload: {
+        event_name: "purchase",
         ...base,
         orderId:     params.orderId,
         orderNumber: params.orderNumber != null ? String(params.orderNumber) : undefined,
