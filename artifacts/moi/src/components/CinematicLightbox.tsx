@@ -66,11 +66,24 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
     ?.replace(/\.(webp|jpg|png)$/i, "")
     .replace(/-/g, " ") ?? "Image";
 
-  // Cached images don't fire onLoad — check immediately after mount
+  // Cached images don't fire onLoad — check immediately after mount.
+  // Also preload via Image() to catch the load event even when React's
+  // onLoad prop misses a synchronous (cached-image) load on a remounted node.
   useLayoutEffect(() => {
     const img = imgRef.current;
     if (!img) return;
-    if (img.complete && img.naturalWidth > 0) setLoaded(true);
+    if (img.complete && img.naturalWidth > 0) { setLoaded(true); return; }
+
+    const preload = new Image();
+    preload.src = current;
+    const done = () => setLoaded(true);
+    preload.addEventListener("load", done);
+    preload.addEventListener("error", done);
+    if (preload.complete) done();
+    return () => {
+      preload.removeEventListener("load", done);
+      preload.removeEventListener("error", done);
+    };
   }, [idx, current]);
 
   useEffect(() => {
