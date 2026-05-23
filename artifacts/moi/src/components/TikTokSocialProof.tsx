@@ -79,11 +79,11 @@ export function TikTokSocialProof() {
               <Video size={16} className="text-white/70" />
               <p className="text-[10px] tracking-[0.35em] uppercase text-white/50">TikTok social proof</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="flex flex-wrap justify-center gap-5">
               {videos.map((video, idx) => (
                 <div
                   key={`${video.handle}-${idx}`}
-                  className="rounded-2xl border border-white/10 p-4"
+                  className="w-full md:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] max-w-[440px] rounded-2xl border border-white/10 p-4"
                   style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
                 >
                   <p className="text-sm text-white/90">{video.title}</p>
