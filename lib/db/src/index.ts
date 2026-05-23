@@ -30,6 +30,24 @@ export async function countDiscountCodeUses(code: string): Promise<number> {
 }
 
 /**
+ * Return all discount code usage records, newest first.
+ */
+export async function listDiscountCodeUses(): Promise<Array<{
+  id: number;
+  code: string;
+  orderId: number | null;
+  orderNumber: number | null;
+  paymentMethod: string | null;
+  usedAt: Date;
+}>> {
+  const rows = await db
+    .select()
+    .from(discountCodeUses)
+    .orderBy(sql`used_at DESC`);
+  return rows;
+}
+
+/**
  * Record a discount code use for an API-created order so usage limits are enforced.
  */
 export async function insertDiscountCodeUse(

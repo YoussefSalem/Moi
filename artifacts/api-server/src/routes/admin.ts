@@ -14,6 +14,7 @@ import {
   addShopifyFulfillmentEvent,
 } from "../lib/integrations";
 import { getMaskedConfig, savePaymobConfig, type PaymobConfig } from "../lib/paymobConfig";
+import { listDiscountCodeUses } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -436,6 +437,21 @@ router.post("/admin/test-discount-counter", requireAdminAuth, async (req, res) =
         : "Could not read usage_count (read_discounts scope missing) — order was auto-deleted"
       : undefined,
   });
+});
+
+/**
+ * GET /api/admin/discount-uses
+ * Returns all discount code usage records from our DB (newest first).
+ * Shopify's native "Used" counter stays 0 for Admin API orders — this DB is the
+ * real source of truth for enforcement and reporting.
+ */
+router.get("/admin/discount-uses", requireAdminAuth, async (_req, res) => {
+  try {
+    const rows = await listDiscountCodeUses();
+    res.status(200).json({ uses: rows });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch discount uses" });
+  }
 });
 
 // GET /admin/paymob-config

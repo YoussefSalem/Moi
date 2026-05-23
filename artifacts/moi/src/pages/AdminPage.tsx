@@ -616,9 +616,121 @@ function getStoredToken(): string | null {
   return token;
 }
 
+interface DiscountUse {
+  id: number;
+  code: string;
+  orderId: number | null;
+  orderNumber: number | null;
+  paymentMethod: string | null;
+  usedAt: string;
+}
+
+function DiscountsTab({ token }: { token: string }) {
+  const [uses, setUses] = useState<DiscountUse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/discount-uses", { headers: apiHeaders(token) });
+      if (!res.ok) { setError("Failed to load discount uses."); return; }
+      const data = await res.json() as { uses: DiscountUse[] };
+      setUses(data.uses);
+    } catch { setError("Network error."); }
+    finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  // Group by code
+  const grouped = uses.reduce<Record<string, DiscountUse[]>>((acc, u) => {
+    (acc[u.code] = acc[u.code] ?? []).push(u);
+    return acc;
+  }, {});
+
+  const methodLabel = (m: string | null) => {
+    if (!m) return "—";
+    if (m === "cod") return "COD";
+    if (m === "card") return "Card";
+    if (m === "instapay") return "InstaPay";
+    return m;
+  };
+
+  if (loading) return <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Loading…</p>;
+  if (error) return <p style={{ fontSize: 13, color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>;
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div>
+          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 26, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>
+            Discount Codes
+          </p>
+          <p style={{ ...mono, fontSize: 11, letterSpacing: "0.15em", color: "rgba(30,24,20,0.5)", textTransform: "uppercase" }}>
+            {uses.length} uses tracked in database
+          </p>
+        </div>
+        <button onClick={() => void load()} style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)", display: "flex", alignItems: "center", gap: 6 }}>
+          <RefreshCw size={12} strokeWidth={2} /> Refresh
+        </button>
+      </div>
+
+      {/* Note about Shopify counter */}
+      <div style={{ backgroundColor: "rgba(180,140,40,0.08)", border: "1px solid rgba(180,140,40,0.25)", padding: "12px 16px", marginBottom: 24 }}>
+        <p style={{ ...mono, fontSize: 12, color: "#7a5f10", lineHeight: 1.6 }}>
+          Shopify&apos;s &quot;Used&quot; counter on the Discounts page stays at 0 for all API-created orders — this is a Shopify platform limitation (usage_count only increments through their hosted checkout). This database is the real source of truth for enforcement and reporting.
+        </p>
+      </div>
+
+      {uses.length === 0 ? (
+        <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.45)", textAlign: "center", padding: "48px 0" }}>No discount codes used yet.</p>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {Object.entries(grouped).map(([code, codeUses]) => (
+            <div key={code} style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)" }}>
+              {/* Code header */}
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(30,24,20,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ ...mono, fontSize: 14, fontWeight: 700, color: "#1e1814", letterSpacing: "0.12em" }}>{code}</span>
+                <span style={{ ...mono, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", backgroundColor: "rgba(30,24,20,0.07)", padding: "3px 10px", color: "#1e1814", fontWeight: 700 }}>
+                  {codeUses.length} {codeUses.length === 1 ? "use" : "uses"}
+                </span>
+              </div>
+              {/* Uses table */}
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid rgba(30,24,20,0.08)" }}>
+                    {["Order #", "Method", "Date"].map((h) => (
+                      <th key={h} style={{ ...mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, textAlign: "left", padding: "8px 18px" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {codeUses.map((u, i) => (
+                    <tr key={u.id} style={{ borderBottom: i < codeUses.length - 1 ? "1px solid rgba(30,24,20,0.05)" : "none" }}>
+                      <td style={{ ...mono, fontSize: 13, color: "#1e1814", padding: "10px 18px" }}>
+                        {u.orderNumber ? `#${u.orderNumber}` : u.orderId ? `id:${u.orderId}` : "—"}
+                      </td>
+                      <td style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.7)", padding: "10px 18px" }}>{methodLabel(u.paymentMethod)}</td>
+                      <td style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.6)", padding: "10px 18px" }}>
+                        {new Date(u.usedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AdminPage() {
   const [token, setToken] = useState<string | null>(() => getStoredToken());
-  const [tab, setTab] = useState<"proofs" | "settings">("proofs");
+  const [tab, setTab] = useState<"proofs" | "discounts" | "settings">("proofs");
 
   if (!token) {
     return <PinGate onAuth={setToken} />;
@@ -643,7 +755,7 @@ export function AdminPage() {
 
       {/* Tabs */}
       <div style={{ borderBottom: "1px solid rgba(30,24,20,0.16)", backgroundColor: "#fff", paddingLeft: 24 }}>
-        {(["proofs", "settings"] as const).map((t) => (
+        {(["proofs", "discounts", "settings"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -658,7 +770,7 @@ export function AdminPage() {
               borderRadius: 0,
             }}
           >
-            {t === "proofs" ? "Payments" : "Settings"}
+            {t === "proofs" ? "Payments" : t === "discounts" ? "Discounts" : "Settings"}
           </button>
         ))}
       </div>
@@ -669,6 +781,10 @@ export function AdminPage() {
           {tab === "proofs" ? (
             <motion.div key="proofs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <ProofsTab token={token} />
+            </motion.div>
+          ) : tab === "discounts" ? (
+            <motion.div key="discounts" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <DiscountsTab token={token} />
             </motion.div>
           ) : (
             <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
