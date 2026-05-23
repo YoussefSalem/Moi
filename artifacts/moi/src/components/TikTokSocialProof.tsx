@@ -79,7 +79,7 @@ export function TikTokSocialProof() {
               <Video size={16} className="text-white/70" />
               <p className="text-[10px] tracking-[0.35em] uppercase text-white/50">TikTok social proof</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {videos.map((video, idx) => (
                 <div
                   key={`${video.handle}-${idx}`}
