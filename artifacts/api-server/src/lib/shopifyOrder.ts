@@ -67,6 +67,7 @@ export interface OrderAttribution {
 export interface StorefrontCartResult {
   subtotalAmount: number;
   totalAmount: number;
+  discountAmount: number;
   discountCodes: { code: string; applicable: boolean }[];
 }
 
@@ -95,6 +96,21 @@ export async function fetchStorefrontCart(
           code
           applicable
         }
+        discountAllocations {
+          discountedAmount {
+            amount
+          }
+        }
+        lines {
+          cost {
+            totalAmount { amount }
+          }
+          discountAllocations {
+            discountedAmount {
+              amount
+            }
+          }
+        }
       }
     }
   `;
@@ -121,6 +137,13 @@ export async function fetchStorefrontCart(
             totalAmount: { amount: string };
           };
           discountCodes: { code: string; applicable: boolean }[];
+          discountAllocations: { discountedAmount: { amount: string } }[];
+          lines: {
+            cost: {
+              totalAmount: { amount: string };
+            };
+            discountAllocations: { discountedAmount: { amount: string } }[];
+          }[];
         };
       };
     };
@@ -128,9 +151,23 @@ export async function fetchStorefrontCart(
     const cart = data?.data?.cart;
     if (!cart) return null;
 
+    // Percentage discounts (like DODO15) are applied at the line level, not cart level.
+    // Aggregate from both cart-level and line-level allocations to get the true total.
+    let discountAmount = cart.discountAllocations.reduce(
+      (sum, a) => sum + parseFloat(a.discountedAmount.amount),
+      0,
+    );
+    discountAmount += cart.lines.reduce((sum, line) => {
+      return sum + line.discountAllocations.reduce(
+        (lSum, a) => lSum + parseFloat(a.discountedAmount.amount),
+        0,
+      );
+    }, 0);
+
     return {
       subtotalAmount: parseFloat(cart.cost.subtotalAmount.amount),
       totalAmount: parseFloat(cart.cost.totalAmount.amount),
+      discountAmount,
       discountCodes: cart.discountCodes,
     };
   } catch {
@@ -342,12 +379,12 @@ export async function createDraftOrder(params: {
         (d) => d.code.toLowerCase() === (params.discountCode || "").toLowerCase(),
       );
 
-      // Trust the cart total as ground truth — if subtotal > total, a discount is active.
-      if (discountAmount > 0.01) {
+      // Trust the cart's discountAllocations as ground truth for the discount amount.
+      if (cart.discountAmount > 0.01) {
         draftPayload.applied_discount = {
           title: codeInCart?.code || params.discountCode || "Discount",
           value_type: "fixed_amount",
-          value: discountAmount.toFixed(2),
+          value: cart.discountAmount.toFixed(2),
         };
       }
     }
