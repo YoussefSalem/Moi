@@ -99,15 +99,22 @@ export function TikTokSocialProof() {
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
                     <div className="relative overflow-hidden" style={{ aspectRatio: "9/16.5" }}>
                       {video.embedUrl ? (
-                        <iframe
-                          title={video.title}
-                          src={video.embedUrl}
-                          className="absolute inset-0 h-full w-full"
-                          allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
-                          scrolling="no"
-                          sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
-                          style={{ overflow: "hidden" }}
-                        />
+                        <>
+                          <iframe
+                            title={video.title}
+                            src={video.embedUrl}
+                            className="absolute inset-0 h-full w-full"
+                            allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
+                            scrolling="no"
+                            sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
+                            style={{ overflow: "hidden" }}
+                          />
+                          {/* Blocker: hides the "Related videos" popup that TikTok shows on pause */}
+                          <div
+                            className="absolute left-0 right-0 pointer-events-none z-10"
+                            style={{ bottom: 0, height: "28%", background: "linear-gradient(to top, #000 40%, transparent 100%)" }}
+                          />
+                        </>
                       ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "linear-gradient(135deg, #1f1916 0%, #2a201c 50%, #1f1916 100%)" }}>
                           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-white/25 mb-3">
