@@ -8,6 +8,7 @@ import {
 import {
   createDraftOrder,
   extractVariantId,
+  lookupDiscountCode,
   type OrderLine,
   type CustomerInfo,
   type OrderAttribution,
@@ -273,6 +274,32 @@ router.post("/orders/create", async (req, res) => {
       res.status(500).json({ error: "Could not place your order. Please try again." });
     }
   }
+});
+
+/**
+ * GET /api/orders/discount-lookup?code=DODO15&subtotal=899
+ *
+ * Looks up a discount code via the Shopify Admin API and returns the
+ * discount amount for the given subtotal. Used by the frontend to show
+ * the correct discounted price before placing the order, since Shopify's
+ * Storefront API doesn't reflect discount codes in cart.cost.totalAmount.
+ */
+router.get("/orders/discount-lookup", async (req, res) => {
+  const code = typeof req.query.code === "string" ? req.query.code.trim() : "";
+  const subtotalRaw = typeof req.query.subtotal === "string" ? parseFloat(req.query.subtotal) : NaN;
+
+  if (!code || isNaN(subtotalRaw) || subtotalRaw <= 0) {
+    res.status(400).json({ error: "Missing or invalid code / subtotal" });
+    return;
+  }
+
+  const result = await lookupDiscountCode(code, subtotalRaw);
+  if (!result) {
+    res.status(404).json({ applicable: false, discountAmount: 0, code });
+    return;
+  }
+
+  res.json({ applicable: true, discountAmount: result.discountAmount, code: result.discountCode });
 });
 
 export default router;

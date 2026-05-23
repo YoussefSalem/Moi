@@ -96,18 +96,18 @@ export async function fetchStorefrontCart(
           code
           applicable
         }
-        discountAllocations {
-          discountedAmount {
-            amount
-          }
-        }
-        lines {
-          cost {
-            totalAmount { amount }
-          }
-          discountAllocations {
-            discountedAmount {
-              amount
+        lines(first: 50) {
+          nodes {
+            merchandise {
+              ... on ProductVariant {
+                price { amount }
+              }
+            }
+            quantity
+            discountAllocations {
+              discountedAmount {
+                amount
+              }
             }
           }
         }
@@ -137,13 +137,13 @@ export async function fetchStorefrontCart(
             totalAmount: { amount: string };
           };
           discountCodes: { code: string; applicable: boolean }[];
-          discountAllocations: { discountedAmount: { amount: string } }[];
           lines: {
-            cost: {
-              totalAmount: { amount: string };
-            };
-            discountAllocations: { discountedAmount: { amount: string } }[];
-          }[];
+            nodes: {
+              merchandise: { price?: { amount: string } };
+              quantity: number;
+              discountAllocations: { discountedAmount: { amount: string } }[];
+            }[];
+          };
         };
       };
     };
@@ -151,25 +151,89 @@ export async function fetchStorefrontCart(
     const cart = data?.data?.cart;
     if (!cart) return null;
 
-    // Percentage discounts (like DODO15) are applied at the line level, not cart level.
-    // Aggregate from both cart-level and line-level allocations to get the true total.
-    let discountAmount = cart.discountAllocations.reduce(
-      (sum, a) => sum + parseFloat(a.discountedAmount.amount),
-      0,
-    );
-    discountAmount += cart.lines.reduce((sum, line) => {
+    // Sum discount allocations from all line nodes.
+    // When a discount code is applied via cartDiscountCodesUpdate, Shopify reflects
+    // it in both cost.totalAmount and in each line's discountAllocations.
+    // The cart-level discountAllocations field is always empty for code discounts.
+    const discountAmount = cart.lines.nodes.reduce((sum, line) => {
       return sum + line.discountAllocations.reduce(
         (lSum, a) => lSum + parseFloat(a.discountedAmount.amount),
         0,
       );
     }, 0);
 
+    // Raw line total (pre-discount) so createDraftOrder has an accurate base for
+    // the lookupDiscountCode fallback in case discountAllocations are ever empty.
+    const rawLineTotal = cart.lines.nodes.reduce((sum, line) => {
+      const price = parseFloat(line.merchandise.price?.amount ?? "0");
+      return sum + price * line.quantity;
+    }, 0);
+
     return {
-      subtotalAmount: parseFloat(cart.cost.subtotalAmount.amount),
+      subtotalAmount: rawLineTotal > 0 ? rawLineTotal : parseFloat(cart.cost.subtotalAmount.amount),
       totalAmount: parseFloat(cart.cost.totalAmount.amount),
       discountAmount,
       discountCodes: cart.discountCodes,
     };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Look up a discount code via the Admin API and compute the discount amount
+ * against the given subtotal. Returns null if the code is invalid/not found.
+ *
+ * Shopify Storefront API carts do NOT reflect applied discount codes in
+ * cost.totalAmount or discountAllocations — the discount is only applied at
+ * order creation time. This function bypasses the cart and asks the Admin API
+ * directly for the price rule associated with the code.
+ */
+export async function lookupDiscountCode(
+  code: string,
+  lineSubtotal: number,
+): Promise<{ discountAmount: number; discountCode: string } | null> {
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const adminToken = await getShopifyAdminToken();
+  if (!storeDomain || !adminToken || !code.trim()) return null;
+
+  try {
+    const codeRes = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/discount_codes/lookup.json?code=${encodeURIComponent(code)}`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+    if (!codeRes.ok) return null;
+
+    const codeData = await codeRes.json() as {
+      discount_code?: { price_rule_id: number; code: string };
+    };
+    const discountCode = codeData.discount_code;
+    if (!discountCode) return null;
+
+    const ruleRes = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/price_rules/${discountCode.price_rule_id}.json`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+    if (!ruleRes.ok) return null;
+
+    const ruleData = await ruleRes.json() as {
+      price_rule?: {
+        value_type: "fixed_amount" | "percentage";
+        value: string;
+        status?: string;
+      };
+    };
+    const rule = ruleData.price_rule;
+    if (!rule || rule.status === "disabled") return null;
+
+    // Shopify stores values as negative numbers (e.g. "-15.0" for 15% off, "-50.00" for 50 EGP off)
+    const value = Math.abs(parseFloat(rule.value));
+    const discountAmount =
+      rule.value_type === "percentage"
+        ? (lineSubtotal * value) / 100
+        : Math.min(value, lineSubtotal); // cap fixed discount at subtotal
+
+    return { discountAmount, discountCode: discountCode.code };
   } catch {
     return null;
   }
@@ -298,18 +362,54 @@ export async function createDraftOrder(params: {
   let cartDiscountAmount = 0;
   let cartDiscountCode = "";
 
+  // Track the line subtotal so we can compute percentage discounts below
+  let lineSubtotal = 0;
+
   if (params.cartId) {
     const cart = await fetchStorefrontCart(params.cartId);
     if (cart) {
+      // Use subtotalAmount as the undiscounted line total for percentage calculations.
+      // totalAmount may equal subtotalAmount because Shopify Storefront API does NOT
+      // reduce cart totals for discount codes applied via cartDiscountCodesUpdate —
+      // the discount is only resolved at order-creation time.
+      lineSubtotal = cart.subtotalAmount;
+
+      // Free shipping threshold is based on what the customer will actually pay
+      // (after any discount). Use totalAmount here since free-shipping rules should
+      // apply on the discounted price, but since totalAmount == subtotalAmount for
+      // code discounts, we use subtotalAmount as the base and will adjust below
+      // once we know the discount.
       if (cart.totalAmount >= 2000) {
         shippingPrice = "0.00";
         shippingTitle = "Free Delivery";
       }
+
+      // Try discount allocations first (works for automatic discounts)
       cartDiscountAmount = cart.discountAmount;
       const codeInCart = cart.discountCodes.find(
         (d) => d.code.toLowerCase() === (params.discountCode || "").toLowerCase(),
       );
       cartDiscountCode = codeInCart?.code || params.discountCode || "";
+    }
+  }
+
+  // Storefront API doesn't reflect percentage/code discounts in cart totals.
+  // If we have a discount code but no discount amount yet, look it up via Admin API.
+  if (cartDiscountAmount < 0.01 && params.discountCode) {
+    const base = lineSubtotal > 0 ? lineSubtotal : 0;
+    if (base > 0) {
+      const looked = await lookupDiscountCode(params.discountCode, base);
+      if (looked && looked.discountAmount > 0.01) {
+        cartDiscountAmount = looked.discountAmount;
+        cartDiscountCode = looked.discountCode;
+
+        // Re-evaluate free shipping now that we know the discounted total
+        const discountedTotal = base - cartDiscountAmount;
+        if (discountedTotal >= 2000) {
+          shippingPrice = "0.00";
+          shippingTitle = "Free Delivery";
+        }
+      }
     }
   }
 

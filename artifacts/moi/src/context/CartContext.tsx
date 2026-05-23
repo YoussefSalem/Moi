@@ -61,7 +61,7 @@ interface CartContextValue {
   addToCart: (params: AddToCartParams) => Promise<void>;
   removeItem: (idOrLineId: string) => Promise<void>;
   updateQuantity: (idOrLineId: string, quantity: number) => Promise<void>;
-  applyDiscount: (code: string) => Promise<{ applicable: boolean; code: string }>;
+  applyDiscount: (code: string) => Promise<{ applicable: boolean; code: string; discountAmount: number }>;
   clearCart: () => void;
   checkoutUrl: string | null;
   formatShopifyLinePrice: (line: ShopifyCartLine) => string;
@@ -250,14 +250,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [shopifyCart, removeItem]);
 
-  const applyDiscount = useCallback(async (code: string): Promise<{ applicable: boolean; code: string }> => {
+  const applyDiscount = useCallback(async (code: string): Promise<{ applicable: boolean; code: string; discountAmount: number }> => {
     if (!SHOPIFY_CONFIGURED || !shopifyCart) throw new Error("Cart not available");
     // Pass [] to clear all codes — Shopify rejects [""] as an invalid code
     const codes = code.trim() ? [code] : [];
     const updated = await cartDiscountCodesUpdate(shopifyCart.id, codes);
     setShopifyCart(updated);
     const applied = updated.discountCodes.find((d) => d.code === code);
-    return { applicable: applied?.applicable ?? false, code };
+    // Discount amount = raw line total minus Shopify's discounted totalAmount.
+    // Shopify reflects applied discount codes in cost.totalAmount immediately,
+    // so this difference is the true discount amount.
+    const rawLineTotal = updated.lines.nodes.reduce(
+      (sum, line) => sum + parseFloat(line.merchandise.price.amount) * line.quantity,
+      0,
+    );
+    const discountedTotal = parseFloat(updated.cost.totalAmount.amount);
+    const discountAmount = Math.max(0, rawLineTotal - discountedTotal);
+    return { applicable: applied?.applicable ?? false, code, discountAmount };
   }, [shopifyCart]);
 
   const clearCart = useCallback(() => {

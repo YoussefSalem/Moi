@@ -232,7 +232,7 @@ export function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
   const [promoOpen, setPromoOpen] = useState(false);
   const [promoInput, setPromoInput] = useState("");
-  const [promoApplied, setPromoApplied] = useState<{ code: string } | null>(null);
+  const [promoApplied, setPromoApplied] = useState<{ code: string; discountAmount: number } | null>(null);
   const [promoError, setPromoError] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
@@ -248,8 +248,10 @@ export function CheckoutPage() {
   const lines = isShopify && shopifyCart ? shopifyCart.lines.nodes : null;
   const localLines = !isShopify ? localItems : [];
   const localSubtotal = localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
-  // Shopify's cost.subtotalAmount already reflects discounts, so we can't use it
-  // to compute savings. Instead, sum raw line item prices × quantities.
+  // Shopify's Storefront API does NOT reduce cart.cost.totalAmount for discount
+  // codes applied via cartDiscountCodesUpdate — the discount only resolves at
+  // order-creation time. So we sum raw line prices and use promoApplied.discountAmount
+  // (fetched from the Admin API via /api/orders/discount-lookup) for the display.
   const lineItemsSubtotal = shopifyCart
     ? shopifyCart.lines.nodes.reduce(
         (sum, line) => sum + parseFloat(line.merchandise.price.amount) * line.quantity,
@@ -257,11 +259,15 @@ export function CheckoutPage() {
       )
     : localSubtotal;
   const subtotalAmount = lineItemsSubtotal;
+  // Use the discount amount resolved from the Admin API (stored in promoApplied),
+  // falling back to the cart-computed savings for automatic discounts.
   const cartDiscountedTotal = shopifyCart ? parseFloat(shopifyCart.cost.totalAmount.amount) : localSubtotal;
-  const savings = Math.max(0, subtotalAmount - cartDiscountedTotal);
-  const freeShipping = cartDiscountedTotal >= 2000;
+  const cartSavings = Math.max(0, subtotalAmount - cartDiscountedTotal);
+  const savings = promoApplied ? promoApplied.discountAmount : cartSavings;
+  const discountedSubtotal = subtotalAmount - savings;
+  const freeShipping = discountedSubtotal >= 2000;
   const shippingCost = freeShipping ? 0 : SHIPPING_EGP;
-  const totalAmount = cartDiscountedTotal + shippingCost;
+  const totalAmount = discountedSubtotal + shippingCost;
   const currencyCode = shopifyCart?.cost.totalAmount.currencyCode ?? localItems[0]?.currencyCode ?? "EGP";
   const successItems = orderResult?.items ?? (lines
     ? lines.map((line) => ({
@@ -297,14 +303,18 @@ export function CheckoutPage() {
     setPromoLoading(true);
     setPromoError("");
     try {
-      const result = await applyDiscount(promoInput.trim().toUpperCase());
-      if (result.applicable) {
-        setPromoApplied({ code: result.code });
+      const code = promoInput.trim().toUpperCase();
+      // applyDiscount calls Shopify's cartDiscountCodesUpdate and returns whether
+      // the code is applicable plus the actual discount amount (raw line total minus
+      // Shopify's updated totalAmount, which reflects the discount immediately).
+      const result = await applyDiscount(code);
+      if (result.applicable && result.discountAmount > 0) {
+        setPromoApplied({ code: result.code, discountAmount: result.discountAmount });
         setPromoError("");
       } else {
         setPromoError("This code is invalid or doesn't apply to your cart.");
         setPromoApplied(null);
-        await applyDiscount("");
+        await applyDiscount("").catch(() => {});
       }
     } catch {
       setPromoError("Could not verify the code. Please try again.");
