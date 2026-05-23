@@ -1,5 +1,5 @@
 /**
- * Shopify Analytics — official Hydrogen-compatible headless tracking.
+ * Shopify Analytics -- official Hydrogen-compatible headless tracking.
  *
  * Uses Shopify's actual monorail endpoint and payload format from
  * @shopify/hydrogen-react/src/analytics.ts
@@ -26,7 +26,7 @@ const DEBUG_ANALYTICS =
   typeof window !== "undefined" &&
   new URLSearchParams(window.location.search).has("debug_analytics");
 
-// ─── Debug logger ──────────────────────────────────────────────────────────────────────
+// --- Debug logger ---
 function log(...args: unknown[]): void {
   if (DEBUG_ANALYTICS) {
     // eslint-disable-next-line no-console
@@ -38,7 +38,7 @@ function logError(...args: unknown[]): void {
   console.error("[ShopifyAnalytics]", ...args);
 }
 
-// ─── Token generation ────────────────────────────────────────────────────────────
+// --- Token generation ---
 function buildUUID(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
@@ -47,7 +47,7 @@ function buildUUID(): string {
   });
 }
 
-/** Unique user token — persists in cookie (like _shopify_y) */
+/** Unique user token -- persists in cookie (like _shopify_y) */
 function getUniqueToken(): string {
   const KEY = "_shopify_y";
   try {
@@ -61,7 +61,7 @@ function getUniqueToken(): string {
   }
 }
 
-/** Visit/session token — like _shopify_s */
+/** Visit/session token -- like _shopify_s */
 function getVisitToken(): string {
   const KEY = "_shopify_s";
   try {
@@ -75,7 +75,7 @@ function getVisitToken(): string {
   }
 }
 
-// ─── Shop ID ─────────────────────────────────────────────────────────────────────────
+// --- Shop ID ---
 let _shopIdPromise: Promise<string | null> | null = null;
 
 const STOREFRONT_ENDPOINT = STORE_DOMAIN
@@ -126,7 +126,7 @@ function parseShopId(gid: string | null): number {
   return match ? parseInt(match[1], 10) : 0;
 }
 
-// ─── UTM persistence ───────────────────────────────────────────────────────────
+// --- UTM persistence ---
 function captureAndPersistUtm(): void {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -148,9 +148,7 @@ function getStoredUtm(): Record<string, string> {
   } catch { return {}; }
 }
 
-// ─── Monorail payload builders ───────────────────────────────────────────────────
-// Following Hydrogen's analytics-schema-trekkie-storefront-page-view.ts
-// and analytics-schema-custom-storefront-customer-tracking.ts
+// --- Monorail payload builders ---
 
 const TREKKIE_SCHEMA = "trekkie_storefront_page_view/1.4";
 const CUSTOMER_SCHEMA = "custom_storefront_customer_tracking/1.2";
@@ -165,86 +163,8 @@ interface MonorailEvent {
 
 function nowMs(): number { return Date.now(); }
 
-function buildTrekkiePageView(payload: Record<string, unknown>): MonorailEvent {
-  return {
-    schema_id: TREKKIE_SCHEMA,
-    payload,
-    metadata: { event_created_at_ms: nowMs() },
-  };
-}
-
-function buildCustomerPageView(payload: Record<string, unknown>): MonorailEvent {
-  return {
-    schema_id: CUSTOMER_SCHEMA,
-    payload: {
-      event_name: "page_rendered",
-      ...payload,
-    },
-    metadata: { event_created_at_ms: nowMs() },
-  };
-}
-
-function buildCustomerProductView(payload: Record<string, unknown>, products: unknown[]): MonorailEvent {
-  return {
-    schema_id: CUSTOMER_SCHEMA,
-    payload: {
-      event_name: "product_page_rendered",
-      products,
-      ...payload,
-    },
-    metadata: { event_created_at_ms: nowMs() },
-  };
-}
-
-function buildCustomerAddToCart(payload: Record<string, unknown>, products: unknown[]): MonorailEvent {
-  return {
-    schema_id: CUSTOMER_SCHEMA,
-    payload: {
-      event_name: "product_added_to_cart",
-      products,
-      ...payload,
-    },
-    metadata: { event_created_at_ms: nowMs() },
-  };
-}
-
-function buildCustomerCartView(payload: Record<string, unknown>): MonorailEvent {
-  return {
-    schema_id: CUSTOMER_SCHEMA,
-    payload: {
-      event_name: "cart_viewed",
-      ...payload,
-    },
-    metadata: { event_created_at_ms: nowMs() },
-  };
-}
-
-function buildCustomerCheckout(payload: Record<string, unknown>): MonorailEvent {
-  return {
-    schema_id: CUSTOMER_SCHEMA,
-    payload: {
-      event_name: "checkout_started",
-      ...payload,
-    },
-    metadata: { event_created_at_ms: nowMs() },
-  };
-}
-
-function buildCustomerPurchase(payload: Record<string, unknown>, totalValue: number, products: unknown[]): MonorailEvent {
-  return {
-    schema_id: CUSTOMER_SCHEMA,
-    payload: {
-      event_name: "payment_info_entered",
-      total_value: totalValue,
-      products,
-      ...payload,
-    },
-    metadata: { event_created_at_ms: nowMs() },
-  };
-}
-
-// ─── Base payload builder ──────────────────────────────────────────────────────────
-async function buildBasePayload(): Promise<Record<string, unknown>> {
+/** Build the trekkie page_view payload (Shopify's primary session counter) */
+async function buildTrekkiePayload(): Promise<MonorailEvent> {
   const shopIdGid = await fetchShopId();
   const shopId = parseShopId(shopIdGid);
   const url = typeof window !== "undefined" ? window.location.href : "";
@@ -252,45 +172,112 @@ async function buildBasePayload(): Promise<Record<string, unknown>> {
   const search = typeof window !== "undefined" ? window.location.search : "";
   const referrer = typeof document !== "undefined" ? document.referrer || "" : "";
   const title = typeof document !== "undefined" ? document.title : "";
-  const utm = getStoredUtm();
-  const attr = getAttribution();
   const uniqueToken = getUniqueToken();
   const visitToken = getVisitToken();
 
   return {
-    // Trekkie fields
-    shopId,
-    currency: "EGP",
-    contentLanguage: "en",
-    url,
-    path,
-    search,
-    referrer,
-    title,
-    uniqToken: uniqueToken,
-    visitToken,
-    microSessionId: buildUUID(),
-    microSessionCount: 1,
-    isPersistentCookie: true,
-    isMerchantRequest: false,
-    appClientId: "12802662", // Shopify Hydrogen headless app ID
-    hydrogenSubchannelId: "0",
-
-    // Customer tracking fields
-    canonical_url: url,
-    customer_id: 0,
-
-    // UTM / ad attribution
-    ...(utm.source ? { utm_source: utm.source } : {}),
-    ...(utm.medium ? { utm_medium: utm.medium } : {}),
-    ...(utm.campaign ? { utm_campaign: utm.campaign } : {}),
-    ...(attr.fbclid ? { fbclid: attr.fbclid } : {}),
-    ...(attr.gclid ? { gclid: attr.gclid } : {}),
-    ...(attr.ttclid ? { ttclid: attr.ttclid } : {}),
+    schema_id: TREKKIE_SCHEMA,
+    metadata: { event_created_at_ms: nowMs() },
+    payload: {
+      shopId,
+      currency: "EGP",
+      contentLanguage: "en",
+      url,
+      path,
+      search,
+      referrer,
+      title,
+      uniqToken: uniqueToken,
+      visitToken,
+      microSessionId: buildUUID(),
+      microSessionCount: 1,
+      isPersistentCookie: true,
+      isMerchantRequest: false,
+      appClientId: "12802662",
+      hydrogenSubchannelId: "0",
+    },
   };
 }
 
-// ─── Low-level publisher ──────────────────────────────────────────────────────
+/** Build the customer tracking payload (Shopify's event detail schema) */
+interface ShopifyAnalyticsProduct {
+  product_gid?: string;
+  variant_gid?: string;
+  name?: string;
+  variantName?: string;
+  price: number;
+  quantity: number;
+  brand?: string;
+  category?: string;
+  sku?: string;
+}
+
+/** Format products for customer tracking schema -- returns JSON strings */
+function formatProductPayload(products?: ShopifyAnalyticsProduct[]): string[] {
+  if (!products) return [];
+  return products.map((p) => {
+    const product: Record<string, unknown> = {
+      product_gid: p.product_gid || "",
+      variant_gid: p.variant_gid || "",
+      name: p.name || "",
+      variant: p.variantName || "",
+      brand: p.brand || "",
+      price: typeof p.price === "number" ? p.price : parseFloat(p.price as unknown as string) || 0,
+      quantity: Number(p.quantity || 0),
+    };
+    if (p.category) product.category = p.category;
+    if (p.sku) product.sku = p.sku;
+    return JSON.stringify(product);
+  });
+}
+
+async function buildCustomerPayload(eventName: string, products?: ShopifyAnalyticsProduct[], totalValue?: number): Promise<MonorailEvent> {
+  const shopIdGid = await fetchShopId();
+  const shopId = parseShopId(shopIdGid);
+  const url = typeof window !== "undefined" ? window.location.href : "";
+  const referrer = typeof document !== "undefined" ? document.referrer || "" : "";
+  const title = typeof document !== "undefined" ? document.title : "";
+  const uniqueToken = getUniqueToken();
+  const visitToken = getVisitToken();
+  const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "";
+
+  const payload: Record<string, unknown> = {
+    event_name: eventName,
+    source: "headless",
+    asset_version_id: "1.0.0",
+    hydrogenSubchannelId: "0",
+    is_persistent_cookie: true,
+    deprecated_visit_token: visitToken,
+    unique_token: uniqueToken,
+    event_time: Date.now(),
+    event_id: buildUUID(),
+    event_source_url: url,
+    referrer,
+    user_agent: userAgent,
+    navigation_type: "navigate",
+    navigation_api: "PerformanceNavigationTiming",
+    shop_id: shopId,
+    currency: "EGP",
+    ccpa_enforced: false,
+    gdpr_enforced: false,
+    gdpr_enforced_as_string: "false",
+    analytics_allowed: true,
+    marketing_allowed: true,
+    sale_of_data_allowed: true,
+  };
+
+  const formattedProducts = formatProductPayload(products);
+  if (formattedProducts.length > 0) payload.products = formattedProducts;
+  if (totalValue != null) payload.total_value = totalValue;
+
+  return {
+    schema_id: CUSTOMER_SCHEMA,
+    metadata: { event_created_at_ms: nowMs() },
+    payload,
+  };
+}
+
+// --- Low-level publisher ---
 // Following Hydrogen's sendToShopify exactly
 
 interface MonorailResponse {
@@ -302,7 +289,7 @@ const MONORAIL_BATCH = "https://monorail-edge.shopifysvc.com/unstable/produce_ba
 
 async function sendToShopify(events: MonorailEvent[]): Promise<void> {
   if ((!IS_PRODUCTION && !DEBUG_ANALYTICS)) {
-    log("blocked — not production or debug mode");
+    log("blocked -- not production or debug mode");
     return;
   }
 
@@ -362,18 +349,16 @@ async function sendToShopify(events: MonorailEvent[]): Promise<void> {
   }
 }
 
-// ─── Public API ──────────────────────────────────────────────────────────────────────
+// --- Public API ---
 
 /** Fire on every page load */
 export function trackShopifyPageView(): void {
   captureAndPersistUtm();
-  void buildBasePayload().then((base) => {
-    const events: MonorailEvent[] = [
-      buildTrekkiePageView(base),
-      buildCustomerPageView(base),
-    ];
-    return sendToShopify(events);
-  });
+  void (async () => {
+    const trekkie = await buildTrekkiePayload();
+    const customer = await buildCustomerPayload("page_rendered");
+    return sendToShopify([trekkie, customer]);
+  })();
 }
 
 /** Fire when a product card enters the viewport */
@@ -384,20 +369,17 @@ export function trackShopifyProductView(params: {
   price?: number;
   currencyCode?: string;
 }): void {
-  void buildBasePayload().then((base) => {
-    const products = [{
+  void (async () => {
+    const products: ShopifyAnalyticsProduct[] = [{
       product_gid: params.productId || params.variantId || "",
       variant_gid: params.variantId || "",
       name: params.productTitle,
-      price: params.price != null ? params.price.toFixed(2) : "0.00",
-      currency: params.currencyCode ?? "EGP",
+      price: params.price ?? 0,
       quantity: 1,
     }];
-    const events: MonorailEvent[] = [
-      buildCustomerProductView(base, products),
-    ];
-    return sendToShopify(events);
-  });
+    const customer = await buildCustomerPayload("product_page_rendered", products);
+    return sendToShopify([customer]);
+  })();
 }
 
 /** Fire when the cart drawer opens */
@@ -407,9 +389,10 @@ export function trackShopifyCartViewed(params?: {
   totalValue?: number;
   currencyCode?: string;
 }): void {
-  void buildBasePayload().then((base) => {
-    return sendToShopify([buildCustomerCartView(base)]);
-  });
+  void (async () => {
+    const customer = await buildCustomerPayload("cart_viewed");
+    return sendToShopify([customer]);
+  })();
 }
 
 /** Fire when an item is added to the cart */
@@ -420,17 +403,17 @@ export function trackShopifyAddToCart(params: {
   quantity: number;
   currencyCode?: string;
 }): void {
-  void buildBasePayload().then((base) => {
-    const products = [{
+  void (async () => {
+    const products: ShopifyAnalyticsProduct[] = [{
       product_gid: params.variantId || "",
       variant_gid: params.variantId || "",
       name: params.productTitle || "",
-      price: params.price != null ? params.price.toFixed(2) : "0.00",
-      currency: params.currencyCode ?? "EGP",
+      price: params.price ?? 0,
       quantity: params.quantity,
     }];
-    return sendToShopify([buildCustomerAddToCart(base, products)]);
-  });
+    const customer = await buildCustomerPayload("product_added_to_cart", products);
+    return sendToShopify([customer]);
+  })();
 }
 
 /** Fire when checkout begins */
@@ -441,9 +424,10 @@ export function trackShopifyCheckoutStarted(params: {
   currencyCode?: string;
   lineItems?: { variantId: string; quantity: number; name?: string; price?: number }[];
 }): void {
-  void buildBasePayload().then((base) => {
-    return sendToShopify([buildCustomerCheckout(base)]);
-  });
+  void (async () => {
+    const customer = await buildCustomerPayload("checkout_started");
+    return sendToShopify([customer]);
+  })();
 }
 
 /** Fire when a purchase is completed */
@@ -455,16 +439,16 @@ export function trackShopifyPurchase(params: {
   currencyCode?: string;
   lineItems?: { variantId: string; quantity: number; name?: string; price?: number }[];
 }): void {
-  void buildBasePayload().then((base) => {
+  void (async () => {
     const totalValue = params.totalPrice ?? params.totalValue ?? 0;
-    const products = (params.lineItems || []).map((p) => ({
+    const products: ShopifyAnalyticsProduct[] = (params.lineItems || []).map((p) => ({
       product_gid: p.variantId,
       variant_gid: p.variantId,
       name: p.name || "",
-      price: p.price != null ? p.price.toFixed(2) : "0.00",
-      currency: params.currencyCode ?? "EGP",
+      price: p.price ?? 0,
       quantity: p.quantity,
     }));
-    return sendToShopify([buildCustomerPurchase(base, totalValue, products)]);
-  });
+    const customer = await buildCustomerPayload("payment_info_entered", products, totalValue);
+    return sendToShopify([customer]);
+  })();
 }
