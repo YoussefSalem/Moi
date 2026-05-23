@@ -79,12 +79,11 @@ export function TikTokSocialProof() {
               <Video size={16} className="text-white/70" />
               <p className="text-[10px] tracking-[0.35em] uppercase text-white/50">TikTok social proof</p>
             </div>
-            {/* 2 columns on desktop → cards are wide enough for TikTok player UI to render fully */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {videos.map((video, idx) => (
                 <div
                   key={`${video.handle}-${idx}`}
-                  className="rounded-2xl border border-white/10 p-4 md:p-5"
+                  className="rounded-2xl border border-white/10 p-4"
                   style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
                 >
                   <p className="text-sm text-white/90">{video.title}</p>
@@ -98,8 +97,8 @@ export function TikTokSocialProof() {
                   </a>
                   <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
-                    {/* Natural phone aspect ratio — TikTok player renders all UI chrome at full size */}
-                    <div className="relative overflow-hidden aspect-[9/16]">
+                    {/* TikTok embed needs ~9:19 to show full player chrome (profile bar + controls) without clipping */}
+                    <div className="relative overflow-hidden aspect-[9/16] md:aspect-[9/19]">
                       {video.embedUrl ? (
                         <iframe
                           title={video.title}
