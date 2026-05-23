@@ -780,7 +780,7 @@ export function CheckoutPage() {
                   </div>
                   {!freeShipping && discountedSubtotal > 0 && (
                     <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "#6b8f5e" }}>
-                      {fmt(2000 - discountedSubtotal)} EGP away from free delivery
+                      {new Intl.NumberFormat("en-EG", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(2000 - discountedSubtotal)} EGP away from free delivery
                     </p>
                   )}
                   {freeShipping && (
@@ -1031,7 +1031,7 @@ export function CheckoutPage() {
                   {/* "X away from free delivery" nudge */}
                   {!freeShipping && discountedSubtotal > 0 && (
                     <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "#6b8f5e" }}>
-                      {fmt(2000 - discountedSubtotal)} EGP away from free delivery
+                      {new Intl.NumberFormat("en-EG", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(2000 - discountedSubtotal)} EGP away from free delivery
                     </p>
                   )}
                   {freeShipping && (
