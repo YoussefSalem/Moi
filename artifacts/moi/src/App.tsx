@@ -234,7 +234,7 @@ function App() {
     <CustomerProvider>
       <CartProvider>
         <AppContent />
-        <AnalyticsDebug />
+        {typeof window !== "undefined" && window.location.href.includes("debug_analytics") && <AnalyticsDebug />}
         <Toaster
           position="top-center"
           toastOptions={{
