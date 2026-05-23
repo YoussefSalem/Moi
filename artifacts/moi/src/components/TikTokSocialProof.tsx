@@ -119,7 +119,7 @@ export function TikTokSocialProof() {
                           title={video.title}
                           src={video.embedUrl}
                           className="absolute left-0 top-0 w-full"
-                          style={{ height: "105%" }}
+                          style={{ height: "104%" }}
                           allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
                           scrolling="no"
                           sandbox="allow-scripts allow-same-origin allow-presentation"
