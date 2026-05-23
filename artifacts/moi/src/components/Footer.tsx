@@ -185,7 +185,7 @@ export function Footer({ onNavigate }: FooterProps) {
               </span>
             </div>
 
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-center">
               <p className="text-[10px] tracking-[0.3em] uppercase text-white/35">© 2026 Moi. All rights reserved.</p>
               <p className="text-[10px] tracking-[0.22em] uppercase text-white/35">Smooth, elegant, minimal.</p>
             </div>

@@ -357,6 +357,13 @@ export function CartDrawer() {
                     {cartRawTotal}
                   </span>
                 </div>
+                {/* Shipping info */}
+                <p
+                  className="text-center text-[10px] tracking-[0.3em] uppercase"
+                  style={{ color: "rgba(30,24,20,0.4)", fontFamily: "'Montserrat', sans-serif" }}
+                >
+                  We ship all over Egypt
+                </p>
                 <div
                   className="text-center py-3 px-4 mx-4 mb-2 rounded"
                   style={{ backgroundColor: "rgba(248,252,245,0.9)", border: "1px solid rgba(160,190,150,0.22)" }}
