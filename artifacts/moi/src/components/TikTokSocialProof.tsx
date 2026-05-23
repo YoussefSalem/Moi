@@ -98,7 +98,8 @@ export function TikTokSocialProof() {
                   <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
                     {/* TikTok embed: ~9:16 phone aspect — wider columns = bigger natural player */}
-                    <div className="relative overflow-hidden aspect-[9/16]">
+                    {/* Mobile: taller aspect so TikTok player chrome (top profile + bottom buttons) fits */}
+                    <div className="relative overflow-hidden aspect-[9/17] md:aspect-[9/16]">
                       {video.embedUrl ? (
                         <iframe
                           title={video.title}
