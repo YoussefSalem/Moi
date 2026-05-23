@@ -97,18 +97,24 @@ export function TikTokSocialProof() {
                   </a>
                   <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
+                    {/* Container clips the TikTok profile bar (top ~80px) and "Watch now" ribbon (bottom ~60px) */}
                     <div className="relative overflow-hidden" style={{ aspectRatio: "9/16", minHeight: 420 }}>
                       {video.embedUrl ? (
-                        <>
-                          <iframe
-                            title={video.title}
-                            src={video.embedUrl}
-                            className="absolute inset-0 h-full w-full"
-                            allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
-                            scrolling="no"
-                            sandbox="allow-scripts allow-same-origin allow-presentation"
-                          />
-                        </>
+                        <iframe
+                          title={video.title}
+                          src={video.embedUrl}
+                          style={{
+                            position: "absolute",
+                            top: -80,
+                            left: 0,
+                            width: "100%",
+                            height: "calc(100% + 140px)",
+                            border: "none",
+                          }}
+                          allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
+                          scrolling="no"
+                          sandbox="allow-scripts allow-same-origin allow-presentation"
+                        />
                       ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "linear-gradient(135deg, #1f1916 0%, #2a201c 50%, #1f1916 100%)" }}>
                           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-white/25 mb-3">
