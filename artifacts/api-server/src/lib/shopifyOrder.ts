@@ -222,6 +222,20 @@ export async function createDraftOrder(params: {
       ? "Credit/Debit Card"
       : "Instapay Transfer";
 
+  // Determine shipping based on cart total: free over 2,000 EGP
+  let shippingPrice = "50.00";
+  let shippingTitle = "Standard Delivery";
+
+  if (params.cartId) {
+    const cart = await fetchStorefrontCart(params.cartId);
+    if (cart) {
+      if (cart.totalAmount >= 2000) {
+        shippingPrice = "0.00";
+        shippingTitle = "Free Delivery";
+      }
+    }
+  }
+
   const draftPayload: Record<string, unknown> = {
     suppress_notifications: true,
     line_items: lineItems,
@@ -239,8 +253,8 @@ export async function createDraftOrder(params: {
       country_code: "EG",
     },
     shipping_line: {
-      price: "50.00",
-      title: "Standard Delivery",
+      price: shippingPrice,
+      title: shippingTitle,
       custom: true,
     },
     tags,
