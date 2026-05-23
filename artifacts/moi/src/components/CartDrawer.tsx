@@ -369,14 +369,14 @@ export function CartDrawer() {
                   style={{ backgroundColor: "rgba(248,252,245,0.9)", border: "1px solid rgba(160,190,150,0.22)" }}
                 >
                   <p
-                    className="text-[13px] tracking-[0.25em] uppercase font-semibold text-center leading-tight"
+                    className="text-[16px] tracking-[0.25em] uppercase font-semibold text-center leading-tight"
                     style={{ color: "#6b8f5e" }}
                   >
                     Free shipping on orders over 2,000 EGP
                   </p>
                   <p
-                    className="text-[11px] tracking-[0.15em] uppercase font-medium text-center mt-1"
-                    style={{ color: "rgba(107,143,94,0.65)" }}
+                    className="text-[14px] tracking-[0.15em] uppercase font-medium text-center mt-1"
+                    style={{ color: "rgba(107,143,94,0.75)" }}
                   >
                     standard shipping: 50 EGP
                   </p>
