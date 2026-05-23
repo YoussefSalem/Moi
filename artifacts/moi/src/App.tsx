@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
 import { captureAttribution } from "@/lib/adAttribution";
 import { AnalyticsDebug } from "@/components/AnalyticsDebug";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
@@ -75,6 +76,8 @@ function AppContent() {
   const [page, setPage] = useState<"home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery">(getInitialPage);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [heroReady, setHeroReady] = useState(false);
+  const handleHeroReady = useMemo(() => () => setHeroReady(true), []);
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
   useRestockChecker();
 
@@ -128,7 +131,7 @@ function AppContent() {
 
       {page === "home" ? (
         <main>
-          <HeroVideo />
+          <HeroVideo onReady={handleHeroReady} />
 
           <div id="collection">
             <div id={product1.slug}>
@@ -196,6 +199,7 @@ function AppContent() {
         </Suspense>
       )}
 
+      <LoadingScreen ready={heroReady && !loading} />
       <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
 
       <Suspense fallback={null}>

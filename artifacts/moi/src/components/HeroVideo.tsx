@@ -2,15 +2,19 @@ import { useRef, useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { IMAGES } from "@/config/images";
 
-// Checked once at module load — doesn't need to be reactive.
-// Parallax is disabled on mobile to prevent images shifting during scroll.
-const IS_MOBILE = typeof window !== "undefined" && window.innerWidth < 768;
+// Detect mobile once on mount (never re-check — prevents layout jitter)
+const getIsMobile = () => typeof window !== "undefined" && window.innerWidth < 768;
 
 const HERO_GRAD_EDGE = "rgba(210,195,175,0.10)";
 
-export function HeroVideo() {
+interface HeroVideoProps {
+  onReady?: () => void;
+}
+
+export function HeroVideo({ onReady }: HeroVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const isMobileRef = useRef(getIsMobile());
   const [loaded, setLoaded] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
 
@@ -30,6 +34,11 @@ export function HeroVideo() {
     const el = document.getElementById("collection");
     if (el) el.scrollIntoView({ behavior: "smooth" });
   };
+
+  // Notify parent when hero media is ready
+  useEffect(() => {
+    if (loaded) onReady?.();
+  }, [loaded, onReady]);
 
   useEffect(() => {
     if (!IMAGES.hero.videoUrl) {
@@ -52,7 +61,7 @@ export function HeroVideo() {
       video.oncanplay = () => { setLoaded(true); play(); };
       video.onerror = () => { setVideoFailed(true); setLoaded(true); };
     }
-  }, []);
+  }, [onReady]);
 
   return (
     <section
@@ -83,7 +92,7 @@ export function HeroVideo() {
       {/* Parallax image / video — mobile: subtle 8% parallax; desktop: full 22% */}
       <motion.div
         className="absolute inset-0 w-full h-[115%] -top-[7.5%]"
-        style={IS_MOBILE
+        style={isMobileRef.current
           ? { y: mobileImageY, willChange: "transform" }
           : { y: imageY, willChange: "transform" }
         }
@@ -129,7 +138,7 @@ export function HeroVideo() {
       {/* Hero text content — mobile: opacity fade only; desktop: parallax + fade */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 z-[3] flex flex-col items-center text-center"
-        style={IS_MOBILE
+        style={isMobileRef.current
           ? { paddingBottom: "clamp(80px, 14vw, 140px)", opacity: overlayOpacity, willChange: "opacity" }
           : { y: textY, paddingBottom: "clamp(80px, 14vw, 140px)", opacity: overlayOpacity }
         }
