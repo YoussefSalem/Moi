@@ -97,13 +97,13 @@ export function TikTokSocialProof() {
                   </a>
                   <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
-                    {/* Desktop: slightly taller container + scaled iframe so full TikTok UI is visible */}
-                    <div className="relative overflow-hidden aspect-[9/16.5] md:aspect-[9/18.5]">
+                    {/* TikTok embed needs ~9:19 to show full player chrome (profile bar + controls) without clipping */}
+                    <div className="relative overflow-hidden aspect-[9/16] md:aspect-[9/19]">
                       {video.embedUrl ? (
                         <iframe
                           title={video.title}
                           src={video.embedUrl}
-                          className="absolute inset-0 h-full w-full md:scale-[0.92] md:origin-top"
+                          className="absolute inset-0 h-full w-full"
                           allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
                           scrolling="no"
                           sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
