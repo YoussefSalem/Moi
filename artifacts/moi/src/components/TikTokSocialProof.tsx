@@ -97,19 +97,18 @@ export function TikTokSocialProof() {
                   </a>
                   <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
                   <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
-                    {/* Visible window = natural phone aspect. Iframe is rendered taller and anchored to top
-                        so the bottom "Watch now" promo + caption + music bar get clipped, leaving the video
-                        and its in-player controls (mute / fullscreen) cleanly visible. */}
+                    {/* 9:16 visible window. Iframe extends 45px below so the bottom "Watch now" bar is clipped
+                        while the in-player controls (mute/fullscreen) stay safely above the fold. */}
                     <div className="relative overflow-hidden aspect-[9/16]">
                       {video.embedUrl ? (
                         <iframe
                           title={video.title}
                           src={video.embedUrl}
                           className="absolute left-0 top-0 w-full"
-                          style={{ height: "138%", overflow: "hidden" }}
+                          style={{ height: "calc(100% + 45px)", overflow: "hidden" }}
                           allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
                           scrolling="no"
-                          sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
+                          sandbox="allow-scripts allow-same-origin allow-presentation"
                         />
                       ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "linear-gradient(135deg, #1f1916 0%, #2a201c 50%, #1f1916 100%)" }}>
