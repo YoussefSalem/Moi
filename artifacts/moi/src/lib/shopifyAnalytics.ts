@@ -174,28 +174,42 @@ async function buildTrekkiePayload(): Promise<MonorailEvent> {
   const title = typeof document !== "undefined" ? document.title : "";
   const uniqueToken = getUniqueToken();
   const visitToken = getVisitToken();
+  const utm = getStoredUtm();
+  const attr = getAttribution();
+
+  const payload: Record<string, unknown> = {
+    shopId,
+    currency: "EGP",
+    contentLanguage: "en",
+    url,
+    path,
+    search,
+    referrer,
+    title,
+    uniqToken: uniqueToken,
+    visitToken,
+    microSessionId: buildUUID(),
+    microSessionCount: 1,
+    isPersistentCookie: true,
+    isMerchantRequest: false,
+    appClientId: "12802662",
+    hydrogenSubchannelId: "0",
+  };
+
+  // UTM / ad attribution
+  if (utm.source) payload.utm_source = utm.source;
+  if (utm.medium) payload.utm_medium = utm.medium;
+  if (utm.campaign) payload.utm_campaign = utm.campaign;
+  if (utm.term) payload.utm_term = utm.term;
+  if (utm.content) payload.utm_content = utm.content;
+  if (attr.fbclid) payload.fbclid = attr.fbclid;
+  if (attr.gclid) payload.gclid = attr.gclid;
+  if (attr.ttclid) payload.ttclid = attr.ttclid;
 
   return {
     schema_id: TREKKIE_SCHEMA,
     metadata: { event_created_at_ms: nowMs() },
-    payload: {
-      shopId,
-      currency: "EGP",
-      contentLanguage: "en",
-      url,
-      path,
-      search,
-      referrer,
-      title,
-      uniqToken: uniqueToken,
-      visitToken,
-      microSessionId: buildUUID(),
-      microSessionCount: 1,
-      isPersistentCookie: true,
-      isMerchantRequest: false,
-      appClientId: "12802662",
-      hydrogenSubchannelId: "0",
-    },
+    payload,
   };
 }
 
@@ -240,6 +254,8 @@ async function buildCustomerPayload(eventName: string, products?: ShopifyAnalyti
   const uniqueToken = getUniqueToken();
   const visitToken = getVisitToken();
   const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "";
+  const utm = getStoredUtm();
+  const attr = getAttribution();
 
   const payload: Record<string, unknown> = {
     event_name: eventName,
@@ -265,6 +281,16 @@ async function buildCustomerPayload(eventName: string, products?: ShopifyAnalyti
     marketing_allowed: true,
     sale_of_data_allowed: true,
   };
+
+  // UTM / ad attribution -- critical for social referrer reporting
+  if (utm.source) payload.utm_source = utm.source;
+  if (utm.medium) payload.utm_medium = utm.medium;
+  if (utm.campaign) payload.utm_campaign = utm.campaign;
+  if (utm.term) payload.utm_term = utm.term;
+  if (utm.content) payload.utm_content = utm.content;
+  if (attr.fbclid) payload.fbclid = attr.fbclid;
+  if (attr.gclid) payload.gclid = attr.gclid;
+  if (attr.ttclid) payload.ttclid = attr.ttclid;
 
   const formattedProducts = formatProductPayload(products);
   if (formattedProducts.length > 0) payload.products = formattedProducts;
