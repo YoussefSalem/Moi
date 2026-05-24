@@ -244,22 +244,56 @@ router.post("/admin/instapay-proofs/:id/reject", async (req, res) => {
   if (!proof) { res.status(404).json({ error: "Proof not found" }); return; }
   if (proof.status === "rejected") { res.status(409).json({ error: "Already rejected" }); return; }
 
+  // Step 1: Update DB
   await db
     .update(instapayProofs)
     .set({ status: "rejected", rejectionReason: reason ?? null, reviewedAt: new Date() })
     .where(eq(instapayProofs.id, id));
 
+  // Step 2: Cancel & void the Shopify order — since InstaPay orders are marked
+  // "paid" automatically in Shopify at proof-submission time, we must cancel+void
+  // to properly reverse the payment record and free the inventory.
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const adminToken = await getShopifyAdminToken();
+
+  if (storeDomain && adminToken) {
+    try {
+      const cancelRes = await fetch(
+        `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}/cancel.json`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+          body: JSON.stringify({
+            reason: "other",
+            email: false,
+            restock: true,
+          }),
+        },
+      );
+      if (cancelRes.ok) {
+        req.log.info({ shopifyOrderId: proof.shopifyOrderId }, "Shopify order cancelled on InstaPay rejection");
+      } else {
+        const errBody = await cancelRes.text();
+        req.log.warn({ status: cancelRes.status, body: errBody, shopifyOrderId: proof.shopifyOrderId }, "Shopify order cancel failed");
+      }
+    } catch (err) {
+      req.log.error({ err, shopifyOrderId: proof.shopifyOrderId }, "Shopify order cancel request failed");
+    }
+  }
+
+  // Step 3: Note + tag on the (now-cancelled) order
   void addShopifyOrderNote(proof.shopifyOrderId, `InstaPay proof rejected${reason ? `: ${reason}` : ""}`);
   void tagShopifyOrder(proof.shopifyOrderId, "instapay-proof-rejected");
 
+  // Step 4: WhatsApp to customer
   if (proof.customerPhone) {
     void sendWhatsApp(
       proof.customerPhone,
-      `⚠️ We could not verify your Moi payment for order #${proof.shopifyOrderNumber}.${reason ? `\n\nReason: ${reason}` : ""}\n\nPlease contact us via WhatsApp for assistance. 🖤`,
+      `⚠️ We could not verify your payment for Moi order #${proof.shopifyOrderNumber}.${reason ? `\n\nReason: ${reason}` : ""}\n\nYour order has been cancelled. Please contact us via WhatsApp if you believe this is a mistake. 🖤`,
     );
   }
 
-  req.log.info({ id, reason }, "InstaPay proof rejected");
+  req.log.info({ id, reason, shopifyOrderId: proof.shopifyOrderId }, "InstaPay proof rejected and order cancelled");
   res.status(200).json({ ok: true });
 });
 
