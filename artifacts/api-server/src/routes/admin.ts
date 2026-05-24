@@ -162,55 +162,63 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
   // Step 1: Tag instapay-admin-approved FIRST (prevents duplicate Bosta in orders/paid webhook)
   await tagShopifyOrder(proof.shopifyOrderId, "instapay-admin-approved");
 
-  // Step 2: Record Shopify payment (sale transaction = auth+capture in one, marks order Paid)
-  let txnRecorded = false;
+  // Step 2: Mark order as Paid via authorization + capture (the only valid sequence for
+  // API-created pending orders — Shopify rejects "sale" and ignores financial_status PUT)
   if (storeDomain && adminToken && proof.amount) {
     try {
-      const txnRes = await fetch(
+      // 2a. Create authorization transaction
+      const authRes = await fetch(
         `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}/transactions.json`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
           body: JSON.stringify({
             transaction: {
-              kind: "sale",
+              kind: "authorization",
               status: "success",
-              gateway: "Instapay",
+              gateway: "manual",
               amount: proof.amount,
             },
           }),
         },
       );
-      if (txnRes.ok) {
-        txnRecorded = true;
-        req.log.info({ shopifyOrderId: proof.shopifyOrderId }, "Shopify sale transaction recorded");
+
+      if (authRes.ok) {
+        const authData = await authRes.json() as { transaction?: { id?: number } };
+        const authId = authData.transaction?.id;
+        req.log.info({ shopifyOrderId: proof.shopifyOrderId, authId }, "Shopify authorization transaction recorded");
+
+        // 2b. Capture against the authorization
+        if (authId) {
+          const captureRes = await fetch(
+            `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}/transactions.json`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+              body: JSON.stringify({
+                transaction: {
+                  kind: "capture",
+                  status: "success",
+                  gateway: "manual",
+                  amount: proof.amount,
+                  parent_id: authId,
+                },
+              }),
+            },
+          );
+          if (captureRes.ok) {
+            req.log.info({ shopifyOrderId: proof.shopifyOrderId }, "Shopify capture transaction recorded — order marked Paid");
+          } else {
+            const errBody = await captureRes.text();
+            req.log.warn({ status: captureRes.status, body: errBody }, "Shopify capture transaction failed");
+          }
+        }
       } else {
-        const body = await txnRes.text();
-        req.log.warn({ status: txnRes.status, body }, "Shopify sale transaction failed");
+        const errBody = await authRes.text();
+        req.log.warn({ status: authRes.status, body: errBody }, "Shopify authorization transaction failed");
       }
     } catch (err) {
-      req.log.error({ err }, "Shopify sale transaction request failed");
-    }
-
-    // Safety net: if the sale transaction didn't flip the order to Paid, force it
-    if (!txnRecorded) {
-      try {
-        const putRes = await fetch(
-          `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}.json`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-            body: JSON.stringify({ order: { financial_status: "paid" } }),
-          },
-        );
-        if (putRes.ok) {
-          req.log.info({ shopifyOrderId: proof.shopifyOrderId }, "Shopify order forced to paid via PUT");
-        } else {
-          req.log.warn({ status: putRes.status }, "Shopify order PUT to paid failed");
-        }
-      } catch (err) {
-        req.log.error({ err }, "Shopify order PUT to paid request failed");
-      }
+      req.log.error({ err }, "Shopify payment transaction request failed");
     }
   }
 
