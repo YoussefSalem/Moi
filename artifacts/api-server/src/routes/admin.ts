@@ -15,7 +15,7 @@ import {
 } from "../lib/integrations";
 import { getMaskedConfig, savePaymobConfig, type PaymobConfig } from "../lib/paymobConfig";
 import { listDiscountCodeUses } from "@workspace/db";
-import { sendEmail, buildAbandonedCartEmail } from "../lib/email";
+import { sendEmail, buildAbandonedCartEmail, buildInstapayConfirmedEmail, buildInstapayRejectedEmail } from "../lib/email";
 import { getSiteUrl } from "../lib/siteUrl";
 import { completeShopifyDraftOrder } from "../lib/shopifyOrder";
 
@@ -210,13 +210,13 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
   }
 
   // Step 4: Create Bosta shipment (skip if already fulfilled by Bosta app)
+  let city = "Cairo";
+  let address = "";
   if (!alreadyFulfilled && proof.customerPhone && proof.customerName) {
     const nameParts = proof.customerName.trim().split(" ");
     const firstName = nameParts[0] ?? proof.customerName;
     const lastName = nameParts.slice(1).join(" ") || firstName;
 
-    let city = "Cairo";
-    let address = "";
     try {
       const orderRes = await fetch(
         `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=shipping_address`,
@@ -258,15 +258,56 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
     }
   }
 
-  // Step 5: WhatsApp to customer
+  // Step 5: Fetch customer email + shipping address from Shopify order for email
+  let customerEmail = "";
+  let shipAddress = "";
+  let shipCity = city;
+  let shipGov = "";
+  if (storeDomain && adminToken) {
+    try {
+      const orderRes = await fetch(
+        `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=email,shipping_address`,
+        { headers: { "X-Shopify-Access-Token": adminToken! } },
+      );
+      if (orderRes.ok) {
+        const o = await orderRes.json() as {
+          order: { email?: string; shipping_address?: { address1?: string; city?: string; province?: string } };
+        };
+        customerEmail = o.order.email ?? "";
+        shipAddress = o.order.shipping_address?.address1 ?? address;
+        shipCity = o.order.shipping_address?.city ?? city;
+        shipGov = o.order.shipping_address?.province ?? "";
+      }
+    } catch (err) {
+      req.log.warn({ err }, "Could not fetch customer email from Shopify order");
+    }
+  }
+
+  // Step 6: WhatsApp + email to customer
   if (proof.customerPhone) {
     void sendWhatsApp(
       proof.customerPhone,
       `✅ Payment confirmed for Moi order #${orderNumber}! Your order is being prepared. You'll receive a tracking update soon. 🖤`,
     );
   }
+  if (customerEmail) {
+    const shippingPrice = parseFloat(proof.amount ?? "0") >= 2000 ? "0.00" : "50.00";
+    const { html, text } = buildInstapayConfirmedEmail({
+      orderNumber: orderNumber!,
+      customerName: proof.customerName ?? "",
+      total: proof.amount ?? "",
+      referenceNumber: proof.referenceNumber,
+      address: shipAddress,
+      city: shipCity,
+      governorate: shipGov,
+      shippingAmount: shippingPrice,
+    });
+    void sendEmail({ to: customerEmail, subject: `Payment Confirmed — Moi Order #${orderNumber}`, html, text })
+      .then(() => req.log.info({ email: customerEmail, orderNumber }, "InstaPay confirmed email sent"))
+      .catch((err) => req.log.warn({ err, email: customerEmail }, "InstaPay confirmed email failed"));
+  }
 
-  // Step 6: Update DB with real order IDs
+  // Step 7: Update DB with real order IDs
   await db
     .update(instapayProofs)
     .set({ status: "approved", reviewedAt: new Date(), shopifyOrderId: orderId, shopifyOrderNumber: orderNumber })
@@ -318,12 +359,41 @@ router.post("/admin/instapay-proofs/:id/reject", async (req, res) => {
     }
   }
 
-  // Step 3: WhatsApp to customer
+  // Step 3: Fetch customer email from draft order for rejection email
+  let customerEmail = "";
+  if (storeDomain && adminToken && proof.draftOrderId) {
+    try {
+      const draftRes = await fetch(
+        `https://${storeDomain}/admin/api/2024-04/draft_orders/${proof.draftOrderId}.json?fields=email`,
+        { headers: { "X-Shopify-Access-Token": adminToken } },
+      );
+      if (draftRes.ok) {
+        const d = await draftRes.json() as { draft_order?: { email?: string } };
+        customerEmail = d.draft_order?.email ?? "";
+      }
+    } catch (err) {
+      req.log.warn({ err }, "Could not fetch customer email from draft order for rejection");
+    }
+  }
+
+  // Step 4: WhatsApp + email to customer
   if (proof.customerPhone) {
     void sendWhatsApp(
       proof.customerPhone,
       `⚠️ We could not verify your payment for Moi order.${reason ? `\n\nReason: ${reason}` : ""}\n\nYour order has been cancelled. Please contact us via WhatsApp if you believe this is a mistake. 🖤`,
     );
+  }
+  if (customerEmail) {
+    const { html, text } = buildInstapayRejectedEmail({
+      draftOrderId: proof.draftOrderId ?? id,
+      customerName: proof.customerName ?? "",
+      total: proof.amount ?? "",
+      referenceNumber: proof.referenceNumber,
+      rejectionReason: reason ?? null,
+    });
+    void sendEmail({ to: customerEmail, subject: `Payment Not Confirmed — Draft Order #${proof.draftOrderId ?? id}`, html, text })
+      .then(() => req.log.info({ email: customerEmail, draftOrderId: proof.draftOrderId }, "InstaPay rejection email sent"))
+      .catch((err) => req.log.warn({ err, email: customerEmail }, "InstaPay rejection email failed"));
   }
 
   req.log.info({ id, reason, draftOrderId: proof.draftOrderId }, "InstaPay proof rejected and draft deleted");

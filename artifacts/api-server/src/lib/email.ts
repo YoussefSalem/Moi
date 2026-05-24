@@ -437,6 +437,129 @@ export function buildInstapayPendingEmail(params: {
 }
 
 // ---------------------------------------------------------------------------
+// InstaPay Confirmed Email (admin approved)
+// ---------------------------------------------------------------------------
+
+export function buildInstapayConfirmedEmail(params: {
+  orderNumber: number | string;
+  customerName: string;
+  total: string;
+  referenceNumber: string;
+  address: string;
+  city: string;
+  governorate: string;
+  discountAmount?: string;
+  discountCode?: string;
+  shippingAmount?: string;
+}): { html: string; text: string } {
+  const { orderNumber, customerName, total, referenceNumber, address, city, governorate, discountAmount, discountCode, shippingAmount } = params;
+  const name = customerName ? customerName.split(" ")[0] : "";
+  const siteUrl = "https://buy-moi.com";
+
+  const html = buildEmail({
+    preheader: `Your Moi order #${orderNumber} has been confirmed. Payment verified and order being prepared.`,
+    headline: name ? `Thank you,<br />${name}.` : "Thank you.",
+    subline: "Your payment has been successfully confirmed and your order is now being prepared. You'll receive a WhatsApp tracking update once it's on its way.",
+    bodyHtml: `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">InstaPay Ref</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;font-weight:700;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;font-family:'Courier New',Courier,monospace;letter-spacing:0.05em;">${referenceNumber}</td>
+        </tr>
+        <tr>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">Status</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1a1714;font-weight:700;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;letter-spacing:0.08em;text-transform:uppercase;">Payment Confirmed — Order Being Prepared</td>
+        </tr>
+      </table>`,
+    orderNumber,
+    total,
+    paymentLabel: "InstaPay Transfer",
+    address,
+    city,
+    governorate,
+    statusNote: "Our team is packing your order right now. You'll receive a WhatsApp message with your Bosta tracking number once it leaves our studio.",
+    siteUrl,
+    discountAmount,
+    discountCode,
+    shippingAmount,
+  });
+
+  const discountText = discountAmount ? `\nDiscount ${discountCode ? `(${discountCode})` : ""}: -${discountAmount} EGP` : "";
+  const shippingText = shippingAmount ? `\nShipping: ${parseFloat(shippingAmount) === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
+
+  const text = `Payment Confirmed — Moi\n\n${name ? `Thank you, ${name}.` : "Thank you."}\n\nYour payment has been successfully confirmed and your order is now being prepared.\n\nOrder #${orderNumber}${discountText}${shippingText}\nTotal: ${total} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Payment Confirmed — Order Being Prepared\nDeliver to: ${address}, ${city}, ${governorate}\n\nOur team is packing your order right now. You'll receive a WhatsApp message with your Bosta tracking number once it leaves our studio.\n\nQuestions? hello@buy-moi.com\n\nbuy-moi.com`;
+
+  return { html, text };
+}
+
+// ---------------------------------------------------------------------------
+// InstaPay Rejected Email (admin rejected)
+// ---------------------------------------------------------------------------
+
+export function buildInstapayRejectedEmail(params: {
+  draftOrderId: number | string;
+  customerName: string;
+  total: string;
+  referenceNumber: string;
+  rejectionReason?: string | null;
+}): { html: string; text: string } {
+  const { draftOrderId, customerName, total, referenceNumber, rejectionReason } = params;
+  const name = customerName ? customerName.split(" ")[0] : "";
+  const siteUrl = "https://buy-moi.com";
+
+  const reasonLine = rejectionReason
+    ? `<tr>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">Reason</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;font-weight:700;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;">${rejectionReason}</td>
+        </tr>`
+    : "";
+
+  const reasonText = rejectionReason ? `\nReason: ${rejectionReason}` : "";
+
+  const html = buildEmail({
+    preheader: `We could not confirm your payment for Draft Order #${draftOrderId}. Contact us for assistance.`,
+    headline: name ? `We're sorry,<br />${name}.` : "We're sorry.",
+    subline: "We were unable to confirm your payment. Your order has been cancelled. If you need any help, please contact us and we'll assist you as soon as possible.",
+    bodyHtml: `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">Draft Order</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;font-weight:700;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;">#${draftOrderId}</td>
+        </tr>
+        <tr>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">InstaPay Ref</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;font-weight:700;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;font-family:'Courier New',Courier,monospace;letter-spacing:0.05em;">${referenceNumber}</td>
+        </tr>
+        <tr>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">Status</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#b08d6a;font-weight:700;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;letter-spacing:0.08em;text-transform:uppercase;">Payment Not Confirmed</td>
+        </tr>
+        ${reasonLine}
+      </table>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;">
+        <tr><td style="padding:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Get In Touch</td></tr>
+        <tr>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#5c504a;line-height:1.8;">
+            <a href="https://www.instagram.com/shopmoi___" style="color:#1a1714;text-decoration:underline;">Instagram</a> — @shopmoi___<br/>
+            <a href="mailto:hello@buy-moi.com" style="color:#1a1714;text-decoration:underline;">Email</a> — hello@buy-moi.com
+          </td>
+        </tr>
+      </table>`,
+    orderNumber: draftOrderId,
+    total,
+    paymentLabel: "InstaPay Transfer",
+    address: "",
+    city: "",
+    governorate: "",
+    siteUrl,
+  });
+
+  const text = `Payment Not Confirmed — Moi\n\n${name ? `We're sorry, ${name}.` : "We're sorry."}\n\nWe were unable to confirm your payment for Draft Order #${draftOrderId}. Your order has been cancelled.${reasonText}\n\nDraft Order: #${draftOrderId}\nInstaPay Ref: ${referenceNumber}\nTotal: ${total} EGP\nStatus: Payment Not Confirmed\n\nIf you need any help, please contact us:\nInstagram: @shopmoi___\nEmail: hello@buy-moi.com\n\nbuy-moi.com`;
+
+  return { html, text };
+}
+
+// ---------------------------------------------------------------------------
 // Abandoned Cart Recovery Email
 // ---------------------------------------------------------------------------
 
