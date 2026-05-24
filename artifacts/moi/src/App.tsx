@@ -92,7 +92,7 @@ function AppContent() {
     fetch(`/api/abandoned-carts/recover?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((data: unknown) => {
-        const d = data as { recovered?: boolean; email?: string; cartId?: string; lineItems?: Array<{ title: string; variant?: string; quantity: number; price: string; imageUrl?: string }>; totalAmount?: string };
+        const d = data as { recovered?: boolean; email?: string; cartId?: string; lineItems?: Array<{ title: string; variant?: string; quantity: number; price: string; imageUrl?: string; variantId?: string }>; totalAmount?: string };
         if (d.recovered) {
           window.history.replaceState(null, "", window.location.pathname);
           return;
@@ -108,6 +108,7 @@ function AppContent() {
                 priceAmount: parseFloat(item.price.replace(/[^0-9.]/g, "")),
                 quantity: item.quantity,
                 image: item.imageUrl ?? null,
+                variantId: item.variantId ?? undefined,
               }).catch(() => {});
             }
             cart.openCheckout();

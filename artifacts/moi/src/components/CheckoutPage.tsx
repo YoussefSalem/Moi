@@ -50,6 +50,7 @@ const PUBLIC_COLOR_IMAGES: Record<string, string> = {
   taupe: `${BASE_IMG}/taupe.webp`,
   espresso: `${BASE_IMG}/espresso.webp`,
   brown: `${BASE_IMG}/brown.webp`,
+  black: `${BASE_IMG}/black.webp`,
 };
 
 function resolveLineImage(line: ShopifyCartLine, localItems?: { variantId: string; color?: string; image?: string | null }[]): string | null {
@@ -653,21 +654,28 @@ export function CheckoutPage() {
 
       // Fire-and-forget: record abandoned cart for recovery email
       const lineItems = isShopify && shopifyCart
-        ? shopifyCart.lines.nodes.map((l) => ({
-            title: l.merchandise.product.title,
-            variant: l.merchandise.title === "Default Title" ? undefined : l.merchandise.title,
-            quantity: l.quantity,
-            price: `${Math.floor(parseFloat(l.merchandise.price.amount)).toLocaleString("de-DE")} EGP`,
-            imageUrl: resolveEmailImage(l, localItems) ?? undefined,
-          }))
+        ? shopifyCart.lines.nodes.map((l) => {
+            const colorOpt = l.merchandise.selectedOptions?.find((o) => o.name.toLowerCase() === "color");
+            const colorName = colorOpt?.value;
+            return {
+              title: l.merchandise.product.title,
+              variant: colorName ? `Color: ${colorName}` : (l.merchandise.title === "Default Title" ? undefined : l.merchandise.title),
+              quantity: l.quantity,
+              price: `${Math.floor(parseFloat(l.merchandise.price.amount)).toLocaleString("de-DE")} EGP`,
+              imageUrl: resolveEmailImage(l, localItems) ?? undefined,
+              variantId: l.merchandise.id,
+            };
+          })
         : localItems.map((i) => {
             const color = i.color?.toLowerCase() ?? "";
             const publicImg = PUBLIC_COLOR_IMAGES[color];
             return {
               title: i.title,
+              variant: i.color ? `Color: ${i.color}` : undefined,
               quantity: i.quantity,
               price: i.price,
               imageUrl: publicImg ?? (i.image?.startsWith("http") ? i.image : undefined),
+              variantId: i.variantId,
             };
           });
       fetch("/api/abandoned-carts/start", {
