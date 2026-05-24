@@ -358,14 +358,8 @@ export function CartDrawer() {
                   </span>
                 </div>
                 {/* Shipping info */}
-                <p
-                  className="text-center text-[15px] tracking-[0.28em] uppercase font-semibold"
-                  style={{ color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif" }}
-                >
-                  We ship all over Egypt
-                </p>
                 <div
-                  className="text-center py-3 px-4 mx-4 mb-2 rounded"
+                  className="text-center py-3.5 px-4 mx-4 mb-2 rounded"
                   style={{ backgroundColor: "rgba(248,252,245,0.9)", border: "1px solid rgba(160,190,150,0.22)" }}
                 >
                   <p
@@ -375,8 +369,8 @@ export function CartDrawer() {
                     Free shipping on orders over 2,000 EGP
                   </p>
                   <p
-                    className="text-[13px] tracking-[0.18em] uppercase font-medium text-center mt-2"
-                    style={{ color: "rgba(107,143,94,0.8)" }}
+                    className="text-[11px] tracking-[0.2em] uppercase font-medium text-center mt-1.5"
+                    style={{ color: "rgba(107,143,94,0.65)" }}
                   >
                     {(() => {
                       const now = new Date();
@@ -385,7 +379,7 @@ export function CartDrawer() {
                       const end = new Date(now);
                       end.setDate(now.getDate() + 4);
                       const fmt = (d: Date) => `${d.getDate()} ${d.toLocaleDateString("en-GB", { month: "long" })}`;
-                      return `Order now and get it between ${fmt(start)} \u2013 ${fmt(end)}`;
+                      return `Delivery between ${fmt(start)} \u2013 ${fmt(end)}`;
                     })()}
                   </p>
                 </div>
