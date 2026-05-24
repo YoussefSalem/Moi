@@ -407,14 +407,18 @@ export function CheckoutPage() {
     setPromoError("");
   }, [applyDiscount]);
 
+  const abandonedCartIdRef = useRef<number | null>(null);
+
+  const markAbandonedCartRecovered = useCallback(() => {
+    if (!abandonedCartIdRef.current) return;
+    const id = abandonedCartIdRef.current;
+    abandonedCartIdRef.current = null;
+    fetch(`/api/abandoned-carts/${id}/recovered`, { method: "POST" }).catch(() => {});
+  }, []);
+
   const handleSuccessDone = useCallback(() => {
-    // Mark abandoned cart as recovered if we tracked one
-    if (abandonedCartIdRef.current) {
-      fetch(`/api/abandoned-carts/${abandonedCartIdRef.current}/recovered`, {
-        method: "POST",
-      }).catch(() => {});
-      abandonedCartIdRef.current = null;
-    }
+    // Safety net: mark recovered in case payment path missed it
+    markAbandonedCartRecovered();
     clearCart();
     setStep("email");
     setEmailInput("");
@@ -422,7 +426,7 @@ export function CheckoutPage() {
     sessionStorage.removeItem("moi_instapay_order_result");
     closeCheckout();
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [clearCart, closeCheckout]);
+  }, [clearCart, closeCheckout, markAbandonedCartRecovered]);
 
   const handleSubmit = useCallback(async () => {
     if (!isShopify || !shopifyCart) {
@@ -556,6 +560,7 @@ export function CheckoutPage() {
         // Persist instapay state so it survives tab switches on mobile
         sessionStorage.setItem("moi_instapay_order_result", JSON.stringify(orderResultPayload));
         setStep("instapay-confirm");
+        markAbandonedCartRecovered();
       } catch {
         setStep("form");
         setSubmitError("Network error. Please check your connection and try again.");
@@ -634,11 +639,12 @@ export function CheckoutPage() {
         });
       }
       setStep("cod-confirm");
+      markAbandonedCartRecovered();
     } catch {
       setStep("form");
       setSubmitError("Network error. Please check your connection and try again.");
     }
-  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, clearCart, shopifyCheckoutToken]);
+  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, clearCart, shopifyCheckoutToken, markAbandonedCartRecovered]);
 
   const handleDone = useCallback(() => {
     clearCart();
@@ -654,8 +660,6 @@ export function CheckoutPage() {
     sessionStorage.removeItem("moi_instapay_order_result");
     closeCheckout();
   }, [clearCart, closeCheckout]);
-
-  const abandonedCartIdRef = useRef<number | null>(null);
 
   const handleEmailContinue = useCallback(async () => {
     const email = emailInput.trim();
@@ -693,22 +697,24 @@ export function CheckoutPage() {
               variantId: i.variantId,
             };
           });
-      fetch("/api/abandoned-carts/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          cartId,
-          lineItems,
-          totalAmount: fmt(totalAmount),
-        }),
-      })
-        .then((r) => r.json())
-        .then((data: unknown) => {
-          const id = (data as { id?: number })?.id;
-          if (id) abandonedCartIdRef.current = id;
+      if (!abandonedCartIdRef.current) {
+        fetch("/api/abandoned-carts/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            cartId,
+            lineItems,
+            totalAmount: fmt(totalAmount),
+          }),
         })
-        .catch(() => {});
+          .then((r) => r.json())
+          .then((data: unknown) => {
+            const id = (data as { id?: number })?.id;
+            if (id) abandonedCartIdRef.current = id;
+          })
+          .catch(() => {});
+      }
     }
   }, [emailInput, shopifyCart, isShopify, localItems, totalAmount, fmt]);
 
@@ -719,6 +725,7 @@ export function CheckoutPage() {
     }
     setStep("card-confirm");
     clearCart();
+    markAbandonedCartRecovered();
     const orderLines = isShopify && shopifyCart
       ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
       : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
@@ -746,7 +753,7 @@ export function CheckoutPage() {
         items: orderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })),
       });
     }
-  }, [clearCart, isShopify, shopifyCart, localItems, totalAmount]);
+  }, [clearCart, markAbandonedCartRecovered, isShopify, shopifyCart, localItems, totalAmount]);
 
   const handleIframeFail = useCallback(() => {
     setPaymobIframeUrl(null);
