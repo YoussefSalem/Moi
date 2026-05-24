@@ -146,7 +146,7 @@ function buildEmail({
 </head>
 <body style="margin:0;padding:0;background-color:#e8e3dc;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
 <!-- Preheader (hidden) -->
-<div style="display:none;overflow:hidden;max-height:0;mso-hide:all;">${preheader}&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌</div>
+<div style="display:none;overflow:hidden;max-height:0;mso-hide:all;">${preheader}&nbsp;\u200b&nbsp;\u200b&nbsp;\u200b&nbsp;\u200b&nbsp;\u200b&nbsp;\u200b&nbsp;\u200b&nbsp;\u200b&nbsp;\u200b&nbsp;\u200b</div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e8e3dc;min-width:100%;">
 <tr><td align="center" style="padding:40px 16px 48px;">
@@ -315,15 +315,15 @@ export function buildCODOrderEmail(params: {
 
   const itemsText = lineItems && lineItems.length > 0
     ? "\nItems:\n" + lineItems.map((i) => {
-        const v = i.variant_title && i.variant_title !== "Default Title" ? ` — ${i.variant_title}` : "";
-        return `  ${i.title}${v} × ${i.quantity}  (${i.price} EGP)`;
+        const v = i.variant_title && i.variant_title !== "Default Title" ? ` \u2014 ${i.variant_title}` : "";
+        return `  ${i.title}${v} \u00d7 ${i.quantity}  (${i.price} EGP)`;
       }).join("\n") + "\n"
     : "";
 
   const discountText = discountAmount ? `\nDiscount ${discountCode ? `(${discountCode})` : ""}: -${discountAmount} EGP` : "";
   const shippingText = shippingAmount ? `\nShipping: ${parseFloat(shippingAmount) === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
 
-  const text = `Order Placed — Moi\n\n${name ? `Thank you, ${name}.` : "Thank you."}\n\nYour order has been placed. Our team will be in touch shortly to arrange delivery. Payment is collected on arrival.\n\nOrder #${orderNumber}\n${itemsText}${discountText}${shippingText}\nTotal: ${total} EGP\nPayment: Cash on Delivery\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nbuy-moi.com`;
+  const text = `Order Placed \u2014 Moi\n\n${name ? `Thank you, ${name}.` : "Thank you."}\n\nYour order has been placed. Our team will be in touch shortly to arrange delivery. Payment is collected on arrival.\n\nOrder #${orderNumber}\n${itemsText}${discountText}${shippingText}\nTotal: ${total} EGP\nPayment: Cash on Delivery\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nbuy-moi.com`;
 
   return { html, text };
 }
@@ -370,15 +370,15 @@ export function buildOrderConfirmationEmail(params: {
 
   const itemsText = lineItems && lineItems.length > 0
     ? "\nItems:\n" + lineItems.map((i) => {
-        const v = i.variant_title && i.variant_title !== "Default Title" ? ` — ${i.variant_title}` : "";
-        return `  ${i.title}${v} × ${i.quantity}  (${i.price} EGP)`;
+        const v = i.variant_title && i.variant_title !== "Default Title" ? ` \u2014 ${i.variant_title}` : "";
+        return `  ${i.title}${v} \u00d7 ${i.quantity}  (${i.price} EGP)`;
       }).join("\n") + "\n"
     : "";
 
   const discountText = discountAmount ? `\nDiscount ${discountCode ? `(${discountCode})` : ""}: -${discountAmount} EGP` : "";
   const shippingText = shippingAmount ? `\nShipping: ${parseFloat(shippingAmount) === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
 
-  const text = `Order Confirmed — Moi\n\n${name ? `Order confirmed, ${name}.` : "Order confirmed."}\n\nYour payment has been received and your order is now being prepared.\n\nOrder #${orderNumber}\n${itemsText}${discountText}${shippingText}\nTotal: ${total} EGP\nPayment: ${paymentMethod}\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nbuy-moi.com`;
+  const text = `Order Confirmed \u2014 Moi\n\n${name ? `Order confirmed, ${name}.` : "Order confirmed."}\n\nYour payment has been received and your order is now being prepared.\n\nOrder #${orderNumber}\n${itemsText}${discountText}${shippingText}\nTotal: ${total} EGP\nPayment: ${paymentMethod}\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nbuy-moi.com`;
 
   return { html, text };
 }
@@ -403,7 +403,7 @@ export function buildInstapayPendingEmail(params: {
   const html = buildEmail({
     preheader: `We've received your InstaPay proof for order #${orderNumber}. Verification is in progress.`,
     headline: "Verifying your<br />payment.",
-    subline: "We've received your InstaPay proof and your order is pending payment verification. Our team will review it shortly — usually within a few hours.",
+    subline: "We've received your InstaPay proof and your order is pending payment verification. Our team will review it shortly \u2014 usually within a few hours.",
     bodyHtml: `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
         <tr>
@@ -431,7 +431,7 @@ export function buildInstapayPendingEmail(params: {
   const discountText = discountAmount ? `\nDiscount ${discountCode ? `(${discountCode})` : ""}: -${discountAmount} EGP` : "";
   const shippingText = shippingAmount ? `\nShipping: ${parseFloat(shippingAmount) === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
 
-  const text = `Payment Verification in Progress — Moi\n\n${name ? `Hi ${name},` : "Hello,"}\n\nWe've received your InstaPay proof for order #${orderNumber}.\n\nOrder #${orderNumber}${discountText}${shippingText}\nTotal: ${total} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Pending Verification\n\nOnce verified, you'll receive a WhatsApp confirmation and your order will be dispatched.\n\nbuy-moi.com`;
+  const text = `Payment Verification in Progress \u2014 Moi\n\n${name ? `Hi ${name},` : "Hello,"}\n\nWe've received your InstaPay proof for order #${orderNumber}.\n\nOrder #${orderNumber}${discountText}${shippingText}\nTotal: ${total} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Pending Verification\n\nOnce verified, you'll receive a WhatsApp confirmation and your order will be dispatched.\n\nbuy-moi.com`;
 
   return { html, text };
 }
@@ -453,152 +453,178 @@ export function buildAbandonedCartEmail(params: {
   recoveryUrl: string;
   siteUrl?: string;
 }): { html: string; text: string } {
-  const { customerEmail, lineItems, totalAmount, recoveryUrl, siteUrl = "https://buy-moi.com" } = params;
-  const firstName = customerEmail.split("@")[0];
+  const { lineItems, totalAmount, recoveryUrl, siteUrl = "https://buy-moi.com" } = params;
 
+  // Build each product row \u2014 mobile-first, using only real product images from the cart
   const itemRows = lineItems.map((item, i) => {
+    const hasImage = !!item.imageUrl;
+    const imgSection = hasImage
+      ? `<div style="margin-bottom:10px;">
+          <img src="${item.imageUrl}" alt="${item.title}" style="display:block;width:100%;max-width:120px;height:auto;border:0;object-fit:cover;border-radius:2px;" />
+        </div>`
+      : "";
+
     const variant = item.variant && item.variant !== "Default Title"
-      ? `<br /><span style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#9a8e82;">${item.variant}</span>`
+      ? `<span style="display:inline-block;margin-top:4px;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:#9a8e82;font-weight:600;">${item.variant}</span>`
       : "";
-    const border = i === 0 ? "" : "border-top:1px solid #ede9e3;";
-    const imageCell = item.imageUrl
-      ? `<td style="width:72px;padding-right:16px;vertical-align:top;">
-          <img src="${item.imageUrl}" alt="${item.title}" width="72" height="96" style="display:block;border:0;object-fit:cover;" />
-        </td>`
-      : "";
+
     return `
-    <tr>
-      ${imageCell}
-      <td style="padding:16px 0;${border}vertical-align:top;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-          <tr>
-            <td style="vertical-align:top;">
-              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1714;line-height:1.5;font-weight:600;">${item.title}${variant}</p>
-              <p style="margin:5px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#9a8e82;letter-spacing:0.15em;text-transform:uppercase;">Qty&nbsp;${item.quantity}</p>
-            </td>
-            <td style="vertical-align:top;text-align:right;padding-left:20px;white-space:nowrap;">
-              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1714;font-weight:600;">${item.price}&nbsp;EGP</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>`;
+    <div style="padding:18px 0;${i === 0 ? "" : "border-top:1px solid #ede9e3;"}">
+      <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+        ${imgSection}
+        <div style="flex:1;min-width:0;">
+          <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;line-height:1.4;font-weight:700;">${item.title}${variant}</p>
+          <p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#9a8e82;">Qty: ${item.quantity}</p>
+          <p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;font-weight:700;">${item.price}&nbsp;EGP</p>
+        </div>
+      </div>
+    </div>`;
   }).join("");
 
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <meta name="color-scheme" content="light" />
-<title>Your cart is waiting — Moi</title>
+<title>You left something behind \u2014 Moi</title>
+<style>
+  /* Reset */
+  body,table,td,p,a,li,blockquote{ -webkit-text-size-adjust:none; -ms-text-size-adjust:none; }
+  table,td{mso-table-lspace:0;mso-table-rspace:0;border-collapse:collapse;}
+  img{ -ms-interpolation-mode:bicubic; display:block; max-width:100%; height:auto; border:0; }
+  a{text-decoration:none;}
+  /* Mobile-first */
+  @media only screen and (max-width: 480px) {
+    .wrapper{padding:20px 12px !important;}
+    .card{padding:28px 20px !important;}
+    .hero-title{font-size:24px !important; line-height:1.2 !important;}
+    .hero-sub{font-size:15px !important;}
+    .cta-btn{display:block !important; text-align:center !important; padding:18px 0 !important; font-size:13px !important;}
+    .item-title{font-size:15px !important;}
+    .item-price{font-size:15px !important;}
+  }
+</style>
 <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
 </head>
-<body style="margin:0;padding:0;background-color:#e8e3dc;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
-<!-- Preheader (hidden) -->
-<div style="display:none;overflow:hidden;max-height:0;mso-hide:all;">You left something beautiful behind. Complete your order in one click. &nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;</div>
+<body style="margin:0;padding:0;background-color:#f4f0eb;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;">
+<!-- Hidden preheader -->
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
+  Our MOI pieces are waiting for you. Complete your wardrobe before they sell out.
+  &nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;
+</div>
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e8e3dc;min-width:100%;">
-<tr><td align="center" style="padding:40px 16px 48px;">
+<!-- Wrapper -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f0eb;">
+  <tr>
+    <td align="center" class="wrapper" style="padding:32px 16px 40px;">
 
-  <!-- Card -->
-  <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;">
+      <!-- Card: max 460px for mobile-first, centered -->
+      <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:460px;background:#ffffff;border-radius:4px;overflow:hidden;">
 
-    <!-- Top accent line -->
-    <tr><td style="background:#1a1714;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+        <!-- Top accent -->
+        <tr><td style="background:#1a1714;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
 
-    <!-- Header -->
-    <tr><td style="padding:36px 48px 28px;border-bottom:1px solid #ede9e3;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td>
-            <a href="${siteUrl}" style="text-decoration:none;display:inline-block;">
-              <img src="${siteUrl}/moi-m-logo.png" alt="Moi" width="48" height="48" style="display:block;border:0;" />
-            </a>
-          </td>
-          <td style="text-align:right;vertical-align:middle;">
-            <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:#9a8e82;">New Collection</span>
-          </td>
-        </tr>
+        <!-- Brand bar -->
+        <tr><td class="card" style="padding:24px 24px 20px;border-bottom:1px solid #ede9e3;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td>
+                <a href="${siteUrl}" style="text-decoration:none;">
+                  <img src="${siteUrl}/moi-m-logo.png" alt="MOI" width="44" height="44" style="display:block;border:0;" />
+                </a>
+              </td>
+              <td style="text-align:right;vertical-align:middle;">
+                <span style="font-family:Arial,Helvetica,sans-serif;font-size:9px;letter-spacing:0.3em;text-transform:uppercase;color:#b0a89e;">New Collection</span>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- Hero copy -->
+        <tr><td class="card" style="padding:32px 24px 0;">
+          <h1 class="hero-title" style="margin:0 0 10px;font-family:Georgia,'Times New Roman',Times,serif;font-size:26px;font-weight:400;color:#1a1714;line-height:1.25;letter-spacing:-0.01em;">Our MOI pieces are waiting for you.</h1>
+          <p class="hero-sub" style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#5c504a;">Complete your wardrobe before they sell out.</p>
+        </td></tr>
+
+        <!-- Divider -->
+        <tr><td style="padding:24px 24px;"><div style="border-top:1px solid #ede9e3;height:0;">&nbsp;</div></td></tr>
+
+        <!-- Product list -->
+        <tr><td class="card" style="padding:0 24px;">
+          <p style="margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:9px;letter-spacing:0.4em;text-transform:uppercase;color:#9a8e82;font-weight:700;">YOUR CART</p>
+          ${itemRows}
+        </td></tr>
+
+        <!-- Spacer -->
+        <tr><td style="height:16px;">&nbsp;</td></tr>
+
+        <!-- Total + CTA (centered) -->
+        <tr><td class="card" style="padding:0 24px 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1714;font-weight:700;letter-spacing:0.05em;">Total</td>
+              <td style="font-family:Arial,Helvetica,sans-serif;font-size:20px;color:#1a1714;font-weight:700;text-align:right;">${totalAmount}&nbsp;EGP</td>
+            </tr>
+          </table>
+
+          <!-- Centered CTA -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
+            <tr>
+              <td align="center">
+                <table role="presentation" cellpadding="0" cellspacing="0" style="background:#1a1714;border-radius:3px;">
+                  <tr>
+                    <td>
+                      <a href="${recoveryUrl}" class="cta-btn" style="display:inline-block;padding:18px 48px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#ffffff;text-decoration:none;white-space:nowrap;">
+                        Complete My Order
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+
+          <p style="margin:24px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#9a8e82;line-height:1.6;text-align:center;">
+            Questions? Contact us at <a href="mailto:hello@buy-moi.com" style="color:#1a1714;text-decoration:underline;font-weight:600;">hello@buy-moi.com</a>
+          </p>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="padding:20px 24px;border-top:1px solid #ede9e3;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td>
+                <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:8px;font-weight:700;letter-spacing:0.55em;text-transform:uppercase;color:#1a1714;">M O I</p>
+                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#b0a89e;">Effortless. Versatile. Yours.</p>
+              </td>
+              <td style="text-align:right;vertical-align:top;">
+                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;">
+                  <a href="${siteUrl}" style="color:#b0a89e;text-decoration:none;letter-spacing:0.1em;">buy-moi.com</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- Bottom accent -->
+        <tr><td style="background:#1a1714;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
       </table>
-    </td></tr>
+      <!-- end card -->
 
-    <!-- Hero text -->
-    <tr><td style="padding:44px 48px 0;">
-      <h1 style="margin:0 0 14px;font-family:Georgia,'Times New Roman',Times,serif;font-size:32px;font-weight:400;color:#1a1714;line-height:1.15;letter-spacing:-0.01em;">${firstName ? `${firstName}, you left something behind.` : "You left something behind."}</h1>
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.8;color:#5c504a;">Your cart is saved and waiting. These pieces are moving fast — complete your order now before they're gone.</p>
-    </td></tr>
-
-    <!-- Divider -->
-    <tr><td style="padding:32px 48px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #ede9e3;font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>
-
-    <!-- Items -->
-    <tr><td style="padding:0 48px;">
-      <p style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;font-size:9px;letter-spacing:0.45em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Your Cart</p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #ede9e3;">
-        ${itemRows}
-      </table>
-    </td></tr>
-
-    <!-- gap -->
-    <tr><td style="height:24px;"></td></tr>
-
-    <!-- Total + CTA -->
-    <tr><td style="padding:0 48px 48px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1714;font-weight:700;letter-spacing:0.05em;">Total</td>
-          <td style="font-family:Arial,Helvetica,sans-serif;font-size:18px;color:#1a1714;font-weight:700;text-align:right;">${totalAmount}&nbsp;EGP</td>
-        </tr>
-      </table>
-
-      <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:32px;">
-        <tr>
-          <td style="background:#1a1714;">
-            <a href="${recoveryUrl}" style="display:inline-block;padding:16px 40px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.35em;text-transform:uppercase;color:#ffffff;text-decoration:none;white-space:nowrap;">
-              Complete My Order
-            </a>
-          </td>
-        </tr>
-      </table>
-
-      <p style="margin:20px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#9a8e82;line-height:1.6;">Questions? Reply to this email or contact us at <a href="mailto:hello@buy-moi.com" style="color:#1a1714;text-decoration:underline;">hello@buy-moi.com</a></p>
-    </td></tr>
-
-    <!-- Footer -->
-    <tr><td style="padding:28px 48px;border-top:1px solid #ede9e3;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td>
-            <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.5em;text-transform:uppercase;color:#1a1714;">M O I</p>
-            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;">Effortless. Versatile. Yours.</p>
-          </td>
-          <td style="text-align:right;vertical-align:top;">
-            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#b0a89e;line-height:1.6;">
-              <a href="${siteUrl}" style="color:#b0a89e;text-decoration:none;letter-spacing:0.12em;">buy-moi.com</a>
-            </p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-
-    <!-- Bottom accent line -->
-    <tr><td style="background:#1a1714;height:2px;font-size:0;line-height:0;">&nbsp;</td></tr>
-
-  </table>
-  <!-- end card -->
-
-</td></tr>
+    </td>
+  </tr>
 </table>
 </body>
 </html>`;
 
   const itemsText = lineItems.map((i) => {
-    const v = i.variant && i.variant !== "Default Title" ? ` — ${i.variant}` : "";
-    return `  ${i.title}${v} \u00d7 ${i.quantity}  (${i.price} EGP)`;
+    const v = i.variant && i.variant !== "Default Title" ? ` \u2014 ${i.variant}` : "";
+    return `  ${i.title}${v} x ${i.quantity}  (${i.price} EGP)`;
   }).join("\n");
 
-  const text = `${firstName ? `Hi ${firstName},` : "Hello,"}\n\nYou left something beautiful behind.\n\nYour cart:\n${itemsText}\n\nTotal: ${totalAmount} EGP\n\nComplete your order here:\n${recoveryUrl}\n\nThese pieces are moving fast — don't wait too long.\n\nQuestions? Contact us at hello@buy-moi.com\n\nbuy-moi.com`;
+  const text = `Our MOI pieces are waiting for you.\n\nComplete your wardrobe before they sell out.\n\nYOUR CART:\n${itemsText}\n\nTotal: ${totalAmount} EGP\n\nComplete My Order:\n${recoveryUrl}\n\nQuestions? Contact us at hello@buy-moi.com\n\nbuy-moi.com`;
 
   return { html, text };
 }

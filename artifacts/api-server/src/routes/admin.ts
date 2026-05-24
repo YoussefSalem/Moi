@@ -561,7 +561,7 @@ router.post("/admin/abandoned-carts/send-test", requireAdminAuth, async (req, re
       siteUrl,
     });
 
-    await sendEmail({ to, subject: "Still thinking it over? Your cart is waiting.", html, text });
+    await sendEmail({ to, subject: "You left something behind.", html, text });
 
     await db.update(abandonedCarts)
       .set({ status: "email_sent", emailSentAt: new Date(), updatedAt: new Date() })
@@ -597,7 +597,7 @@ router.post("/admin/abandoned-carts/:id/send-now", requireAdminAuth, async (req,
       siteUrl,
     });
 
-    await sendEmail({ to: row.email, subject: "Still thinking it over? Your cart is waiting.", html, text });
+    await sendEmail({ to: row.email, subject: "You left something behind.", html, text });
 
     await db.update(abandonedCarts)
       .set({ status: "email_sent", emailSentAt: new Date(), updatedAt: new Date() })

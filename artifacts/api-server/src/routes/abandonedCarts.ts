@@ -173,7 +173,7 @@ async function sendRecoveryEmails(): Promise<void> {
       try {
         await sendEmail({
           to: row.email,
-          subject: "Still thinking it over? Your cart is waiting.",
+          subject: "You left something behind.",
           html,
           text,
         });
