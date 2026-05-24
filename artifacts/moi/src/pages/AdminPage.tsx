@@ -905,6 +905,9 @@ interface AbandonedStats {
   recovered: number;
   totalStarted: number;
   recoveryRate: number;
+  convertedBeforeEmail: number;
+  convertedAfterEmail: number;
+  emailDrivenRate: number;
 }
 
 function AbandonedCartsTab({ token }: { token: string }) {
@@ -971,6 +974,8 @@ function AbandonedCartsTab({ token }: { token: string }) {
             { label: "Clicked", value: stats.clicked, sub: "email links clicked" },
             { label: "Recovered", value: stats.recovered, sub: "orders placed" },
             { label: "Recovery Rate", value: `${stats.recoveryRate}%`, sub: "of all who started" },
+            { label: "Email-Driven", value: `${stats.emailDrivenRate}%`, sub: `${stats.convertedAfterEmail} of ${stats.recovered} after email` },
+            { label: "Auto-Converted", value: stats.convertedBeforeEmail, sub: "ordered before email" },
           ].map((s) => (
             <div key={s.label} style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)", padding: "16px 18px" }}>
               <p style={{ ...mono, fontSize: 22, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>{s.value}</p>
@@ -1039,54 +1044,71 @@ function AbandonedCartsTab({ token }: { token: string }) {
           <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.45)", textAlign: "center", padding: "48px 0" }}>No abandoned carts yet.</p>
         ) : (
           <div style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)", overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", backgroundColor: "#faf8f5" }}>
-                  {["Email", "Items", "Total", "Status", "Created", "Sent", "Clicked", "Recovered", ""].map((h) => (
-                    <th key={h} style={{ ...mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, textAlign: "left", padding: "10px 14px" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, i) => {
-                  const sc = statusColors[item.status] ?? { bg: "rgba(30,24,20,0.1)", text: "rgba(30,24,20,0.7)" };
-                  return (
-                    <tr key={item.id} style={{ borderBottom: i < items.length - 1 ? "1px solid rgba(30,24,20,0.05)" : "none" }}>
-                      <td style={{ ...mono, fontSize: 13, color: "#1e1814", padding: "10px 14px" }}>{item.email}</td>
-                      <td style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.7)", padding: "10px 14px" }}>{item.lineItemsCount}</td>
-                      <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 600, padding: "10px 14px" }}>{item.totalAmount}&nbsp;EGP</td>
-                      <td style={{ padding: "10px 14px" }}>
-                        <span style={{ ...mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px", backgroundColor: sc.bg, color: sc.text }}>
-                          {item.status.replace("_", " ")}
-                        </span>
-                      </td>
-                      <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px" }}>{formatDate(item.createdAt)}</td>
-                      <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px" }}>{formatDate(item.emailSentAt)}</td>
-                      <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px" }}>{formatDate(item.clickedAt)}</td>
-                      <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px" }}>{formatDate(item.recoveredAt)}</td>
-                      <td style={{ padding: "10px 14px" }}>
-                        {item.status === "started" && (
-                          <button
-                            onClick={async () => {
-                              try {
-                                const res = await fetch(`/api/admin/abandoned-carts/${item.id}/send-now`, { method: "POST", headers: apiHeaders(token) });
-                                const data = await res.json() as { ok?: boolean; error?: string; recoveryUrl?: string };
-                                if (!res.ok || data.error) { setError(data.error ?? "Failed to send"); return; }
-                                alert(`Email sent to ${item.email}\nRecovery link: ${data.recoveryUrl ?? ""}`);
-                                void load();
-                              } catch { setError("Network error sending email."); }
-                            }}
-                            style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)", fontSize: 10, padding: "4px 8px" }}
-                          >
-                            Send Now
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              <table style={{ minWidth: 1100, borderCollapse: "collapse", width: "100%" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", backgroundColor: "#faf8f5" }}>
+                    {["Email", "Items", "Total", "Status", "Created", "Sent", "Clicked", "Recovered", ""].map((h) => (
+                      <th key={h} style={{ ...mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, textAlign: "left", padding: "10px 14px", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, i) => {
+                    const sc = statusColors[item.status] ?? { bg: "rgba(30,24,20,0.1)", text: "rgba(30,24,20,0.7)" };
+                    const isRecovered = item.status === "recovered";
+                    const recoveredAfterEmail = isRecovered && item.emailSentAt && item.recoveredAt && new Date(item.recoveredAt) >= new Date(item.emailSentAt);
+                    const recoveredBeforeEmail = isRecovered && (!item.emailSentAt || (item.recoveredAt && new Date(item.recoveredAt) < new Date(item.emailSentAt)));
+                    return (
+                      <tr key={item.id} style={{ borderBottom: i < items.length - 1 ? "1px solid rgba(30,24,20,0.05)" : "none" }}>
+                        <td style={{ ...mono, fontSize: 13, color: "#1e1814", padding: "10px 14px", whiteSpace: "nowrap" }}>{item.email}</td>
+                        <td style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.7)", padding: "10px 14px", whiteSpace: "nowrap" }}>{item.lineItemsCount}</td>
+                        <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 600, padding: "10px 14px", whiteSpace: "nowrap" }}>{item.totalAmount}&nbsp;EGP</td>
+                        <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                          <span style={{ ...mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px", backgroundColor: sc.bg, color: sc.text }}>
+                            {item.status.replace("_", " ")}
+                          </span>
+                        </td>
+                        <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px", whiteSpace: "nowrap" }}>{formatDate(item.createdAt)}</td>
+                        <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px", whiteSpace: "nowrap" }}>{formatDate(item.emailSentAt)}</td>
+                        <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px", whiteSpace: "nowrap" }}>{formatDate(item.clickedAt)}</td>
+                        <td style={{ ...mono, fontSize: 11, padding: "10px 14px", whiteSpace: "nowrap" }}>
+                          {recoveredBeforeEmail && (
+                            <span style={{ fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, padding: "2px 6px", backgroundColor: "rgba(140,100,40,0.12)", color: "#7a5a10" }}>
+                              Before email
+                            </span>
+                          )}
+                          {recoveredAfterEmail && (
+                            <span style={{ fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, padding: "2px 6px", backgroundColor: "rgba(60,120,60,0.12)", color: "#2d6e2d" }}>
+                              After email
+                            </span>
+                          )}
+                          {!isRecovered && formatDate(item.recoveredAt)}
+                        </td>
+                        <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                          {item.status === "started" && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(`/api/admin/abandoned-carts/${item.id}/send-now`, { method: "POST", headers: apiHeaders(token) });
+                                  const data = await res.json() as { ok?: boolean; error?: string; recoveryUrl?: string };
+                                  if (!res.ok || data.error) { setError(data.error ?? "Failed to send"); return; }
+                                  alert(`Email sent to ${item.email}\nRecovery link: ${data.recoveryUrl ?? ""}`);
+                                  void load();
+                                } catch { setError("Network error sending email."); }
+                              }}
+                              style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)", fontSize: 10, padding: "4px 8px" }}
+                            >
+                              Send Now
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )
       )}

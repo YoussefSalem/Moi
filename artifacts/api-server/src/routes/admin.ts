@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db } from "@workspace/db";
 import { instapayProofs, abandonedCarts, paymobIntents } from "@workspace/db/schema";
-import { eq, desc, and, gte, lte, count } from "drizzle-orm";
+import { eq, desc, and, gte, lte, count, isNull } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
 import {
   addShopifyOrderNote,
@@ -622,12 +622,24 @@ router.get("/admin/abandoned-carts", requireAdminAuth, async (req, res) => {
     const [recoveredCount] = await db.select({ count: count() }).from(abandonedCarts)
       .where(whereClause ? and(whereClause, eq(abandonedCarts.status, "recovered")) : eq(abandonedCarts.status, "recovered"));
 
+    const [convertedBeforeEmailCount] = await db.select({ count: count() }).from(abandonedCarts)
+      .where(whereClause
+        ? and(whereClause, eq(abandonedCarts.status, "recovered"), isNull(abandonedCarts.emailSentAt))
+        : and(eq(abandonedCarts.status, "recovered"), isNull(abandonedCarts.emailSentAt)));
+    const [convertedAfterEmailCount] = await db.select({ count: count() }).from(abandonedCarts)
+      .where(whereClause
+        ? and(whereClause, eq(abandonedCarts.status, "recovered"), and(gte(abandonedCarts.recoveredAt, abandonedCarts.emailSentAt)))
+        : and(eq(abandonedCarts.status, "recovered"), and(gte(abandonedCarts.recoveredAt, abandonedCarts.emailSentAt))));
+
     const started = startedCount?.count ?? 0;
     const sent = sentCount?.count ?? 0;
     const clicked = clickedCount?.count ?? 0;
     const recovered = recoveredCount?.count ?? 0;
     const totalStarted = started + sent + clicked + recovered;
     const recoveryRate = totalStarted > 0 ? Math.round((recovered / totalStarted) * 1000) / 10 : 0;
+    const convertedBeforeEmail = convertedBeforeEmailCount?.count ?? 0;
+    const convertedAfterEmail = convertedAfterEmailCount?.count ?? 0;
+    const emailDrivenRate = recovered > 0 ? Math.round((convertedAfterEmail / recovered) * 1000) / 10 : 0;
 
     const rows = await db.select().from(abandonedCarts)
       .where(whereClause)
@@ -646,7 +658,7 @@ router.get("/admin/abandoned-carts", requireAdminAuth, async (req, res) => {
     }));
 
     res.status(200).json({
-      stats: { started, sent, clicked, recovered, totalStarted, recoveryRate },
+      stats: { started, sent, clicked, recovered, totalStarted, recoveryRate, convertedBeforeEmail, convertedAfterEmail, emailDrivenRate },
       items,
     });
   } catch (err) {
