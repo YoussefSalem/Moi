@@ -359,8 +359,8 @@ export function CartDrawer() {
                 </div>
                 {/* Shipping info */}
                 <p
-                  className="text-center text-[10px] tracking-[0.3em] uppercase"
-                  style={{ color: "rgba(30,24,20,0.4)", fontFamily: "'Montserrat', sans-serif" }}
+                  className="text-center text-[15px] tracking-[0.28em] uppercase font-semibold"
+                  style={{ color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif" }}
                 >
                   We ship all over Egypt
                 </p>
@@ -375,10 +375,18 @@ export function CartDrawer() {
                     Free shipping on orders over 2,000 EGP
                   </p>
                   <p
-                    className="text-[14px] tracking-[0.15em] uppercase font-medium text-center mt-1"
-                    style={{ color: "rgba(107,143,94,0.75)" }}
+                    className="text-[13px] tracking-[0.18em] uppercase font-medium text-center mt-2"
+                    style={{ color: "rgba(107,143,94,0.8)" }}
                   >
-                    standard shipping: 50 EGP
+                    {(() => {
+                      const now = new Date();
+                      const start = new Date(now);
+                      start.setDate(now.getDate() + 2);
+                      const end = new Date(now);
+                      end.setDate(now.getDate() + 4);
+                      const fmt = (d: Date) => `${d.getDate()} ${d.toLocaleDateString("en-GB", { month: "long" })}`;
+                      return `Order now and get it between ${fmt(start)} \u2013 ${fmt(end)}`;
+                    })()}
                   </p>
                 </div>
                 <button
