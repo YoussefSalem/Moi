@@ -88,7 +88,7 @@ router.post("/newsletter", async (req, res) => {
     return;
   }
 
-  syncToAudience(safeEmail, req.log).catch((err) => {
+  syncToAudience(safeEmail).catch((err) => {
     req.log.warn({ err, email: safeEmail }, "Audience sync failed (non-blocking)");
   });
 

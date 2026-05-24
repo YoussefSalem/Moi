@@ -64,7 +64,7 @@ router.post("/analytics/shopify", async (req, res) => {
   }
 
   // Return success - the events will be tracked via GA4/Meta on the frontend
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     method: "proxy",
     message: "Events accepted. Shopify headless analytics requires Shopify Plus or Web Pixels. Events are forwarded to GA4 and Meta Pixel.",

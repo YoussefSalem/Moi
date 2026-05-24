@@ -65,7 +65,7 @@ router.post("/orders/paymob-init", async (req, res) => {
     if (a.utm && typeof a.utm === "object") {
       attribution.utm = Object.fromEntries(
         Object.entries(a.utm as Record<string, unknown>).filter(([, v]) => typeof v === "string"),
-      );
+      ) as Record<string, string>;
     }
     if (Object.keys(attribution).length === 0) attribution = undefined;
   }

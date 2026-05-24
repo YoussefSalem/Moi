@@ -102,7 +102,7 @@ router.post("/webhooks/paymob", async (req, res) => {
       ...(typeof attr.fbclid === "string" ? { fbclid: attr.fbclid } : {}),
       ...(typeof attr.gclid === "string" ? { gclid: attr.gclid } : {}),
       ...(typeof attr.ttclid === "string" ? { ttclid: attr.ttclid } : {}),
-      ...(attr.utm && typeof attr.utm === "object" ? { utm: Object.fromEntries(Object.entries(attr.utm as Record<string, unknown>).filter(([, v]) => typeof v === "string")) } : {}),
+      ...(attr.utm && typeof attr.utm === "object" ? { utm: Object.fromEntries(Object.entries(attr.utm as Record<string, unknown>).filter(([, v]) => typeof v === "string")) as Record<string, string> } : {}),
     } : undefined;
 
     req.log.info({ intentId, paymobTxnId, amount, hasAttribution: !!attribution }, "Paymob webhook: creating Shopify order");

@@ -44,7 +44,7 @@ function extractAttribution(body: CreateOrderBody): OrderAttribution | undefined
   if (a.utm && typeof a.utm === "object") {
     attr.utm = Object.fromEntries(
       Object.entries(a.utm as Record<string, unknown>).filter(([, v]) => typeof v === "string"),
-    );
+    ) as Record<string, string>;
   }
   return Object.keys(attr).length > 0 ? attr : undefined;
 }

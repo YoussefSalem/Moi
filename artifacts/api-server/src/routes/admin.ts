@@ -112,7 +112,7 @@ router.get("/admin/instapay-proofs", async (req, res) => {
 
 // GET /admin/instapay-proofs/:id/screenshot
 router.get("/admin/instapay-proofs/:id/screenshot", async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) {
     res.status(400).json({ error: "Invalid id" });
     return;
@@ -148,7 +148,7 @@ router.get("/admin/instapay-proofs/:id/screenshot", async (req, res) => {
 
 // POST /admin/instapay-proofs/:id/approve
 router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const rows = await db.select().from(instapayProofs).where(eq(instapayProofs.id, id)).limit(1);
@@ -247,7 +247,7 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
 
 // POST /admin/instapay-proofs/:id/reject
 router.post("/admin/instapay-proofs/:id/reject", async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const { reason } = req.body as { reason?: string };
@@ -319,7 +319,7 @@ router.post("/admin/test-discount-counter", requireAdminAuth, async (req, res) =
 
   // Try OAuth token first, then static token for read queries
   async function getUsageCount(): Promise<{ usageLimit: number | null; asyncUsageCount: number } | null> {
-    return (await queryUsageCount(adminToken)) ?? (staticToken ? await queryUsageCount(staticToken) : null);
+    return (await queryUsageCount(adminToken!)) ?? (staticToken ? await queryUsageCount(staticToken) : null);
   }
 
   // Find a variant to use in the test order.
@@ -578,7 +578,7 @@ router.post("/admin/abandoned-carts/send-test", requireAdminAuth, async (req, re
 // POST /admin/abandoned-carts/:id/send-now
 // Sends recovery email for a specific cart immediately (bypasses 30-min delay).
 router.post("/admin/abandoned-carts/:id/send-now", requireAdminAuth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   try {
