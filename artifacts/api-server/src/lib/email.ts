@@ -500,7 +500,7 @@ export function buildAbandonedCartEmail(params: {
     .card{padding:28px 20px !important;}
     .hero-title{font-size:24px !important; line-height:1.2 !important;}
     .hero-sub{font-size:15px !important;}
-    .cta-btn{display:block !important; text-align:center !important; padding:18px 0 !important; font-size:13px !important;}
+    .cta-btn{display:block !important; text-align:center !important; padding:20px 0 !important; font-size:13px !important;}
     .item-title{font-size:15px !important;}
     .item-price{font-size:15px !important;}
   }
@@ -571,10 +571,10 @@ export function buildAbandonedCartEmail(params: {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
             <tr>
               <td align="center">
-                <table role="presentation" cellpadding="0" cellspacing="0" style="background:#1a1714;border-radius:3px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" style="background:#1a1714;border-radius:50px;">
                   <tr>
                     <td>
-                      <a href="${recoveryUrl}" class="cta-btn" style="display:inline-block;padding:18px 48px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#ffffff;text-decoration:none;white-space:nowrap;">
+                      <a href="${recoveryUrl}" class="cta-btn" style="display:inline-block;padding:20px 64px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#ffffff;text-decoration:none;white-space:nowrap;">
                         Complete My Order
                       </a>
                     </td>
