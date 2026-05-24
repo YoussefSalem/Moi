@@ -16,7 +16,7 @@ import {
 import { getMaskedConfig, savePaymobConfig, type PaymobConfig } from "../lib/paymobConfig";
 import { listDiscountCodeUses } from "@workspace/db";
 import { sendEmail, buildAbandonedCartEmail } from "../lib/email";
-import crypto from "crypto";
+import { getSiteUrl } from "../lib/siteUrl";
 
 const router: IRouter = Router();
 
@@ -550,7 +550,7 @@ router.post("/admin/abandoned-carts/send-test", requireAdminAuth, async (req, re
       status: "started",
     }).returning();
 
-    const siteUrl = process.env.SITE_URL ?? "https://buy-moi.com";
+    const siteUrl = getSiteUrl();
     const recoveryUrl = `${siteUrl}/?recover-cart=${token}`;
 
     const { html, text } = buildAbandonedCartEmail({
@@ -586,12 +586,20 @@ router.post("/admin/abandoned-carts/:id/send-now", requireAdminAuth, async (req,
     const row = rows[0];
     if (!row) { res.status(404).json({ error: "Cart not found" }); return; }
 
-    const siteUrl = process.env.SITE_URL ?? "https://buy-moi.com";
+    const siteUrl = getSiteUrl();
     const recoveryUrl = `${siteUrl}/?recover-cart=${row.recoveryToken}`;
+
+    const repairedItems = (row.lineItems as Array<{ title: string; variant?: string; quantity: number; price: string; imageUrl?: string }>)
+      .map((item) => ({
+        ...item,
+        imageUrl: item.imageUrl
+          ? item.imageUrl.replace(/^https?:\/\/[^/]+\/images\//, `${siteUrl}/api/images/`)
+          : item.imageUrl,
+      }));
 
     const { html, text } = buildAbandonedCartEmail({
       customerEmail: row.email,
-      lineItems: row.lineItems as Array<{ title: string; variant?: string; quantity: number; price: string; imageUrl?: string }>,
+      lineItems: repairedItems,
       totalAmount: row.totalAmount,
       recoveryUrl,
       siteUrl,

@@ -5,6 +5,7 @@ import { abandonedCarts } from "@workspace/db/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { sendEmail, buildAbandonedCartEmail } from "../lib/email";
 import { logger } from "../lib/logger";
+import { getSiteUrl } from "../lib/siteUrl";
 
 const router = Router();
 
@@ -154,7 +155,7 @@ async function sendRecoveryEmails(): Promise<void> {
       if (!isSendTime(row.createdAt)) continue;
       if (!Array.isArray(row.lineItems) || row.lineItems.length === 0) continue;
 
-      const siteUrl = process.env.SITE_URL ?? "https://buy-moi.com";
+      const siteUrl = getSiteUrl();
       const recoveryUrl = `${siteUrl}/?recover-cart=${row.recoveryToken}`;
 
       // Repair any legacy image URLs that pointed to the web-app deployment
@@ -170,8 +171,8 @@ async function sendRecoveryEmails(): Promise<void> {
         ...item,
         imageUrl: item.imageUrl
           ? item.imageUrl.replace(
-              /^https?:\/\/buy-moi\.com\/images\//,
-              "https://buy-moi.com/api/images/",
+              /^https?:\/\/[^/]+\/images\//,
+              `${siteUrl}/api/images/`,
             )
           : item.imageUrl,
       }));

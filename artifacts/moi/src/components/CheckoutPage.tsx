@@ -36,7 +36,8 @@ function normalizeTitle(t: string) {
 // Public image URLs for emails (Vite-hashed /assets/ paths only work in the browser)
 // Images served via the API server (/api/images/) so they are always available
 // regardless of whether the web-app deployment is up to date.
-const BASE_IMG = "https://buy-moi.com/api/images";
+// window.location.origin auto-selects the right domain on dev vs production.
+const BASE_IMG = `${typeof window !== "undefined" ? window.location.origin : "https://buy-moi.com"}/api/images`;
 const PUBLIC_COLOR_IMAGES: Record<string, string> = {
   beige: `${BASE_IMG}/beige.webp`,
   white: `${BASE_IMG}/white.webp`,
