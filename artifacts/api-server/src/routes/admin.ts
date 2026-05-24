@@ -164,7 +164,13 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
 
   // Step 2: Mark order as Paid via authorization + capture (the only valid sequence for
   // API-created pending orders — Shopify rejects "sale" and ignores financial_status PUT)
-  if (storeDomain && adminToken && proof.amount) {
+  // Sanitize amount: strip commas (e.g. "2,049" → "2049.00") so Shopify accepts it
+  const rawAmount = proof.amount ?? "";
+  const sanitizedAmount = rawAmount.replace(/,/g, "").trim();
+  const parsedAmount = parseFloat(sanitizedAmount);
+  const shopifyAmount = isNaN(parsedAmount) ? null : parsedAmount.toFixed(2);
+
+  if (storeDomain && adminToken && shopifyAmount) {
     try {
       // 2a. Create authorization transaction
       const authRes = await fetch(
@@ -177,7 +183,7 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
               kind: "authorization",
               status: "success",
               gateway: "manual",
-              amount: proof.amount,
+              amount: shopifyAmount,
             },
           }),
         },
@@ -200,7 +206,7 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
                   kind: "capture",
                   status: "success",
                   gateway: "manual",
-                  amount: proof.amount,
+                  amount: shopifyAmount,
                   parent_id: authId,
                 },
               }),

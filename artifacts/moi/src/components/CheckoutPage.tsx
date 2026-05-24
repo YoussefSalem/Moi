@@ -1709,7 +1709,7 @@ function InstapayConfirmation({
       formData.append("referenceNumber", referenceNumber.trim());
       if (orderResult.customerName) formData.append("customerName", orderResult.customerName);
       if (orderResult.customerPhone) formData.append("customerPhone", orderResult.customerPhone);
-      formData.append("amount", orderResult.total);
+      formData.append("amount", orderResult.total.replace(/,/g, ""));
       formData.append("screenshot", compressed, "proof.jpg");
 
       const data = await new Promise<{
