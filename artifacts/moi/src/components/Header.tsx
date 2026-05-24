@@ -55,21 +55,21 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
 
           <button
             onClick={() => setMenuOpen(true)}
-            className="flex flex-col gap-1.5 w-8 h-8 items-center justify-center group"
+            className="flex flex-col gap-1.5 w-11 h-11 items-center justify-center group"
             aria-label="Open menu"
           >
             <span className="block w-6 h-px transition-all duration-300" style={{ backgroundColor: iconColor }} />
             <span className="block w-4 h-px transition-all duration-300 group-hover:w-6" style={{ backgroundColor: iconColor }} />
           </button>
 
-          <div className="flex items-center gap-5">
-            <button aria-label="Search" className="transition-opacity hover:opacity-60" onClick={onSearch}>
+          <div className="flex items-center gap-4">
+            <button aria-label="Search" className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-60" onClick={onSearch}>
               <Search size={18} strokeWidth={1.5} style={{ color: iconColor }} />
             </button>
 
             <button
               aria-label={customer ? "My Account" : "Sign In"}
-              className="flex items-center gap-1.5 transition-opacity hover:opacity-60"
+              className="w-11 h-11 flex items-center justify-center gap-1.5 transition-opacity hover:opacity-60"
               onClick={customer ? openAccount : openAuth}
             >
               <User size={18} strokeWidth={1.5} style={{ color: iconColor }} />
@@ -85,7 +85,7 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
 
             <button
               aria-label="Cart"
-              className="transition-opacity hover:opacity-60 relative"
+              className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-60 relative"
               onClick={openCart}
             >
               <ShoppingBag size={18} strokeWidth={1.5} style={{ color: iconColor }} />
@@ -135,7 +135,7 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "tween", duration: 0.4, ease: [0.76, 0, 0.24, 1] }}
-              className="fixed top-0 left-0 bottom-0 z-[70] w-80 flex flex-col"
+              className="fixed top-0 left-0 bottom-0 z-[70] w-[85vw] max-w-[320px] flex flex-col"
               style={{ backgroundColor: "#faf8f5" }}
             >
               <div className="flex items-center justify-between px-8 py-6 border-b border-stone-200">

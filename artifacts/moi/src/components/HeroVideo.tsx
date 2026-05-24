@@ -110,7 +110,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
             src={IMAGES.hero.fallbackUrl}
             alt="Moi premium versatile top — elegant fashion collection"
             className="hero-breathe w-full h-full object-cover"
-            style={{ objectPosition: "center 22%" }}
+            style={{ objectPosition: "center 15%" }}
             loading="eager"
             decoding="async"
             fetchPriority="high"

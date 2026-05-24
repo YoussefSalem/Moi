@@ -112,7 +112,7 @@ export function CartDrawer() {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "tween", duration: 0.42, ease: [0.76, 0, 0.24, 1] }}
-            className="fixed top-0 right-0 bottom-0 z-[100] w-full max-w-[420px] flex flex-col"
+            className="fixed top-0 right-0 bottom-0 z-[100] w-full sm:max-w-[420px] flex flex-col"
             style={{ backgroundColor: "#faf8f5" }}
           >
             {/* Header */}
@@ -204,10 +204,10 @@ export function CartDrawer() {
                               </div>
                               <button
                                 onClick={() => removeItem(line.id)}
-                                className="flex-shrink-0 transition-opacity hover:opacity-50 mt-0.5"
+                                className="flex-shrink-0 w-10 h-10 flex items-center justify-center transition-opacity hover:opacity-50 -mr-2"
                                 aria-label="Remove"
                               >
-                                <X size={13} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
+                                <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
                               </button>
                             </div>
                             <div className="flex items-center justify-between mt-auto">
@@ -217,23 +217,23 @@ export function CartDrawer() {
                               >
                                 <button
                                   onClick={() => updateQuantity(line.id, line.quantity - 1)}
-                                  className="w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-50"
+                                  className="w-10 h-10 flex items-center justify-center transition-opacity hover:opacity-50"
                                   aria-label="Decrease"
                                 >
-                                  <Minus size={11} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                                  <Minus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                                 <span
-                                  className="w-7 h-7 flex items-center justify-center text-[11px] font-semibold"
+                                  className="w-10 h-10 flex items-center justify-center text-[11px] font-semibold"
                                   style={{ color: "#17120f" }}
                                 >
                                   {line.quantity}
                                 </span>
                                 <button
                                   onClick={() => updateQuantity(line.id, line.quantity + 1)}
-                                  className="w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-50"
+                                  className="w-10 h-10 flex items-center justify-center transition-opacity hover:opacity-50"
                                   aria-label="Increase"
                                 >
-                                  <Plus size={11} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                                  <Plus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                               </div>
                               <p
@@ -287,10 +287,10 @@ export function CartDrawer() {
                               </div>
                               <button
                                 onClick={() => removeItem(item.id)}
-                                className="flex-shrink-0 transition-opacity hover:opacity-50 mt-0.5"
+                                className="flex-shrink-0 w-10 h-10 flex items-center justify-center transition-opacity hover:opacity-50 -mr-2"
                                 aria-label="Remove"
                               >
-                                <X size={13} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
+                                <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
                               </button>
                             </div>
                             <div className="flex items-center justify-between mt-auto">
@@ -300,23 +300,23 @@ export function CartDrawer() {
                               >
                                 <button
                                   onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                  className="w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-50"
+                                  className="w-10 h-10 flex items-center justify-center transition-opacity hover:opacity-50"
                                   aria-label="Decrease"
                                 >
-                                  <Minus size={11} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                                  <Minus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                                 <span
-                                  className="w-7 h-7 flex items-center justify-center text-[11px] font-semibold"
+                                  className="w-10 h-10 flex items-center justify-center text-[11px] font-semibold"
                                   style={{ color: "#17120f" }}
                                 >
                                   {item.quantity}
                                 </span>
                                 <button
                                   onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                  className="w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-50"
+                                  className="w-10 h-10 flex items-center justify-center transition-opacity hover:opacity-50"
                                   aria-label="Increase"
                                 >
-                                  <Plus size={11} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                                  <Plus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                               </div>
                               <p
@@ -341,7 +341,7 @@ export function CartDrawer() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
                 className="px-7 py-6 flex flex-col gap-5"
-                style={{ borderTop: "1px solid rgba(30,24,20,0.08)" }}
+                style={{ borderTop: "1px solid rgba(30,24,20,0.08)", paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
               >
                 <div className="flex justify-between items-baseline">
                   <span
@@ -409,7 +409,7 @@ export function CartDrawer() {
                   }}
                   disabled={loading}
                   className="block w-full text-center py-4 text-[11px] tracking-[0.32em] uppercase font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
-                  style={{ backgroundColor: "#1e1814" }}
+                  style={{ backgroundColor: "#1e1814", minHeight: 56 }}
                 >
                   {loading ? "…" : "Checkout"}
                 </button>
