@@ -8,8 +8,9 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-const RECOVERY_DELAY_MS = 30 * 60 * 1000; // 30 minutes
-const RECOVERY_INTERVAL_MS = 5 * 60 * 1000; // check every 5 minutes
+const isDev = process.env.NODE_ENV === "development";
+const RECOVERY_DELAY_MS = isDev ? 10 * 1000 : 30 * 60 * 1000; // 10s dev / 30min prod
+const RECOVERY_INTERVAL_MS = isDev ? 5 * 1000 : 5 * 60 * 1000; // 5s dev / 5min prod
 
 function generateRecoveryToken(): string {
   return crypto.randomBytes(16).toString("hex");

@@ -520,7 +520,7 @@ export function buildAbandonedCartEmail(params: {
 <!-- Wrapper -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f0eb;">
   <tr>
-    <td align="center" class="wrapper" style="padding:32px 16px 64px;">
+    <td align="center" class="wrapper" style="padding:32px 16px 96px;">
 
       <!-- Card: max 460px for mobile-first, centered -->
       <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:460px;background:#ffffff;border-radius:4px;">
@@ -594,12 +594,12 @@ export function buildAbandonedCartEmail(params: {
                   <tr>
                     <td style="padding:0 12px;">
                       <a href="https://www.instagram.com/shopmoi___" target="_blank" style="text-decoration:none;">
-                        <img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" alt="Instagram" width="24" height="24" style="display:block;border:0;" />
+                        <img src="https://cdn-icons-png.flaticon.com/512/1384/1384031.png" alt="Instagram" width="24" height="24" style="display:block;border:0;" />
                       </a>
                     </td>
                     <td style="padding:0 12px;">
                       <a href="https://www.tiktok.com/@shopmoi_" target="_blank" style="text-decoration:none;">
-                        <img src="https://cdn-icons-png.flaticon.com/512/3046/3046121.png" alt="TikTok" width="24" height="24" style="display:block;border:0;" />
+                        <img src="https://cdn-icons-png.flaticon.com/512/3046/3046126.png" alt="TikTok" width="24" height="24" style="display:block;border:0;" />
                       </a>
                     </td>
                   </tr>
@@ -616,6 +616,9 @@ export function buildAbandonedCartEmail(params: {
 
         <!-- Bottom accent -->
         <tr><td style="background:#1a1714;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+        <!-- End spacer -->
+        <tr><td style="height:24px;font-size:0;line-height:0;">&nbsp;</td></tr>
 
       </table>
       <!-- end card -->
