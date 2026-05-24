@@ -459,7 +459,7 @@ export function buildAbandonedCartEmail(params: {
   const itemRows = lineItems.map((item, i) => {
     const hasImage = !!item.imageUrl;
     const imgSection = hasImage
-      ? `<div style="margin-bottom:10px;">
+      ? `<div style="margin-bottom:10px;min-width:100px;">
           <img src="${item.imageUrl}" alt="${item.title}" style="display:block;width:100%;max-width:120px;height:auto;border:0;object-fit:cover;border-radius:2px;" />
         </div>`
       : "";
@@ -470,14 +470,18 @@ export function buildAbandonedCartEmail(params: {
 
     return `
     <div style="padding:18px 0;${i === 0 ? "" : "border-top:1px solid #ede9e3;"}">
-      <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
-        ${imgSection}
-        <div style="flex:1;min-width:0;">
-          <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;line-height:1.4;font-weight:700;">${item.title}</p>${variant}
-          <p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#9a8e82;">Qty: ${item.quantity}</p>
-          <p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;font-weight:700;">${item.price}&nbsp;EGP</p>
-        </div>
-      </div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="vertical-align:top;padding-right:16px;" width="120">
+            ${imgSection}
+          </td>
+          <td style="vertical-align:top;">
+            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;line-height:1.4;font-weight:700;">${item.title}</p>${variant}
+            <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#9a8e82;">Qty: ${item.quantity}</p>
+            <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;font-weight:700;">${item.price}&nbsp;EGP</p>
+          </td>
+        </tr>
+      </table>
     </div>`;
   }).join("");
 
@@ -500,7 +504,7 @@ export function buildAbandonedCartEmail(params: {
     .card{padding:28px 20px !important;}
     .hero-title{font-size:24px !important; line-height:1.2 !important;}
     .hero-sub{font-size:15px !important;}
-    .cta-btn{display:block !important; text-align:center !important; padding:20px 0 !important; font-size:13px !important;}
+    .cta-btn{display:block !important; text-align:center !important; padding:22px 32px !important; font-size:13px !important;}
     .item-title{font-size:15px !important;}
     .item-price{font-size:15px !important;}
   }
@@ -558,23 +562,15 @@ export function buildAbandonedCartEmail(params: {
         <!-- Spacer -->
         <tr><td style="height:16px;">&nbsp;</td></tr>
 
-        <!-- Total + CTA (centered) -->
+        <!-- CTA (centered) -->
         <tr><td class="card" style="padding:0 24px 32px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1714;font-weight:700;letter-spacing:0.05em;">Total</td>
-              <td style="font-family:Arial,Helvetica,sans-serif;font-size:20px;color:#1a1714;font-weight:700;text-align:right;">${totalAmount}&nbsp;EGP</td>
-            </tr>
-          </table>
-
-          <!-- Centered CTA -->
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;">
             <tr>
               <td align="center">
                 <table role="presentation" cellpadding="0" cellspacing="0" style="background:#1a1714;border-radius:50px;">
                   <tr>
                     <td>
-                      <a href="${recoveryUrl}" class="cta-btn" style="display:inline-block;padding:20px 64px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#ffffff;text-decoration:none;white-space:nowrap;">
+                      <a href="${recoveryUrl}" class="cta-btn" style="display:inline-block;padding:22px 80px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#ffffff;text-decoration:none;white-space:nowrap;">
                         Complete My Order
                       </a>
                     </td>
@@ -623,7 +619,7 @@ export function buildAbandonedCartEmail(params: {
     return `  ${i.title}${v} x ${i.quantity}  (${i.price} EGP)`;
   }).join("\n");
 
-  const text = `Our MOI pieces are waiting for you.\n\nComplete your wardrobe before they sell out.\n\nYOUR CART:\n${itemsText}\n\nTotal: ${totalAmount} EGP\n\nComplete My Order:\n${recoveryUrl}\n\nQuestions? Contact us at hello@buy-moi.com\n\nbuy-moi.com`;
+  const text = `Our MOI pieces are waiting for you.\n\nComplete your wardrobe before they sell out.\n\nYOUR CART:\n${itemsText}\n\nComplete My Order:\n${recoveryUrl}\n\nQuestions? Contact us at hello@buy-moi.com\n\nbuy-moi.com`;
 
   return { html, text };
 }
