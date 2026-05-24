@@ -343,7 +343,7 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
         const orderPayload: Record<string, unknown> = {
           send_receipt: true,
           send_fulfillment_receipt: false,
-          financial_status: "pending",
+          financial_status: "paid",
           fulfillment_status: null,
           line_items: draft.line_items.map((li) => ({ variant_id: li.variant_id, quantity: li.quantity })),
           shipping_address: draft.shipping_address,
@@ -398,7 +398,7 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
   // Fallback: complete the draft the old way (usage_count won't increment, but order is created)
   if (!orderResult) {
     const completeRes = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?payment_pending=true&send_receipt=true&send_fulfillment_receipt=false`,
+      `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
@@ -424,6 +424,21 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
       fallbackLineItems = (orderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
     }
     orderResult = { orderId: fallbackOrderId, orderNumber: fallbackOrderNumber, total: fallbackTotal, lineItems: fallbackLineItems };
+
+    // Fallback creates order as "pending" — mark it paid so Bosta doesn't treat as COD
+    try {
+      await fetch(
+        `https://${storeDomain}/admin/api/2024-04/orders/${fallbackOrderId}.json`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+          body: JSON.stringify({ order: { financial_status: "paid" } }),
+        },
+      );
+      logger.info({ orderId: fallbackOrderId }, "completeShopifyDraftOrder: set financial_status=\"paid\" on fallback order");
+    } catch (err) {
+      logger.warn({ err, orderId: fallbackOrderId }, "completeShopifyDraftOrder: could not mark fallback order as paid");
+    }
   }
 
   // Re-apply referring_site / landing_site (Shopify strips them during API order creation)

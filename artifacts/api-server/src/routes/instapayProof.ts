@@ -203,7 +203,7 @@ router.post(
     void addShopifyOrderNote(draftOrderId, `InstaPay proof submitted — ref: ${referenceNumber.trim()} (draft, awaiting approval)`);
     void tagShopifyOrder(draftOrderId, "instapay-proof-submitted");
 
-    // 7. WhatsApp to business owner
+    // 7. Admin notifications (WhatsApp + email)
     const businessWA = process.env.BUSINESS_WHATSAPP_NUMBER ?? "";
     const siteUrl = process.env.SITE_URL ?? "";
     if (businessWA) {
@@ -212,6 +212,23 @@ router.post(
         `📋 InstaPay proof — draft order #${draftOrderId}\nRef: ${referenceNumber.trim()}\nAmount: ${amountDisplay} EGP\nCustomer: ${customerName} · ${customerPhone}\nReview: ${siteUrl}/admin`,
       );
     }
+    // Always email admin as backup — Resend is configured
+    const adminEmail = (process.env.RESEND_FROM_EMAIL ?? "hello@buy-moi.com").trim();
+    void sendEmail({
+      to: adminEmail,
+      subject: `🔔 New InstaPay Proof — Draft #${draftOrderId}`,
+      html: `<p>A new InstaPay proof has been submitted.</p>
+        <ul>
+          <li><b>Draft Order:</b> #${draftOrderId}</li>
+          <li><b>Reference:</b> ${referenceNumber.trim()}</li>
+          <li><b>Amount:</b> ${amountDisplay} EGP</li>
+          <li><b>Customer:</b> ${customerName || "N/A"}</li>
+          <li><b>Phone:</b> ${customerPhone || "N/A"}</li>
+        </ul>
+        <p><a href="${siteUrl || "https://buy-moi.com"}/admin">Review in Admin Dashboard</a></p>`,
+      text: `New InstaPay Proof Submitted\n\nDraft Order: #${draftOrderId}\nReference: ${referenceNumber.trim()}\nAmount: ${amountDisplay} EGP\nCustomer: ${customerName || "N/A"}\nPhone: ${customerPhone || "N/A"}\n\nReview: ${siteUrl || "https://buy-moi.com"}/admin`,
+    }).then(() => logger.info({ draftOrderId, adminEmail }, "InstaPay admin notification email sent"))
+      .catch((err) => logger.warn({ err, draftOrderId }, "InstaPay admin notification email failed"));
 
     // 8. WhatsApp to customer
     if (customerPhone) {
