@@ -213,7 +213,7 @@ router.post(
       );
     }
     // Always email admin as backup — Resend is configured
-    const adminEmail = (process.env.RESEND_FROM_EMAIL ?? "hello@buy-moi.com").trim();
+    const adminEmail = (process.env.ADMIN_EMAIL ?? process.env.RESEND_FROM_EMAIL ?? "hello@buy-moi.com").trim();
     void sendEmail({
       to: adminEmail,
       subject: `🔔 New InstaPay Proof — Draft #${draftOrderId}`,
