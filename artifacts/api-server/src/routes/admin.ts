@@ -162,22 +162,56 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
   // Step 1: Tag instapay-admin-approved FIRST (prevents duplicate Bosta in orders/paid webhook)
   await tagShopifyOrder(proof.shopifyOrderId, "instapay-admin-approved");
 
-  // Step 2: Record Shopify capture transaction
+  // Step 2: Record Shopify payment (sale transaction = auth+capture in one, marks order Paid)
+  let txnRecorded = false;
   if (storeDomain && adminToken && proof.amount) {
-    await fetch(
-      `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}/transactions.json`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-        body: JSON.stringify({
-          transaction: {
-            kind: "capture",
-            gateway: "Instapay",
-            amount: proof.amount,
+    try {
+      const txnRes = await fetch(
+        `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}/transactions.json`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+          body: JSON.stringify({
+            transaction: {
+              kind: "sale",
+              status: "success",
+              gateway: "Instapay",
+              amount: proof.amount,
+            },
+          }),
+        },
+      );
+      if (txnRes.ok) {
+        txnRecorded = true;
+        req.log.info({ shopifyOrderId: proof.shopifyOrderId }, "Shopify sale transaction recorded");
+      } else {
+        const body = await txnRes.text();
+        req.log.warn({ status: txnRes.status, body }, "Shopify sale transaction failed");
+      }
+    } catch (err) {
+      req.log.error({ err }, "Shopify sale transaction request failed");
+    }
+
+    // Safety net: if the sale transaction didn't flip the order to Paid, force it
+    if (!txnRecorded) {
+      try {
+        const putRes = await fetch(
+          `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}.json`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+            body: JSON.stringify({ order: { financial_status: "paid" } }),
           },
-        }),
-      },
-    ).catch((err) => req.log.error({ err }, "Shopify capture transaction failed"));
+        );
+        if (putRes.ok) {
+          req.log.info({ shopifyOrderId: proof.shopifyOrderId }, "Shopify order forced to paid via PUT");
+        } else {
+          req.log.warn({ status: putRes.status }, "Shopify order PUT to paid failed");
+        }
+      } catch (err) {
+        req.log.error({ err }, "Shopify order PUT to paid request failed");
+      }
+    }
   }
 
   // Step 3: Create Bosta shipment
