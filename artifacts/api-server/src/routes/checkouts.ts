@@ -3,7 +3,7 @@ import { getShopifyAdminToken } from "../lib/integrations";
 
 const router = Router();
 
-router.post("/api/checkouts/register", async (req, res) => {
+router.post("/checkouts/register", async (req, res) => {
   const { email, cartId } = req.body as { email?: string; cartId?: string };
 
   if (!email || !cartId) {
