@@ -107,7 +107,7 @@ function buildEmail({
                   <p style="margin:5px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#9a8e82;letter-spacing:0.15em;text-transform:uppercase;">Qty&nbsp;${item.quantity}</p>
                 </td>
                 <td style="vertical-align:top;text-align:right;padding-left:20px;white-space:nowrap;">
-                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;font-weight:600;">${item.price}&nbsp;EGP</p>
+                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;font-weight:600;">${item.price.replace(/\s*EGP\s*/i, "").trim()}&nbsp;EGP</p>
                 </td>
               </tr>
             </table>

@@ -110,23 +110,19 @@ function resolveEmailImage(line: ShopifyCartLine, localItems?: { variantId: stri
     }
   }
 
-  // Only trust Shopify CDN URLs that look real (cdn.shopify.com or shopify CDN)
-  const shopifyUrl = line.merchandise.image?.url ?? line.merchandise.product.featuredImage?.url ?? "";
-  if (shopifyUrl && (shopifyUrl.includes("cdn.shopify.com") || shopifyUrl.includes("shopify"))) {
-    return shopifyUrl;
-  }
-
-  // Map color to public image URL
+  // 1. Color swatch always takes priority — this is what the customer selected
   for (const color of colorCandidates) {
     const publicHit = PUBLIC_COLOR_IMAGES[color];
     if (publicHit) return publicHit;
   }
 
-  // Fallback to product-level public image by title match
-  const productHit = PRODUCT_SHOT_MAP[normTitle] ?? PRODUCT_SHOT_MAP[rawTitle.toLowerCase()];
-  if (productHit && productHit.startsWith("http")) return productHit;
+  // 2. Shopify CDN image (only real CDN URLs, not placeholders)
+  const shopifyUrl = line.merchandise.image?.url ?? line.merchandise.product.featuredImage?.url ?? "";
+  if (shopifyUrl && shopifyUrl.includes("cdn.shopify.com")) {
+    return shopifyUrl;
+  }
 
-  // Last resort: localStorage image (must be public URL)
+  // 3. Last resort: localStorage image (must be a public HTTP URL)
   if (localMatch?.image && localMatch.image.startsWith("http")) return localMatch.image;
 
   return null;
@@ -661,7 +657,7 @@ export function CheckoutPage() {
             title: l.merchandise.product.title,
             variant: l.merchandise.title === "Default Title" ? undefined : l.merchandise.title,
             quantity: l.quantity,
-            price: fmt(parseFloat(l.merchandise.price.amount)),
+            price: `${Math.floor(parseFloat(l.merchandise.price.amount)).toLocaleString("de-DE")} EGP`,
             imageUrl: resolveEmailImage(l, localItems) ?? undefined,
           }))
         : localItems.map((i) => {
