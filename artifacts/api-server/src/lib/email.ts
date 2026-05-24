@@ -473,7 +473,7 @@ export function buildAbandonedCartEmail(params: {
       <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
         ${imgSection}
         <div style="flex:1;min-width:0;">
-          <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;line-height:1.4;font-weight:700;">${item.title}${variant}</p>
+          <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;line-height:1.4;font-weight:700;">${item.title}</p>${variant}
           <p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#9a8e82;">Qty: ${item.quantity}</p>
           <p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;font-weight:700;">${item.price}&nbsp;EGP</p>
         </div>
