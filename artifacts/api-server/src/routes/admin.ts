@@ -162,55 +162,74 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
   // Step 1: Tag instapay-admin-approved FIRST (prevents duplicate Bosta in orders/paid webhook)
   await tagShopifyOrder(proof.shopifyOrderId, "instapay-admin-approved");
 
-  // Note: InstaPay orders become "paid" in Shopify automatically when the draft is
-  // completed at proof-submission time. No transaction step needed here — attempting
-  // to add auth/capture/sale on an already-paid order causes Shopify 422 errors.
-  // Admin approval's sole purpose is to verify the proof and dispatch Bosta.
+  // Step 2: Check if already fulfilled by Shopify Bosta app (skip if so)
+  let alreadyFulfilled = false;
+  if (storeDomain && adminToken) {
+    try {
+      const orderRes = await fetch(
+        `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}.json?fields=fulfillment_status,shipping_address,note_attributes`,
+        { headers: { "X-Shopify-Access-Token": adminToken! } },
+      );
+      if (orderRes.ok) {
+        const orderData = await orderRes.json() as {
+          order: { fulfillment_status?: string | null | undefined; shipping_address?: { city?: string; address1?: string }; note_attributes?: { name: string; value: string }[] };
+        };
+        alreadyFulfilled = Boolean(orderData.order.fulfillment_status);
+        if (alreadyFulfilled) {
+          req.log.warn({ orderId: proof.shopifyOrderId }, "InstaPay order already fulfilled (likely by Shopify Bosta app); skipping Bosta dispatch");
+        }
+      }
+    } catch (err) {
+      req.log.error({ err }, "Could not check Shopify fulfillment status on approve");
+    }
+  }
 
-  // Step 2: Create Bosta shipment
-  if (proof.customerPhone && proof.customerName) {
+  // Step 3: Create Bosta shipment (skip if already fulfilled)
+  if (!alreadyFulfilled && proof.customerPhone && proof.customerName) {
     const nameParts = proof.customerName.trim().split(" ");
     const firstName = nameParts[0] ?? proof.customerName;
     const lastName = nameParts.slice(1).join(" ") || firstName;
 
-    // Fetch city from Shopify order
     let city = "Cairo";
-    if (storeDomain && adminToken) {
-      try {
-        const orderRes = await fetch(
-          `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}.json?fields=shipping_address,note_attributes`,
-          { headers: { "X-Shopify-Access-Token": adminToken } },
-        );
-        if (orderRes.ok) {
-          const orderData = await orderRes.json() as {
-            order: { shipping_address?: { city?: string; address1?: string }; note_attributes?: { name: string; value: string }[] };
-          };
-          city = orderData.order.shipping_address?.city ?? city;
-          const address = orderData.order.shipping_address?.address1 ?? "";
-
-          const trackingNumber = await createBostaShipment({
-            firstName,
-            lastName,
-            phone: proof.customerPhone,
-            address,
-            city,
-            orderReference: `#${proof.shopifyOrderNumber}`,
-            codAmount: 0,
-          });
-
-          if (trackingNumber) {
-            void addShopifyOrderNote(proof.shopifyOrderId, `Bosta tracking: ${trackingNumber}\nPayment: Instapay (admin approved)`);
-            void tagShopifyOrder(proof.shopifyOrderId, `bosta-${trackingNumber}`);
-            const fulfillmentId = await createShopifyFulfillment(proof.shopifyOrderId, trackingNumber);
-            if (fulfillmentId) {
-              void addShopifyFulfillmentEvent(proof.shopifyOrderId, fulfillmentId, "in_transit");
-            }
-            req.log.info({ trackingNumber, orderId: proof.shopifyOrderId }, "Bosta shipment created on InstaPay approval");
-          }
-        }
-      } catch (err) {
-        req.log.error({ err }, "Bosta shipment creation failed on approve");
+    let address = "";
+    try {
+      const orderRes = await fetch(
+        `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}.json?fields=shipping_address`,
+        { headers: { "X-Shopify-Access-Token": adminToken! } },
+      );
+      if (orderRes.ok) {
+        const orderData = await orderRes.json() as {
+          order: { shipping_address?: { city?: string; address1?: string } };
+        };
+        city = orderData.order.shipping_address?.city ?? city;
+        address = orderData.order.shipping_address?.address1 ?? "";
       }
+    } catch (err) {
+      req.log.warn({ err }, "Could not fetch shipping address from Shopify on approve; using defaults");
+    }
+
+    try {
+      const trackingNumber = await createBostaShipment({
+        firstName,
+        lastName,
+        phone: proof.customerPhone,
+        address,
+        city,
+        orderReference: `#${proof.shopifyOrderNumber}`,
+        codAmount: 0,
+      });
+
+      if (trackingNumber) {
+        void addShopifyOrderNote(proof.shopifyOrderId, `Bosta tracking: ${trackingNumber}\nPayment: Instapay (admin approved)`);
+        void tagShopifyOrder(proof.shopifyOrderId, `bosta-${trackingNumber}`);
+        const fulfillmentId = await createShopifyFulfillment(proof.shopifyOrderId, trackingNumber);
+        if (fulfillmentId) {
+          void addShopifyFulfillmentEvent(proof.shopifyOrderId, fulfillmentId, "in_transit");
+        }
+        req.log.info({ trackingNumber, orderId: proof.shopifyOrderId }, "Bosta shipment created on InstaPay approval");
+      }
+    } catch (err) {
+      req.log.error({ err }, "Bosta shipment creation failed on approve");
     }
   }
 
