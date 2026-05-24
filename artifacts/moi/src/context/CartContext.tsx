@@ -4,6 +4,7 @@ import {
   type ShopifyCartLine,
   addCartLines,
   createCart,
+  createCartWithLines,
   getCart,
   removeCartLines,
   updateCartLines,
@@ -35,6 +36,15 @@ export interface LocalCartItem {
   quantity: number;
 }
 
+export interface RecoveredItem {
+  title: string;
+  variant?: string;
+  quantity: number;
+  price: string;
+  imageUrl?: string;
+  variantId?: string;
+}
+
 export interface AddToCartParams {
   variantId?: string;
   title?: string;
@@ -64,6 +74,7 @@ interface CartContextValue {
   updateQuantity: (idOrLineId: string, quantity: number) => Promise<void>;
   applyDiscount: (code: string) => Promise<{ applicable: boolean; code: string; discountAmount: number }>;
   clearCart: () => void;
+  replaceRecoveredCart: (items: RecoveredItem[], email?: string) => Promise<void>;
   checkoutUrl: string | null;
   formatShopifyLinePrice: (line: ShopifyCartLine) => string;
   cartTotal: string;
@@ -278,6 +289,41 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(LOCAL_CART_KEY);
   }, []);
 
+  const replaceRecoveredCart = useCallback(async (items: RecoveredItem[], email?: string) => {
+    const newLocalItems: LocalCartItem[] = items.map((item, i) => ({
+      id: `recovery-${i}-${(item.variantId ?? item.title).replace(/\s+/g, "-").toLowerCase()}`,
+      variantId: item.variantId ?? `recovery-${i}`,
+      title: item.title,
+      price: item.price,
+      priceAmount: parseFloat(item.price.replace(/[^0-9.]/g, "")),
+      currencyCode: "EGP",
+      image: item.imageUrl ?? null,
+      color: item.variant,
+      quantity: item.quantity,
+    }));
+    saveLocalCart(newLocalItems);
+    setLocalItems(newLocalItems);
+    localStorage.removeItem(CART_ID_KEY);
+    setShopifyCart(null);
+    if (SHOPIFY_CONFIGURED) {
+      const shopifyLines = items
+        .filter((item) => item.variantId)
+        .map((item) => ({ merchandiseId: item.variantId!, quantity: item.quantity }));
+      if (shopifyLines.length > 0) {
+        try {
+          const newCart = await createCartWithLines(shopifyLines);
+          localStorage.setItem(CART_ID_KEY, newCart.id);
+          setShopifyCart(newCart);
+        } catch {
+          // fall through to local-only mode
+        }
+      }
+    }
+    if (email) setPrefilledEmail(email);
+    setCartOpen(false);
+    setCheckoutOpen(true);
+  }, []);
+
   const formatShopifyLinePrice = useCallback((line: ShopifyCartLine) => {
     const price = parseFloat(line.merchandise.price.amount) * line.quantity;
     return formatMoney(String(price), line.merchandise.price.currencyCode);
@@ -400,6 +446,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       updateQuantity,
       applyDiscount,
       clearCart,
+      replaceRecoveredCart,
       checkoutUrl: shopifyCart?.checkoutUrl ?? null,
       formatShopifyLinePrice,
       cartTotal,

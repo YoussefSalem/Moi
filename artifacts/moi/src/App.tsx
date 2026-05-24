@@ -98,21 +98,7 @@ function AppContent() {
           return;
         }
         if (d.lineItems && d.lineItems.length > 0 && cart) {
-          // Clear current cart then add recovered items sequentially, then open checkout
-          cart.clearCart();
-          (async () => {
-            for (const item of d.lineItems!) {
-              await cart.addToCart({
-                title: item.title,
-                price: item.price,
-                priceAmount: parseFloat(item.price.replace(/[^0-9.]/g, "")),
-                quantity: item.quantity,
-                image: item.imageUrl ?? null,
-                variantId: item.variantId ?? undefined,
-              }).catch(() => {});
-            }
-            cart.openCheckout(d.email ?? undefined);
-          })();
+          cart.replaceRecoveredCart(d.lineItems, d.email ?? undefined);
         }
         window.history.replaceState(null, "", window.location.pathname);
       })

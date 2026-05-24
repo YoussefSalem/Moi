@@ -185,6 +185,18 @@ export async function createCart(): Promise<ShopifyCart> {
   return data.cartCreate.cart;
 }
 
+export async function createCartWithLines(
+  lines: { merchandiseId: string; quantity: number }[],
+): Promise<ShopifyCart> {
+  const data = await shopifyFetch<{ cartCreate: { cart: ShopifyCart } }>(`
+    ${CART_FRAGMENT}
+    mutation CartCreateWithLines($lines: [CartLineInput!]) {
+      cartCreate(input: { lines: $lines }) { cart { ...CartFields } }
+    }
+  `, { lines });
+  return data.cartCreate.cart;
+}
+
 export async function getCart(cartId: string): Promise<ShopifyCart | null> {
   const data = await shopifyFetch<{ cart: ShopifyCart | null }>(`
     ${CART_FRAGMENT}

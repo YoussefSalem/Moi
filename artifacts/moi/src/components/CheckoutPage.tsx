@@ -915,7 +915,10 @@ export function CheckoutPage() {
                             {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
-                            <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.title}</p>
+                            <div>
+                              <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.title}</p>
+                              {item.color && <p style={{ fontSize: "13px", color: "#7a6e64", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{item.color}</p>}
+                            </div>
                             <div className="flex justify-between items-end">
                               <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif" }}>Qty {item.quantity}</span>
                               <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{fmt(item.priceAmount * item.quantity)}</span>
@@ -1178,7 +1181,10 @@ export function CheckoutPage() {
                             {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
-                            <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.title}</p>
+                            <div>
+                              <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.title}</p>
+                              {item.color && <p style={{ fontSize: "13px", color: "#7a6e64", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{item.color}</p>}
+                            </div>
                             <div className="flex justify-between items-end">
                               <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {item.quantity}</span>
                               <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.price}</span>
