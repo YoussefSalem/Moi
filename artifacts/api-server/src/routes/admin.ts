@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db } from "@workspace/db";
-import { instapayProofs, abandonedCarts } from "@workspace/db/schema";
+import { instapayProofs, abandonedCarts, paymobIntents } from "@workspace/db/schema";
 import { eq, desc, and, gte, lte, count } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
 import {
@@ -274,6 +274,143 @@ router.post("/admin/instapay-proofs/:id/reject", async (req, res) => {
 
   req.log.info({ id, reason }, "InstaPay proof rejected");
   res.status(200).json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
+// Card order dispatch (Paymob card payments — admin approves Bosta shipment)
+// ---------------------------------------------------------------------------
+
+// GET /admin/card-orders — list all completed Paymob intents with dispatch status
+router.get("/admin/card-orders", async (req, res) => {
+  try {
+    const rows = await db
+      .select()
+      .from(paymobIntents)
+      .where(eq(paymobIntents.status, "completed"))
+      .orderBy(desc(paymobIntents.createdAt));
+
+    const result = rows.map((r) => {
+      const customer = r.customer as {
+        firstName?: string;
+        lastName?: string;
+        phone?: string;
+        address?: string;
+        city?: string;
+        governorate?: string;
+        email?: string;
+      };
+      return {
+        id: r.id,
+        intentId: r.intentId,
+        shopifyOrderId: r.shopifyOrderId,
+        paymobTxnId: r.paymobTxnId,
+        total: r.total,
+        customerName: [customer.firstName, customer.lastName].filter(Boolean).join(" ") || null,
+        customerPhone: customer.phone ?? null,
+        customerEmail: customer.email ?? null,
+        address: customer.address ?? null,
+        city: customer.city ?? null,
+        bostaDispatched: r.bostaDispatched,
+        bostaTrackingNumber: r.bostaTrackingNumber,
+        bostaDispatchedAt: r.bostaDispatchedAt,
+        createdAt: r.createdAt,
+      };
+    });
+
+    res.status(200).json({ orders: result });
+  } catch (err) {
+    req.log.error({ err }, "card-orders: failed to fetch");
+    res.status(500).json({ error: "Failed to fetch card orders" });
+  }
+});
+
+// POST /admin/card-orders/:id/dispatch — create Bosta shipment and mark dispatched
+router.post("/admin/card-orders/:id/dispatch", async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const rows = await db.select().from(paymobIntents).where(eq(paymobIntents.id, id)).limit(1);
+  const intent = rows[0];
+  if (!intent) { res.status(404).json({ error: "Order not found" }); return; }
+  if (intent.status !== "completed") { res.status(409).json({ error: "Order not completed" }); return; }
+  if (intent.bostaDispatched) { res.status(409).json({ error: "Already dispatched" }); return; }
+  if (!intent.shopifyOrderId) { res.status(409).json({ error: "No Shopify order linked" }); return; }
+
+  const customer = intent.customer as {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+  };
+
+  if (!customer.firstName || !customer.address) {
+    res.status(422).json({ error: "Missing customer address data" });
+    return;
+  }
+
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const adminToken = await getShopifyAdminToken();
+
+  // Fetch shipping address from Shopify for the most accurate city/address
+  let address = customer.address;
+  let city = customer.city ?? "Cairo";
+  if (storeDomain && adminToken) {
+    try {
+      const orderRes = await fetch(
+        `https://${storeDomain}/admin/api/2024-04/orders/${intent.shopifyOrderId}.json?fields=shipping_address`,
+        { headers: { "X-Shopify-Access-Token": adminToken } },
+      );
+      if (orderRes.ok) {
+        const orderData = await orderRes.json() as {
+          order: { shipping_address?: { address1?: string; city?: string } };
+        };
+        address = orderData.order.shipping_address?.address1 ?? address;
+        city = orderData.order.shipping_address?.city ?? city;
+      }
+    } catch (err) {
+      req.log.warn({ err }, "card-orders dispatch: could not fetch Shopify address, using intent data");
+    }
+  }
+
+  const orderRef = `#${intent.paymobTxnId ?? intent.intentId}`;
+
+  try {
+    const trackingNumber = await createBostaShipment({
+      firstName: customer.firstName,
+      lastName: customer.lastName ?? customer.firstName,
+      phone: customer.phone ?? "",
+      address,
+      city,
+      orderReference: orderRef,
+      codAmount: 0,
+    });
+
+    if (!trackingNumber) {
+      res.status(502).json({ error: "Bosta did not return a tracking number" });
+      return;
+    }
+
+    // Update intent
+    await db
+      .update(paymobIntents)
+      .set({ bostaDispatched: true, bostaTrackingNumber: trackingNumber, bostaDispatchedAt: new Date() })
+      .where(eq(paymobIntents.id, id));
+
+    // Tag Shopify order + add note + create fulfillment (fire-and-forget)
+    void addShopifyOrderNote(intent.shopifyOrderId, `Bosta tracking: ${trackingNumber}\nPayment: Paymob Card (admin dispatched)`);
+    void tagShopifyOrder(intent.shopifyOrderId, `bosta-${trackingNumber}`);
+    const fulfillmentId = await createShopifyFulfillment(intent.shopifyOrderId, trackingNumber);
+    if (fulfillmentId) {
+      void addShopifyFulfillmentEvent(intent.shopifyOrderId, fulfillmentId, "in_transit");
+    }
+
+    req.log.info({ id, trackingNumber, shopifyOrderId: intent.shopifyOrderId }, "card-orders: Bosta shipment dispatched");
+    res.status(200).json({ ok: true, trackingNumber });
+  } catch (err) {
+    req.log.error({ err }, "card-orders dispatch: Bosta shipment creation failed");
+    res.status(500).json({ error: "Failed to create Bosta shipment" });
+  }
 });
 
 /**

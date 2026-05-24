@@ -514,6 +514,164 @@ function ProofGallery({
   );
 }
 
+interface CardOrder {
+  id: number;
+  intentId: string;
+  shopifyOrderId: number | null;
+  paymobTxnId: string | null;
+  total: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  customerEmail: string | null;
+  address: string | null;
+  city: string | null;
+  bostaDispatched: boolean;
+  bostaTrackingNumber: string | null;
+  bostaDispatchedAt: string | null;
+  createdAt: string;
+}
+
+function CardOrdersTab({ token }: { token: string }) {
+  const [orders, setOrders] = useState<CardOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [filterDispatched, setFilterDispatched] = useState<"all" | "pending" | "dispatched">("pending");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/card-orders", { headers: apiHeaders(token) });
+      if (!res.ok) { setError("Failed to load card orders."); setLoading(false); return; }
+      const data = await res.json() as { orders: CardOrder[] };
+      setOrders(data.orders);
+    } catch { setError("Network error."); }
+    finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  async function dispatch(id: number) {
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/admin/card-orders/${id}/dispatch`, { method: "POST", headers: apiHeaders(token) });
+      const data = await res.json() as { ok?: boolean; trackingNumber?: string; error?: string };
+      if (!res.ok || data.error) {
+        alert(`Dispatch failed: ${data.error ?? "Unknown error"}`);
+        return;
+      }
+      alert(`✅ Dispatched to Bosta\nTracking: ${data.trackingNumber ?? "—"}`);
+      await load();
+    } finally { setActionLoading(null); }
+  }
+
+  const filtered = orders.filter((o) => {
+    if (filterDispatched === "pending") return !o.bostaDispatched;
+    if (filterDispatched === "dispatched") return o.bostaDispatched;
+    return true;
+  });
+
+  const pendingCount = orders.filter((o) => !o.bostaDispatched).length;
+
+  const fmtDate = (d: string | null) => d
+    ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    : "—";
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700 }}>
+            Card Orders
+          </p>
+          {pendingCount > 0 && (
+            <span style={{ backgroundColor: "#c0392b", color: "#fff", fontSize: "11px", fontWeight: 700, fontFamily: "'Montserrat', sans-serif", padding: "2px 7px", borderRadius: 99 }}>
+              {pendingCount}
+            </span>
+          )}
+        </div>
+        <button onClick={() => void load()} style={{ display: "flex", alignItems: "center", gap: 6, ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)" }}>
+          <RefreshCw size={12} strokeWidth={2} /> Refresh
+        </button>
+      </div>
+
+      <div style={{ backgroundColor: "rgba(60,100,140,0.07)", border: "1px solid rgba(60,100,140,0.2)", padding: "12px 16px", marginBottom: 22 }}>
+        <p style={{ ...mono, fontSize: 12, color: "#2d5a7e", lineHeight: 1.6 }}>
+          Card payments are confirmed automatically by Paymob. Click <strong>Dispatch</strong> to create the Bosta shipment and mark the order for fulfillment.
+        </p>
+      </div>
+
+      {/* Filter */}
+      <div className="flex gap-2 mb-5">
+        {(["pending", "all", "dispatched"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilterDispatched(f)}
+            style={{ ...btn, backgroundColor: filterDispatched === f ? "#1e1814" : "transparent", color: filterDispatched === f ? "#fff" : "rgba(30,24,20,0.6)", border: "1px solid rgba(30,24,20,0.18)", padding: "6px 12px" }}
+          >
+            {f === "pending" ? "Pending Dispatch" : f === "dispatched" ? "Dispatched" : "All"}
+          </button>
+        ))}
+      </div>
+
+      {error && <p style={{ fontSize: "13px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginBottom: 12 }}>{error}</p>}
+      {loading && <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Loading…</p>}
+
+      {!loading && filtered.length === 0 && (
+        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}>
+          No {filterDispatched === "pending" ? "pending" : filterDispatched === "dispatched" ? "dispatched" : ""} card orders.
+        </p>
+      )}
+
+      <div className="flex flex-col gap-3">
+        {filtered.map((order) => (
+          <div key={order.id} style={{ border: "1px solid rgba(30,24,20,0.16)", backgroundColor: "#fff" }}>
+            <div className="flex items-center justify-between p-4" style={{ gap: 12 }}>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "18px", fontWeight: 700, color: "#1e1814" }}>
+                    {order.shopifyOrderId ? `Shopify #${order.shopifyOrderId}` : `Txn ${order.paymobTxnId ?? order.intentId}`}
+                  </span>
+                  <span style={{
+                    ...mono, fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px",
+                    backgroundColor: order.bostaDispatched ? "rgba(60,120,60,0.12)" : "rgba(180,140,40,0.12)",
+                    color: order.bostaDispatched ? "#2d6e2d" : "#8a6a10",
+                  }}>
+                    {order.bostaDispatched ? "Dispatched" : "Pending Dispatch"}
+                  </span>
+                </div>
+                <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", marginTop: 4 }}>
+                  {order.customerName ?? "—"} · {order.customerPhone ?? "—"} · <strong>{order.total} EGP</strong>
+                </p>
+                <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", marginTop: 2, letterSpacing: "0.04em" }}>
+                  {order.address ?? "—"}{order.city ? `, ${order.city}` : ""} · {fmtDate(order.createdAt)}
+                </p>
+                {order.bostaDispatched && order.bostaTrackingNumber && (
+                  <p style={{ fontSize: "11px", color: "#2d6e2d", fontFamily: "'Montserrat', sans-serif", marginTop: 3, fontWeight: 700 }}>
+                    Bosta: {order.bostaTrackingNumber} · Dispatched {fmtDate(order.bostaDispatchedAt)}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {!order.bostaDispatched && (
+                  <button
+                    onClick={() => void dispatch(order.id)}
+                    disabled={actionLoading === order.id}
+                    style={{ ...btn, backgroundColor: "#1e1814", color: "#fff", display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", opacity: actionLoading === order.id ? 0.6 : 1 }}
+                  >
+                    {actionLoading === order.id ? "Dispatching…" : "Dispatch to Bosta"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SettingsTab({ token }: { token: string }) {
   const [config, setConfig] = useState<Record<string, string>>({});
   const [form, setForm] = useState<Record<string, string>>({});
@@ -938,7 +1096,7 @@ function AbandonedCartsTab({ token }: { token: string }) {
 
 export function AdminPage() {
   const [token, setToken] = useState<string | null>(() => getStoredToken());
-  const [tab, setTab] = useState<"proofs" | "abandoned" | "discounts" | "settings">("proofs");
+  const [tab, setTab] = useState<"proofs" | "card-orders" | "abandoned" | "discounts" | "settings">("proofs");
 
   if (!token) {
     return <PinGate onAuth={setToken} />;
@@ -962,8 +1120,8 @@ export function AdminPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ borderBottom: "1px solid rgba(30,24,20,0.16)", backgroundColor: "#fff", paddingLeft: 24 }}>
-        {(["proofs", "abandoned", "discounts", "settings"] as const).map((t) => (
+      <div style={{ borderBottom: "1px solid rgba(30,24,20,0.16)", backgroundColor: "#fff", paddingLeft: 24, overflowX: "auto", whiteSpace: "nowrap" }}>
+        {(["proofs", "card-orders", "abandoned", "discounts", "settings"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -978,7 +1136,7 @@ export function AdminPage() {
               borderRadius: 0,
             }}
           >
-            {t === "proofs" ? "Payments" : t === "abandoned" ? "Abandoned Carts" : t === "discounts" ? "Discounts" : "Settings"}
+            {t === "proofs" ? "InstaPay" : t === "card-orders" ? "Card Orders" : t === "abandoned" ? "Abandoned Carts" : t === "discounts" ? "Discounts" : "Settings"}
           </button>
         ))}
       </div>
@@ -989,6 +1147,10 @@ export function AdminPage() {
           {tab === "proofs" ? (
             <motion.div key="proofs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <ProofsTab token={token} />
+            </motion.div>
+          ) : tab === "card-orders" ? (
+            <motion.div key="card-orders" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <CardOrdersTab token={token} />
             </motion.div>
           ) : tab === "abandoned" ? (
             <motion.div key="abandoned" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

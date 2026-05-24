@@ -6,9 +6,6 @@ import {
   addShopifyOrderNote,
   tagShopifyOrder,
   sendWhatsApp,
-  createBostaShipment,
-  createShopifyFulfillment,
-  addShopifyFulfillmentEvent,
   completeShopifyCheckout,
 } from "../lib/integrations";
 import { createShopifyDirectOrder, recordDiscountCodeUse, type OrderLine, type CustomerInfo, type ShopifyLineItem, type OrderAttribution } from "../lib/shopifyOrder";
@@ -204,29 +201,9 @@ router.post("/webhooks/paymob", async (req, res) => {
       );
     }
 
-    // Create Bosta shipment using intent's stored customer data
-    if (customer.firstName && customer.address) {
-      const trackingNumber = await createBostaShipment({
-        firstName: customer.firstName,
-        lastName: customer.lastName ?? "",
-        phone,
-        address: customer.address,
-        city: customer.city ?? "",
-        orderReference: orderRef,
-        codAmount: 0,
-      });
-      if (trackingNumber) {
-        void addShopifyOrderNote(shopifyOrderId, `Bosta tracking: ${trackingNumber}\nPayment: Paymob Card`);
-        void tagShopifyOrder(shopifyOrderId, `bosta-${trackingNumber}`);
-        const fulfillmentId = await createShopifyFulfillment(shopifyOrderId, trackingNumber);
-        if (fulfillmentId) {
-          void addShopifyFulfillmentEvent(shopifyOrderId, fulfillmentId, "in_transit");
-        }
-        req.log.info({ trackingNumber, shopifyOrderId, paymobTxnId }, "Paymob webhook: Bosta shipment created");
-      }
-    }
-
-    req.log.info({ shopifyOrderId, shopifyOrderNumber, paymobTxnId, amount }, "Paymob webhook: order fully processed");
+    // Bosta shipment is NOT created automatically for card orders.
+    // Admin must dispatch via the admin panel (POST /api/admin/card-orders/:id/dispatch).
+    req.log.info({ shopifyOrderId, shopifyOrderNumber, paymobTxnId, amount }, "Paymob webhook: order fully processed — awaiting admin dispatch to Bosta");
   } catch (err) {
     req.log.error({ err, intentId, paymobTxnId }, "Paymob webhook processing error");
     // Prevent the intent from getting stuck in 'processing' — mark it failed so
