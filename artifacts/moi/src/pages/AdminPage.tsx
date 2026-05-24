@@ -843,6 +843,36 @@ function AbandonedCartsTab({ token }: { token: string }) {
         </button>
       </div>
 
+      {/* Send Test Email panel */}
+      <div style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)", padding: "20px 24px", marginBottom: 28 }}>
+        <p style={{ ...mono, fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, marginBottom: 14 }}>Send Test Email</p>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <input
+            type="text"
+            placeholder="Recipient email"
+            defaultValue="test@moi.com"
+            id="ab-test-email"
+            style={{ ...inputStyle, width: 240 }}
+          />
+          <button
+            onClick={async () => {
+              const to = (document.getElementById("ab-test-email") as HTMLInputElement)?.value?.trim() || "test@moi.com";
+              try {
+                const res = await fetch("/api/admin/abandoned-carts/send-test", { method: "POST", headers: apiHeaders(token), body: JSON.stringify({ to }) });
+                const data = await res.json() as { ok?: boolean; error?: string; recoveryUrl?: string };
+                if (!res.ok || data.error) { setError(data.error ?? "Failed to send"); return; }
+                alert(`Test email sent to ${to}. Check your inbox and spam folder.\n\nRecovery link: ${data.recoveryUrl ?? ""}`);
+                void load();
+              } catch { setError("Network error sending test email."); }
+            }}
+            style={{ ...btn, backgroundColor: "#1e1814", color: "#fff" }}
+          >
+            Send Test Email
+          </button>
+        </div>
+        <p style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.4)", marginTop: 8 }}>Creates a sample cart and sends the recovery email immediately — no 30-minute wait.</p>
+      </div>
+
       {loading && <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Loading…</p>}
       {error && <p style={{ fontSize: 13, color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>}
 
@@ -854,7 +884,7 @@ function AbandonedCartsTab({ token }: { token: string }) {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", backgroundColor: "#faf8f5" }}>
-                  {["Email", "Items", "Total", "Status", "Created", "Sent", "Clicked", "Recovered"].map((h) => (
+                  {["Email", "Items", "Total", "Status", "Created", "Sent", "Clicked", "Recovered", ""].map((h) => (
                     <th key={h} style={{ ...mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, textAlign: "left", padding: "10px 14px" }}>{h}</th>
                   ))}
                 </tr>
@@ -876,6 +906,24 @@ function AbandonedCartsTab({ token }: { token: string }) {
                       <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px" }}>{formatDate(item.emailSentAt)}</td>
                       <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px" }}>{formatDate(item.clickedAt)}</td>
                       <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px" }}>{formatDate(item.recoveredAt)}</td>
+                      <td style={{ padding: "10px 14px" }}>
+                        {item.status === "started" && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/admin/abandoned-carts/${item.id}/send-now`, { method: "POST", headers: apiHeaders(token) });
+                                const data = await res.json() as { ok?: boolean; error?: string; recoveryUrl?: string };
+                                if (!res.ok || data.error) { setError(data.error ?? "Failed to send"); return; }
+                                alert(`Email sent to ${item.email}\nRecovery link: ${data.recoveryUrl ?? ""}`);
+                                void load();
+                              } catch { setError("Network error sending email."); }
+                            }}
+                            style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)", fontSize: 10, padding: "4px 8px" }}
+                          >
+                            Send Now
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}

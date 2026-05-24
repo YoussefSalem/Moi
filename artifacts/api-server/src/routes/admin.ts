@@ -15,6 +15,8 @@ import {
 } from "../lib/integrations";
 import { getMaskedConfig, savePaymobConfig, type PaymobConfig } from "../lib/paymobConfig";
 import { listDiscountCodeUses } from "@workspace/db";
+import { sendEmail, buildAbandonedCartEmail } from "../lib/email";
+import crypto from "crypto";
 
 const router: IRouter = Router();
 
@@ -513,6 +515,99 @@ router.get("/admin/abandoned-carts", requireAdminAuth, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "abandoned-cart: admin fetch failed");
     res.status(500).json({ error: "Failed to fetch abandoned carts" });
+  }
+});
+
+// POST /admin/abandoned-carts/send-test
+// Creates a test abandoned cart with sample items and sends recovery email immediately.
+// Only requires admin auth, no 30-min wait.
+router.post("/admin/abandoned-carts/send-test", requireAdminAuth, async (req, res) => {
+  const body = req.body as { to?: string; items?: Array<{ title: string; price: string; quantity?: number; imageUrl?: string; variant?: string }>; totalAmount?: string };
+  const to = (body.to ?? "test@moi.com").trim().toLowerCase();
+  const sampleItems = body.items && body.items.length > 0
+    ? body.items.map((i) => ({
+        title: i.title,
+        price: i.price,
+        quantity: i.quantity ?? 1,
+        imageUrl: i.imageUrl,
+        variant: i.variant,
+      }))
+    : [
+        { title: "Asymmetric Cape", price: "1.690", quantity: 1, variant: "Brown" },
+        { title: "Classic Trench", price: "2.290", quantity: 1, variant: "Sand" },
+      ];
+  const totalAmount = body.totalAmount ?? sampleItems.reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0).toFixed(3);
+
+  try {
+    const token = crypto.randomBytes(16).toString("hex");
+    const [row] = await db.insert(abandonedCarts).values({
+      email: to,
+      cartId: null,
+      originalCartId: null,
+      lineItems: sampleItems,
+      totalAmount,
+      recoveryToken: token,
+      status: "started",
+    }).returning();
+
+    const siteUrl = process.env.SITE_URL ?? "https://buy-moi.com";
+    const recoveryUrl = `${siteUrl}/?recover-cart=${token}`;
+
+    const { html, text } = buildAbandonedCartEmail({
+      customerEmail: to,
+      lineItems: sampleItems,
+      totalAmount,
+      recoveryUrl,
+      siteUrl,
+    });
+
+    await sendEmail({ to, subject: "Still thinking it over? Your cart is waiting.", html, text });
+
+    await db.update(abandonedCarts)
+      .set({ status: "email_sent", emailSentAt: new Date(), updatedAt: new Date() })
+      .where(eq(abandonedCarts.id, row.id));
+
+    req.log.info({ id: row.id, email: to }, "abandoned-cart: test email sent");
+    res.status(200).json({ ok: true, id: row.id, email: to, recoveryUrl, token });
+  } catch (err) {
+    req.log.error({ err }, "abandoned-cart: test email failed");
+    res.status(500).json({ error: "Failed to send test email" });
+  }
+});
+
+// POST /admin/abandoned-carts/:id/send-now
+// Sends recovery email for a specific cart immediately (bypasses 30-min delay).
+router.post("/admin/abandoned-carts/:id/send-now", requireAdminAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  try {
+    const rows = await db.select().from(abandonedCarts).where(eq(abandonedCarts.id, id)).limit(1);
+    const row = rows[0];
+    if (!row) { res.status(404).json({ error: "Cart not found" }); return; }
+
+    const siteUrl = process.env.SITE_URL ?? "https://buy-moi.com";
+    const recoveryUrl = `${siteUrl}/?recover-cart=${row.recoveryToken}`;
+
+    const { html, text } = buildAbandonedCartEmail({
+      customerEmail: row.email,
+      lineItems: row.lineItems as Array<{ title: string; variant?: string; quantity: number; price: string; imageUrl?: string }>,
+      totalAmount: row.totalAmount,
+      recoveryUrl,
+      siteUrl,
+    });
+
+    await sendEmail({ to: row.email, subject: "Still thinking it over? Your cart is waiting.", html, text });
+
+    await db.update(abandonedCarts)
+      .set({ status: "email_sent", emailSentAt: new Date(), updatedAt: new Date() })
+      .where(eq(abandonedCarts.id, row.id));
+
+    req.log.info({ id, email: row.email }, "abandoned-cart: manual send-now email sent");
+    res.status(200).json({ ok: true, email: row.email, recoveryUrl });
+  } catch (err) {
+    req.log.error({ err, id }, "abandoned-cart: send-now failed");
+    res.status(500).json({ error: "Failed to send email" });
   }
 });
 
