@@ -35,20 +35,15 @@ img {
 
 /* Hero fallback image: slow breathe handled entirely in CSS compositor,
    zero JS RAF overhead competing with scroll */
-@media (prefers-reduced-motion: no-preference) {
-  @keyframes heroBreathe {
-    0%, 100% { transform: scale(1); }
-    50%       { transform: scale(1.055); }
-  }
-  .hero-breathe {
-    animation: heroBreathe 18s ease-in-out infinite;
-    transform-origin: center 22%;
-  }
+@keyframes heroBreathe {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.055); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .hero-breathe {
-    animation: none;
-  }
+.hero-breathe {
+  animation: heroBreathe 18s ease-in-out infinite;
+  transform-origin: center 22%;
+  /* No will-change — the animation runs fine without it, and a dedicated
+     GPU layer for a full-screen hero image wastes significant VRAM on mobile */
 }
 
 /* Fixed header gets its own GPU layer so scrolling never forces a repaint of it */
@@ -302,9 +297,6 @@ section {
     overflow-x: hidden;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
   }
 
   body::-webkit-scrollbar {

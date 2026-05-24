@@ -173,13 +173,12 @@ const inputStyle: React.CSSProperties = {
   border: "none",
   borderBottom: "1px solid rgba(30,24,20,0.22)",
   outline: "none",
-  padding: "12px 0",
-  fontSize: "16px",
+  padding: "10px 0",
+  fontSize: "14px",
   color: "#1e1814",
   fontWeight: 500,
   fontFamily: "'Montserrat', sans-serif",
   letterSpacing: "0.025em",
-  touchAction: "manipulation",
 };
 
 
@@ -1380,7 +1379,7 @@ export function CheckoutPage() {
                     <button
                       key={m}
                       onClick={() => setPaymentMethod(m)}
-                      className="text-left transition-all min-h-[72px]"
+                      className="text-left transition-all"
                       style={{
                         padding: "14px 12px",
                         border: paymentMethod === m ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.15)",
@@ -1399,7 +1398,7 @@ export function CheckoutPage() {
                     </button>
                   ))}
                   <div
-                    className="text-left min-h-[72px]"
+                    className="text-left"
                     style={{
                       padding: "14px 12px",
                       border: "1px dashed rgba(30,24,20,0.2)",
@@ -1425,7 +1424,7 @@ export function CheckoutPage() {
                 </p>
 
                 <div className="space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
                       <label style={labelStyle}>First Name</label>
                       <input type="text" value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} style={inputStyle} autoComplete="given-name" className="checkout-input" />
@@ -1460,7 +1459,7 @@ export function CheckoutPage() {
                     <input type="text" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} style={inputStyle} autoComplete="street-address" className="checkout-input" />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                  <div className="grid grid-cols-2 gap-4 items-end">
                     <div className="flex flex-col gap-1 relative">
                       <label style={labelStyle}>Governorate</label>
                       <button type="button" onClick={() => setGovernorateOpen((o) => !o)} style={governorateInputStyle} className="checkout-input">
@@ -1583,7 +1582,7 @@ function CardFailed({
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-lg mx-auto px-6 py-12 sm:px-8 sm:py-16 text-center flex flex-col items-center gap-6"
+      className="max-w-lg mx-auto px-8 py-16 text-center flex flex-col items-center gap-6"
     >
       <div style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: "rgba(192,57,43,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <X size={22} strokeWidth={1.5} style={{ color: "#c0392b" }} />
@@ -1766,7 +1765,7 @@ function InstapayConfirmation({
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-lg mx-auto px-6 py-10 sm:py-12 flex flex-col items-center gap-6"
+      className="max-w-lg mx-auto px-6 py-12 flex flex-col items-center gap-6"
     >
       {/* Heading — changes once order is confirmed */}
       <div style={{ textAlign: "center" }}>
@@ -2032,7 +2031,7 @@ function OrderSuccessScreen({
     <motion.div
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-xl mx-auto px-6 py-12 sm:py-14 md:py-16 flex flex-col items-center text-center gap-7"
+      className="max-w-xl mx-auto px-6 py-14 md:py-16 flex flex-col items-center text-center gap-7"
     >
       <div className="relative flex items-center justify-center" style={{ width: 82, height: 82 }}>
         <motion.div

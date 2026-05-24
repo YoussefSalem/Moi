@@ -675,13 +675,12 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                         aria-label={option.name}
                         aria-pressed={selectedColor === option.name}
                         onClick={() => setSelectedColor(option.name)}
-                        className="relative flex items-center justify-center"
-                        style={{ width: 44, height: 44, flexShrink: 0 }}
+                        className="relative"
+                        style={{ width: 30, height: 30, flexShrink: 0 }}
                       >
                         <span
-                          className="rounded-full transition-transform duration-300 hover:scale-110"
+                          className="absolute inset-0 rounded-full transition-transform duration-300 hover:scale-110"
                           style={{
-                            width: 30, height: 30,
                             backgroundColor: option.swatch,
                             boxShadow:
                               index === displayColors.length - 1 && option.swatch.startsWith("#1")
@@ -690,9 +689,8 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                           }}
                         />
                         <span
-                          className="absolute rounded-full border transition-opacity duration-300 pointer-events-none"
+                          className="absolute inset-[-5px] rounded-full border transition-opacity duration-300"
                           style={{
-                            width: 40, height: 40,
                             borderColor: "rgba(30,24,20,0.38)",
                             opacity: selectedColor === option.name ? 1 : 0,
                           }}
@@ -742,7 +740,6 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                           className="relative overflow-hidden border transition-all duration-300"
                           style={{
                             minWidth: 72,
-                            minHeight: 44,
                             padding: "10px 16px",
                             fontSize: 10,
                             letterSpacing: "0.22em",

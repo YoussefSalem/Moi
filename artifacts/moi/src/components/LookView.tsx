@@ -393,7 +393,7 @@ export function LookView({ product, onClose }: LookViewProps) {
 
                     {/* Bottom product strip */}
                     <div
-                      className="border-t flex flex-col md:flex-row items-start md:items-center justify-between gap-4 px-6 md:px-16 py-6 md:py-8"
+                      className="border-t flex flex-col md:flex-row items-start md:items-center justify-between gap-6 px-8 md:px-16 py-8"
                       style={{ borderColor: "rgba(180,160,140,0.2)" }}
                     >
                       <h2
@@ -423,7 +423,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.97 }}
                           onClick={handleAddToBag}
-                          className="px-8 py-3.5 text-[11px] tracking-[0.2em] uppercase font-medium w-full md:w-auto"
+                          className="px-10 py-3.5 text-[11px] tracking-[0.2em] uppercase font-medium"
                           style={{
                             backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
                             color: addedFeedback ? "#1e1814" : "#fff",
