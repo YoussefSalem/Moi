@@ -33,6 +33,18 @@ function normalizeTitle(t: string) {
   return t.toLowerCase().replace(/\./g, "").trim();
 }
 
+// Public image URLs for emails (Vite-hashed /assets/ paths only work in the browser)
+const PUBLIC_COLOR_IMAGES: Record<string, string> = {
+  beige: "https://buy-moi.com/images/beige.webp",
+  white: "https://buy-moi.com/images/white.webp",
+  cashmere: "https://buy-moi.com/images/cashmere.webp",
+  yellow: "https://buy-moi.com/images/yellow.webp",
+  teal: "https://buy-moi.com/images/teal.webp",
+  "light blue": "https://buy-moi.com/images/light-blue-main.webp",
+  navy: "https://buy-moi.com/images/navi.webp",
+  mint: "https://buy-moi.com/images/mint.webp",
+};
+
 function resolveLineImage(line: ShopifyCartLine, localItems?: { variantId: string; color?: string; image?: string | null }[]): string | null {
   const variantId = line.merchandise.id;
   const localMatch = localItems?.find((li) => li.variantId === variantId);
@@ -69,6 +81,44 @@ function resolveLineImage(line: ShopifyCartLine, localItems?: { variantId: strin
 
   // 4. Last resort: stale localStorage URL
   if (localMatch?.image) return localMatch.image;
+
+  return null;
+}
+
+/** Convert any internal image URL to a public URL that works in emails. */
+function resolveEmailImage(line: ShopifyCartLine, localItems?: { variantId: string; color?: string; image?: string | null }[]): string | null {
+  const variantId = line.merchandise.id;
+  const localMatch = localItems?.find((li) => li.variantId === variantId);
+
+  const rawTitle = line.merchandise.product.title ?? "";
+  const normTitle = normalizeTitle(rawTitle);
+
+  const SIZE_OPTION_NAMES = new Set(["size", "titre", "taille", "tamanho", "gr\u00f6\u00dfe"]);
+
+  const colorCandidates: string[] = [];
+  if (localMatch?.color) colorCandidates.push(localMatch.color.toLowerCase());
+  for (const opt of (line.merchandise.selectedOptions ?? [])) {
+    if (!SIZE_OPTION_NAMES.has(opt.name.toLowerCase())) {
+      colorCandidates.push(opt.value.toLowerCase());
+    }
+  }
+
+  // Shopify CDN images are already public
+  if (line.merchandise.image?.url) return line.merchandise.image.url;
+  if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
+
+  // Map color to public image URL
+  for (const color of colorCandidates) {
+    const publicHit = PUBLIC_COLOR_IMAGES[color];
+    if (publicHit) return publicHit;
+  }
+
+  // Fallback to product-level public image by title match
+  const productHit = PRODUCT_SHOT_MAP[normTitle] ?? PRODUCT_SHOT_MAP[rawTitle.toLowerCase()];
+  if (productHit && productHit.startsWith("http")) return productHit;
+
+  // Last resort: localStorage image (may be hashed)
+  if (localMatch?.image && localMatch.image.startsWith("http")) return localMatch.image;
 
   return null;
 }
@@ -603,14 +653,18 @@ export function CheckoutPage() {
             variant: l.merchandise.title === "Default Title" ? undefined : l.merchandise.title,
             quantity: l.quantity,
             price: fmt(parseFloat(l.merchandise.price.amount)),
-            imageUrl: resolveLineImage(l, localItems) ?? undefined,
+            imageUrl: resolveEmailImage(l, localItems) ?? undefined,
           }))
-        : localItems.map((i) => ({
-            title: i.title,
-            quantity: i.quantity,
-            price: i.price,
-            imageUrl: i.image ?? undefined,
-          }));
+        : localItems.map((i) => {
+            const color = i.color?.toLowerCase() ?? "";
+            const publicImg = PUBLIC_COLOR_IMAGES[color];
+            return {
+              title: i.title,
+              quantity: i.quantity,
+              price: i.price,
+              imageUrl: publicImg ?? (i.image?.startsWith("http") ? i.image : undefined),
+            };
+          });
       fetch("/api/abandoned-carts/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -520,10 +520,10 @@ export function buildAbandonedCartEmail(params: {
 <!-- Wrapper -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f0eb;">
   <tr>
-    <td align="center" class="wrapper" style="padding:32px 16px 40px;">
+    <td align="center" class="wrapper" style="padding:32px 16px 64px;">
 
       <!-- Card: max 460px for mobile-first, centered -->
-      <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:460px;background:#ffffff;border-radius:4px;overflow:hidden;">
+      <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:460px;background:#ffffff;border-radius:4px;">
 
         <!-- Top accent -->
         <tr><td style="background:#1a1714;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
@@ -580,21 +580,33 @@ export function buildAbandonedCartEmail(params: {
             </tr>
           </table>
 
-          <p style="margin:24px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#9a8e82;line-height:1.6;text-align:center;">
-            Questions? Contact us at <a href="mailto:hello@buy-moi.com" style="color:#1a1714;text-decoration:underline;font-weight:600;">hello@buy-moi.com</a>
-          </p>
         </td></tr>
 
-        <!-- Footer -->
-        <tr><td style="padding:20px 24px;border-top:1px solid #ede9e3;">
+        <!-- Socials + Footer -->
+        <tr><td style="padding:24px 24px 16px;border-top:1px solid #ede9e3;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             <tr>
-              <td>
-                <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:8px;font-weight:700;letter-spacing:0.55em;text-transform:uppercase;color:#1a1714;">M O I</p>
-                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#b0a89e;">Effortless. Versatile. Yours.</p>
-              </td>
-              <td style="text-align:right;vertical-align:top;">
-                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;">
+              <td align="center">
+                <p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#9a8e82;line-height:1.6;text-align:center;">
+                  Questions? Contact us at <a href="mailto:hello@buy-moi.com" style="color:#1a1714;text-decoration:underline;font-weight:600;">hello@buy-moi.com</a>
+                </p>
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 20px;">
+                  <tr>
+                    <td style="padding:0 12px;">
+                      <a href="https://www.instagram.com/shopmoi___" target="_blank" style="text-decoration:none;">
+                        <img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" alt="Instagram" width="24" height="24" style="display:block;border:0;" />
+                      </a>
+                    </td>
+                    <td style="padding:0 12px;">
+                      <a href="https://www.tiktok.com/@shopmoi_" target="_blank" style="text-decoration:none;">
+                        <img src="https://cdn-icons-png.flaticon.com/512/3046/3046121.png" alt="TikTok" width="24" height="24" style="display:block;border:0;" />
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:8px;font-weight:700;letter-spacing:0.55em;text-transform:uppercase;color:#1a1714;text-align:center;">M O I</p>
+                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;text-align:center;">Effortless. Versatile. Yours.</p>
+                <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;text-align:center;">
                   <a href="${siteUrl}" style="color:#b0a89e;text-decoration:none;letter-spacing:0.1em;">buy-moi.com</a>
                 </p>
               </td>
@@ -619,7 +631,7 @@ export function buildAbandonedCartEmail(params: {
     return `  ${i.title}${v} x ${i.quantity}  (${i.price} EGP)`;
   }).join("\n");
 
-  const text = `Our MOI pieces are waiting for you.\n\nComplete your wardrobe before they sell out.\n\nYOUR CART:\n${itemsText}\n\nComplete My Order:\n${recoveryUrl}\n\nQuestions? Contact us at hello@buy-moi.com\n\nbuy-moi.com`;
+  const text = `Our MOI pieces are waiting for you.\n\nComplete your wardrobe before they sell out.\n\nYOUR CART:\n${itemsText}\n\nComplete My Order:\n${recoveryUrl}\n\nQuestions? Contact us at hello@buy-moi.com\nInstagram: https://www.instagram.com/shopmoi___\nTikTok: https://www.tiktok.com/@shopmoi_\n\nbuy-moi.com`;
 
   return { html, text };
 }
