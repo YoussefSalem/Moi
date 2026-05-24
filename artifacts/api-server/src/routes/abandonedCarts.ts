@@ -157,15 +157,28 @@ async function sendRecoveryEmails(): Promise<void> {
       const siteUrl = process.env.SITE_URL ?? "https://buy-moi.com";
       const recoveryUrl = `${siteUrl}/?recover-cart=${row.recoveryToken}`;
 
+      // Repair any legacy image URLs that pointed to the web-app deployment
+      // (/images/) — those may not exist on older deployments. The API server
+      // always serves the canonical set at /api/images/.
+      const repairedItems = (row.lineItems as Array<{
+        title: string;
+        variant?: string;
+        quantity: number;
+        price: string;
+        imageUrl?: string;
+      }>).map((item) => ({
+        ...item,
+        imageUrl: item.imageUrl
+          ? item.imageUrl.replace(
+              /^https?:\/\/buy-moi\.com\/images\//,
+              "https://buy-moi.com/api/images/",
+            )
+          : item.imageUrl,
+      }));
+
       const { html, text } = buildAbandonedCartEmail({
         customerEmail: row.email,
-        lineItems: row.lineItems as Array<{
-          title: string;
-          variant?: string;
-          quantity: number;
-          price: string;
-          imageUrl?: string;
-        }>,
+        lineItems: repairedItems,
         totalAmount: row.totalAmount,
         recoveryUrl,
         siteUrl,

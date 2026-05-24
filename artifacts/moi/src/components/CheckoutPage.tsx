@@ -34,7 +34,9 @@ function normalizeTitle(t: string) {
 }
 
 // Public image URLs for emails (Vite-hashed /assets/ paths only work in the browser)
-const BASE_IMG = "https://buy-moi.com/images";
+// Images served via the API server (/api/images/) so they are always available
+// regardless of whether the web-app deployment is up to date.
+const BASE_IMG = "https://buy-moi.com/api/images";
 const PUBLIC_COLOR_IMAGES: Record<string, string> = {
   beige: `${BASE_IMG}/beige.webp`,
   white: `${BASE_IMG}/white.webp`,
