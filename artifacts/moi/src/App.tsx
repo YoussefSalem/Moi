@@ -111,7 +111,7 @@ function AppContent() {
                 variantId: item.variantId ?? undefined,
               }).catch(() => {});
             }
-            cart.openCheckout();
+            cart.openCheckout(d.email ?? undefined);
           })();
         }
         window.history.replaceState(null, "", window.location.pathname);

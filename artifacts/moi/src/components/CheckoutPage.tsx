@@ -285,10 +285,12 @@ export function CheckoutPage() {
     isShopify,
     formatShopifyLinePrice,
     applyDiscount,
+    prefilledEmail,
   } = useCart();
 
   const [step, setStep] = useState<Step>("email");
   const [emailInput, setEmailInput] = useState("");
+
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
   const [promoOpen, setPromoOpen] = useState(false);
   const [promoInput, setPromoInput] = useState("");
@@ -306,6 +308,16 @@ export function CheckoutPage() {
     firstName: "", lastName: "", phone: "", email: "",
     address: "", governorate: "", postalCode: "", city: "",
   });
+
+  // When checkout opens with a pre-filled email (abandoned cart recovery),
+  // seed the email field and skip straight to the order form.
+  useEffect(() => {
+    if (checkoutOpen && prefilledEmail) {
+      setEmailInput(prefilledEmail);
+      setForm((f) => ({ ...f, email: prefilledEmail }));
+      setStep("form");
+    }
+  }, [checkoutOpen, prefilledEmail]);
 
   const lines = isShopify && shopifyCart ? shopifyCart.lines.nodes : null;
   const localLines = !isShopify ? localItems : [];

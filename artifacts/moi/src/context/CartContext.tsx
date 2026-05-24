@@ -56,8 +56,9 @@ interface CartContextValue {
   itemCount: number;
   openCart: () => void;
   closeCart: () => void;
-  openCheckout: () => void;
+  openCheckout: (email?: string) => void;
   closeCheckout: () => void;
+  prefilledEmail: string | null;
   addToCart: (params: AddToCartParams) => Promise<void>;
   removeItem: (idOrLineId: string) => Promise<void>;
   updateQuantity: (idOrLineId: string, quantity: number) => Promise<void>;
@@ -91,6 +92,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [localItems, setLocalItems] = useState<LocalCartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [prefilledEmail, setPrefilledEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const initRef = useRef(false);
 
@@ -313,7 +315,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     ? shopifySubtotal
     : localItems.length > 0 ? formatMoney(String(localTotal), localCurrency) : "";
 
-  const openCheckout = useCallback(() => {
+  const openCheckout = useCallback((email?: string) => {
+    if (email) setPrefilledEmail(email);
     setCartOpen(false);
     setCheckoutOpen(true);
     // Fire checkout_started to Shopify Analytics, alongside existing Meta & TikTok pixels
@@ -390,7 +393,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       },
       closeCart: () => setCartOpen(false),
       openCheckout,
-      closeCheckout: () => setCheckoutOpen(false),
+      closeCheckout: () => { setCheckoutOpen(false); setPrefilledEmail(null); },
+      prefilledEmail,
       addToCart,
       removeItem,
       updateQuantity,
