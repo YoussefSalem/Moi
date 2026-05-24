@@ -1,8 +1,35 @@
 import { Router } from "express";
-import { getShopifyAdminToken } from "../lib/integrations";
 
 const router = Router();
 
+const STORE_DOMAIN = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+const STOREFRONT_TOKEN = process.env.VITE_SHOPIFY_STOREFRONT_TOKEN;
+
+async function storefrontFetch<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+  if (!STORE_DOMAIN || !STOREFRONT_TOKEN) throw new Error("Shopify not configured");
+  const res = await fetch(`https://${STORE_DOMAIN}/api/2024-04/graphql.json`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Shopify-Storefront-Access-Token": STOREFRONT_TOKEN,
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+  if (!res.ok) throw new Error(`Shopify API error: ${res.status}`);
+  const json = await res.json() as { data?: T; errors?: { message: string }[] };
+  if (json.errors?.length) throw new Error(json.errors[0].message);
+  return json.data as T;
+}
+
+/**
+ * Registers an abandoned-checkout candidate by updating the cart's buyer
+ * identity with the customer's email and returning the cart's checkout URL.
+ *
+ * The frontend must then load the returned checkoutUrl in a hidden iframe so
+ * Shopify's checkout SPA creates a real checkout object on Shopify's server.
+ * That checkout object is what appears at admin.shopify.com → Checkouts and
+ * is what the Shopify Messaging app uses for abandoned-checkout recovery.
+ */
 router.post("/checkouts/register", async (req, res) => {
   const { email, cartId } = req.body as { email?: string; cartId?: string };
 
@@ -11,96 +38,51 @@ router.post("/checkouts/register", async (req, res) => {
     return;
   }
 
-  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const storefrontToken = process.env.VITE_SHOPIFY_STOREFRONT_TOKEN;
-  const adminToken = await getShopifyAdminToken();
-
-  if (!storeDomain || !storefrontToken || !adminToken) {
+  if (!STORE_DOMAIN || !STOREFRONT_TOKEN) {
     res.json({ success: false, reason: "unconfigured" });
     return;
   }
 
-  // 1. Fetch cart line items via Storefront API
-  let lineItems: Array<{ variant_id: number; quantity: number }> = [];
   try {
-    const cartRes = await fetch(`https://${storeDomain}/api/2024-04/graphql.json`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Storefront-Access-Token": storefrontToken,
-      },
-      body: JSON.stringify({
-        query: `
-          query GetCartLines($cartId: ID!) {
-            cart(id: $cartId) {
-              lines(first: 50) {
-                nodes {
-                  quantity
-                  merchandise {
-                    ... on ProductVariant { id }
-                  }
-                }
-              }
-            }
-          }
-        `,
-        variables: { cartId },
-      }),
-    });
-
-    if (cartRes.ok) {
-      const cartData = await cartRes.json() as {
-        data?: {
-          cart?: {
-            lines: {
-              nodes: Array<{ quantity: number; merchandise: { id: string } }>;
-            };
-          };
+    const data = await storefrontFetch<{
+      cartBuyerIdentityUpdate: {
+        cart: {
+          id: string;
+          checkoutUrl: string;
+          totalQuantity: number;
         };
+        userErrors: { field: string[]; message: string }[];
       };
-      const nodes = cartData.data?.cart?.lines.nodes ?? [];
-      lineItems = nodes
-        .map((n) => ({
-          variant_id: parseInt(n.merchandise.id.split("/").pop() ?? "0", 10),
-          quantity: n.quantity,
-        }))
-        .filter((li) => li.variant_id > 0);
-    }
-  } catch (err) {
-    req.log.warn({ err }, "checkout-register: failed to fetch cart lines");
-  }
+    }>(`
+      mutation CartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
+        cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
+          cart { id checkoutUrl totalQuantity }
+          userErrors { field message }
+        }
+      }
+    `, { cartId, buyerIdentity: { email } });
 
-  // 2. Create a Shopify checkout object so it appears in the Abandoned Checkouts admin page
-  try {
-    const checkoutRes = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/checkouts.json`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Shopify-Access-Token": adminToken,
-        },
-        body: JSON.stringify({
-          checkout: {
-            email,
-            ...(lineItems.length > 0 ? { line_items: lineItems } : {}),
-          },
-        }),
-      },
-    );
-
-    if (!checkoutRes.ok) {
-      const errBody = await checkoutRes.text().catch(() => "");
-      req.log.warn({ status: checkoutRes.status, errBody }, "checkout-register: Shopify rejected checkout creation");
+    const errors = data?.cartBuyerIdentityUpdate?.userErrors ?? [];
+    if (errors.length) {
+      req.log.warn({ errors }, "checkout-register: cartBuyerIdentityUpdate returned errors");
       res.json({ success: false });
       return;
     }
 
-    const checkoutData = await checkoutRes.json() as { checkout?: { token?: string } };
-    req.log.info({ token: checkoutData.checkout?.token }, "checkout-register: Shopify abandoned checkout registered");
-    res.json({ success: true, token: checkoutData.checkout?.token });
+    const cart = data?.cartBuyerIdentityUpdate?.cart;
+    if (!cart) {
+      req.log.warn("checkout-register: no cart returned");
+      res.json({ success: false });
+      return;
+    }
+
+    req.log.info(
+      { cartId: cart.id, totalQuantity: cart.totalQuantity },
+      "checkout-register: buyer identity set, checkout URL ready",
+    );
+    res.json({ success: true, checkoutUrl: cart.checkoutUrl });
   } catch (err) {
-    req.log.warn({ err }, "checkout-register: network error creating Shopify checkout");
+    req.log.warn({ err }, "checkout-register: error updating cart buyer identity");
     res.json({ success: false });
   }
 });

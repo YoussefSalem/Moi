@@ -326,18 +326,29 @@ export async function cartDiscountCodesUpdate(
 export async function cartBuyerIdentityUpdate(
   cartId: string,
   email: string,
-): Promise<void> {
-  if (!SHOPIFY_CONFIGURED) return;
+): Promise<ShopifyCart | null> {
+  if (!SHOPIFY_CONFIGURED) return null;
   try {
-    await shopifyFetch<{ cartBuyerIdentityUpdate: { userErrors: { message: string }[] } }>(`
+    const data = await shopifyFetch<{
+      cartBuyerIdentityUpdate: {
+        cart: ShopifyCart;
+        userErrors: { field: string[]; message: string }[];
+      };
+    }>(`
+      ${CART_FRAGMENT}
       mutation CartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
         cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
+          cart { ...CartFields }
           userErrors { field message }
         }
       }
     `, { cartId, buyerIdentity: { email } });
+    if (data.cartBuyerIdentityUpdate.userErrors.length) {
+      return null;
+    }
+    return data.cartBuyerIdentityUpdate.cart;
   } catch {
-    // fire-and-forget — never block the UI
+    return null;
   }
 }
 
