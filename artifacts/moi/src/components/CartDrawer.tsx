@@ -155,7 +155,7 @@ export function CartDrawer() {
                     return (
                       <>
                         <p>Order now</p>
-                        <p>and get it between {fmt(start)} \u2013 {fmt(end)}</p>
+                        <p>and get it between {fmt(start)} – {fmt(end)}</p>
                       </>
                     );
                   })()}
