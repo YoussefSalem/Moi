@@ -26,7 +26,7 @@ app.listen(port, (err) => {
 
   // Log Resend key diagnostics (values masked)
   const audienceKey = process.env["RESEND_API_KEY_AUDIENCE"];
-  const sendKey = process.env["RESEND_API_KEY"];
+  const sendKey = process.env["RESEND_CHECKOUT_KEY"] ?? process.env["RESEND_API_KEY"];
   const keysAreIdentical = !!audienceKey && audienceKey === sendKey;
   logger.info({
     resendAudienceKeyPresent: !!audienceKey,
@@ -35,6 +35,8 @@ app.listen(port, (err) => {
     resendSendKeyPresent: !!sendKey,
     resendSendKeyLength: sendKey?.length ?? 0,
     resendSendKeyPrefix: sendKey?.slice(0, 12) ?? "(none)",
+    resendCheckoutKeyPresent: !!process.env["RESEND_CHECKOUT_KEY"],
+    resendCheckoutKeyPrefix: process.env["RESEND_CHECKOUT_KEY"]?.slice(0, 12) ?? "(none)",
     audienceId: process.env["RESEND_AUDIENCE_ID"] ?? "(none)",
     audienceSyncEnabled: !keysAreIdentical,
   }, keysAreIdentical

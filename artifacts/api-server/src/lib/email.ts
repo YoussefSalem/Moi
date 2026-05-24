@@ -5,8 +5,8 @@ let _resend: Resend | null = null;
 
 function getResend(): Resend {
   if (_resend) return _resend;
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error("RESEND_API_KEY not configured");
+  const apiKey = process.env.RESEND_CHECKOUT_KEY ?? process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error("RESEND_CHECKOUT_KEY or RESEND_API_KEY not configured");
   _resend = new Resend(apiKey);
   return _resend;
 }

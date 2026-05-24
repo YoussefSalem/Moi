@@ -9,7 +9,7 @@ interface NewsletterBody {
 }
 
 async function syncToAudience(email: string): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY_AUDIENCE ?? process.env.RESEND_API_KEY;
+  const apiKey = process.env.RESEND_API_KEY_AUDIENCE ?? process.env.RESEND_CHECKOUT_KEY ?? process.env.RESEND_API_KEY;
   if (!audienceId || !apiKey) return;
 
   const res = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
