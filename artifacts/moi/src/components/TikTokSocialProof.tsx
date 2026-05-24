@@ -22,6 +22,14 @@ const videos: VideoItem[] = [
     type: "video",
   },
   {
+    title: "New Moi piece just dropped \ud83d\udd25",
+    handle: "@etharrdiabb",
+    profileUrl: "https://www.tiktok.com/@etharrdiabb",
+    caption: "First look at the latest Moi drop \u2014 fit, fabric, and how it wears.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7643440266891840776",
+    type: "video",
+  },
+  {
     title: "Get ready with me",
     handle: "@thatsalmarocks",
     profileUrl: "https://www.tiktok.com/@thatsalmarocks",
