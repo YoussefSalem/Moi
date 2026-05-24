@@ -16,6 +16,7 @@ import whatsappRouter from "./whatsapp";
 import bostaRouter from "./bosta";
 import analyticsProxyRouter from "./analyticsProxy";
 import checkoutsRouter from "./checkouts";
+import abandonedCartsRouter from "./abandonedCarts";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(whatsappRouter);
 router.use(bostaRouter);
 router.use(analyticsProxyRouter);
 router.use(checkoutsRouter);
+router.use(abandonedCartsRouter);
 
 export default router;

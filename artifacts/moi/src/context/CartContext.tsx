@@ -71,7 +71,7 @@ interface CartContextValue {
   isShopify: boolean;
 }
 
-const CartContext = createContext<CartContextValue | null>(null);
+export const CartContext = createContext<CartContextValue | null>(null);
 
 function loadLocalCart(): LocalCartItem[] {
   try {

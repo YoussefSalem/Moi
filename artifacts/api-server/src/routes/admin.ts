@@ -1,8 +1,8 @@
 import crypto from "crypto";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db } from "@workspace/db";
-import { instapayProofs } from "@workspace/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { instapayProofs, abandonedCarts } from "@workspace/db/schema";
+import { eq, desc, and, gte, lte, count } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
 import {
   addShopifyOrderNote,
@@ -451,6 +451,68 @@ router.get("/admin/discount-uses", requireAdminAuth, async (_req, res) => {
     res.status(200).json({ uses: rows });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch discount uses" });
+  }
+});
+
+// GET /admin/abandoned-carts?from=&to=&status=
+router.get("/admin/abandoned-carts", requireAdminAuth, async (req, res) => {
+  const { from, to, status } = req.query as { from?: string; to?: string; status?: string };
+
+  const conditions = [];
+  if (from) {
+    const d = new Date(from);
+    if (!isNaN(d.getTime())) conditions.push(gte(abandonedCarts.createdAt, d));
+  }
+  if (to) {
+    const d = new Date(to);
+    if (!isNaN(d.getTime())) conditions.push(lte(abandonedCarts.createdAt, d));
+  }
+  if (status) {
+    conditions.push(eq(abandonedCarts.status, status));
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  try {
+    const [startedCount] = await db.select({ count: count() }).from(abandonedCarts)
+      .where(whereClause ? and(whereClause, eq(abandonedCarts.status, "started")) : eq(abandonedCarts.status, "started"));
+    const [sentCount] = await db.select({ count: count() }).from(abandonedCarts)
+      .where(whereClause ? and(whereClause, eq(abandonedCarts.status, "email_sent")) : eq(abandonedCarts.status, "email_sent"));
+    const [clickedCount] = await db.select({ count: count() }).from(abandonedCarts)
+      .where(whereClause ? and(whereClause, eq(abandonedCarts.status, "clicked")) : eq(abandonedCarts.status, "clicked"));
+    const [recoveredCount] = await db.select({ count: count() }).from(abandonedCarts)
+      .where(whereClause ? and(whereClause, eq(abandonedCarts.status, "recovered")) : eq(abandonedCarts.status, "recovered"));
+
+    const started = startedCount?.count ?? 0;
+    const sent = sentCount?.count ?? 0;
+    const clicked = clickedCount?.count ?? 0;
+    const recovered = recoveredCount?.count ?? 0;
+    const totalStarted = started + sent + clicked + recovered;
+    const recoveryRate = totalStarted > 0 ? Math.round((recovered / totalStarted) * 1000) / 10 : 0;
+
+    const rows = await db.select().from(abandonedCarts)
+      .where(whereClause)
+      .orderBy(desc(abandonedCarts.createdAt));
+
+    const items = rows.map((r) => ({
+      id: r.id,
+      email: r.email,
+      totalAmount: r.totalAmount,
+      status: r.status,
+      lineItemsCount: Array.isArray(r.lineItems) ? r.lineItems.length : 0,
+      createdAt: r.createdAt,
+      emailSentAt: r.emailSentAt,
+      clickedAt: r.clickedAt,
+      recoveredAt: r.recoveredAt,
+    }));
+
+    res.status(200).json({
+      stats: { started, sent, clicked, recovered, totalStarted, recoveryRate },
+      items,
+    });
+  } catch (err) {
+    req.log.error({ err }, "abandoned-cart: admin fetch failed");
+    res.status(500).json({ error: "Failed to fetch abandoned carts" });
   }
 });
 

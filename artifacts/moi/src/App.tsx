@@ -10,7 +10,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { ProductDivider } from "@/components/ProductDivider";
 import { EditorialStrip } from "@/components/EditorialStrip";
 import { LookView } from "@/components/LookView";
-import { CartProvider } from "@/context/CartContext";
+import { CartProvider, useCart } from "@/context/CartContext";
 import { CustomerProvider } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
@@ -80,6 +80,45 @@ function AppContent() {
   const handleHeroReady = useMemo(() => () => setHeroReady(true), []);
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
   useRestockChecker();
+  const cart = useCart();
+
+  // Handle abandoned-cart recovery links (?recover-cart=TOKEN)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("recover-cart");
+    if (!token) return;
+
+    fetch(`/api/abandoned-carts/recover?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((data: unknown) => {
+        const d = data as { recovered?: boolean; email?: string; cartId?: string; lineItems?: Array<{ title: string; variant?: string; quantity: number; price: string; imageUrl?: string }>; totalAmount?: string };
+        if (d.recovered) {
+          window.history.replaceState(null, "", window.location.pathname);
+          return;
+        }
+        if (d.lineItems && d.lineItems.length > 0 && cart) {
+          // Clear current cart and add recovered items
+          cart.clearCart();
+          for (const item of d.lineItems) {
+            // We need variantId to add to Shopify cart. Use a placeholder.
+            cart.addToCart({
+              title: item.title,
+              price: item.price,
+              priceAmount: parseFloat(item.price),
+              quantity: item.quantity,
+              image: item.imageUrl ?? null,
+            }).catch(() => {});
+          }
+          cart.openCheckout();
+        }
+        window.history.replaceState(null, "", window.location.pathname);
+      })
+      .catch(() => {
+        window.history.replaceState(null, "", window.location.pathname);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const product1 = products[0] ?? IMAGES.product1;
   const product2 = products[1] ?? IMAGES.product2;

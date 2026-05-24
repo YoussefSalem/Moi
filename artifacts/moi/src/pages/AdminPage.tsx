@@ -728,9 +728,169 @@ function DiscountsTab({ token }: { token: string }) {
   );
 }
 
+interface AbandonedCartItem {
+  id: number;
+  email: string;
+  totalAmount: string;
+  status: string;
+  lineItemsCount: number;
+  createdAt: string;
+  emailSentAt: string | null;
+  clickedAt: string | null;
+  recoveredAt: string | null;
+}
+
+interface AbandonedStats {
+  started: number;
+  sent: number;
+  clicked: number;
+  recovered: number;
+  totalStarted: number;
+  recoveryRate: number;
+}
+
+function AbandonedCartsTab({ token }: { token: string }) {
+  const [items, setItems] = useState<AbandonedCartItem[]>([]);
+  const [stats, setStats] = useState<AbandonedStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter) params.set("status", statusFilter);
+      if (dateFrom) params.set("from", dateFrom);
+      if (dateTo) params.set("to", dateTo);
+      const res = await fetch(`/api/admin/abandoned-carts?${params.toString()}`, { headers: apiHeaders(token) });
+      if (!res.ok) { setError("Failed to load abandoned carts."); setLoading(false); return; }
+      const data = await res.json() as { stats: AbandonedStats; items: AbandonedCartItem[] };
+      setStats(data.stats);
+      setItems(data.items);
+      setLoading(false);
+    } catch { setError("Network error."); setLoading(false); }
+  }, [token, statusFilter, dateFrom, dateTo]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const statusColors: Record<string, { bg: string; text: string }> = {
+    started: { bg: "rgba(180,140,40,0.12)", text: "#8a6a10" },
+    email_sent: { bg: "rgba(60,100,140,0.12)", text: "#2d5a7e" },
+    clicked: { bg: "rgba(60,120,60,0.12)", text: "#2d6e2d" },
+    recovered: { bg: "rgba(60,120,60,0.12)", text: "#2d6e2d" },
+  };
+
+  const formatDate = (d: string | null) => d
+    ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    : "—";
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div>
+          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 26, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>
+            Abandoned Carts
+          </p>
+          <p style={{ ...mono, fontSize: 11, letterSpacing: "0.15em", color: "rgba(30,24,20,0.5)", textTransform: "uppercase" }}>
+            Recovery funnel & stats
+          </p>
+        </div>
+        <button onClick={() => void load()} style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)", display: "flex", alignItems: "center", gap: 6 }}>
+          <RefreshCw size={12} strokeWidth={2} /> Refresh
+        </button>
+      </div>
+
+      {/* Stats cards */}
+      {stats && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 28 }}>
+          {[
+            { label: "Started", value: stats.totalStarted, sub: "entered checkout" },
+            { label: "Emails Sent", value: stats.sent, sub: "recovery emails" },
+            { label: "Clicked", value: stats.clicked, sub: "email links clicked" },
+            { label: "Recovered", value: stats.recovered, sub: "orders placed" },
+            { label: "Recovery Rate", value: `${stats.recoveryRate}%`, sub: "of all who started" },
+          ].map((s) => (
+            <div key={s.label} style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)", padding: "16px 18px" }}>
+              <p style={{ ...mono, fontSize: 22, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>{s.value}</p>
+              <p style={{ ...mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700 }}>{s.label}</p>
+              <p style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.4)", marginTop: 2 }}>{s.sub}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          style={{ ...inputStyle, width: "auto", minWidth: 140 }}
+        >
+          <option value="">All Statuses</option>
+          <option value="started">Started</option>
+          <option value="email_sent">Email Sent</option>
+          <option value="clicked">Clicked</option>
+          <option value="recovered">Recovered</option>
+        </select>
+        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ ...inputStyle, width: "auto" }} />
+        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ ...inputStyle, width: "auto" }} />
+        <button onClick={() => { setStatusFilter(""); setDateFrom(""); setDateTo(""); }} style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.6)", fontSize: 10 }}>
+          Clear
+        </button>
+      </div>
+
+      {loading && <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Loading…</p>}
+      {error && <p style={{ fontSize: 13, color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>}
+
+      {!loading && !error && (
+        items.length === 0 ? (
+          <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.45)", textAlign: "center", padding: "48px 0" }}>No abandoned carts yet.</p>
+        ) : (
+          <div style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)", overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", backgroundColor: "#faf8f5" }}>
+                  {["Email", "Items", "Total", "Status", "Created", "Sent", "Clicked", "Recovered"].map((h) => (
+                    <th key={h} style={{ ...mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, textAlign: "left", padding: "10px 14px" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, i) => {
+                  const sc = statusColors[item.status] ?? { bg: "rgba(30,24,20,0.1)", text: "rgba(30,24,20,0.7)" };
+                  return (
+                    <tr key={item.id} style={{ borderBottom: i < items.length - 1 ? "1px solid rgba(30,24,20,0.05)" : "none" }}>
+                      <td style={{ ...mono, fontSize: 13, color: "#1e1814", padding: "10px 14px" }}>{item.email}</td>
+                      <td style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.7)", padding: "10px 14px" }}>{item.lineItemsCount}</td>
+                      <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 600, padding: "10px 14px" }}>{item.totalAmount}&nbsp;EGP</td>
+                      <td style={{ padding: "10px 14px" }}>
+                        <span style={{ ...mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px", backgroundColor: sc.bg, color: sc.text }}>
+                          {item.status.replace("_", " ")}
+                        </span>
+                      </td>
+                      <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px" }}>{formatDate(item.createdAt)}</td>
+                      <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px" }}>{formatDate(item.emailSentAt)}</td>
+                      <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px" }}>{formatDate(item.clickedAt)}</td>
+                      <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px" }}>{formatDate(item.recoveredAt)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
 export function AdminPage() {
   const [token, setToken] = useState<string | null>(() => getStoredToken());
-  const [tab, setTab] = useState<"proofs" | "discounts" | "settings">("proofs");
+  const [tab, setTab] = useState<"proofs" | "abandoned" | "discounts" | "settings">("proofs");
 
   if (!token) {
     return <PinGate onAuth={setToken} />;
@@ -755,7 +915,7 @@ export function AdminPage() {
 
       {/* Tabs */}
       <div style={{ borderBottom: "1px solid rgba(30,24,20,0.16)", backgroundColor: "#fff", paddingLeft: 24 }}>
-        {(["proofs", "discounts", "settings"] as const).map((t) => (
+        {(["proofs", "abandoned", "discounts", "settings"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -770,7 +930,7 @@ export function AdminPage() {
               borderRadius: 0,
             }}
           >
-            {t === "proofs" ? "Payments" : t === "discounts" ? "Discounts" : "Settings"}
+            {t === "proofs" ? "Payments" : t === "abandoned" ? "Abandoned Carts" : t === "discounts" ? "Discounts" : "Settings"}
           </button>
         ))}
       </div>
@@ -781,6 +941,10 @@ export function AdminPage() {
           {tab === "proofs" ? (
             <motion.div key="proofs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <ProofsTab token={token} />
+            </motion.div>
+          ) : tab === "abandoned" ? (
+            <motion.div key="abandoned" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <AbandonedCartsTab token={token} />
             </motion.div>
           ) : tab === "discounts" ? (
             <motion.div key="discounts" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

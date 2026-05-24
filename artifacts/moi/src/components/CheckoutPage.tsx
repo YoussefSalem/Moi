@@ -337,6 +337,13 @@ export function CheckoutPage() {
   }, [applyDiscount]);
 
   const handleSuccessDone = useCallback(() => {
+    // Mark abandoned cart as recovered if we tracked one
+    if (abandonedCartIdRef.current) {
+      fetch(`/api/abandoned-carts/${abandonedCartIdRef.current}/recovered`, {
+        method: "POST",
+      }).catch(() => {});
+      abandonedCartIdRef.current = null;
+    }
     clearCart();
     setStep("email");
     setEmailInput("");
@@ -577,6 +584,8 @@ export function CheckoutPage() {
     closeCheckout();
   }, [clearCart, closeCheckout]);
 
+  const abandonedCartIdRef = useRef<number | null>(null);
+
   const handleEmailContinue = useCallback(async () => {
     const email = emailInput.trim();
     if (!email) return;
@@ -587,15 +596,39 @@ export function CheckoutPage() {
       // Fire-and-forget: set buyer identity on cart via Storefront API
       cartBuyerIdentityUpdate(cartId, email).catch(() => {});
 
-      // Fire-and-forget: register with server (sets buyer identity + returns
-      // checkout URL for potential abandoned-checkout tracking).
-      fetch("/api/checkouts/register", {
+      // Fire-and-forget: record abandoned cart for recovery email
+      const lineItems = isShopify && shopifyCart
+        ? shopifyCart.lines.nodes.map((l) => ({
+            title: l.merchandise.product.title,
+            variant: l.merchandise.title === "Default Title" ? undefined : l.merchandise.title,
+            quantity: l.quantity,
+            price: fmt(parseFloat(l.merchandise.price.amount)),
+            imageUrl: resolveLineImage(l, localItems) ?? undefined,
+          }))
+        : localItems.map((i) => ({
+            title: i.title,
+            quantity: i.quantity,
+            price: i.price,
+            imageUrl: i.image ?? undefined,
+          }));
+      fetch("/api/abandoned-carts/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, cartId }),
-      }).catch(() => {});
+        body: JSON.stringify({
+          email,
+          cartId,
+          lineItems,
+          totalAmount: fmt(totalAmount),
+        }),
+      })
+        .then((r) => r.json())
+        .then((data: unknown) => {
+          const id = (data as { id?: number })?.id;
+          if (id) abandonedCartIdRef.current = id;
+        })
+        .catch(() => {});
     }
-  }, [emailInput, shopifyCart]);
+  }, [emailInput, shopifyCart, isShopify, localItems, totalAmount, fmt]);
 
   const handleIframeSuccess = useCallback((txnId?: string) => {
     setPaymobIframeUrl(null);
