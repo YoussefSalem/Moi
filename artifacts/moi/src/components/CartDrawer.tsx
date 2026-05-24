@@ -138,6 +138,26 @@ export function CartDrawer() {
               </button>
             </div>
 
+            {/* Delivery estimate — placed under header for visibility */}
+            {hasItems && (
+              <div className="px-7 pt-5 pb-1">
+                <p
+                  className="text-[14px] tracking-[0.12em] font-medium"
+                  style={{ color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif" }}
+                >
+                  {(() => {
+                    const now = new Date();
+                    const start = new Date(now);
+                    start.setDate(now.getDate() + 2);
+                    const end = new Date(now);
+                    end.setDate(now.getDate() + 4);
+                    const fmt = (d: Date) => `${d.getDate()} ${d.toLocaleDateString("en-GB", { month: "long" })}`;
+                    return `Order now and get it between ${fmt(start)} \u2013 ${fmt(end)}`;
+                  })()}
+                </p>
+              </div>
+            )}
+
             {/* Items */}
             <div className="flex-1 overflow-y-auto px-7 py-6">
               {!hasItems ? (
@@ -367,20 +387,6 @@ export function CartDrawer() {
                     style={{ color: "#6b8f5e" }}
                   >
                     Free shipping on orders over 2,000 EGP
-                  </p>
-                  <p
-                    className="text-[11px] tracking-[0.2em] uppercase font-medium text-center mt-1.5"
-                    style={{ color: "rgba(107,143,94,0.65)" }}
-                  >
-                    {(() => {
-                      const now = new Date();
-                      const start = new Date(now);
-                      start.setDate(now.getDate() + 2);
-                      const end = new Date(now);
-                      end.setDate(now.getDate() + 4);
-                      const fmt = (d: Date) => `${d.getDate()} ${d.toLocaleDateString("en-GB", { month: "long" })}`;
-                      return `Delivery between ${fmt(start)} \u2013 ${fmt(end)}`;
-                    })()}
                   </p>
                 </div>
                 <button
