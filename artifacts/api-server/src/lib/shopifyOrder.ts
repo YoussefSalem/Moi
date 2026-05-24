@@ -341,7 +341,7 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
       if (deleteRes.ok || deleteRes.status === 404) {
         const sl = draft.shipping_line;
         const orderPayload: Record<string, unknown> = {
-          send_receipt: false,
+          send_receipt: true,
           send_fulfillment_receipt: false,
           financial_status: "pending",
           fulfillment_status: "null",
@@ -398,7 +398,7 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
   // Fallback: complete the draft the old way (usage_count won't increment, but order is created)
   if (!orderResult) {
     const completeRes = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?payment_pending=true&send_receipt=false&send_fulfillment_receipt=false`,
+      `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?payment_pending=true&send_receipt=true&send_fulfillment_receipt=false`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
@@ -646,7 +646,7 @@ export async function createDraftOrder(params: {
   }
 
   const completeRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?payment_pending=true&send_receipt=false&send_fulfillment_receipt=false`,
+    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?payment_pending=true&send_receipt=true&send_fulfillment_receipt=false`,
     {
       method: "PUT",
       headers: {
@@ -786,7 +786,7 @@ export async function createShopifyDirectOrder(params: {
   }
 
   const orderPayload: Record<string, unknown> = {
-    send_receipt: false,
+    send_receipt: true,
     send_fulfillment_receipt: false,
     financial_status: params.financialStatus ?? "pending",
     fulfillment_status: "null",

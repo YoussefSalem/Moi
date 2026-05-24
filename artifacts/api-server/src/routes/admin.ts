@@ -546,7 +546,7 @@ router.post("/admin/test-discount-counter", requireAdminAuth, async (req, res) =
     headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
     body: JSON.stringify({
       order: {
-        send_receipt: false,
+        send_receipt: true,
         send_fulfillment_receipt: false,
         financial_status: "pending",
         line_items: [{ variant_id: variantId, quantity: 1, price: variantPrice }],
