@@ -101,7 +101,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
           <video
             ref={videoRef}
             className="w-full h-full object-cover object-top"
-            src={IMAGES.hero.videoUrl}
+            src={IMAGES.hero.videoUrl || undefined}
             loop muted playsInline autoPlay
             poster={IMAGES.hero.fallbackUrl}
           />

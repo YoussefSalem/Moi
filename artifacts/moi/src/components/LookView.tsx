@@ -15,7 +15,7 @@ const GRAD_COLOR = "rgba(210,195,175,0.08)";
 export function LookView({ product, onClose }: LookViewProps) {
   const [activeImage, setActiveImage] = useState<string | null>(null);
   // displaySrc is what's actually rendered — lags activeImage by ~180ms for crossfade
-  const [displaySrc, setDisplaySrc] = useState<string>("");
+  const [displaySrc, setDisplaySrc] = useState<string | undefined>(undefined);
   // fading: image is transitioning out (opacity → 0)
   const [fading, setFading] = useState(false);
   const [addedFeedback, setAddedFeedback] = useState(false);
@@ -56,7 +56,7 @@ export function LookView({ product, onClose }: LookViewProps) {
   useEffect(() => {
     const initialSrc = product?.look.model ?? "";
     setActiveImage(initialSrc || null);
-    setDisplaySrc(initialSrc);
+    setDisplaySrc(initialSrc || undefined);
     setFading(false);
     setThumbLoading(false);
     setAddedFeedback(false);

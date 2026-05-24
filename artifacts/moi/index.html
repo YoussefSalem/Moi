@@ -96,10 +96,6 @@
       fbq('track','PageView');
     }
     </script>
-    <noscript>
-      <img height="1" width="1" style="display:none"
-           src="https://www.facebook.com/tr?id=2281707575977889&ev=PageView&noscript=1" />
-    </noscript>
     <!-- End Meta Pixel Code -->
 
     <!-- Google Analytics 4 — only loads when a real ID is configured -->
@@ -159,7 +155,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       *,*::before,*::after{box-sizing:border-box}
       html,body{margin:0;padding:0;background:#faf8f5;color:#1e1814;-webkit-font-smoothing:antialiased}
       body{overflow-x:hidden}
-      #root{min-height:100svh}
+      #root{position:relative;min-height:100svh}
     </style>
     <script>
       // Delay hiding SEO prerender until after first frame paints → fast FCP
@@ -169,6 +165,11 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     </script>
   </head>
   <body>
+    <!-- Meta Pixel noscript fallback (must be in body, not head) -->
+    <noscript>
+      <img height="1" width="1" style="display:none"
+           src="https://www.facebook.com/tr?id=2281707575977889&ev=PageView&noscript=1" />
+    </noscript>
     <div id="root">
       <!-- Static prerendered content for SEO crawlers and noscript -->
       <div id="seo-prerender" style="font-family:'Montserrat',sans-serif;background:#faf8f5;color:#1e1814">
