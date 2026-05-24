@@ -478,7 +478,7 @@ export function buildAbandonedCartEmail(params: {
           <td style="vertical-align:top;">
             <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;line-height:1.4;font-weight:700;">${item.title}</p>${variant}
             <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#9a8e82;">Qty: ${item.quantity}</p>
-            <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;font-weight:700;">${item.price}&nbsp;EGP</p>
+            <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;font-weight:700;">${item.price}</p>
           </td>
         </tr>
       </table>
@@ -599,7 +599,7 @@ export function buildAbandonedCartEmail(params: {
                     </td>
                     <td style="padding:0 12px;">
                       <a href="https://www.tiktok.com/@shopmoi_" target="_blank" style="text-decoration:none;">
-                        <img src="https://cdn-icons-png.flaticon.com/512/3046/3046126.png" alt="TikTok" width="24" height="24" style="display:block;border:0;" />
+                        <img src="https://cdn-icons-png.flaticon.com/512/733/733635.png" alt="TikTok" width="24" height="24" style="display:block;border:0;" />
                       </a>
                     </td>
                   </tr>

@@ -533,8 +533,8 @@ router.post("/admin/abandoned-carts/send-test", requireAdminAuth, async (req, re
         variant: i.variant,
       }))
     : [
-        { title: "Moi Wavvy", price: "1.690", quantity: 1, variant: "Beige", imageUrl: "https://buy-moi.com/images/beige.webp" },
-        { title: "Moi Versa Top", price: "1.690", quantity: 1, variant: "White", imageUrl: "https://buy-moi.com/images/white.webp" },
+        { title: "Moi Wavvy", price: "1.690 EGP", quantity: 1, variant: "Beige", imageUrl: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=300&h=400&fit=crop&q=80" },
+        { title: "Moi Versa Top", price: "1.690 EGP", quantity: 1, variant: "White", imageUrl: "https://images.unsplash.com/photo-1434389677669-e08b4dba3a63?w=300&h=400&fit=crop&q=80" },
       ];
   const totalAmount = body.totalAmount ?? sampleItems.reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0).toFixed(3);
 
