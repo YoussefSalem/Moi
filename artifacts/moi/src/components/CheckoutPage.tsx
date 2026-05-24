@@ -587,29 +587,13 @@ export function CheckoutPage() {
       // Fire-and-forget: set buyer identity on cart via Storefront API
       cartBuyerIdentityUpdate(cartId, email).catch(() => {});
 
-      // Fire-and-forget: register with server and silently open Shopify checkout
-      // in a background tab so Shopify's checkout SPA creates a real checkout
-      // object that appears in the Abandoned Checkouts admin page.
+      // Fire-and-forget: register with server (sets buyer identity + returns
+      // checkout URL for potential abandoned-checkout tracking).
       fetch("/api/checkouts/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, cartId }),
-      })
-        .then((r) => r.json())
-        .then((data: unknown) => {
-          const checkoutUrl = (data as { checkoutUrl?: string })?.checkoutUrl;
-          if (checkoutUrl) {
-            // window.open from a click handler is allowed by popup blockers.
-            // The tab loads Shopify's checkout SPA which creates the checkout
-            // object on Shopify's server. We try to close it after a few seconds;
-            // if the browser blocks closing a cross-origin tab it just stays open.
-            const win = window.open(checkoutUrl, "_blank");
-            if (win) {
-              setTimeout(() => { try { win.close(); } catch {} }, 5000);
-            }
-          }
-        })
-        .catch(() => {});
+      }).catch(() => {});
     }
   }, [emailInput, shopifyCart]);
 
