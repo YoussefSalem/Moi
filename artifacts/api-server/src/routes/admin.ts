@@ -335,10 +335,27 @@ router.post("/admin/instapay-proofs/:id/reject", async (req, res) => {
     .set({ status: "rejected", rejectionReason: reason ?? null, reviewedAt: new Date() })
     .where(eq(instapayProofs.id, id));
 
-  // Step 2: Delete the Shopify draft order (order never became real, so we just delete the draft)
+  // Step 2: Fetch customer email from draft order BEFORE deleting it (need email for rejection notification)
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
+  let customerEmail = "";
 
+  if (storeDomain && adminToken && proof.draftOrderId) {
+    try {
+      const draftRes = await fetch(
+        `https://${storeDomain}/admin/api/2024-04/draft_orders/${proof.draftOrderId}.json?fields=email`,
+        { headers: { "X-Shopify-Access-Token": adminToken } },
+      );
+      if (draftRes.ok) {
+        const d = await draftRes.json() as { draft_order?: { email?: string } };
+        customerEmail = d.draft_order?.email ?? "";
+      }
+    } catch (err) {
+      req.log.warn({ err }, "Could not fetch customer email from draft order for rejection");
+    }
+  }
+
+  // Step 3: Delete the Shopify draft order (order never became real, so we just delete the draft)
   if (storeDomain && adminToken && proof.draftOrderId) {
     try {
       const deleteRes = await fetch(
@@ -356,23 +373,6 @@ router.post("/admin/instapay-proofs/:id/reject", async (req, res) => {
       }
     } catch (err) {
       req.log.error({ err, draftOrderId: proof.draftOrderId }, "Shopify draft order delete request failed");
-    }
-  }
-
-  // Step 3: Fetch customer email from draft order for rejection email
-  let customerEmail = "";
-  if (storeDomain && adminToken && proof.draftOrderId) {
-    try {
-      const draftRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/draft_orders/${proof.draftOrderId}.json?fields=email`,
-        { headers: { "X-Shopify-Access-Token": adminToken } },
-      );
-      if (draftRes.ok) {
-        const d = await draftRes.json() as { draft_order?: { email?: string } };
-        customerEmail = d.draft_order?.email ?? "";
-      }
-    } catch (err) {
-      req.log.warn({ err }, "Could not fetch customer email from draft order for rejection");
     }
   }
 
