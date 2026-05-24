@@ -98,19 +98,20 @@ function AppContent() {
           return;
         }
         if (d.lineItems && d.lineItems.length > 0 && cart) {
-          // Clear current cart and add recovered items
+          // Clear current cart then add recovered items sequentially, then open checkout
           cart.clearCart();
-          for (const item of d.lineItems) {
-            // We need variantId to add to Shopify cart. Use a placeholder.
-            cart.addToCart({
-              title: item.title,
-              price: item.price,
-              priceAmount: parseFloat(item.price),
-              quantity: item.quantity,
-              image: item.imageUrl ?? null,
-            }).catch(() => {});
-          }
-          cart.openCheckout();
+          (async () => {
+            for (const item of d.lineItems!) {
+              await cart.addToCart({
+                title: item.title,
+                price: item.price,
+                priceAmount: parseFloat(item.price.replace(/[^0-9.]/g, "")),
+                quantity: item.quantity,
+                image: item.imageUrl ?? null,
+              }).catch(() => {});
+            }
+            cart.openCheckout();
+          })();
         }
         window.history.replaceState(null, "", window.location.pathname);
       })
