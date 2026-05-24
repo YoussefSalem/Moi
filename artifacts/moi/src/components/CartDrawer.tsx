@@ -141,7 +141,7 @@ export function CartDrawer() {
             {/* Delivery estimate — placed under header for visibility */}
             {hasItems && (
               <div className="px-7 pt-5 pb-1">
-                <p
+                <div
                   className="text-[14px] tracking-[0.12em] font-medium"
                   style={{ color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif" }}
                 >
@@ -152,9 +152,14 @@ export function CartDrawer() {
                     const end = new Date(now);
                     end.setDate(now.getDate() + 4);
                     const fmt = (d: Date) => `${d.getDate()} ${d.toLocaleDateString("en-GB", { month: "long" })}`;
-                    return `Order now and get it between ${fmt(start)} \u2013 ${fmt(end)}`;
+                    return (
+                      <>
+                        <p>Order now</p>
+                        <p>and get it between {fmt(start)} \u2013 {fmt(end)}</p>
+                      </>
+                    );
                   })()}
-                </p>
+                </div>
               </div>
             )}
 
