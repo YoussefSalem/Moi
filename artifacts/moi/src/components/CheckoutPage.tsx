@@ -34,15 +34,22 @@ function normalizeTitle(t: string) {
 }
 
 // Public image URLs for emails (Vite-hashed /assets/ paths only work in the browser)
+const BASE_IMG = "https://buy-moi.com/images";
 const PUBLIC_COLOR_IMAGES: Record<string, string> = {
-  beige: "https://buy-moi.com/images/beige.webp",
-  white: "https://buy-moi.com/images/white.webp",
-  cashmere: "https://buy-moi.com/images/cashmere.webp",
-  yellow: "https://buy-moi.com/images/yellow.webp",
-  teal: "https://buy-moi.com/images/teal.webp",
-  "light blue": "https://buy-moi.com/images/light-blue-main.webp",
-  navy: "https://buy-moi.com/images/navi.webp",
-  mint: "https://buy-moi.com/images/mint.webp",
+  beige: `${BASE_IMG}/beige.webp`,
+  white: `${BASE_IMG}/white.webp`,
+  cashmere: `${BASE_IMG}/cashmere.webp`,
+  cashemere: `${BASE_IMG}/cashmere.webp`,
+  yellow: `${BASE_IMG}/yellow.webp`,
+  teal: `${BASE_IMG}/teal.webp`,
+  "light blue": `${BASE_IMG}/light-blue-main.webp`,
+  navy: `${BASE_IMG}/navi.webp`,
+  mint: `${BASE_IMG}/mint.webp`,
+  ivory: `${BASE_IMG}/ivory.webp`,
+  sand: `${BASE_IMG}/sand.webp`,
+  taupe: `${BASE_IMG}/taupe.webp`,
+  espresso: `${BASE_IMG}/espresso.webp`,
+  brown: `${BASE_IMG}/brown.webp`,
 };
 
 function resolveLineImage(line: ShopifyCartLine, localItems?: { variantId: string; color?: string; image?: string | null }[]): string | null {
@@ -103,9 +110,11 @@ function resolveEmailImage(line: ShopifyCartLine, localItems?: { variantId: stri
     }
   }
 
-  // Shopify CDN images are already public
-  if (line.merchandise.image?.url) return line.merchandise.image.url;
-  if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
+  // Only trust Shopify CDN URLs that look real (cdn.shopify.com or shopify CDN)
+  const shopifyUrl = line.merchandise.image?.url ?? line.merchandise.product.featuredImage?.url ?? "";
+  if (shopifyUrl && (shopifyUrl.includes("cdn.shopify.com") || shopifyUrl.includes("shopify"))) {
+    return shopifyUrl;
+  }
 
   // Map color to public image URL
   for (const color of colorCandidates) {
@@ -117,7 +126,7 @@ function resolveEmailImage(line: ShopifyCartLine, localItems?: { variantId: stri
   const productHit = PRODUCT_SHOT_MAP[normTitle] ?? PRODUCT_SHOT_MAP[rawTitle.toLowerCase()];
   if (productHit && productHit.startsWith("http")) return productHit;
 
-  // Last resort: localStorage image (may be hashed)
+  // Last resort: localStorage image (must be public URL)
   if (localMatch?.image && localMatch.image.startsWith("http")) return localMatch.image;
 
   return null;

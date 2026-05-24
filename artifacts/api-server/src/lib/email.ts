@@ -478,7 +478,7 @@ export function buildAbandonedCartEmail(params: {
           <td style="vertical-align:top;">
             <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;line-height:1.4;font-weight:700;">${item.title}</p>${variant}
             <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#9a8e82;">Qty: ${item.quantity}</p>
-            <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;font-weight:700;">${item.price}</p>
+            <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;font-weight:700;">${item.price.replace(/\s*EGP\s*/i, "").trim()}&nbsp;EGP</p>
           </td>
         </tr>
       </table>
@@ -594,12 +594,12 @@ export function buildAbandonedCartEmail(params: {
                   <tr>
                     <td style="padding:0 12px;">
                       <a href="https://www.instagram.com/shopmoi___" target="_blank" style="text-decoration:none;">
-                        <img src="https://cdn-icons-png.flaticon.com/512/1384/1384031.png" alt="Instagram" width="24" height="24" style="display:block;border:0;" />
+                        <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%231a1714%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2220%22%20height%3D%2220%22%20rx%3D%225%22%20ry%3D%225%22%2F%3E%3Cpath%20d%3D%22M16%2011.37A4%204%200%201%201%2012.63%208%204%204%200%200%201%2016%2011.37z%22%2F%3E%3Cline%20x1%3D%2217.5%22%20y1%3D%226.5%22%20x2%3D%2217.51%22%20y2%3D%226.5%22%2F%3E%3C%2Fsvg%3E" alt="Instagram" width="24" height="24" style="display:block;border:0;" />
                       </a>
                     </td>
                     <td style="padding:0 12px;">
                       <a href="https://www.tiktok.com/@shopmoi_" target="_blank" style="text-decoration:none;">
-                        <img src="https://cdn-icons-png.flaticon.com/512/733/733635.png" alt="TikTok" width="24" height="24" style="display:block;border:0;" />
+                        <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%231a1714%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M9%2012a4%204%200%201%200%204%204V4a5%205%200%200%200%205%205%22%2F%3E%3C%2Fsvg%3E" alt="TikTok" width="24" height="24" style="display:block;border:0;" />
                       </a>
                     </td>
                   </tr>
