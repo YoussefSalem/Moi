@@ -9,6 +9,7 @@ import {
   createBostaShipment,
   createShopifyFulfillment,
   addShopifyFulfillmentEvent,
+  completeShopifyCheckout,
 } from "../lib/integrations";
 import { createShopifyDirectOrder, recordDiscountCodeUse, type OrderLine, type CustomerInfo, type ShopifyLineItem, type OrderAttribution } from "../lib/shopifyOrder";
 import { sendEmail, buildOrderConfirmationEmail } from "../lib/email";
@@ -82,6 +83,7 @@ router.post("/webhooks/paymob", async (req, res) => {
         discountCode: paymobIntents.discountCode,
         total: paymobIntents.total,
         attribution: paymobIntents.attribution,
+        checkoutToken: paymobIntents.checkoutToken,
       });
 
     if (claimed.length === 0) {
@@ -143,6 +145,11 @@ router.post("/webhooks/paymob", async (req, res) => {
       .where(eq(paymobIntents.intentId, intentId));
 
     req.log.info({ intentId, shopifyOrderId, shopifyOrderNumber, paymobTxnId }, "Paymob webhook: Shopify order created");
+
+    // Mark the Shopify abandoned checkout as complete (fire-and-forget)
+    if (intent.checkoutToken) {
+      void completeShopifyCheckout(intent.checkoutToken);
+    }
 
     // Record discount code use so Shopify's usage_limit is enforced across API orders
     if (intent.discountCode && shopifyDiscountAmount) {

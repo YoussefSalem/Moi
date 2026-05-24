@@ -16,6 +16,7 @@ router.post("/orders/paymob-init", async (req, res) => {
     cartId?: unknown;
     discountCode?: unknown;
     attribution?: unknown;
+    checkoutToken?: unknown;
   };
 
   if (!Array.isArray(body.lines) || body.lines.length === 0) {
@@ -48,6 +49,7 @@ router.post("/orders/paymob-init", async (req, res) => {
   const lines = body.lines as OrderLine[];
   const discountCode = typeof body.discountCode === "string" && body.discountCode.trim() ? body.discountCode.trim() : undefined;
   const cartId = typeof body.cartId === "string" && body.cartId.trim() ? body.cartId.trim() : undefined;
+  const checkoutToken = typeof body.checkoutToken === "string" && body.checkoutToken.trim() ? body.checkoutToken.trim() : null;
 
   // Extract attribution from request body
   let attribution: OrderAttribution | undefined;
@@ -106,6 +108,7 @@ router.post("/orders/paymob-init", async (req, res) => {
     total,
     status: "pending",
     attribution: attribution as Record<string, unknown> | null ?? null,
+    checkoutToken,
   });
 
   req.log.info({ intentId, amountCents, total }, "Paymob intent saved — creating Paymob intention");

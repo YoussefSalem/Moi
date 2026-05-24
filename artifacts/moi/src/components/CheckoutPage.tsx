@@ -240,6 +240,7 @@ export function CheckoutPage() {
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
   const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
+  const [shopifyCheckoutToken, setShopifyCheckoutToken] = useState<string | null>(null);
   const isApplyingRef = useRef(false); // Prevents recursive re-apply while we update cart
 
   const [form, setForm] = useState({
@@ -339,6 +340,7 @@ export function CheckoutPage() {
     clearCart();
     setStep("email");
     setEmailInput("");
+    setShopifyCheckoutToken(null);
     sessionStorage.removeItem("moi_instapay_order_result");
     closeCheckout();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -388,6 +390,7 @@ export function CheckoutPage() {
             cartId: shopifyCart?.id ?? null,
             discountCode: promoApplied?.code ?? null,
             attribution: buildOrderAttribution(),
+            checkoutToken: shopifyCheckoutToken ?? null,
           }),
         });
 
@@ -439,6 +442,7 @@ export function CheckoutPage() {
             cartId: shopifyCart?.id ?? null,
             discountCode: promoApplied?.code ?? null,
             attribution: buildOrderAttribution(),
+            checkoutToken: shopifyCheckoutToken ?? null,
           }),
         });
 
@@ -493,6 +497,7 @@ export function CheckoutPage() {
           cartId: shopifyCart?.id ?? null,
           discountCode: promoApplied?.code ?? null,
           attribution: buildOrderAttribution(),
+          checkoutToken: shopifyCheckoutToken ?? null,
         }),
       });
 
@@ -555,7 +560,7 @@ export function CheckoutPage() {
       setStep("form");
       setSubmitError("Network error. Please check your connection and try again.");
     }
-  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, clearCart]);
+  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, clearCart, shopifyCheckoutToken]);
 
   const handleDone = useCallback(() => {
     clearCart();
@@ -563,6 +568,7 @@ export function CheckoutPage() {
     setEmailInput("");
     setOrderResult(null);
     setPaymobIframeUrl(null);
+    setShopifyCheckoutToken(null);
     setPromoApplied(null);
     setPromoInput("");
     setGovernorateOpen(false);
@@ -583,7 +589,13 @@ export function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, cartId }),
-      }).catch(() => {});
+      })
+        .then((r) => r.json())
+        .then((data: unknown) => {
+          const token = (data as { token?: string })?.token;
+          if (token) setShopifyCheckoutToken(token);
+        })
+        .catch(() => {});
     }
   }, [emailInput, shopifyCart]);
 

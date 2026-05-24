@@ -4,6 +4,7 @@ import {
   createBostaShipment,
   addShopifyOrderNote,
   tagShopifyOrder,
+  completeShopifyCheckout,
 } from "../lib/integrations";
 import {
   createDraftOrder,
@@ -26,6 +27,7 @@ interface CreateOrderBody {
   discountCode?: unknown;
   cartId?: unknown;
   attribution?: unknown;
+  checkoutToken?: unknown;
 }
 
 function extractAttribution(body: CreateOrderBody): OrderAttribution | undefined {
@@ -115,6 +117,11 @@ router.post("/orders/instapay-init", async (req, res) => {
       ? body.discountCode.trim()
       : undefined;
 
+  const checkoutToken =
+    typeof body.checkoutToken === "string" && body.checkoutToken.trim()
+      ? body.checkoutToken.trim()
+      : undefined;
+
   const instapayAccount = process.env.INSTAPAY_ACCOUNT_NAME ?? process.env.VITE_INSTAPAY_ACCOUNT_NAME ?? "";
   const instapayNumber = process.env.INSTAPAY_ACCOUNT_NUMBER ?? process.env.VITE_INSTAPAY_ACCOUNT_NUMBER ?? "";
 
@@ -137,6 +144,11 @@ router.post("/orders/instapay-init", async (req, res) => {
     // Record discount code use so Shopify's usage_limit is enforced across API orders
     if (discountCode && result.discountAmount) {
       void recordDiscountCodeUse(discountCode, result.orderId, result.orderNumber, "instapay");
+    }
+
+    // Mark the Shopify abandoned checkout as complete (fire-and-forget)
+    if (checkoutToken) {
+      void completeShopifyCheckout(checkoutToken);
     }
 
     res.status(200).json({
@@ -197,6 +209,10 @@ router.post("/orders/create", async (req, res) => {
   const cartId =
     typeof body.cartId === "string" && body.cartId.trim()
       ? body.cartId.trim()
+      : undefined;
+  const checkoutToken =
+    typeof body.checkoutToken === "string" && body.checkoutToken.trim()
+      ? body.checkoutToken.trim()
       : undefined;
 
   req.log.info(
@@ -266,6 +282,11 @@ router.post("/orders/create", async (req, res) => {
       void addShopifyOrderNote(orderId, `Bosta tracking: ${trackingNumber}`);
       void tagShopifyOrder(orderId, `bosta-${trackingNumber}`);
       req.log.info({ trackingNumber, orderNumber }, "Bosta COD shipment created");
+    }
+
+    // Mark the Shopify abandoned checkout as complete (fire-and-forget)
+    if (checkoutToken) {
+      void completeShopifyCheckout(checkoutToken);
     }
 
     res.status(200).json({

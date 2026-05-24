@@ -465,6 +465,37 @@ export async function addShopifyFulfillmentEvent(
   ).catch(() => {});
 }
 
+/**
+ * Marks a Shopify checkout as complete so it no longer shows as abandoned.
+ * Fire-and-forget: errors are logged but never thrown.
+ */
+export async function completeShopifyCheckout(token: string): Promise<void> {
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const adminToken = await getShopifyAdminToken();
+  if (!storeDomain || !adminToken || !token) return;
+  try {
+    const res = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/checkouts/${token}/complete.json`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": adminToken,
+        },
+        body: JSON.stringify({}),
+      },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.warn({ status: res.status, body, token }, "completeShopifyCheckout: API call failed");
+    } else {
+      logger.info({ token }, "completeShopifyCheckout: checkout marked complete");
+    }
+  } catch (err) {
+    logger.warn({ err, token }, "completeShopifyCheckout: network error");
+  }
+}
+
 export function verifyShopifyHmac(
   rawBody: Buffer,
   hmacHeader: string,

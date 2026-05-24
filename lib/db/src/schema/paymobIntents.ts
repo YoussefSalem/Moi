@@ -16,6 +16,8 @@ export const paymobIntents = pgTable("paymob_intents", {
   paymobTxnId: text("paymob_txn_id"),
   /** Marketing attribution captured from the session (UTM, fbclid, gclid, ttclid) */
   attribution: jsonb("attribution"),
+  /** Shopify abandoned-checkout token from /api/checkouts/register — completed when order succeeds */
+  checkoutToken: text("checkout_token"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
