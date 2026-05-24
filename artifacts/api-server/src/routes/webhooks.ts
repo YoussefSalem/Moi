@@ -1,13 +1,6 @@
 import { Router, type IRouter } from "express";
 import {
-  sendWhatsApp,
-  createBostaShipment,
-  addShopifyOrderNote,
-  tagShopifyOrder,
   verifyShopifyHmac,
-  findOrderByTrackingNote,
-  createShopifyFulfillment,
-  addShopifyFulfillmentEvent,
 } from "../lib/integrations";
 
 const router: IRouter = Router();
@@ -99,55 +92,17 @@ router.post("/webhooks/orders-paid", async (req, res) => {
   const orderRef = `#${order.order_number ?? order.id}`;
   const total = order.total_price ?? "";
 
-  // Payment-confirmed notification and Bosta shipment are Instapay-only:
-  // COD orders are already confirmed at placement; paid event only fires for Instapay here.
-  if (!isInstapay) return;
-
-  // If admin already approved via the /admin/instapay-proofs/:id/approve endpoint,
-  // Bosta and WhatsApp have already been handled there. Skip to prevent duplicates.
-  if (tags.includes("instapay-admin-approved")) {
+  // InstaPay orders: Bosta dispatch and fulfillment are handled exclusively via the
+  // admin approval endpoint (/admin/instapay-proofs/:id/approve). The orders/paid
+  // webhook MUST NOT dispatch Bosta here — the order becomes paid automatically in
+  // Shopify before admin has reviewed the proof, causing premature fulfillment.
+  // COD orders never reach this point (financial_status stays pending until delivery).
+  if (isInstapay) {
     req.log.info(
       { orderId: order.id, orderNumber: order.order_number },
-      "orders/paid webhook: instapay-admin-approved tag found — skipping (already handled by admin approval)",
+      "orders/paid webhook: instapay order — skipping Bosta (handled exclusively by admin approval)",
     );
     return;
-  }
-
-  if (phone) {
-    void sendWhatsApp(
-      phone,
-      `✅ Payment confirmed for Moi order ${orderRef}!\n\nTotal: ${total} EGP\n\nYour order is being prepared. You'll receive a tracking update soon. Thank you for shopping with Moi. 🖤`,
-    );
-  }
-
-  if (firstName && address && order.id) {
-    const trackingNumber = await createBostaShipment({
-      firstName,
-      lastName,
-      phone,
-      address,
-      city,
-      orderReference: orderRef,
-      codAmount: 0,
-    });
-
-    if (trackingNumber) {
-      void addShopifyOrderNote(
-        order.id,
-        `Bosta tracking: ${trackingNumber}\nPayment: Instapay (confirmed)`,
-      );
-      void tagShopifyOrder(order.id, `bosta-${trackingNumber}`);
-
-      // Create a Shopify fulfillment with the Bosta tracking number
-      const fulfillmentId = await createShopifyFulfillment(order.id, trackingNumber);
-      if (fulfillmentId) {
-        void addShopifyFulfillmentEvent(order.id, fulfillmentId, "in_transit");
-        req.log.info(
-          { trackingNumber, fulfillmentId, orderNumber: order.order_number },
-          "Bosta Instapay shipment created and Shopify fulfillment opened",
-        );
-      }
-    }
   }
 });
 

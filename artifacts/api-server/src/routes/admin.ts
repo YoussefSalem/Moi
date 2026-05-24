@@ -162,73 +162,12 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
   // Step 1: Tag instapay-admin-approved FIRST (prevents duplicate Bosta in orders/paid webhook)
   await tagShopifyOrder(proof.shopifyOrderId, "instapay-admin-approved");
 
-  // Step 2: Mark order as Paid via authorization + capture (the only valid sequence for
-  // API-created pending orders — Shopify rejects "sale" and ignores financial_status PUT)
-  // Sanitize amount: strip commas (e.g. "2,049" → "2049.00") so Shopify accepts it
-  const rawAmount = proof.amount ?? "";
-  const sanitizedAmount = rawAmount.replace(/,/g, "").trim();
-  const parsedAmount = parseFloat(sanitizedAmount);
-  const shopifyAmount = isNaN(parsedAmount) ? null : parsedAmount.toFixed(2);
+  // Note: InstaPay orders become "paid" in Shopify automatically when the draft is
+  // completed at proof-submission time. No transaction step needed here — attempting
+  // to add auth/capture/sale on an already-paid order causes Shopify 422 errors.
+  // Admin approval's sole purpose is to verify the proof and dispatch Bosta.
 
-  if (storeDomain && adminToken && shopifyAmount) {
-    try {
-      // 2a. Create authorization transaction
-      const authRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}/transactions.json`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-          body: JSON.stringify({
-            transaction: {
-              kind: "authorization",
-              status: "success",
-              gateway: "manual",
-              amount: shopifyAmount,
-            },
-          }),
-        },
-      );
-
-      if (authRes.ok) {
-        const authData = await authRes.json() as { transaction?: { id?: number } };
-        const authId = authData.transaction?.id;
-        req.log.info({ shopifyOrderId: proof.shopifyOrderId, authId }, "Shopify authorization transaction recorded");
-
-        // 2b. Capture against the authorization
-        if (authId) {
-          const captureRes = await fetch(
-            `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}/transactions.json`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-              body: JSON.stringify({
-                transaction: {
-                  kind: "capture",
-                  status: "success",
-                  gateway: "manual",
-                  amount: shopifyAmount,
-                  parent_id: authId,
-                },
-              }),
-            },
-          );
-          if (captureRes.ok) {
-            req.log.info({ shopifyOrderId: proof.shopifyOrderId }, "Shopify capture transaction recorded — order marked Paid");
-          } else {
-            const errBody = await captureRes.text();
-            req.log.warn({ status: captureRes.status, body: errBody }, "Shopify capture transaction failed");
-          }
-        }
-      } else {
-        const errBody = await authRes.text();
-        req.log.warn({ status: authRes.status, body: errBody }, "Shopify authorization transaction failed");
-      }
-    } catch (err) {
-      req.log.error({ err }, "Shopify payment transaction request failed");
-    }
-  }
-
-  // Step 3: Create Bosta shipment
+  // Step 2: Create Bosta shipment
   if (proof.customerPhone && proof.customerName) {
     const nameParts = proof.customerName.trim().split(" ");
     const firstName = nameParts[0] ?? proof.customerName;
