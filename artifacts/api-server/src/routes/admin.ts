@@ -17,6 +17,7 @@ import { getMaskedConfig, savePaymobConfig, type PaymobConfig } from "../lib/pay
 import { listDiscountCodeUses } from "@workspace/db";
 import { sendEmail, buildAbandonedCartEmail } from "../lib/email";
 import { getSiteUrl } from "../lib/siteUrl";
+import { completeShopifyDraftOrder } from "../lib/shopifyOrder";
 
 const router: IRouter = Router();
 
@@ -94,6 +95,7 @@ router.get("/admin/instapay-proofs", async (req, res) => {
 
   const result = rows.map((r) => ({
     id: r.id,
+    draftOrderId: r.draftOrderId,
     shopifyOrderId: r.shopifyOrderId,
     shopifyOrderNumber: r.shopifyOrderNumber,
     customerName: r.customerName,
@@ -159,15 +161,38 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
 
-  // Step 1: Tag instapay-admin-approved FIRST (prevents duplicate Bosta in orders/paid webhook)
-  await tagShopifyOrder(proof.shopifyOrderId, "instapay-admin-approved");
+  // Step 1: Complete the Shopify draft order (converts draft → real order)
+  // The Bosta Shopify app will auto-fulfill the real order when it sees it.
+  let orderId: number | null = null;
+  let orderNumber: number | null = null;
 
-  // Step 2: Check if already fulfilled by Shopify Bosta app (skip if so)
+  if (proof.draftOrderId) {
+    const completed = await completeShopifyDraftOrder(proof.draftOrderId);
+    if (completed) {
+      orderId = completed.orderId;
+      orderNumber = completed.orderNumber;
+      req.log.info({ draftOrderId: proof.draftOrderId, orderId, orderNumber }, "InstaPay draft order completed on admin approval");
+    } else {
+      req.log.error({ draftOrderId: proof.draftOrderId }, "Failed to complete draft order on admin approval");
+      res.status(500).json({ error: "Could not complete the order. Please check Shopify and try again." });
+      return;
+    }
+  } else {
+    req.log.error({ id }, "InstaPay proof missing draftOrderId; cannot complete");
+    res.status(500).json({ error: "Proof record is missing the draft order ID." });
+    return;
+  }
+
+  // Step 2: Tag the new real order
+  await tagShopifyOrder(orderId, "instapay-admin-approved");
+  await tagShopifyOrder(orderId, "instapay");
+
+  // Step 3: Check if already fulfilled by Shopify Bosta app (skip duplicate Bosta)
   let alreadyFulfilled = false;
   if (storeDomain && adminToken) {
     try {
       const orderRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}.json?fields=fulfillment_status,shipping_address,note_attributes`,
+        `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=fulfillment_status,shipping_address,note_attributes`,
         { headers: { "X-Shopify-Access-Token": adminToken! } },
       );
       if (orderRes.ok) {
@@ -176,7 +201,7 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
         };
         alreadyFulfilled = Boolean(orderData.order.fulfillment_status);
         if (alreadyFulfilled) {
-          req.log.warn({ orderId: proof.shopifyOrderId }, "InstaPay order already fulfilled (likely by Shopify Bosta app); skipping Bosta dispatch");
+          req.log.info({ orderId }, "InstaPay order auto-fulfilled by Shopify Bosta app on approval");
         }
       }
     } catch (err) {
@@ -184,7 +209,7 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
     }
   }
 
-  // Step 3: Create Bosta shipment (skip if already fulfilled)
+  // Step 4: Create Bosta shipment (skip if already fulfilled by Bosta app)
   if (!alreadyFulfilled && proof.customerPhone && proof.customerName) {
     const nameParts = proof.customerName.trim().split(" ");
     const firstName = nameParts[0] ?? proof.customerName;
@@ -194,7 +219,7 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
     let address = "";
     try {
       const orderRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}.json?fields=shipping_address`,
+        `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=shipping_address`,
         { headers: { "X-Shopify-Access-Token": adminToken! } },
       );
       if (orderRes.ok) {
@@ -215,39 +240,39 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
         phone: proof.customerPhone,
         address,
         city,
-        orderReference: `#${proof.shopifyOrderNumber}`,
+        orderReference: `#${orderNumber}`,
         codAmount: 0,
       });
 
       if (trackingNumber) {
-        void addShopifyOrderNote(proof.shopifyOrderId, `Bosta tracking: ${trackingNumber}\nPayment: Instapay (admin approved)`);
-        void tagShopifyOrder(proof.shopifyOrderId, `bosta-${trackingNumber}`);
-        const fulfillmentId = await createShopifyFulfillment(proof.shopifyOrderId, trackingNumber);
+        void addShopifyOrderNote(orderId, `Bosta tracking: ${trackingNumber}\nPayment: Instapay (admin approved)`);
+        void tagShopifyOrder(orderId, `bosta-${trackingNumber}`);
+        const fulfillmentId = await createShopifyFulfillment(orderId, trackingNumber);
         if (fulfillmentId) {
-          void addShopifyFulfillmentEvent(proof.shopifyOrderId, fulfillmentId, "in_transit");
+          void addShopifyFulfillmentEvent(orderId, fulfillmentId, "in_transit");
         }
-        req.log.info({ trackingNumber, orderId: proof.shopifyOrderId }, "Bosta shipment created on InstaPay approval");
+        req.log.info({ trackingNumber, orderId }, "Bosta shipment created on InstaPay approval");
       }
     } catch (err) {
       req.log.error({ err }, "Bosta shipment creation failed on approve");
     }
   }
 
-  // Step 4: WhatsApp to customer
+  // Step 5: WhatsApp to customer
   if (proof.customerPhone) {
     void sendWhatsApp(
       proof.customerPhone,
-      `✅ Payment confirmed for Moi order #${proof.shopifyOrderNumber}! Your order is being prepared. You'll receive a tracking update soon. 🖤`,
+      `✅ Payment confirmed for Moi order #${orderNumber}! Your order is being prepared. You'll receive a tracking update soon. 🖤`,
     );
   }
 
-  // Step 5: Update DB
+  // Step 6: Update DB with real order IDs
   await db
     .update(instapayProofs)
-    .set({ status: "approved", reviewedAt: new Date() })
+    .set({ status: "approved", reviewedAt: new Date(), shopifyOrderId: orderId, shopifyOrderNumber: orderNumber })
     .where(eq(instapayProofs.id, id));
 
-  req.log.info({ id, shopifyOrderId: proof.shopifyOrderId }, "InstaPay proof approved");
+  req.log.info({ id, shopifyOrderId: orderId, shopifyOrderNumber: orderNumber }, "InstaPay proof approved — draft completed to real order");
   res.status(200).json({ ok: true });
 });
 
@@ -269,50 +294,39 @@ router.post("/admin/instapay-proofs/:id/reject", async (req, res) => {
     .set({ status: "rejected", rejectionReason: reason ?? null, reviewedAt: new Date() })
     .where(eq(instapayProofs.id, id));
 
-  // Step 2: Cancel & void the Shopify order — since InstaPay orders are marked
-  // "paid" automatically in Shopify at proof-submission time, we must cancel+void
-  // to properly reverse the payment record and free the inventory.
+  // Step 2: Delete the Shopify draft order (order never became real, so we just delete the draft)
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
 
-  if (storeDomain && adminToken) {
+  if (storeDomain && adminToken && proof.draftOrderId) {
     try {
-      const cancelRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/orders/${proof.shopifyOrderId}/cancel.json`,
+      const deleteRes = await fetch(
+        `https://${storeDomain}/admin/api/2024-04/draft_orders/${proof.draftOrderId}.json`,
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-          body: JSON.stringify({
-            reason: "other",
-            email: false,
-            restock: true,
-          }),
+          method: "DELETE",
+          headers: { "X-Shopify-Access-Token": adminToken },
         },
       );
-      if (cancelRes.ok) {
-        req.log.info({ shopifyOrderId: proof.shopifyOrderId }, "Shopify order cancelled on InstaPay rejection");
+      if (deleteRes.ok || deleteRes.status === 404) {
+        req.log.info({ draftOrderId: proof.draftOrderId }, "Shopify draft order deleted on InstaPay rejection");
       } else {
-        const errBody = await cancelRes.text();
-        req.log.warn({ status: cancelRes.status, body: errBody, shopifyOrderId: proof.shopifyOrderId }, "Shopify order cancel failed");
+        const errBody = await deleteRes.text();
+        req.log.warn({ status: deleteRes.status, body: errBody, draftOrderId: proof.draftOrderId }, "Shopify draft order delete failed");
       }
     } catch (err) {
-      req.log.error({ err, shopifyOrderId: proof.shopifyOrderId }, "Shopify order cancel request failed");
+      req.log.error({ err, draftOrderId: proof.draftOrderId }, "Shopify draft order delete request failed");
     }
   }
 
-  // Step 3: Note + tag on the (now-cancelled) order
-  void addShopifyOrderNote(proof.shopifyOrderId, `InstaPay proof rejected${reason ? `: ${reason}` : ""}`);
-  void tagShopifyOrder(proof.shopifyOrderId, "instapay-proof-rejected");
-
-  // Step 4: WhatsApp to customer
+  // Step 3: WhatsApp to customer
   if (proof.customerPhone) {
     void sendWhatsApp(
       proof.customerPhone,
-      `⚠️ We could not verify your payment for Moi order #${proof.shopifyOrderNumber}.${reason ? `\n\nReason: ${reason}` : ""}\n\nYour order has been cancelled. Please contact us via WhatsApp if you believe this is a mistake. 🖤`,
+      `⚠️ We could not verify your payment for Moi order.${reason ? `\n\nReason: ${reason}` : ""}\n\nYour order has been cancelled. Please contact us via WhatsApp if you believe this is a mistake. 🖤`,
     );
   }
 
-  req.log.info({ id, reason, shopifyOrderId: proof.shopifyOrderId }, "InstaPay proof rejected and order cancelled");
+  req.log.info({ id, reason, draftOrderId: proof.draftOrderId }, "InstaPay proof rejected and draft deleted");
   res.status(200).json({ ok: true });
 });
 

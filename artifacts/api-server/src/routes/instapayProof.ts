@@ -5,7 +5,6 @@ import { instapayProofs } from "@workspace/db/schema";
 import { eq, and, or } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
 import { addShopifyOrderNote, tagShopifyOrder, sendWhatsApp, getShopifyAdminToken } from "../lib/integrations";
-import { completeShopifyDraftOrder } from "../lib/shopifyOrder";
 import { sendEmail, buildInstapayPendingEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 
@@ -83,53 +82,53 @@ router.post(
       return;
     }
 
-    // 1. Complete the Shopify draft order first
-    let orderId: number;
-    let orderNumber: number;
-    let totalPrice: string;
+    // 1. Fetch draft order details from Shopify (order stays as draft until admin approval)
+    let totalPrice: string | null = null;
     let customerEmail: string | null = null;
+    let draftDiscountAmount: number | undefined;
+    let draftDiscountCode: string | undefined;
 
-    const completed = await completeShopifyDraftOrder(draftOrderId);
-    if (!completed) {
-      res.status(500).json({ error: "Could not complete the order. Please try again or contact support." });
-      return;
-    }
-    orderId = completed.orderId;
-    orderNumber = completed.orderNumber;
-    totalPrice = completed.total;
-    const discountAmount = completed.discountAmount;
-    const discountCode = completed.discountCode;
-
-    // Fetch authoritative email from the completed order
     try {
       const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
       const adminToken = await getShopifyAdminToken();
       if (storeDomain && adminToken) {
-        const orderRes = await fetch(
-          `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=email`,
+        const draftRes = await fetch(
+          `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}.json?fields=total_price,email,line_items,applied_discount,note_attributes`,
           { headers: { "X-Shopify-Access-Token": adminToken } },
         );
-        if (orderRes.ok) {
-          const orderData = await orderRes.json() as { order?: { email?: string } };
-          if (orderData.order?.email) customerEmail = orderData.order.email;
+        if (draftRes.ok) {
+          const draftData = await draftRes.json() as {
+            draft_order?: {
+              total_price?: string;
+              email?: string;
+              applied_discount?: { title?: string; amount?: string } | null;
+              note_attributes?: { name: string; value: string }[];
+            };
+          };
+          const d = draftData.draft_order;
+          if (d) {
+            totalPrice = d.total_price ?? null;
+            customerEmail = d.email ?? null;
+            if (d.applied_discount?.title) draftDiscountCode = d.applied_discount.title;
+            if (d.applied_discount?.amount) draftDiscountAmount = parseFloat(d.applied_discount.amount);
+          }
         }
       }
     } catch (err) {
-      logger.warn({ err, orderId }, "Could not fetch email from completed order");
+      logger.warn({ err, draftOrderId }, "Could not fetch draft order details");
     }
 
-    // 2. Duplicate guard — by orderId in pending|approved status
+    // 2. Duplicate guard — by draftOrderId in pending|approved status
     const existing = await db
       .select({
         id: instapayProofs.id,
-        shopifyOrderId: instapayProofs.shopifyOrderId,
-        shopifyOrderNumber: instapayProofs.shopifyOrderNumber,
+        draftOrderId: instapayProofs.draftOrderId,
         amount: instapayProofs.amount,
       })
       .from(instapayProofs)
       .where(
         and(
-          eq(instapayProofs.shopifyOrderId, orderId),
+          eq(instapayProofs.draftOrderId, draftOrderId),
           or(eq(instapayProofs.status, "pending"), eq(instapayProofs.status, "approved")),
         ),
       )
@@ -139,9 +138,9 @@ router.post(
       res.status(200).json({
         ok: true,
         alreadySubmitted: true,
-        orderNumber: existing[0].shopifyOrderNumber,
-        shopifyOrderId: existing[0].shopifyOrderId,
-        total: existing[0].amount ?? "",
+        orderNumber: draftOrderId,
+        draftOrderId,
+        total: existing[0].amount ?? totalPrice ?? "",
       });
       return;
     }
@@ -150,7 +149,7 @@ router.post(
     let screenshotKey: string;
     try {
       const ext = req.file.mimetype === "image/png" ? "png" : "jpg";
-      const key = `instapay-proofs/${orderId}-${Date.now()}.${ext}`;
+      const key = `instapay-proofs/draft-${draftOrderId}-${Date.now()}.${ext}`;
       const bucket = getBucket();
       const file = bucket.file(key);
       await file.save(req.file.buffer, { contentType: req.file.mimetype });
@@ -163,13 +162,13 @@ router.post(
 
     const customerName = body.customerName?.trim() || "";
     const customerPhone = body.customerPhone?.trim() || "";
-    const amountDisplay = body.amount?.trim() || totalPrice;
+    const amountDisplay = body.amount?.trim() || totalPrice || "";
 
-    // 4. Insert DB row
+    // 4. Insert DB row (shopifyOrderId/shopifyOrderNumber stay null until approval)
     await db.insert(instapayProofs).values({
       draftOrderId,
-      shopifyOrderId: orderId,
-      shopifyOrderNumber: orderNumber,
+      shopifyOrderId: null,
+      shopifyOrderNumber: null,
       customerPhone: customerPhone || null,
       customerName: customerName || null,
       amount: amountDisplay || null,
@@ -182,27 +181,27 @@ router.post(
     if (customerEmail) {
       const shippingPrice = parseFloat(amountDisplay) >= 2000 ? "0.00" : "50.00";
       const { html, text } = buildInstapayPendingEmail({
-        orderNumber: orderNumber,
+        orderNumber: draftOrderId,
         customerName: customerName,
         total: amountDisplay,
         referenceNumber: referenceNumber.trim(),
-        discountAmount: discountAmount ? discountAmount.toFixed(2) : undefined,
-        discountCode: discountCode || undefined,
+        discountAmount: draftDiscountAmount ? draftDiscountAmount.toFixed(2) : undefined,
+        discountCode: draftDiscountCode || undefined,
         shippingAmount: shippingPrice,
       });
       void sendEmail({
         to: customerEmail,
-        subject: `Your Moi order #${orderNumber} — payment verification in progress`,
+        subject: `Your Moi order #${draftOrderId} — payment verification in progress`,
         html,
         text,
       })
-        .then(() => logger.info({ email: customerEmail, orderNumber }, "InstaPay pending email sent"))
+        .then(() => logger.info({ email: customerEmail, draftOrderId }, "InstaPay pending email sent"))
         .catch((err) => logger.warn({ err, email: customerEmail }, "InstaPay pending email failed"));
     }
 
-    // 6. Shopify note + tag (fire-and-forget)
-    void addShopifyOrderNote(orderId, `InstaPay proof submitted — ref: ${referenceNumber.trim()}`);
-    void tagShopifyOrder(orderId, "instapay-proof-submitted");
+    // 6. Shopify note + tag on the DRAFT order (fire-and-forget)
+    void addShopifyOrderNote(draftOrderId, `InstaPay proof submitted — ref: ${referenceNumber.trim()} (draft, awaiting approval)`);
+    void tagShopifyOrder(draftOrderId, "instapay-proof-submitted");
 
     // 7. WhatsApp to business owner
     const businessWA = process.env.BUSINESS_WHATSAPP_NUMBER ?? "";
@@ -210,7 +209,7 @@ router.post(
     if (businessWA) {
       void sendWhatsApp(
         businessWA,
-        `📋 InstaPay proof — order #${orderNumber}\nRef: ${referenceNumber.trim()}\nAmount: ${amountDisplay} EGP\nCustomer: ${customerName} · ${customerPhone}\nReview: ${siteUrl}/admin`,
+        `📋 InstaPay proof — draft order #${draftOrderId}\nRef: ${referenceNumber.trim()}\nAmount: ${amountDisplay} EGP\nCustomer: ${customerName} · ${customerPhone}\nReview: ${siteUrl}/admin`,
       );
     }
 
@@ -218,11 +217,11 @@ router.post(
     if (customerPhone) {
       void sendWhatsApp(
         customerPhone,
-        `🎉 Your Moi order #${orderNumber} is being verified!\n\nRef: ${referenceNumber.trim()}\nTotal: ${amountDisplay} EGP\n\nOur team will confirm your order via WhatsApp once payment is verified. Thank you! 🖤`,
+        `🎉 Your Moi order #${draftOrderId} is being verified!\n\nRef: ${referenceNumber.trim()}\nTotal: ${amountDisplay} EGP\n\nOur team will confirm your order via WhatsApp once payment is verified. Thank you! 🖤`,
       );
     }
 
-    res.status(200).json({ ok: true, orderNumber, shopifyOrderId: orderId, total: amountDisplay });
+    res.status(200).json({ ok: true, orderNumber: draftOrderId, draftOrderId, shopifyOrderId: null, total: amountDisplay });
   },
 );
 

@@ -353,7 +353,7 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
             code: sl.title.toUpperCase().replace(/ /g, "_"),
             source: "custom",
           }],
-          tags: draft.tags ?? "",
+          tags: (draft.tags ?? "") + ",instapay",  // Ensure instapay tag is present for webhook filtering
           note: draft.note ?? "",
           note_attributes: draft.note_attributes ?? [],
           ...(draft.email ? { email: draft.email } : {}),

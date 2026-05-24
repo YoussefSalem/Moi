@@ -141,7 +141,7 @@ interface OrderResult {
   total: string;
   intentId?: string;
   paymobTxnId?: string;
-  shopifyOrderId?: number;
+  shopifyOrderId?: number | null;
   shopifyOrderNumber?: number;
   draftOrderId?: number;
   instapayAccount?: string;
@@ -1630,7 +1630,7 @@ function InstapayConfirmation({
 }: {
   orderResult: OrderResult;
   onDone: () => void;
-  onProofSubmitted: (orderNumber: string | number, shopifyOrderId: number, total: string) => void;
+  onProofSubmitted: (orderNumber: string | number, shopifyOrderId: number | null, total: string) => void;
   fmt: (n: number) => string;
 }) {
   const [subStep, setSubStep] = useState<InstapaySubStep>("instructions");
@@ -1747,9 +1747,9 @@ function InstapayConfirmation({
         return;
       }
 
-      if (data.orderNumber != null && data.shopifyOrderId != null) {
+      if (data.orderNumber != null) {
         setConfirmedOrderNumber(data.orderNumber);
-        onProofSubmitted(data.orderNumber, data.shopifyOrderId, data.total ?? orderResult.total);
+        onProofSubmitted(data.orderNumber, data.shopifyOrderId ?? null, data.total ?? orderResult.total);
       }
 
       setUploadProgress(100);

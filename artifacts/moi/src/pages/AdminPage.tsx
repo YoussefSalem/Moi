@@ -8,8 +8,9 @@ const SESSION_EXPIRY_KEY = "moi_admin_token_expiry";
 
 interface Proof {
   id: number;
-  shopifyOrderId: number;
-  shopifyOrderNumber: number;
+  draftOrderId: number | null;
+  shopifyOrderId: number | null;
+  shopifyOrderNumber: number | null;
   customerName: string | null;
   customerPhone: string | null;
   amount: string | null;
@@ -367,7 +368,7 @@ function ProofsTab({ token }: { token: string }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 flex-wrap">
                   <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "18px", fontWeight: 700, color: "#1e1814" }}>
-                    #{proof.shopifyOrderNumber}
+                    #{proof.shopifyOrderNumber ?? `Draft ${proof.draftOrderId}`}
                   </span>
                   <StatusBadge status={proof.status} />
                   {proof.hasScreenshot && (
@@ -444,7 +445,7 @@ function ProofsTab({ token }: { token: string }) {
 }
 
 /** Loads a Bearer-protected image via fetch and renders it from a blob URL. */
-function AuthThumbnail({ proofId, token, orderNumber }: { proofId: number; token: string; orderNumber: number }) {
+function AuthThumbnail({ proofId, token, orderNumber }: { proofId: number; token: string; orderNumber: number | null }) {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
     let revoked = false;
@@ -496,10 +497,10 @@ function ProofGallery({
               {proofs.map((proof) => (
                 <button key={proof.id} onClick={() => setLightboxId(proof.id)} style={{ textAlign: "left" }}>
                   <div style={{ aspectRatio: "1 / 1.2", overflow: "hidden", backgroundColor: "rgba(30,24,20,0.08)", border: "1px solid rgba(30,24,20,0.12)" }}>
-                    <AuthThumbnail proofId={proof.id} token={token} orderNumber={proof.shopifyOrderNumber} />
+                    <AuthThumbnail proofId={proof.id} token={token} orderNumber={proof.shopifyOrderNumber ?? proof.draftOrderId} />
                   </div>
                   <p style={{ marginTop: 8, fontSize: "12px", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", letterSpacing: "0.08em" }}>
-                    #{proof.shopifyOrderNumber}
+                    #{proof.shopifyOrderNumber ?? `Draft ${proof.draftOrderId}`}
                   </p>
                 </button>
               ))}
