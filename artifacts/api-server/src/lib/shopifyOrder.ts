@@ -344,6 +344,7 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
           send_receipt: false,
           send_fulfillment_receipt: false,
           financial_status: "pending",
+          fulfillment_status: "null",
           line_items: draft.line_items.map((li) => ({ variant_id: li.variant_id, quantity: li.quantity })),
           shipping_address: draft.shipping_address,
           shipping_lines: [{
@@ -788,6 +789,7 @@ export async function createShopifyDirectOrder(params: {
     send_receipt: false,
     send_fulfillment_receipt: false,
     financial_status: params.financialStatus ?? "pending",
+    fulfillment_status: "null",
     line_items: lineItems,
     shipping_address: {
       first_name: params.customer.firstName,
