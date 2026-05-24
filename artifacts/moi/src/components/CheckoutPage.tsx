@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, ChevronUp, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
+import { SHOPIFY_CONFIGURED, cartBuyerIdentityUpdate } from "@/lib/shopify";
 import { IMAGES } from "@/config/images";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
 import { trackTikTokPurchase } from "@/lib/tiktokPixel";
@@ -74,7 +74,7 @@ function resolveLineImage(line: ShopifyCartLine, localItems?: { variantId: strin
 }
 
 type PaymentMethod = "cod" | "instapay" | "card";
-type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
+type Step = "email" | "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
 type InstapaySubStep = "instructions" | "upload" | "review";
 
 interface OrderResult {
@@ -228,7 +228,8 @@ export function CheckoutPage() {
     applyDiscount,
   } = useCart();
 
-  const [step, setStep] = useState<Step>("form");
+  const [step, setStep] = useState<Step>("email");
+  const [emailInput, setEmailInput] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
   const [promoOpen, setPromoOpen] = useState(false);
   const [promoInput, setPromoInput] = useState("");
@@ -336,7 +337,8 @@ export function CheckoutPage() {
 
   const handleSuccessDone = useCallback(() => {
     clearCart();
-    setStep("form");
+    setStep("email");
+    setEmailInput("");
     sessionStorage.removeItem("moi_instapay_order_result");
     closeCheckout();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -557,7 +559,8 @@ export function CheckoutPage() {
 
   const handleDone = useCallback(() => {
     clearCart();
-    setStep("form");
+    setStep("email");
+    setEmailInput("");
     setOrderResult(null);
     setPaymobIframeUrl(null);
     setPromoApplied(null);
@@ -567,6 +570,22 @@ export function CheckoutPage() {
     sessionStorage.removeItem("moi_instapay_order_result");
     closeCheckout();
   }, [clearCart, closeCheckout]);
+
+  const handleEmailContinue = useCallback(async () => {
+    const email = emailInput.trim();
+    if (!email) return;
+    setForm((f) => ({ ...f, email }));
+    setStep("form");
+    const cartId = shopifyCart?.id;
+    if (cartId) {
+      cartBuyerIdentityUpdate(cartId, email).catch(() => {});
+      fetch("/api/checkouts/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, cartId }),
+      }).catch(() => {});
+    }
+  }, [emailInput, shopifyCart]);
 
   const handleIframeSuccess = useCallback((txnId?: string) => {
     setPaymobIframeUrl(null);
@@ -719,7 +738,7 @@ export function CheckoutPage() {
             style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}
           >
             <button
-              onClick={isSuccessStep ? handleSuccessDone : isConfirmStep ? handleDone : isCardCheckoutStep ? handleCancelCardCheckout : closeCheckout}
+              onClick={isSuccessStep ? handleSuccessDone : isConfirmStep ? handleDone : isCardCheckoutStep ? handleCancelCardCheckout : step === "form" ? () => setStep("email") : closeCheckout}
               className="flex items-center gap-2 transition-opacity hover:opacity-50"
               aria-label="Back"
             >
@@ -874,6 +893,58 @@ export function CheckoutPage() {
                     Secured by Paymob · 256-bit SSL
                   </p>
                 </div>
+              </div>
+            </motion.div>
+          ) : step === "email" ? (
+            <motion.div
+              key="email-step"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+              className="flex flex-col items-center justify-center min-h-[75vh] px-6"
+            >
+              <div style={{ width: "100%", maxWidth: "440px" }}>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(28px, 5vw, 38px)", fontWeight: 400, color: "#1e1814", marginBottom: "8px", letterSpacing: "0.02em", lineHeight: 1.15 }}>
+                  What's your email?
+                </h2>
+                <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", marginBottom: "40px" }}>
+                  We'll send your order confirmation here.
+                </p>
+                <div style={{ marginBottom: "28px" }}>
+                  <label style={labelStyle}>Email Address</label>
+                  <input
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && emailInput.trim()) void handleEmailContinue(); }}
+                    style={{ ...inputStyle, fontSize: "16px", padding: "14px 0" }}
+                    placeholder="your@email.com"
+                    autoFocus
+                    className="checkout-input"
+                  />
+                </div>
+                <button
+                  onClick={() => void handleEmailContinue()}
+                  disabled={!emailInput.trim()}
+                  style={{
+                    width: "100%",
+                    padding: "16px",
+                    backgroundColor: emailInput.trim() ? "#1e1814" : "rgba(30,24,20,0.22)",
+                    color: "#efe6da",
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: "12px",
+                    letterSpacing: "0.3em",
+                    textTransform: "uppercase",
+                    fontWeight: 700,
+                    border: "none",
+                    cursor: emailInput.trim() ? "pointer" : "not-allowed",
+                    transition: "background-color 0.2s ease",
+                  }}
+                >
+                  Continue
+                </button>
               </div>
             </motion.div>
           ) : step === "loading" ? (
@@ -1232,8 +1303,17 @@ export function CheckoutPage() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label style={labelStyle}>Email Address</label>
-                    <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} style={inputStyle} autoComplete="email" placeholder="your@email.com" className="checkout-input" />
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                      <label style={labelStyle}>Email Address</label>
+                      <button
+                        type="button"
+                        onClick={() => setStep("email")}
+                        style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                      >
+                        Change
+                      </button>
+                    </div>
+                    <input type="email" value={form.email} readOnly style={{ ...inputStyle, color: "rgba(30,24,20,0.65)" }} className="checkout-input" />
                   </div>
 
                   <div className="flex flex-col gap-1">

@@ -15,6 +15,7 @@ import customerAuthRouter from "./customerAuth";
 import whatsappRouter from "./whatsapp";
 import bostaRouter from "./bosta";
 import analyticsProxyRouter from "./analyticsProxy";
+import checkoutsRouter from "./checkouts";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use(paymobWebhookRouter);
 router.use(whatsappRouter);
 router.use(bostaRouter);
 router.use(analyticsProxyRouter);
+router.use(checkoutsRouter);
 
 export default router;

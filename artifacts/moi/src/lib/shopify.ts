@@ -323,6 +323,24 @@ export async function cartDiscountCodesUpdate(
   return data.cartDiscountCodesUpdate.cart;
 }
 
+export async function cartBuyerIdentityUpdate(
+  cartId: string,
+  email: string,
+): Promise<void> {
+  if (!SHOPIFY_CONFIGURED) return;
+  try {
+    await shopifyFetch<{ cartBuyerIdentityUpdate: { userErrors: { message: string }[] } }>(`
+      mutation CartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
+        cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
+          userErrors { field message }
+        }
+      }
+    `, { cartId, buyerIdentity: { email } });
+  } catch {
+    // fire-and-forget — never block the UI
+  }
+}
+
 export async function subscribeToNewsletter(email: string): Promise<{ success: boolean; delivered: boolean; note?: string; error?: string }> {
   const res = await fetch("/api/newsletter", {
     method: "POST",
