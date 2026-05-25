@@ -853,6 +853,7 @@ function FunnelBar({ label, value, max, rate, color }: { label: string; value: n
 
 function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | null) => void }) {
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [analyticsDisabled, setAnalyticsDisabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [days, setDays] = useState<7 | 30 | 90>(7);
@@ -879,7 +880,8 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
         return;
       }
       if (!res.ok) { setError(`Failed to load analytics. (${res.status})`); return; }
-      const json = await res.json() as AnalyticsData;
+      const json = await res.json() as AnalyticsData & { disabled?: boolean };
+      if (json.disabled) { setAnalyticsDisabled(true); setLoading(false); return; }
       setData(json);
     } catch { setError("Network error."); }
     finally { setLoading(false); }
@@ -902,6 +904,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
   useEffect(() => { void load(); }, [load]);
 
   if (loading) return <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Loading analytics…</p>;
+  if (analyticsDisabled) return <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Analytics tracking is currently disabled.</p>;
   if (error) return (
     <div style={{ padding: "40px 0", textAlign: "center" }}>
       <p style={{ fontSize: 13, color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginBottom: 16 }}>{error}</p>
