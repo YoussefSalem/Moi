@@ -1044,16 +1044,30 @@ function AnalyticsTab({ token }: { token: string }) {
         {exitPages.length === 0 ? (
           <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No exit page data yet.</p>
         ) : (
-          <div className="flex flex-col gap-1">
-            {exitPages.map((ep) => (
-              <div key={ep.page} className="flex items-center justify-between" style={{ padding: "8px 0", borderBottom: "1px solid rgba(30,24,20,0.04)" }}>
-                <span style={{ ...mono, fontSize: 12, color: "#1e1814" }}>{ep.page}</span>
-                <div className="flex items-center gap-3">
-                  <span style={{ ...mono, fontSize: 12, fontWeight: 600, color: "#1e1814" }}>{ep.count}</span>
-                  <span style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.45)" }}>{ep.pct}%</span>
+          <div className="flex flex-col gap-3">
+            {exitPages.map((ep) => {
+              const max = exitPages[0].count;
+              const pct = max > 0 ? (ep.count / max) * 100 : 0;
+              return (
+                <div key={ep.page}>
+                  <div className="flex items-end justify-between" style={{ marginBottom: 6 }}>
+                    <span style={{ ...mono, fontSize: 12, fontWeight: 500, color: "#1e1814" }}>{ep.page}</span>
+                    <div className="flex items-center gap-2">
+                      <span style={{ ...mono, fontSize: 14, fontWeight: 700, color: "#1e1814" }}>{ep.count}</span>
+                      <span style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.45)", background: "rgba(30,24,20,0.06)", padding: "2px 6px", borderRadius: 4 }}>{ep.pct}%</span>
+                    </div>
+                  </div>
+                  <div style={{ height: 6, backgroundColor: "rgba(30,24,20,0.06)", borderRadius: 3, overflow: "hidden" }}>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.6, ease: "easeOut" }}
+                      style={{ height: "100%", backgroundColor: "#bfa07a", borderRadius: 3 }}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

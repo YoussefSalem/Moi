@@ -237,8 +237,25 @@ router.get("/admin/analytics", async (req, res) => {
     // --- Exit pages ---
     const exitPages: Record<string, number> = {};
     for (const s of sessions) {
-      const url = s.exitUrl ?? s.entryUrl ?? "unknown";
-      exitPages[url] = (exitPages[url] ?? 0) + 1;
+      const raw = s.exitUrl ?? s.entryUrl ?? "unknown";
+      try {
+        const url = new URL(raw);
+        // strip tracking params and keep meaningful query params only
+        const noise = new Set([
+          "utm_source","utm_medium","utm_campaign","utm_content","utm_term","utm_id",
+          "fbclid","gclid","wbraid","gbraid","ttclid","dclid","msclkid",
+          "ref","referrer","source","sid","session","token",
+        ]);
+        const keep: string[] = [];
+        for (const [k, v] of url.searchParams) {
+          if (!noise.has(k.toLowerCase())) keep.push(`${k}=${v}`);
+        }
+        const q = keep.length > 0 ? `?${keep.join("&")}` : "";
+        const path = `${url.pathname}${q}` || "/";
+        exitPages[path] = (exitPages[path] ?? 0) + 1;
+      } catch {
+        exitPages[raw] = (exitPages[raw] ?? 0) + 1;
+      }
     }
     const exitPageRank = Object.entries(exitPages)
       .map(([page, count]) => ({ page, count, pct: totalSessions > 0 ? Math.round((count / totalSessions) * 100) : 0 }))
