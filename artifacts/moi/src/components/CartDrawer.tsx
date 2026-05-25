@@ -4,6 +4,7 @@ import { useCart } from "@/context/CartContext";
 import { IMAGES } from "@/config/images";
 import { trackInitiateCheckout } from "@/lib/metaPixel";
 import { trackTikTokInitiateCheckout } from "@/lib/tiktokPixel";
+import { trackCheckoutStep, trackCartAbandonment } from "@/lib/analytics";
 import type { ShopifyCartLine } from "@/lib/shopify";
 import type { LocalCartItem } from "@/context/CartContext";
 
@@ -130,7 +131,11 @@ export function CartDrawer() {
                 </span>
               </div>
               <button
-                onClick={closeCart}
+                onClick={() => {
+                  const hasItems = (isShopify && shopifyCart ? shopifyCart.lines.nodes.length > 0 : localItems.length > 0);
+                  if (hasItems) trackCartAbandonment("cart_drawer_closed");
+                  closeCart();
+                }}
                 className="transition-opacity hover:opacity-50"
                 aria-label="Close cart"
               >

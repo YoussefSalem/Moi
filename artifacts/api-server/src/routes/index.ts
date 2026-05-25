@@ -15,6 +15,7 @@ import customerAuthRouter from "./customerAuth";
 import whatsappRouter from "./whatsapp";
 import bostaRouter from "./bosta";
 import analyticsProxyRouter from "./analyticsProxy";
+import analyticsRouter from "./analytics";
 import checkoutsRouter from "./checkouts";
 import abandonedCartsRouter from "./abandonedCarts";
 
@@ -36,6 +37,7 @@ router.use(paymobWebhookRouter);
 router.use(whatsappRouter);
 router.use(bostaRouter);
 router.use(analyticsProxyRouter);
+router.use(analyticsRouter);
 router.use(checkoutsRouter);
 router.use(abandonedCartsRouter);
 

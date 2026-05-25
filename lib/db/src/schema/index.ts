@@ -25,3 +25,5 @@ export * from "./paymobIntents";
 export * from "./customerProfiles";
 export * from "./discountCodeUses";
 export * from "./abandonedCarts";
+export * from "./analyticsSessions";
+export * from "./analyticsEvents";

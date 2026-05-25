@@ -8,6 +8,7 @@ import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
 import { trackTikTokPurchase } from "@/lib/tiktokPixel";
 import { trackShopifyPurchase } from "@/lib/shopifyAnalytics";
 import { getAttribution } from "@/lib/adAttribution";
+import { trackCheckoutStep, trackCheckoutStepTime } from "@/lib/analytics";
 import type { ShopifyCartLine } from "@/lib/shopify";
 
 const PRODUCT_COLOR_MAP: Record<string, string> = {};
@@ -311,6 +312,10 @@ export function CheckoutPage() {
 
   // When checkout opens with a pre-filled email (abandoned cart recovery),
   // seed the email field and skip straight to the order form.
+  // Track checkout step changes
+  const prevStepRef = useRef<Step | null>(null);
+  const stepEnterTimeRef = useRef<number>(Date.now());
+
   useEffect(() => {
     if (checkoutOpen && prefilledEmail) {
       setEmailInput(prefilledEmail);
@@ -318,6 +323,29 @@ export function CheckoutPage() {
       setStep("form");
     }
   }, [checkoutOpen, prefilledEmail]);
+
+  useEffect(() => {
+    if (prevStepRef.current) {
+      const seconds = Math.round((Date.now() - stepEnterTimeRef.current) / 1000);
+      trackCheckoutStepTime(prevStepRef.current, seconds);
+    }
+    prevStepRef.current = step;
+    stepEnterTimeRef.current = Date.now();
+
+    // Map step names to analytics events
+    const stepMap: Record<string, string> = {
+      email: "start",
+      form: "shipping",
+      "card-checkout": "payment",
+      "cod-confirm": "payment",
+      "instapay-confirm": "payment",
+      "card-confirm": "complete",
+    };
+    const analyticsStep = stepMap[step];
+    if (analyticsStep) {
+      trackCheckoutStep(analyticsStep as "start" | "shipping" | "payment" | "complete", { step });
+    }
+  }, [step]);
 
   const lines = isShopify && shopifyCart ? shopifyCart.lines.nodes : null;
   const localLines = !isShopify ? localItems : [];
@@ -616,6 +644,9 @@ export function CheckoutPage() {
         num_items: purchaseItems,
         order_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
       });
+      import("@/lib/analytics").then(({ trackPurchase: trackInternalPurchase }) => {
+        trackInternalPurchase(String(data.orderNumber ?? data.shopifyOrderId ?? ""), purchaseValue, "cod");
+      });
       trackTikTokPurchase({
         content_id: orderLines[0]?.variantId,
         currency: "EGP",
@@ -738,6 +769,9 @@ export function CheckoutPage() {
       value: totalVal,
       num_items: orderLines.reduce((s, l) => s + l.quantity, 0),
       order_id: txnId ?? "",
+    });
+    import("@/lib/analytics").then(({ trackPurchase: trackInternalPurchase }) => {
+      trackInternalPurchase(txnId ?? "", totalVal, "card");
     });
     trackShopifyPurchase({
       orderId: txnId ?? "",
@@ -1116,6 +1150,9 @@ export function CheckoutPage() {
                   value: proofTotal,
                   num_items: proofItems,
                   order_id: String(orderNumber),
+                });
+                import("@/lib/analytics").then(({ trackPurchase: trackInternalPurchase }) => {
+                  trackInternalPurchase(String(orderNumber), proofTotal, "instapay");
                 });
                 trackTikTokPurchase({
                   content_id: proofOrderLines[0]?.variantId,

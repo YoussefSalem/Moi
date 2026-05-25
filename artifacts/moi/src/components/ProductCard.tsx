@@ -7,6 +7,16 @@ import type { ProductConfig, VariantOption } from "@/config/images";
 import { useCart } from "@/context/CartContext";
 import { useCustomer } from "@/context/CustomerContext";
 import { NotifyMeModal } from "@/components/NotifyMeModal";
+import {
+  trackProductView,
+  trackProductImageInteraction,
+  trackVariantChange,
+  trackSizeChartClick,
+  trackProductTime,
+  trackProductScroll,
+  trackAddToCart,
+  trackRepeatedView,
+} from "@/lib/analytics";
 
 interface ProductCardProps {
   product: ProductConfig;
@@ -48,17 +58,64 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: "-60px" });
 
-  // Shopify Analytics: fire product_viewed once when card enters the viewport
+  // Track product view + internal analytics when card enters viewport
+  const viewTrackedRef = useRef(false);
+  const productViewCountRef = useRef(0);
+  const productEnterTimeRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (!inView) return;
     const priceNum = parseFloat(product.price.replace(/[^\d.]/g, "").replace(",", "."));
     trackShopifyProductView({
-      productId: product.variantId,
+      productId: product.variantId ?? "",
       productTitle: product.name,
       price: Number.isFinite(priceNum) ? priceNum : undefined,
       currencyCode: "EGP",
     });
-  }, [inView, product.variantId, product.name, product.price]);
+    // Internal analytics
+    if (!viewTrackedRef.current) {
+      viewTrackedRef.current = true;
+      trackProductView(product.variantId ?? "", product.name, Number.isFinite(priceNum) ? priceNum : undefined);
+    }
+    productViewCountRef.current++;
+    if (productViewCountRef.current >= 2) {
+      trackRepeatedView(product.variantId ?? "", productViewCountRef.current);
+    }
+    productEnterTimeRef.current = Date.now();
+  }, [inView, product.variantId ?? "", product.name, product.price]);
+
+  // Track scroll depth on this product card
+  useEffect(() => {
+    if (!inView || !sectionRef.current) return;
+    let maxDepth = 0;
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+    const el = sectionRef.current;
+    const onScroll = () => {
+      if (scrollTimeout) return;
+      scrollTimeout = setTimeout(() => {
+        const rect = el.getBoundingClientRect();
+        const visible = Math.max(0, Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0));
+        const depth = Math.round((visible / rect.height) * 100);
+        if (depth > maxDepth) {
+          maxDepth = depth;
+          if (depth % 25 === 0) trackProductScroll(product.variantId ?? "", depth);
+        }
+        scrollTimeout = null;
+      }, 500);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [inView, product.variantId ?? ""]);
+
+  // Track time spent when component unmounts
+  useEffect(() => {
+    return () => {
+      if (productEnterTimeRef.current) {
+        const seconds = Math.round((Date.now() - productEnterTimeRef.current) / 1000);
+        if (seconds > 5) trackProductTime(product.variantId ?? "", seconds);
+      }
+    };
+  }, []);
 
   const hasShopifyVariants = Boolean(product.variants && product.variants.length > 0);
 
@@ -246,8 +303,14 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
 
   const handleAddToCart = async () => {
     if (isOutOfStock) return;
+    trackAddToCart(
+      selectedVariant?.id ?? product.variantId ?? "",
+      product.name,
+      1,
+      parseFloat(String(effectivePrice).replace(/[^0-9.]/g, "")) || 0,
+    );
     await addToCart({
-      variantId: selectedVariant?.id ?? product.variantId,
+      variantId: selectedVariant?.id ?? product.variantId ?? "",
       title: product.name,
       price: effectivePrice,
       priceAmount: parseFloat(String(effectivePrice).replace(/[^0-9.]/g, "")),
@@ -346,7 +409,10 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 {/* See the Look — desktop, above image */}
                 <motion.button
                   type="button"
-                  onClick={() => onLookView(product)}
+                  onClick={() => {
+                    onLookView(product);
+                    trackProductImageInteraction(product.variantId ?? "", "click");
+                  }}
                   className="hidden md:flex mb-3 w-full items-center justify-center gap-2"
                   whileTap={{ scale: 0.98 }}
                   variants={itemVariants}
@@ -499,7 +565,10 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 {/* Mobile: just image, no arrows */}
                 <motion.button
                   type="button"
-                  onClick={() => onLookView(product)}
+                  onClick={() => {
+                    onLookView(product);
+                    trackProductImageInteraction(product.variantId ?? "", "click");
+                  }}
                   className="md:hidden mb-3 w-full flex items-center justify-center gap-2"
                   whileTap={{ scale: 0.98 }}
                   variants={itemVariants}
@@ -674,7 +743,10 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                         type="button"
                         aria-label={option.name}
                         aria-pressed={selectedColor === option.name}
-                        onClick={() => setSelectedColor(option.name)}
+                        onClick={() => {
+                          setSelectedColor(option.name);
+                          trackVariantChange(product.variantId ?? "", option.name);
+                        }}
                         className="relative"
                         style={{ width: 30, height: 30, flexShrink: 0 }}
                       >
@@ -733,7 +805,10 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                       return (
                         <button
                           key={size}
-                          onClick={() => setSelectedSize(size)}
+                          onClick={() => {
+                            setSelectedSize(size);
+                            trackVariantChange(product.variantId ?? "", size);
+                          }}
                           type="button"
                           aria-pressed={isSelected}
                           title={!available ? "Out of stock — notify me" : undefined}

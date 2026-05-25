@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, X, Eye, RefreshCw, ChevronDown, ChevronUp, LogOut } from "lucide-react";
+import { Check, X, Eye, RefreshCw, ChevronDown, ChevronUp, LogOut, BarChart3, TrendingUp, Monitor, Smartphone, Globe, AlertTriangle, Users, ArrowRight, MousePointer, Clock } from "lucide-react";
 
 const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN as string | undefined;
 const SESSION_KEY = "moi_admin_token";
@@ -784,6 +784,239 @@ interface DiscountUse {
   usedAt: string;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Analytics Tab                                                     */
+/* ------------------------------------------------------------------ */
+
+interface AnalyticsData {
+  period: { days: number; since: string };
+  summary: { totalVisitors: number; totalSessions: number; bounceRate: number; returningRate: number; pageViews: number };
+  funnel: {
+    visitors: number; productViews: number; addToCarts: number; checkouts: number; purchases: number;
+    productViewRate: number; addToCartRate: number; checkoutRate: number; purchaseRate: number; overallConversion: number;
+  };
+  sourceQuality: { name: string; sessions: number; bounceRate: number; addToCartRate: number; checkoutRate: number; purchaseRate: number }[];
+  deviceSegmentation: { name: string; sessions: number; conversionRate: number }[];
+  osSegmentation: { name: string; sessions: number; conversionRate: number }[];
+  visitorType: { new: { count: number; purchases: number; conversionRate: number }; returning: { count: number; purchases: number; conversionRate: number } };
+  hesitationSignals: { repeatedViews: number; longViews: number; cartAbandons: number };
+}
+
+function FunnelBar({ label, value, max, rate, color }: { label: string; value: number; max: number; rate?: number; color: string }) {
+  const pct = max > 0 ? (value / max) * 100 : 0;
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div className="flex items-end justify-between" style={{ marginBottom: 6 }}>
+        <span style={{ ...mono, fontSize: 12, fontWeight: 600, color: "#1e1814" }}>{label}</span>
+        <div className="flex items-center gap-2">
+          <span style={{ ...mono, fontSize: 15, fontWeight: 700, color: "#1e1814" }}>{value}</span>
+          {rate !== undefined && <span style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)" }}>({rate}%)</span>}
+        </div>
+      </div>
+      <div style={{ height: 10, backgroundColor: "rgba(30,24,20,0.06)", borderRadius: 5, overflow: "hidden" }}>
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          style={{ height: "100%", backgroundColor: color, borderRadius: 5 }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsTab({ token }: { token: string }) {
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [days, setDays] = useState<7 | 30 | 90>(7);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/analytics?days=${days}`, { headers: apiHeaders(token) });
+      if (!res.ok) { setError("Failed to load analytics."); return; }
+      const json = await res.json() as AnalyticsData;
+      setData(json);
+    } catch { setError("Network error."); }
+    finally { setLoading(false); }
+  }, [token, days]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  if (loading) return <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Loading analytics…</p>;
+  if (error) return <p style={{ fontSize: 13, color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>;
+  if (!data) return null;
+
+  const { summary, funnel, sourceQuality, deviceSegmentation, osSegmentation, visitorType, hesitationSignals } = data;
+
+  const statCard = (icon: React.ReactNode, label: string, value: string | number, sub?: string) => (
+    <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "18px 16px", flex: 1, minWidth: 140 }}>
+      <div style={{ color: "rgba(30,24,20,0.45)", marginBottom: 8 }}>{icon}</div>
+      <p style={{ ...mono, fontSize: 22, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>{value}</p>
+      <p style={{ ...mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)" }}>{label}</p>
+      {sub && <p style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.4)", marginTop: 4 }}>{sub}</p>}
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Time range */}
+      <div className="flex items-center gap-2 mb-6">
+        {[7, 30, 90].map((d) => (
+          <button
+            key={d}
+            onClick={() => setDays(d as 7 | 30 | 90)}
+            style={{
+              ...btn,
+              backgroundColor: days === d ? "#1e1814" : "transparent",
+              color: days === d ? "#fff" : "rgba(30,24,20,0.6)",
+              border: "1px solid rgba(30,24,20,0.15)",
+              padding: "6px 14px",
+              fontSize: 12,
+            }}
+          >
+            Last {d} days
+          </button>
+        ))}
+        <button onClick={load} className="ml-auto" style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.15)", padding: "6px 10px" }}>
+          <RefreshCw size={14} color="rgba(30,24,20,0.5)" />
+        </button>
+      </div>
+
+      {/* Summary cards */}
+      <div className="flex flex-wrap gap-3 mb-8">
+        {statCard(<Users size={18} />, "Visitors", summary.totalVisitors, `${summary.totalSessions} sessions`)}
+        {statCard(<MousePointer size={18} />, "Page Views", summary.pageViews)}
+        {statCard(<TrendingUp size={18} />, "Conversion", `${funnel.overallConversion}%`, `${funnel.purchases} purchases`)}
+        {statCard(<Globe size={18} />, "Returning", `${summary.returningRate}%`, `${Math.round(summary.totalSessions * summary.returningRate / 100)} returning`)}
+        {statCard(<AlertTriangle size={18} />, "Bounce Rate", `${summary.bounceRate}%`)}
+      </div>
+
+      {/* Conversion Funnel */}
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
+        <div className="flex items-center gap-2 mb-5">
+          <BarChart3 size={16} color="#1e1814" />
+          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Conversion Funnel</p>
+        </div>
+        <FunnelBar label="Visitors" value={funnel.visitors} max={funnel.visitors} color="#1e1814" />
+        <FunnelBar label="Product Views" value={funnel.productViews} max={funnel.visitors} rate={funnel.productViewRate} color="#3a6b4a" />
+        <FunnelBar label="Add to Cart" value={funnel.addToCarts} max={funnel.visitors} rate={funnel.addToCartRate} color="#5a8a6a" />
+        <FunnelBar label="Checkout Started" value={funnel.checkouts} max={funnel.visitors} rate={funnel.checkoutRate} color="#7aaa8a" />
+        <FunnelBar label="Purchase" value={funnel.purchases} max={funnel.visitors} rate={funnel.purchaseRate} color="#bfa07a" />
+
+        {/* Drop-off summary */}
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(30,24,20,0.06)" }}>
+          <p style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", lineHeight: 1.6 }}>
+            Overall conversion: <strong>{funnel.overallConversion}%</strong> of visitors purchased.&nbsp;
+            {funnel.visitors > 0 && funnel.purchases < funnel.visitors && (
+              <span>Drop-off: {funnel.visitors - funnel.purchases} visitors did not convert.</span>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* Traffic Source Quality */}
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
+        <div className="flex items-center gap-2 mb-5">
+          <Globe size={16} color="#1e1814" />
+          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Traffic Source Quality</p>
+        </div>
+        {sourceQuality.length === 0 ? (
+          <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No traffic data yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {sourceQuality.map((src) => (
+              <div key={src.name} style={{ flex: 1, minWidth: 160, background: "rgba(30,24,20,0.02)", border: "1px solid rgba(30,24,20,0.06)", padding: 14 }}>
+                <p style={{ ...mono, fontSize: 12, fontWeight: 700, color: "#1e1814", marginBottom: 8 }}>{src.name}</p>
+                <div className="flex flex-col gap-1">
+                  <SourceMetric label="Sessions" value={src.sessions} />
+                  <SourceMetric label="Bounce" value={`${src.bounceRate}%`} warn={src.bounceRate > 50} />
+                  <SourceMetric label="ATC Rate" value={`${src.addToCartRate}%`} />
+                  <SourceMetric label="Checkout" value={`${src.checkoutRate}%`} />
+                  <SourceMetric label="Purchase" value={`${src.purchaseRate}%`} good={src.purchaseRate > 0} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Device & OS */}
+      <div className="flex flex-wrap gap-4 mb-6">
+        <div style={{ flex: 1, minWidth: 260, background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px" }}>
+          <div className="flex items-center gap-2 mb-4">
+            <Monitor size={16} color="#1e1814" />
+            <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Device</p>
+          </div>
+          {deviceSegmentation.map((d) => (
+            <div key={d.name} className="flex items-center justify-between" style={{ padding: "6px 0", borderBottom: "1px solid rgba(30,24,20,0.04)" }}>
+              <span style={{ ...mono, fontSize: 12, color: "#1e1814" }}>{d.name}</span>
+              <span style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.5)" }}>{d.sessions} <span style={{ color: d.conversionRate > 0 ? "#3a6b4a" : "rgba(30,24,20,0.35)" }}>({d.conversionRate}%)</span></span>
+            </div>
+          ))}
+        </div>
+        <div style={{ flex: 1, minWidth: 260, background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px" }}>
+          <div className="flex items-center gap-2 mb-4">
+            <Smartphone size={16} color="#1e1814" />
+            <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Operating System</p>
+          </div>
+          {osSegmentation.map((o) => (
+            <div key={o.name} className="flex items-center justify-between" style={{ padding: "6px 0", borderBottom: "1px solid rgba(30,24,20,0.04)" }}>
+              <span style={{ ...mono, fontSize: 12, color: "#1e1814" }}>{o.name}</span>
+              <span style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.5)" }}>{o.sessions} <span style={{ color: o.conversionRate > 0 ? "#3a6b4a" : "rgba(30,24,20,0.35)" }}>({o.conversionRate}%)</span></span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Visitor Type */}
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
+        <div className="flex items-center gap-2 mb-5">
+          <Users size={16} color="#1e1814" />
+          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>New vs Returning Visitors</p>
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <div style={{ flex: 1, minWidth: 200, background: "rgba(30,24,20,0.02)", border: "1px solid rgba(30,24,20,0.06)", padding: 16 }}>
+            <p style={{ ...mono, fontSize: 12, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>New</p>
+            <p style={{ ...mono, fontSize: 24, fontWeight: 700, color: "#1e1814" }}>{visitorType.new.count}</p>
+            <p style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)" }}>{visitorType.new.purchases} purchases ({visitorType.new.conversionRate}%)</p>
+          </div>
+          <div style={{ flex: 1, minWidth: 200, background: "rgba(30,24,20,0.02)", border: "1px solid rgba(30,24,20,0.06)", padding: 16 }}>
+            <p style={{ ...mono, fontSize: 12, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>Returning</p>
+            <p style={{ ...mono, fontSize: 24, fontWeight: 700, color: "#1e1814" }}>{visitorType.returning.count}</p>
+            <p style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)" }}>{visitorType.returning.purchases} purchases ({visitorType.returning.conversionRate}%)</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Hesitation Signals */}
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px" }}>
+        <div className="flex items-center gap-2 mb-5">
+          <AlertTriangle size={16} color="#1e1814" />
+          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Hesitation Signals</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {statCard(<Eye size={18} />, "Repeated Views", hesitationSignals.repeatedViews, "viewed same product 2+")}
+          {statCard(<Clock size={18} />, "Long Views (>60s)", hesitationSignals.longViews, "high intent / considering")}
+          {statCard(<X size={18} />, "Cart Abandons", hesitationSignals.cartAbandons, "closed cart with items")}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SourceMetric({ label, value, warn, good }: { label: string; value: string | number; warn?: boolean; good?: boolean }) {
+  const color = warn ? "#c0392b" : good ? "#3a6b4a" : "rgba(30,24,20,0.55)";
+  return (
+    <div className="flex items-center justify-between">
+      <span style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)" }}>{label}</span>
+      <span style={{ ...mono, fontSize: 11, fontWeight: 600, color }}>{value}</span>
+    </div>
+  );
+}
+
 function DiscountsTab({ token }: { token: string }) {
   const [uses, setUses] = useState<DiscountUse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1119,7 +1352,7 @@ function AbandonedCartsTab({ token }: { token: string }) {
 
 export function AdminPage() {
   const [token, setToken] = useState<string | null>(() => getStoredToken());
-  const [tab, setTab] = useState<"proofs" | "card-orders" | "abandoned" | "discounts" | "settings">("proofs");
+  const [tab, setTab] = useState<"analytics" | "proofs" | "card-orders" | "abandoned" | "discounts" | "settings">("analytics");
 
   if (!token) {
     return <PinGate onAuth={setToken} />;
@@ -1144,7 +1377,7 @@ export function AdminPage() {
 
       {/* Tabs */}
       <div style={{ borderBottom: "1px solid rgba(30,24,20,0.16)", backgroundColor: "#fff", paddingLeft: 24, overflowX: "auto", whiteSpace: "nowrap" }}>
-        {(["proofs", "card-orders", "abandoned", "discounts", "settings"] as const).map((t) => (
+        {(["analytics", "proofs", "card-orders", "abandoned", "discounts", "settings"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1159,7 +1392,7 @@ export function AdminPage() {
               borderRadius: 0,
             }}
           >
-            {t === "proofs" ? "InstaPay" : t === "card-orders" ? "Card Orders" : t === "abandoned" ? "Abandoned Carts" : t === "discounts" ? "Discounts" : "Settings"}
+            {t === "analytics" ? "Analytics" : t === "proofs" ? "InstaPay" : t === "card-orders" ? "Card Orders" : t === "abandoned" ? "Abandoned Carts" : t === "discounts" ? "Discounts" : "Settings"}
           </button>
         ))}
       </div>
@@ -1167,7 +1400,11 @@ export function AdminPage() {
       {/* Content */}
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px" }}>
         <AnimatePresence mode="wait">
-          {tab === "proofs" ? (
+          {tab === "analytics" ? (
+            <motion.div key="analytics" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <AnalyticsTab token={token} />
+            </motion.div>
+          ) : tab === "proofs" ? (
             <motion.div key="proofs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <ProofsTab token={token} />
             </motion.div>
