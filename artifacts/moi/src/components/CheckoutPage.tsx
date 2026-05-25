@@ -332,9 +332,8 @@ export function CheckoutPage() {
     prevStepRef.current = step;
     stepEnterTimeRef.current = Date.now();
 
-    // Map step names to analytics events
+    // Map step names to analytics events (skip "email" — CartDrawer already fires start)
     const stepMap: Record<string, string> = {
-      email: "start",
       form: "shipping",
       "card-checkout": "payment",
       "cod-confirm": "payment",
@@ -343,7 +342,7 @@ export function CheckoutPage() {
     };
     const analyticsStep = stepMap[step];
     if (analyticsStep) {
-      trackCheckoutStep(analyticsStep as "start" | "shipping" | "payment" | "complete", { step });
+      trackCheckoutStep(analyticsStep as "shipping" | "payment" | "complete", { step });
     }
   }, [step]);
 
