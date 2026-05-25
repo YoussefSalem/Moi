@@ -166,6 +166,7 @@ router.get("/admin/analytics", async (req, res) => {
     for (const e of events) {
       const s = sessions.find(s => s.sessionId === e.sessionId);
       const src = s?.utmSource ?? "direct";
+      if (!bySource[src]) bySource[src] = { sessions: 0, addToCarts: 0, checkouts: 0, purchases: 0, bounceRate: 0 };
       if (e.category === "cart" && e.event === "add_to_cart") bySource[src].addToCarts++;
       if (e.category === "checkout" && e.event === "step_start") bySource[src].checkouts++;
       if (e.category === "purchase" && e.event === "complete") bySource[src].purchases++;
