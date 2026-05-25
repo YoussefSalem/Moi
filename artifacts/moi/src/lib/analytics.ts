@@ -129,13 +129,14 @@ export function trackEvent(
 
   // Use sendBeacon if available for reliability on page unload
   const url = `${API_BASE}api/analytics/event`;
+  const body = JSON.stringify(payload);
   if (navigator.sendBeacon) {
-    navigator.sendBeacon(url, JSON.stringify(payload));
+    navigator.sendBeacon(url, new Blob([body], { type: "application/json" }));
   } else {
     fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body,
       keepalive: true,
     }).catch(() => { /* ignore network errors */ });
   }
@@ -184,13 +185,14 @@ export function endAnalyticsSession(): void {
   };
 
   const url = `${API_BASE}api/analytics/session/end`;
+  const endBody = JSON.stringify(payload);
   if (navigator.sendBeacon) {
-    navigator.sendBeacon(url, JSON.stringify(payload));
+    navigator.sendBeacon(url, new Blob([endBody], { type: "application/json" }));
   } else {
     fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: endBody,
       keepalive: true,
     }).catch(() => { /* ignore */ });
   }
@@ -357,7 +359,8 @@ export function initAnalytics(): void {
   const tapState: Record<string, { lastTap: number; count: number; timer: ReturnType<typeof setTimeout> | null }> = {};
   document.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
-    const elId = target.id || target.className?.slice(0, 30) || target.tagName;
+    const classNameStr = typeof target.className === "string" ? target.className : "";
+    const elId = target.id || classNameStr.slice(0, 30) || target.tagName;
     const elTag = target.tagName;
     const elText = target.textContent?.trim().slice(0, 30);
     const x = e.clientX;

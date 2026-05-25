@@ -7,7 +7,12 @@ const router: IRouter = Router();
 
 /** POST /api/analytics/session — start or update a session */
 router.post("/analytics/session", async (req, res) => {
-  const { sessionId, visitorId, utmSource, utmCampaign, utmMedium, deviceType, os, browser, entryUrl, userAgent, isReturning } = req.body as Record<string, unknown>;
+  const body = req.body as Record<string, unknown> | undefined;
+  if (!body || typeof body !== "object") {
+    res.status(400).json({ error: "Request body required" });
+    return;
+  }
+  const { sessionId, visitorId, utmSource, utmCampaign, utmMedium, deviceType, os, browser, entryUrl, userAgent, isReturning } = body;
   if (!sessionId || !visitorId || typeof sessionId !== "string" || typeof visitorId !== "string") {
     res.status(400).json({ error: "sessionId and visitorId required" });
     return;
@@ -36,7 +41,12 @@ router.post("/analytics/session", async (req, res) => {
 
 /** POST /api/analytics/session/end — end a session */
 router.post("/analytics/session/end", async (req, res) => {
-  const { sessionId, exitUrl, durationSeconds, isBounce } = req.body as Record<string, unknown>;
+  const body = req.body as Record<string, unknown> | undefined;
+  if (!body || typeof body !== "object") {
+    res.status(400).json({ error: "Request body required" });
+    return;
+  }
+  const { sessionId, exitUrl, durationSeconds, isBounce } = body;
   if (!sessionId || typeof sessionId !== "string") {
     res.status(400).json({ error: "sessionId required" });
     return;
@@ -58,7 +68,12 @@ router.post("/analytics/session/end", async (req, res) => {
 
 /** POST /api/analytics/event — record an event */
 router.post("/analytics/event", async (req, res) => {
-  const { sessionId, visitorId, category, event, pageUrl, metadata, productId, productTitle } = req.body as Record<string, unknown>;
+  const body = req.body as Record<string, unknown> | undefined;
+  if (!body || typeof body !== "object") {
+    res.status(400).json({ error: "Request body required" });
+    return;
+  }
+  const { sessionId, visitorId, category, event, pageUrl, metadata, productId, productTitle } = body;
   if (!sessionId || !visitorId || !category || !event || typeof sessionId !== "string" || typeof visitorId !== "string" || typeof category !== "string" || typeof event !== "string") {
     res.status(400).json({ error: "sessionId, visitorId, category, event required" });
     return;
