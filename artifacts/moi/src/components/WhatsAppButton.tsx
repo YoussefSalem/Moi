@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Clock } from "lucide-react";
+import { MessageCircle, X, Send } from "lucide-react";
+
+const PULSE_CSS = `
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.2); }
+}
+`;
 
 const WHATSAPP_NUMBER = "201200520083";
 const WHATSAPP_MESSAGE = "Hi, I have a question about this product";
@@ -41,7 +48,9 @@ export function WhatsAppButton() {
   };
 
   return (
-    <div style={{ position: "fixed", bottom: 20, right: 20, zIndex: 50 }}>
+    <>
+      <style>{PULSE_CSS}</style>
+      <div style={{ position: "fixed", bottom: 20, right: 20, zIndex: 50 }}>
       <AnimatePresence>
         {open && (
           <motion.div
@@ -108,10 +117,21 @@ export function WhatsAppButton() {
                     marginTop: 2,
                     display: "flex",
                     alignItems: "center",
-                    gap: 4,
+                    gap: 6,
                   }}
                 >
-                  <Clock size={10} /> Typically replies within a few hours
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: "#4ade80",
+                      display: "inline-block",
+                      boxShadow: "0 0 6px 2px rgba(74,222,128,0.5)",
+                      animation: "pulse-green 2s ease-in-out infinite",
+                    }}
+                  />
+                  Replies almost instantly
                 </p>
               </div>
               <button
@@ -228,7 +248,7 @@ export function WhatsAppButton() {
                   border: "1px solid rgba(30,24,20,0.12)",
                   borderRadius: 20,
                   padding: "10px 14px",
-                  fontSize: 13,
+                  fontSize: 16,
                   fontFamily: "'Montserrat', sans-serif",
                   lineHeight: 1.5,
                   outline: "none",
@@ -299,10 +319,13 @@ export function WhatsAppButton() {
           justifyContent: "center",
           boxShadow: "0 4px 16px rgba(30,24,20,0.2)",
           color: "#fff",
+          WebkitTapHighlightColor: "transparent",
+          touchAction: "manipulation",
         }}
       >
         {open ? <X size={22} /> : <MessageCircle size={22} />}
       </motion.button>
     </div>
+    </>
   );
 }
