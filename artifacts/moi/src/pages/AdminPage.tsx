@@ -830,18 +830,27 @@ function AnalyticsTab({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [days, setDays] = useState<7 | 30 | 90>(7);
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/admin/analytics?days=${days}`, { headers: apiHeaders(token) });
+      const params = new URLSearchParams();
+      if (fromDate && toDate) {
+        params.set("from", fromDate);
+        params.set("to", toDate);
+      } else {
+        params.set("days", String(days));
+      }
+      const res = await fetch(`/api/admin/analytics?${params.toString()}`, { headers: apiHeaders(token) });
       if (!res.ok) { setError("Failed to load analytics."); return; }
       const json = await res.json() as AnalyticsData;
       setData(json);
     } catch { setError("Network error."); }
     finally { setLoading(false); }
-  }, [token, days]);
+  }, [token, days, fromDate, toDate]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -863,15 +872,15 @@ function AnalyticsTab({ token }: { token: string }) {
   return (
     <div>
       {/* Time range */}
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
         {[7, 30, 90].map((d) => (
           <button
             key={d}
-            onClick={() => setDays(d as 7 | 30 | 90)}
+            onClick={() => { setDays(d as 7 | 30 | 90); setFromDate(""); setToDate(""); }}
             style={{
               ...btn,
-              backgroundColor: days === d ? "#1e1814" : "transparent",
-              color: days === d ? "#fff" : "rgba(30,24,20,0.6)",
+              backgroundColor: days === d && !fromDate ? "#1e1814" : "transparent",
+              color: days === d && !fromDate ? "#fff" : "rgba(30,24,20,0.6)",
               border: "1px solid rgba(30,24,20,0.15)",
               padding: "6px 14px",
               fontSize: 12,
@@ -880,6 +889,21 @@ function AnalyticsTab({ token }: { token: string }) {
             Last {d} days
           </button>
         ))}
+        <div className="flex items-center gap-2" style={{ marginLeft: 12 }}>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            style={{ ...inputStyle, padding: "6px 10px", fontSize: 12, width: 140 }}
+          />
+          <span style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.4)" }}>to</span>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            style={{ ...inputStyle, padding: "6px 10px", fontSize: 12, width: 140 }}
+          />
+        </div>
         <button onClick={load} className="ml-auto" style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.15)", padding: "6px 10px" }}>
           <RefreshCw size={14} color="rgba(30,24,20,0.5)" />
         </button>

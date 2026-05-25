@@ -83,13 +83,27 @@ router.post("/analytics/event", async (req, res) => {
 
 /** GET /api/admin/analytics — dashboard data */
 router.get("/admin/analytics", async (req, res) => {
-  const days = Math.max(1, Math.min(90, parseInt(req.query.days as string ?? "7", 10)));
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  let since: Date;
+  let until: Date | undefined;
+  let days = 7;
+  const rawFrom = req.query.from as string | undefined;
+  const rawTo = req.query.to as string | undefined;
+  if (rawFrom && rawTo) {
+    since = new Date(rawFrom);
+    until = new Date(rawTo);
+    until.setHours(23, 59, 59, 999);
+  } else {
+    days = Math.max(1, Math.min(90, parseInt(req.query.days as string ?? "7", 10)));
+    since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  }
 
   try {
     // --- Sessions ---
+    const sessionConditions = until
+      ? and(gte(analyticsSessions.createdAt, since), lte(analyticsSessions.createdAt, until))
+      : gte(analyticsSessions.createdAt, since);
     const sessions = await db.select().from(analyticsSessions)
-      .where(gte(analyticsSessions.createdAt, since))
+      .where(sessionConditions)
       .orderBy(desc(analyticsSessions.createdAt));
 
     const totalVisitors = new Set(sessions.map(s => s.visitorId)).size;
@@ -99,8 +113,11 @@ router.get("/admin/analytics", async (req, res) => {
     const returningRate = totalSessions > 0 ? Math.round((returningCount / totalSessions) * 100) : 0;
 
     // --- Events ---
+    const eventConditions = until
+      ? and(gte(analyticsEvents.createdAt, since), lte(analyticsEvents.createdAt, until))
+      : gte(analyticsEvents.createdAt, since);
     const events = await db.select().from(analyticsEvents)
-      .where(gte(analyticsEvents.createdAt, since))
+      .where(eventConditions)
       .orderBy(desc(analyticsEvents.createdAt));
 
     // --- Funnel ---
@@ -203,7 +220,7 @@ router.get("/admin/analytics", async (req, res) => {
     }).length;
 
     res.json({
-      period: { days, since: since.toISOString() },
+      period: rawFrom && rawTo ? { from: rawFrom, to: rawTo } : { days, since: since.toISOString() },
       summary: {
         totalVisitors,
         totalSessions,
