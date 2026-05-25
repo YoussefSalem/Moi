@@ -6,8 +6,13 @@ import { requireAdminAuth } from "./admin";
 
 const router: IRouter = Router();
 
+/** NOTE: Analytics tracking is disabled to reduce PostgreSQL compute.
+ *  Set ANALYTICS_ENABLED = true to re-enable. All code remains intact. */
+const ANALYTICS_ENABLED = false;
+
 /** POST /api/analytics/session — start or update a session */
 router.post("/analytics/session", async (req, res) => {
+  if (!ANALYTICS_ENABLED) { res.status(200).json({ ok: true }); return; }
   const body = req.body as Record<string, unknown> | undefined;
   if (!body || typeof body !== "object") {
     res.status(400).json({ error: "Request body required" });
@@ -42,6 +47,7 @@ router.post("/analytics/session", async (req, res) => {
 
 /** POST /api/analytics/session/end — end a session */
 router.post("/analytics/session/end", async (req, res) => {
+  if (!ANALYTICS_ENABLED) { res.status(200).json({ ok: true }); return; }
   const body = req.body as Record<string, unknown> | undefined;
   if (!body || typeof body !== "object") {
     res.status(400).json({ error: "Request body required" });
@@ -69,6 +75,7 @@ router.post("/analytics/session/end", async (req, res) => {
 
 /** POST /api/analytics/event — record an event */
 router.post("/analytics/event", async (req, res) => {
+  if (!ANALYTICS_ENABLED) { res.status(200).json({ ok: true }); return; }
   const body = req.body as Record<string, unknown> | undefined;
   if (!body || typeof body !== "object") {
     res.status(400).json({ error: "Request body required" });
@@ -99,6 +106,7 @@ router.post("/analytics/event", async (req, res) => {
 
 /** POST /api/analytics/chat — record chat interaction (open, close, draft_change, send) */
 router.post("/analytics/chat", async (req, res) => {
+  if (!ANALYTICS_ENABLED) { res.status(200).json({ ok: true }); return; }
   const body = req.body as Record<string, unknown> | undefined;
   if (!body || typeof body !== "object") {
     res.status(400).json({ error: "Request body required" });
@@ -127,6 +135,10 @@ router.post("/analytics/chat", async (req, res) => {
 
 /** GET /api/admin/analytics — dashboard data */
 router.get("/admin/analytics", async (req, res) => {
+  if (!ANALYTICS_ENABLED) {
+    res.status(200).json({ disabled: true, message: "Analytics tracking is currently disabled to reduce database compute." });
+    return;
+  }
   let since: Date;
   let until: Date | undefined;
   let days = 7;
@@ -460,6 +472,7 @@ router.get("/admin/analytics", async (req, res) => {
 
 /** POST /api/admin/analytics/clear — wipe all analytics tables */
 router.post("/admin/analytics/clear", requireAdminAuth, async (req, res) => {
+  if (!ANALYTICS_ENABLED) { res.status(200).json({ ok: true, disabled: true }); return; }
   try {
     await db.delete(analyticsEvents);
     await db.delete(analyticsSessions);

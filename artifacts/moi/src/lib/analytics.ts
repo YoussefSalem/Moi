@@ -1,7 +1,12 @@
 /**
  * Moi internal analytics — track user behavior and funnel data
  * for the admin dashboard. Works alongside Meta/TikTok pixels.
+ *
+ * NOTE: Analytics tracking is currently disabled to reduce PostgreSQL compute.
+ * Set ANALYTICS_ENABLED = true to re-enable. All tracking code remains intact.
  */
+
+const ANALYTICS_ENABLED = false;
 
 const API_BASE = import.meta.env.BASE_URL ?? "/";
 
@@ -114,7 +119,7 @@ export function trackEvent(
   event: string,
   metadata?: Record<string, unknown>,
 ): void {
-  if (typeof window === "undefined") return;
+  if (!ANALYTICS_ENABLED || typeof window === "undefined") return;
   const sid = getSessionId();
   const vid = getVisitorId();
 
@@ -144,7 +149,7 @@ export function trackEvent(
 
 /** Start a new analytics session */
 export function startAnalyticsSession(): void {
-  if (typeof window === "undefined") return;
+  if (!ANALYTICS_ENABLED || typeof window === "undefined") return;
   const sid = getSessionId();
   const vid = getVisitorId();
   sessionStartTime = Date.now();
@@ -174,7 +179,7 @@ export function startAnalyticsSession(): void {
 
 /** End the current session — call on page unload */
 export function endAnalyticsSession(): void {
-  if (typeof window === "undefined" || !sessionId || !sessionStartTime) return;
+  if (!ANALYTICS_ENABLED || typeof window === "undefined" || !sessionId || !sessionStartTime) return;
   const duration = Math.round((Date.now() - sessionStartTime) / 1000);
 
   const payload = {
@@ -200,7 +205,7 @@ export function endAnalyticsSession(): void {
 
 /** Track a page view */
 export function trackPageView(url?: string): void {
-  if (typeof window === "undefined") return;
+  if (!ANALYTICS_ENABLED || typeof window === "undefined") return;
   const count = parseInt(sessionStorage.getItem("moi_page_count") ?? "0", 10) + 1;
   sessionStorage.setItem("moi_page_count", String(count));
   trackEvent("page", "page_view", { url: url ?? window.location.pathname });
@@ -208,6 +213,7 @@ export function trackPageView(url?: string): void {
 
 /** Track scroll depth on a page (0-100) */
 export function trackScrollDepth(depth: number): void {
+  if (!ANALYTICS_ENABLED) return;
   trackEvent("page", "scroll_depth", { depth });
 }
 
@@ -218,7 +224,7 @@ export function trackChatInteraction(
   draftSequence?: number,
   metadata?: Record<string, unknown>,
 ): void {
-  if (typeof window === "undefined") return;
+  if (!ANALYTICS_ENABLED || typeof window === "undefined") return;
   const sid = getSessionId();
   const vid = getVisitorId();
   const payload = {
@@ -245,6 +251,7 @@ export function trackChatInteraction(
 
 /** Track product view */
 export function trackProductView(productId: string, productTitle: string, price?: number): void {
+  if (!ANALYTICS_ENABLED) return;
   trackEvent("product", "view", { productId, productTitle, price });
 }
 
@@ -360,7 +367,7 @@ export function trackPurchaseWithTime(orderId: string, value: number, paymentMet
 
 /** Initialize analytics on app mount */
 export function initAnalytics(): void {
-  if (typeof window === "undefined") return;
+  if (!ANALYTICS_ENABLED || typeof window === "undefined") return;
   recordFirstVisit();
   startAnalyticsSession();
   trackPageView();
