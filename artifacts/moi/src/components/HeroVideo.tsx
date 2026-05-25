@@ -31,7 +31,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
   const overlayOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
 
   const handleShopNow = () => {
-    const el = document.getElementById("collection");
+    const el = document.getElementById("social-proof");
     if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -204,7 +204,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
             textTransform: "uppercase",
           }}
         >
-          Shop Now
+          In Motion
         </motion.button>
       </motion.div>
 
