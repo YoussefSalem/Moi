@@ -211,6 +211,38 @@ export function trackScrollDepth(depth: number): void {
   trackEvent("page", "scroll_depth", { depth });
 }
 
+/** Track chat interaction (open, close, draft_change, send) */
+export function trackChatInteraction(
+  eventType: "open" | "close" | "draft_change" | "send",
+  messageContent?: string,
+  draftSequence?: number,
+  metadata?: Record<string, unknown>,
+): void {
+  if (typeof window === "undefined") return;
+  const sid = getSessionId();
+  const vid = getVisitorId();
+  const payload = {
+    sessionId: sid,
+    visitorId: vid,
+    eventType,
+    messageContent: messageContent ?? null,
+    draftSequence: draftSequence ?? null,
+    metadata: metadata ?? {},
+  };
+  const url = `${API_BASE}api/analytics/chat`;
+  const body = JSON.stringify(payload);
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(url, new Blob([body], { type: "application/json" }));
+  } else {
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      keepalive: true,
+    }).catch(() => { /* ignore */ });
+  }
+}
+
 /** Track product view */
 export function trackProductView(productId: string, productTitle: string, price?: number): void {
   trackEvent("product", "view", { productId, productTitle, price });

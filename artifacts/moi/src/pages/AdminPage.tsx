@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, X, Eye, RefreshCw, ChevronDown, ChevronUp, LogOut, BarChart3, TrendingUp, Monitor, Smartphone, Globe, AlertTriangle, Users, ArrowRight, MousePointer, Clock, Trash2 } from "lucide-react";
+import { Check, X, Eye, RefreshCw, ChevronDown, ChevronUp, LogOut, BarChart3, TrendingUp, Monitor, Smartphone, Globe, AlertTriangle, Users, ArrowRight, MousePointer, Clock, Trash2, MessageCircle, Send } from "lucide-react";
 
 const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN as string | undefined;
 const SESSION_KEY = "moi_admin_token";
@@ -818,6 +818,14 @@ interface AnalyticsData {
   productPaths: { productId: string; title: string; views: number; carts: number; purchases: number; viewToCartRate: number; cartToPurchaseRate: number; viewToPurchaseRate: number }[];
   rageTaps: { total: number; topElements: { elementId: string; count: number }[] };
   elementInteractions: { elementType: string; action: string; count: number }[];
+  chatActivity: {
+    opens: number;
+    closes: number;
+    sends: number;
+    drafts: number;
+    avgDraftsPerSession: number;
+    recentDrafts: { content: string; sessionId: string; draftSequence: number | null; createdAt: string }[];
+  };
 }
 
 function FunnelBar({ label, value, max, rate, color }: { label: string; value: number; max: number; rate?: number; color: string }) {
@@ -909,7 +917,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
   );
   if (!data) return null;
 
-  const { summary, funnel, sourceQuality, deviceSegmentation, osSegmentation, visitorType, hesitationSignals, exitPages, clickHeatmap, scrollDistribution, timeToPurchase, productPaths, rageTaps, elementInteractions } = data;
+  const { summary, funnel, sourceQuality, deviceSegmentation, osSegmentation, visitorType, hesitationSignals, exitPages, clickHeatmap, scrollDistribution, timeToPurchase, productPaths, rageTaps, elementInteractions, chatActivity } = data;
 
   const statCard = (icon: React.ReactNode, label: string, value: string | number, sub?: string) => (
     <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "18px 16px", flex: 1, minWidth: 140 }}>
@@ -1246,7 +1254,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       </div>
 
       {/* Element Interactions */}
-      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px" }}>
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
         <div className="flex items-center gap-2 mb-5">
           <MousePointer size={16} color="#1e1814" />
           <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Element Interactions</p>
@@ -1262,6 +1270,40 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Chat Activity */}
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px" }}>
+        <div className="flex items-center gap-2 mb-5">
+          <MessageCircle size={16} color="#1e1814" />
+          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Chat Activity</p>
+        </div>
+        <div className="flex flex-wrap gap-3 mb-6">
+          {statCard(<MessageCircle size={18} />, "Chat Opens", chatActivity.opens, `${Math.round((chatActivity.opens / Math.max(summary.totalSessions, 1)) * 100)}% of sessions`)}
+          {statCard(<X size={18} />, "Chat Closes", chatActivity.closes)}
+          {statCard(<Send size={18} />, "Messages Sent", chatActivity.sends)}
+          {statCard(<MousePointer size={18} />, "Draft Edits", chatActivity.drafts, `${chatActivity.avgDraftsPerSession} avg/session`)}
+        </div>
+        {chatActivity.recentDrafts.length > 0 && (
+          <div>
+            <p style={{ ...mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", marginBottom: 10 }}>Recent Drafts (typed before sending)</p>
+            <div className="flex flex-col gap-1" style={{ maxHeight: 240, overflowY: "auto" }}>
+              {chatActivity.recentDrafts.map((d, i) => (
+                <div key={i} className="flex flex-col" style={{ padding: "8px 10px", borderBottom: "1px solid rgba(30,24,20,0.04)", background: i % 2 === 0 ? "#faf8f5" : "#fff" }}>
+                  <p style={{ ...mono, fontSize: 12, color: "#1e1814", lineHeight: 1.5, marginBottom: 4, wordBreak: "break-word" }}>{d.content}</p>
+                  <div className="flex items-center gap-3">
+                    <span style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.35)" }}>Session {d.sessionId}</span>
+                    <span style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.35)" }}>Draft #{d.draftSequence}</span>
+                    <span style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.35)" }}>{new Date(d.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {chatActivity.recentDrafts.length === 0 && chatActivity.opens === 0 && (
+          <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No chat activity yet.</p>
         )}
       </div>
     </div>

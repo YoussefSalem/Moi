@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { analyticsSessions, analyticsEvents } from "@workspace/db/schema";
+import { analyticsSessions, analyticsEvents, chatInteractions } from "@workspace/db/schema";
 import { eq, desc, and, gte, lte, sql, count, isNull, or } from "drizzle-orm";
 import { requireAdminAuth } from "./admin";
 
@@ -93,6 +93,34 @@ router.post("/analytics/event", async (req, res) => {
     res.status(200).json({ ok: true });
   } catch (err) {
     req.log.warn({ err }, "Analytics event insert failed");
+    res.status(500).json({ error: "Failed" });
+  }
+});
+
+/** POST /api/analytics/chat — record chat interaction (open, close, draft_change, send) */
+router.post("/analytics/chat", async (req, res) => {
+  const body = req.body as Record<string, unknown> | undefined;
+  if (!body || typeof body !== "object") {
+    res.status(400).json({ error: "Request body required" });
+    return;
+  }
+  const { sessionId, visitorId, eventType, messageContent, draftSequence, metadata } = body;
+  if (!sessionId || !visitorId || !eventType || typeof sessionId !== "string" || typeof visitorId !== "string" || typeof eventType !== "string") {
+    res.status(400).json({ error: "sessionId, visitorId, eventType required" });
+    return;
+  }
+  try {
+    await db.insert(chatInteractions).values({
+      sessionId,
+      visitorId,
+      eventType: eventType as string,
+      messageContent: typeof messageContent === "string" ? messageContent : null,
+      draftSequence: typeof draftSequence === "number" ? draftSequence : null,
+      metadata: metadata ?? null,
+    });
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    req.log.warn({ err }, "Chat interaction insert failed");
     res.status(500).json({ error: "Failed" });
   }
 });
@@ -356,6 +384,27 @@ router.get("/admin/analytics", async (req, res) => {
     // --- Add to cart rate (overall) ---
     const overallAtcRate = totalSessions > 0 ? Math.round((addToCarts / totalSessions) * 100) : 0;
 
+    // --- Chat Interactions ---
+    const chatConditions = until
+      ? and(gte(chatInteractions.createdAt, since), lte(chatInteractions.createdAt, until))
+      : gte(chatInteractions.createdAt, since);
+    const chats = await db.select().from(chatInteractions)
+      .where(chatConditions)
+      .orderBy(desc(chatInteractions.createdAt));
+    const chatOpens = chats.filter(c => c.eventType === "open").length;
+    const chatCloses = chats.filter(c => c.eventType === "close").length;
+    const chatSends = chats.filter(c => c.eventType === "send").length;
+    const chatDrafts = chats.filter(c => c.eventType === "draft_change").length;
+    const chatDraftsPerSession = new Map<string, number>();
+    for (const c of chats) {
+      if (c.eventType === "draft_change") {
+        chatDraftsPerSession.set(c.sessionId, (chatDraftsPerSession.get(c.sessionId) ?? 0) + 1);
+      }
+    }
+    const avgDraftsPerSession = chatDraftsPerSession.size > 0
+      ? Math.round((chatDrafts / chatDraftsPerSession.size) * 10) / 10
+      : 0;
+
     res.json({
       period: rawFrom && rawTo ? { from: rawFrom, to: rawTo } : { days, since: since.toISOString() },
       summary: {
@@ -386,6 +435,22 @@ router.get("/admin/analytics", async (req, res) => {
       productPaths,
       rageTaps: { total: rageTapCount, topElements: topRageTaps },
       elementInteractions: topElementInteractions,
+      chatActivity: {
+        opens: chatOpens,
+        closes: chatCloses,
+        sends: chatSends,
+        drafts: chatDrafts,
+        avgDraftsPerSession,
+        recentDrafts: chats
+          .filter(c => c.eventType === "draft_change" && c.messageContent)
+          .slice(0, 20)
+          .map(c => ({
+            content: c.messageContent!.slice(0, 200),
+            sessionId: c.sessionId.slice(0, 12),
+            draftSequence: c.draftSequence,
+            createdAt: c.createdAt.toISOString(),
+          })),
+      },
     });
   } catch (err) {
     req.log.error({ err }, "Analytics dashboard query failed");
@@ -398,6 +463,7 @@ router.post("/admin/analytics/clear", requireAdminAuth, async (req, res) => {
   try {
     await db.delete(analyticsEvents);
     await db.delete(analyticsSessions);
+    await db.delete(chatInteractions);
     req.log.info("Analytics tables cleared by admin");
     res.status(200).json({ ok: true, cleared: true });
   } catch (err) {

@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send } from "lucide-react";
+import { trackChatInteraction } from "@/lib/analytics";
 
 const PULSE_CSS = `
 @keyframes pulse-green {
@@ -21,22 +22,48 @@ export function WhatsAppButton() {
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const draftSeqRef = useRef(0);
+  const lastDraftRef = useRef("");
 
   useEffect(() => {
     if (open && inputRef.current) {
       inputRef.current.focus();
     }
+    if (open) {
+      draftSeqRef.current = 0;
+      lastDraftRef.current = "";
+    }
   }, [open]);
+
+  const toggleOpen = useCallback((nextOpen: boolean) => {
+    setOpen(nextOpen);
+    trackChatInteraction(nextOpen ? "open" : "close", undefined, undefined, { pageUrl: typeof window !== "undefined" ? window.location.pathname : undefined });
+  }, []);
+
+  const trackDraftChange = useCallback((text: string) => {
+    // Only track meaningful changes (not single char backspaces)
+    if (text.length > 0 && Math.abs(text.length - lastDraftRef.current.length) >= 1) {
+      draftSeqRef.current++;
+      lastDraftRef.current = text;
+      trackChatInteraction("draft_change", text, draftSeqRef.current, {
+        length: text.length,
+        pageUrl: typeof window !== "undefined" ? window.location.pathname : undefined,
+      });
+    }
+  }, []);
 
   function handleSend() {
     const text = message.trim() || WHATSAPP_MESSAGE;
+    trackChatInteraction("send", text, draftSeqRef.current, { pageUrl: typeof window !== "undefined" ? window.location.pathname : undefined });
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
     setSent(true);
     setTimeout(() => {
       setSent(false);
       setMessage("");
-      setOpen(false);
+      lastDraftRef.current = "";
+      draftSeqRef.current = 0;
+      toggleOpen(false);
     }, 1500);
   }
 
@@ -135,7 +162,7 @@ export function WhatsAppButton() {
                 </p>
               </div>
               <button
-                onClick={() => setOpen(false)}
+                onClick={() => toggleOpen(false)}
                 style={{
                   background: "none",
                   border: "none",
@@ -238,7 +265,11 @@ export function WhatsAppButton() {
               <textarea
                 ref={inputRef}
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setMessage(val);
+                  trackDraftChange(val);
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder="Type your message..."
                 rows={1}
@@ -305,7 +336,7 @@ export function WhatsAppButton() {
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => toggleOpen(!open)}
         aria-label={open ? "Close chat" : "Open WhatsApp chat"}
         style={{
           width: 52,

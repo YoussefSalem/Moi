@@ -27,3 +27,4 @@ export * from "./discountCodeUses";
 export * from "./abandonedCarts";
 export * from "./analyticsSessions";
 export * from "./analyticsEvents";
+export * from "./chatInteractions";
