@@ -13,6 +13,7 @@ import { EditorialStrip } from "@/components/EditorialStrip";
 import { LookView } from "@/components/LookView";
 import { CartProvider, useCart } from "@/context/CartContext";
 import { CustomerProvider } from "@/context/CustomerContext";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 import { useRestockChecker } from "@/hooks/useRestockChecker";
@@ -233,6 +234,8 @@ function AppContent() {
 
       <LoadingScreen ready={page !== "home" ? !loading : heroReady && !loading} />
       <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
+
+      <WhatsAppButton />
 
       <Suspense fallback={null}>
         <CartDrawer />
