@@ -1,15 +1,44 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X } from "lucide-react";
+import { MessageCircle, X, Send, Clock } from "lucide-react";
 
 const WHATSAPP_NUMBER = "201200520083";
 const WHATSAPP_MESSAGE = "Hi, I have a question about this product";
 
-const encodedMessage = encodeURIComponent(WHATSAPP_MESSAGE);
-const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
-
 export function WhatsAppButton() {
-  const [open, setOpen] = useState(false);
+  const shouldOpen = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).has("whatsapp");
+  }, []);
+  const [open, setOpen] = useState(shouldOpen);
+  const [message, setMessage] = useState("");
+  const [sent, setSent] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (open && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [open]);
+
+  function handleSend() {
+    const text = message.trim() || WHATSAPP_MESSAGE;
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
+    setSent(true);
+    setTimeout(() => {
+      setSent(false);
+      setMessage("");
+      setOpen(false);
+    }, 1500);
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   return (
     <div style={{ position: "fixed", bottom: 20, right: 20, zIndex: 50 }}>
@@ -24,20 +53,23 @@ export function WhatsAppButton() {
               position: "absolute",
               bottom: 64,
               right: 0,
-              width: 280,
-              background: "#fff",
-              border: "1px solid rgba(30,24,20,0.1)",
-              borderRadius: 12,
-              boxShadow: "0 8px 32px rgba(30,24,20,0.12)",
+              width: 320,
+              maxWidth: "calc(100vw - 40px)",
+              background: "#faf8f5",
+              border: "1px solid rgba(30,24,20,0.08)",
+              borderRadius: 16,
+              boxShadow: "0 12px 40px rgba(30,24,20,0.14)",
               overflow: "hidden",
               fontFamily: "'Montserrat', sans-serif",
+              display: "flex",
+              flexDirection: "column",
             }}
           >
             {/* Header */}
             <div
               style={{
                 background: "#1e1814",
-                padding: "14px 16px",
+                padding: "14px 18px",
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
@@ -45,10 +77,10 @@ export function WhatsAppButton() {
             >
               <div
                 style={{
-                  width: 36,
-                  height: 36,
+                  width: 38,
+                  height: 38,
                   borderRadius: "50%",
-                  background: "rgba(255,255,255,0.1)",
+                  background: "rgba(255,255,255,0.08)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -56,11 +88,11 @@ export function WhatsAppButton() {
               >
                 <MessageCircle size={18} color="#fff" />
               </div>
-              <div>
+              <div style={{ flex: 1 }}>
                 <p
                   style={{
                     color: "#fff",
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: 600,
                     margin: 0,
                     letterSpacing: "0.02em",
@@ -70,32 +102,61 @@ export function WhatsAppButton() {
                 </p>
                 <p
                   style={{
-                    color: "rgba(255,255,255,0.6)",
+                    color: "rgba(255,255,255,0.55)",
                     fontSize: 11,
                     margin: 0,
                     marginTop: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
                   }}
                 >
-                  Typically replies within a few hours
+                  <Clock size={10} /> Typically replies within a few hours
                 </p>
               </div>
+              <button
+                onClick={() => setOpen(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 4,
+                  color: "rgba(255,255,255,0.5)",
+                }}
+                aria-label="Close chat"
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            {/* Chat bubble preview */}
-            <div style={{ padding: "16px 16px 12px" }}>
+            {/* Chat area */}
+            <div
+              style={{
+                flex: 1,
+                padding: "16px 16px 12px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+                minHeight: 180,
+                maxHeight: 320,
+                overflowY: "auto",
+              }}
+            >
+              {/* Welcome message */}
               <div
                 style={{
-                  background: "#f5f3f0",
-                  borderRadius: "12px 12px 12px 4px",
+                  background: "#fff",
+                  borderRadius: "14px 14px 14px 4px",
                   padding: "12px 14px",
                   maxWidth: "90%",
+                  boxShadow: "0 1px 4px rgba(30,24,20,0.04)",
                 }}
               >
                 <p
                   style={{
                     color: "#1e1814",
                     fontSize: 13,
-                    lineHeight: 1.5,
+                    lineHeight: 1.55,
                     margin: 0,
                   }}
                 >
@@ -103,7 +164,7 @@ export function WhatsAppButton() {
                 </p>
                 <p
                   style={{
-                    color: "rgba(30,24,20,0.4)",
+                    color: "rgba(30,24,20,0.35)",
                     fontSize: 10,
                     marginTop: 6,
                     margin: 0,
@@ -112,38 +173,109 @@ export function WhatsAppButton() {
                   Moi
                 </p>
               </div>
+
+              {sent && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{
+                    background: "#fff",
+                    borderRadius: "14px 14px 4px 14px",
+                    padding: "12px 14px",
+                    alignSelf: "flex-end",
+                    maxWidth: "90%",
+                    boxShadow: "0 1px 4px rgba(30,24,20,0.04)",
+                  }}
+                >
+                  <p style={{ color: "#1e1814", fontSize: 13, lineHeight: 1.55, margin: 0 }}>
+                    {message.trim() || WHATSAPP_MESSAGE}
+                  </p>
+                  <p
+                    style={{
+                      color: "rgba(30,24,20,0.35)",
+                      fontSize: 10,
+                      marginTop: 6,
+                      margin: 0,
+                      textAlign: "right",
+                    }}
+                  >
+                    You
+                  </p>
+                </motion.div>
+              )}
             </div>
 
-            {/* CTA */}
-            <div style={{ padding: "0 16px 16px" }}>
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setOpen(false)}
+            {/* Input area */}
+            <div
+              style={{
+                padding: "10px 14px 14px",
+                borderTop: "1px solid rgba(30,24,20,0.06)",
+                display: "flex",
+                gap: 8,
+                alignItems: "flex-end",
+              }}
+            >
+              <textarea
+                ref={inputRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type your message..."
+                rows={1}
                 style={{
-                  display: "block",
-                  width: "100%",
-                  textAlign: "center",
-                  background: "#1e1814",
-                  color: "#fff",
+                  flex: 1,
+                  resize: "none",
+                  border: "1px solid rgba(30,24,20,0.12)",
+                  borderRadius: 20,
+                  padding: "10px 14px",
                   fontSize: 13,
-                  fontWeight: 600,
-                  padding: "11px 0",
-                  borderRadius: 8,
-                  textDecoration: "none",
-                  letterSpacing: "0.02em",
-                  transition: "background 0.2s",
+                  fontFamily: "'Montserrat', sans-serif",
+                  lineHeight: 1.5,
+                  outline: "none",
+                  background: "#fff",
+                  color: "#1e1814",
+                  maxHeight: 100,
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "#2a201a")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "#1e1814")
-                }
+                onInput={(e) => {
+                  const el = e.currentTarget;
+                  el.style.height = "auto";
+                  el.style.height = el.scrollHeight + "px";
+                }}
+              />
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleSend}
+                aria-label="Send message"
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "50%",
+                  background: "#1e1814",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  color: "#fff",
+                }}
               >
-                Start Chat
-              </a>
+                <Send size={16} />
+              </motion.button>
+            </div>
+
+            {/* Footer */}
+            <div
+              style={{
+                textAlign: "center",
+                padding: "6px 0 10px",
+                fontSize: 10,
+                color: "rgba(30,24,20,0.3)",
+                letterSpacing: "0.06em",
+              }}
+            >
+              Powered by WhatsApp
             </div>
           </motion.div>
         )}
