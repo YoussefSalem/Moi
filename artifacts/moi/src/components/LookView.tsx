@@ -19,6 +19,7 @@ export function LookView({ product, onClose }: LookViewProps) {
   // fading: image is transitioning out (opacity → 0)
   const [fading, setFading] = useState(false);
   const [addedFeedback, setAddedFeedback] = useState(false);
+  const [addingToBag, setAddingToBag] = useState(false);
   const [lbOpen, setLbOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
   const [ready, setReady] = useState(false);
@@ -121,17 +122,22 @@ export function LookView({ product, onClose }: LookViewProps) {
   }, [product]);
 
   const handleAddToBag = async () => {
-    if (!product) return;
-    await addToCart({
-      variantId: product.variantId,
-      title: product.name,
-      price: product.price,
-      priceAmount: parseFloat(product.price.replace(/[^0-9.]/g, "")),
-      currencyCode: "EGP",
-      image: product.look.model,
-    });
-    setAddedFeedback(true);
-    setTimeout(() => setAddedFeedback(false), 1800);
+    if (!product || addingToBag) return;
+    setAddingToBag(true);
+    try {
+      await addToCart({
+        variantId: product.variantId,
+        title: product.name,
+        price: product.price,
+        priceAmount: parseFloat(product.price.replace(/[^0-9.]/g, "")),
+        currencyCode: "EGP",
+        image: product.look.model,
+      });
+      setAddedFeedback(true);
+      setTimeout(() => setAddedFeedback(false), 1800);
+    } finally {
+      setAddingToBag(false);
+    }
   };
 
   const availableImages = useMemo(() => {
@@ -420,21 +426,24 @@ export function LookView({ product, onClose }: LookViewProps) {
                       </p>
                       <div>
                         <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.97 }}
+                          whileHover={addingToBag ? {} : { scale: 1.02 }}
+                          whileTap={addingToBag ? {} : { scale: 0.97 }}
                           onClick={handleAddToBag}
+                          disabled={addingToBag}
                           className="px-10 py-3.5 text-[11px] tracking-[0.2em] uppercase font-medium"
                           style={{
                             backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
                             color: addedFeedback ? "#1e1814" : "#fff",
                             border: "1px solid #1e1814",
-                            transition: "background-color 0.2s, color 0.2s, box-shadow 0.2s",
-                            boxShadow: addedFeedback
+                            transition: "background-color 0.2s, color 0.2s, box-shadow 0.2s, opacity 0.2s",
+                            opacity: addingToBag ? 0.6 : 1,
+                            cursor: addingToBag ? "wait" : "pointer",
+                            boxShadow: addedFeedback || addingToBag
                               ? "none"
                               : "0 0 20px rgba(30,24,20,0.15), 0 4px 12px rgba(0,0,0,0.1)",
                           }}
                         >
-                          {addedFeedback ? "Added \u2713" : "Order Now"}
+                          {addedFeedback ? "Added \u2713" : addingToBag ? "Adding\u2026" : "Order Now"}
                         </motion.button>
                       </div>
                     </div>

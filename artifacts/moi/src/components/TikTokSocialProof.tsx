@@ -128,9 +128,9 @@ export function TikTokSocialProof() {
                           src={video.embedUrl}
                           className="absolute left-0 top-0 w-full"
                           style={{ height: "107%", transform: "translateY(-2px)" }}
-                          allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture"
+                          allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture; autoplay"
                           scrolling="no"
-                          sandbox="allow-scripts allow-same-origin allow-presentation"
+                          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms"
                         />
                       ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "linear-gradient(135deg, #1f1916 0%, #2a201c 50%, #1f1916 100%)" }}>

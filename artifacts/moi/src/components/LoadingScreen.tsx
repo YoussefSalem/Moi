@@ -11,6 +11,12 @@ export function LoadingScreen({ ready }: LoadingScreenProps) {
   const shownAt = useRef(Date.now());
 
   useEffect(() => {
+    // Hard cap: never block longer than 3.5s regardless of load state
+    const hardCap = setTimeout(() => setVisible(false), 3500);
+    return () => clearTimeout(hardCap);
+  }, []);
+
+  useEffect(() => {
     if (!ready) return;
     // Enforce a minimum display time of 800ms so the loader never flashes
     // even if everything loads instantly — the user always sees a smooth entrance.
