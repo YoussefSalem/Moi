@@ -237,7 +237,7 @@ function RejectDialog({ onConfirm, onCancel }: { onConfirm: (reason: string) => 
   );
 }
 
-function ProofsTab({ token }: { token: string }) {
+function ProofsTab({ token, onAuth }: { token: string; onAuth?: (t: string | null) => void }) {
   const [proofs, setProofs] = useState<Proof[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -253,7 +253,10 @@ function ProofsTab({ token }: { token: string }) {
     setError("");
     try {
       const res = await fetch("/api/admin/instapay-proofs", { headers: apiHeaders(token) });
-      if (!res.ok) { setError("Failed to load proofs."); return; }
+      if (res.status === 401 || res.status === 403) {
+        sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_EXPIRY_KEY); onAuth?.(null); return;
+      }
+      if (!res.ok) { setError(`Failed to load proofs. (${res.status})`); return; }
       const data = await res.json() as { proofs: Proof[] };
       setProofs(data.proofs);
     } catch {
@@ -261,7 +264,7 @@ function ProofsTab({ token }: { token: string }) {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, onAuth]);
 
   useEffect(() => { void fetchProofs(); }, [fetchProofs]);
 
@@ -532,7 +535,7 @@ interface CardOrder {
   createdAt: string;
 }
 
-function CardOrdersTab({ token }: { token: string }) {
+function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string | null) => void }) {
   const [orders, setOrders] = useState<CardOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -544,12 +547,15 @@ function CardOrdersTab({ token }: { token: string }) {
     setError("");
     try {
       const res = await fetch("/api/admin/card-orders", { headers: apiHeaders(token) });
-      if (!res.ok) { setError("Failed to load card orders."); setLoading(false); return; }
+      if (res.status === 401 || res.status === 403) {
+        sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_EXPIRY_KEY); onAuth?.(null); return;
+      }
+      if (!res.ok) { setError(`Failed to load card orders. (${res.status})`); setLoading(false); return; }
       const data = await res.json() as { orders: CardOrder[] };
       setOrders(data.orders);
     } catch { setError("Network error."); }
     finally { setLoading(false); }
-  }, [token]);
+  }, [token, onAuth]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -673,7 +679,7 @@ function CardOrdersTab({ token }: { token: string }) {
   );
 }
 
-function SettingsTab({ token }: { token: string }) {
+function SettingsTab({ token, onAuth }: { token: string; onAuth?: (t: string | null) => void }) {
   const [config, setConfig] = useState<Record<string, string>>({});
   const [form, setForm] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -691,10 +697,15 @@ function SettingsTab({ token }: { token: string }) {
 
   useEffect(() => {
     fetch("/api/admin/paymob-config", { headers: apiHeaders(token) })
-      .then((r) => r.json() as Promise<Record<string, string>>)
-      .then((d) => { setConfig(d); setLoading(false); })
+      .then((r) => {
+        if (r.status === 401 || r.status === 403) {
+          sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_EXPIRY_KEY); onAuth?.(null); return null;
+        }
+        return r.json() as Promise<Record<string, string>>;
+      })
+      .then((d) => { if (d) { setConfig(d); setLoading(false); } })
       .catch(() => setLoading(false));
-  }, [token]);
+  }, [token, onAuth]);
 
   async function handleSave() {
     const patch: Record<string, string> = {};
@@ -832,7 +843,7 @@ function FunnelBar({ label, value, max, rate, color }: { label: string; value: n
   );
 }
 
-function AnalyticsTab({ token }: { token: string }) {
+function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | null) => void }) {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -852,17 +863,35 @@ function AnalyticsTab({ token }: { token: string }) {
         params.set("days", String(days));
       }
       const res = await fetch(`/api/admin/analytics?${params.toString()}`, { headers: apiHeaders(token) });
-      if (!res.ok) { setError("Failed to load analytics."); return; }
+      if (res.status === 401 || res.status === 403) {
+        sessionStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_EXPIRY_KEY);
+        onAuth?.(null);
+        return;
+      }
+      if (!res.ok) { setError(`Failed to load analytics. (${res.status})`); return; }
       const json = await res.json() as AnalyticsData;
       setData(json);
     } catch { setError("Network error."); }
     finally { setLoading(false); }
-  }, [token, days, fromDate, toDate]);
+  }, [token, days, fromDate, toDate, onAuth]);
 
   useEffect(() => { void load(); }, [load]);
 
   if (loading) return <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Loading analytics…</p>;
-  if (error) return <p style={{ fontSize: 13, color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>;
+  if (error) return (
+    <div style={{ padding: "40px 0", textAlign: "center" }}>
+      <p style={{ fontSize: 13, color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginBottom: 16 }}>{error}</p>
+      <button onClick={load} style={{ ...btn, backgroundColor: "#1e1814", color: "#fff", padding: "8px 16px", fontSize: 12 }}>
+        Retry
+      </button>
+      {onAuth && (
+        <button onClick={() => { sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_EXPIRY_KEY); onAuth(null); }} style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.15)", color: "#1e1814", padding: "8px 16px", fontSize: 12, marginLeft: 8 }}>
+          Re-login
+        </button>
+      )}
+    </div>
+  );
   if (!data) return null;
 
   const { summary, funnel, sourceQuality, deviceSegmentation, osSegmentation, visitorType, hesitationSignals, exitPages, clickHeatmap, scrollDistribution, timeToPurchase, productPaths, rageTaps, elementInteractions } = data;
@@ -1225,7 +1254,7 @@ function SourceMetric({ label, value, warn, good }: { label: string; value: stri
   );
 }
 
-function DiscountsTab({ token }: { token: string }) {
+function DiscountsTab({ token, onAuth }: { token: string; onAuth?: (t: string | null) => void }) {
   const [uses, setUses] = useState<DiscountUse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -1235,12 +1264,15 @@ function DiscountsTab({ token }: { token: string }) {
     setError("");
     try {
       const res = await fetch("/api/admin/discount-uses", { headers: apiHeaders(token) });
-      if (!res.ok) { setError("Failed to load discount uses."); return; }
+      if (res.status === 401 || res.status === 403) {
+        sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_EXPIRY_KEY); onAuth?.(null); return;
+      }
+      if (!res.ok) { setError(`Failed to load discount uses. (${res.status})`); return; }
       const data = await res.json() as { uses: DiscountUse[] };
       setUses(data.uses);
     } catch { setError("Network error."); }
     finally { setLoading(false); }
-  }, [token]);
+  }, [token, onAuth]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -1352,7 +1384,7 @@ interface AbandonedStats {
   emailDrivenRate: number;
 }
 
-function AbandonedCartsTab({ token }: { token: string }) {
+function AbandonedCartsTab({ token, onAuth }: { token: string; onAuth?: (t: string | null) => void }) {
   const [items, setItems] = useState<AbandonedCartItem[]>([]);
   const [stats, setStats] = useState<AbandonedStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1370,13 +1402,16 @@ function AbandonedCartsTab({ token }: { token: string }) {
       if (dateFrom) params.set("from", dateFrom);
       if (dateTo) params.set("to", dateTo);
       const res = await fetch(`/api/admin/abandoned-carts?${params.toString()}`, { headers: apiHeaders(token) });
-      if (!res.ok) { setError("Failed to load abandoned carts."); setLoading(false); return; }
+      if (res.status === 401 || res.status === 403) {
+        sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_EXPIRY_KEY); onAuth?.(null); return;
+      }
+      if (!res.ok) { setError(`Failed to load abandoned carts. (${res.status})`); setLoading(false); return; }
       const data = await res.json() as { stats: AbandonedStats; items: AbandonedCartItem[] };
       setStats(data.stats);
       setItems(data.items);
       setLoading(false);
     } catch { setError("Network error."); setLoading(false); }
-  }, [token, statusFilter, dateFrom, dateTo]);
+  }, [token, statusFilter, dateFrom, dateTo, onAuth]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -1558,8 +1593,18 @@ function AbandonedCartsTab({ token }: { token: string }) {
   );
 }
 
-export function AdminPage() {
+function useAuth() {
   const [token, setToken] = useState<string | null>(() => getStoredToken());
+  const logout = useCallback(() => {
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_EXPIRY_KEY);
+    setToken(null);
+  }, []);
+  return { token, setToken, logout };
+}
+
+export function AdminPage() {
+  const { token, setToken, logout } = useAuth();
   const [tab, setTab] = useState<"analytics" | "proofs" | "card-orders" | "abandoned" | "discounts" | "settings">("analytics");
 
   if (!token) {
@@ -1575,7 +1620,7 @@ export function AdminPage() {
           <span style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(255,255,255,0.5)", fontFamily: "'Montserrat', sans-serif", marginLeft: 12 }}>Admin</span>
         </div>
         <button
-          onClick={() => { sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_EXPIRY_KEY); setToken(null); }}
+          onClick={logout}
           style={{ display: "flex", alignItems: "center", gap: 6, ...btn, backgroundColor: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)", padding: "6px 12px" }}
         >
           <LogOut size={12} strokeWidth={2} />
@@ -1610,27 +1655,27 @@ export function AdminPage() {
         <AnimatePresence mode="wait">
           {tab === "analytics" ? (
             <motion.div key="analytics" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <AnalyticsTab token={token} />
+              <AnalyticsTab token={token} onAuth={setToken} />
             </motion.div>
           ) : tab === "proofs" ? (
             <motion.div key="proofs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <ProofsTab token={token} />
+              <ProofsTab token={token} onAuth={setToken} />
             </motion.div>
           ) : tab === "card-orders" ? (
             <motion.div key="card-orders" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <CardOrdersTab token={token} />
+              <CardOrdersTab token={token} onAuth={setToken} />
             </motion.div>
           ) : tab === "abandoned" ? (
             <motion.div key="abandoned" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <AbandonedCartsTab token={token} />
+              <AbandonedCartsTab token={token} onAuth={setToken} />
             </motion.div>
           ) : tab === "discounts" ? (
             <motion.div key="discounts" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <DiscountsTab token={token} />
+              <DiscountsTab token={token} onAuth={setToken} />
             </motion.div>
           ) : (
             <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <SettingsTab token={token} />
+              <SettingsTab token={token} onAuth={setToken} />
             </motion.div>
           )}
         </AnimatePresence>
