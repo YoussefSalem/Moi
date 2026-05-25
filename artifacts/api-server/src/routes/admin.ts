@@ -33,7 +33,7 @@ function deriveSessionToken(adminSecret: string): string {
     .digest("base64url");
 }
 
-function requireAdminAuth(req: Request, res: Response, next: NextFunction): void {
+export function requireAdminAuth(req: Request, res: Response, next: NextFunction): void {
   const adminSecret = process.env.ADMIN_SECRET;
   if (!adminSecret) {
     res.status(503).json({ error: "Admin not configured" });

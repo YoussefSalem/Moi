@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { analyticsSessions, analyticsEvents } from "@workspace/db/schema";
 import { eq, desc, and, gte, lte, sql, count, isNull, or } from "drizzle-orm";
+import { requireAdminAuth } from "./admin";
 
 const router: IRouter = Router();
 
@@ -389,6 +390,19 @@ router.get("/admin/analytics", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Analytics dashboard query failed");
     res.status(500).json({ error: "Failed to load analytics" });
+  }
+});
+
+/** POST /api/admin/analytics/clear — wipe all analytics tables */
+router.post("/admin/analytics/clear", requireAdminAuth, async (req, res) => {
+  try {
+    await db.delete(analyticsEvents);
+    await db.delete(analyticsSessions);
+    req.log.info("Analytics tables cleared by admin");
+    res.status(200).json({ ok: true, cleared: true });
+  } catch (err) {
+    req.log.error({ err }, "Analytics clear failed");
+    res.status(500).json({ error: "Failed to clear analytics data" });
   }
 });
 

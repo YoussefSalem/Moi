@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, X, Eye, RefreshCw, ChevronDown, ChevronUp, LogOut, BarChart3, TrendingUp, Monitor, Smartphone, Globe, AlertTriangle, Users, ArrowRight, MousePointer, Clock } from "lucide-react";
+import { Check, X, Eye, RefreshCw, ChevronDown, ChevronUp, LogOut, BarChart3, TrendingUp, Monitor, Smartphone, Globe, AlertTriangle, Users, ArrowRight, MousePointer, Clock, Trash2 } from "lucide-react";
 
 const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN as string | undefined;
 const SESSION_KEY = "moi_admin_token";
@@ -850,6 +850,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
   const [days, setDays] = useState<7 | 30 | 90>(7);
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
+  const [clearing, setClearing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -875,6 +876,20 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
     } catch { setError("Network error."); }
     finally { setLoading(false); }
   }, [token, days, fromDate, toDate, onAuth]);
+
+  async function handleClear() {
+    if (!window.confirm("Clear ALL analytics data? This cannot be undone.")) return;
+    setClearing(true);
+    try {
+      const res = await fetch("/api/admin/analytics/clear", { method: "POST", headers: apiHeaders(token) });
+      if (res.status === 401 || res.status === 403) {
+        sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_EXPIRY_KEY); onAuth?.(null); return;
+      }
+      if (!res.ok) { setError("Failed to clear data."); return; }
+      await load();
+    } catch { setError("Network error clearing data."); }
+    finally { setClearing(false); }
+  }
 
   useEffect(() => { void load(); }, [load]);
 
@@ -942,6 +957,15 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
         </div>
         <button onClick={load} className="ml-auto" style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.15)", padding: "6px 10px" }}>
           <RefreshCw size={14} color="rgba(30,24,20,0.5)" />
+        </button>
+        <button
+          onClick={handleClear}
+          disabled={clearing}
+          style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(192,57,43,0.3)", color: "#c0392b", padding: "6px 10px", marginLeft: 8 }}
+          title="Clear all analytics data"
+        >
+          <Trash2 size={14} />
+          {clearing ? "…" : "Clear"}
         </button>
       </div>
 
