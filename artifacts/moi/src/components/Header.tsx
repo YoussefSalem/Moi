@@ -33,13 +33,14 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
         style={{
           willChange: "transform",
           backgroundColor: dark ? "rgba(30,24,20,0.08)" : scrolled ? "rgba(250, 248, 245, 0.97)" : "transparent",
+          WebkitBackdropFilter: dark || scrolled ? "blur(12px)" : "none",
           backdropFilter: dark || scrolled ? "blur(12px)" : "none",
           borderBottom: dark ? "1px solid rgba(30,24,20,0.12)" : scrolled ? "1px solid rgba(180,160,140,0.18)" : "1px solid transparent",
           boxShadow: dark ? "0 2px 20px rgba(20,16,12,0.04)" : scrolled ? "0 2px 20px rgba(20,16,12,0.06)" : "none",
-          transition: "background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease",
+          transition: "background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease",
         }}
       >
-        <div className="flex items-center justify-between px-6 md:px-12 h-16">
+        <div className="flex items-center justify-between px-6 md:px-12 h-16" style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "max(1.5rem, env(safe-area-inset-left))", paddingRight: "max(1.5rem, env(safe-area-inset-right))" }}>
           <button
             onClick={() => {
               onNavigate?.("home");
@@ -55,21 +56,21 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
 
           <button
             onClick={() => setMenuOpen(true)}
-            className="flex flex-col gap-1.5 w-8 h-8 items-center justify-center group"
+            className="flex flex-col gap-1.5 w-11 h-11 items-center justify-center group -ml-1"
             aria-label="Open menu"
           >
             <span className="block w-6 h-px transition-all duration-300" style={{ backgroundColor: iconColor }} />
             <span className="block w-4 h-px transition-all duration-300 group-hover:w-6" style={{ backgroundColor: iconColor }} />
           </button>
 
-          <div className="flex items-center gap-5">
-            <button aria-label="Search" className="transition-opacity hover:opacity-60" onClick={onSearch}>
+          <div className="flex items-center gap-1">
+            <button aria-label="Search" className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-60" onClick={onSearch}>
               <Search size={18} strokeWidth={1.5} style={{ color: iconColor }} />
             </button>
 
             <button
               aria-label={customer ? "My Account" : "Sign In"}
-              className="flex items-center gap-1.5 transition-opacity hover:opacity-60"
+              className="w-11 h-11 flex items-center justify-center gap-1.5 transition-opacity hover:opacity-60"
               onClick={customer ? openAccount : openAuth}
             >
               <User size={18} strokeWidth={1.5} style={{ color: iconColor }} />
@@ -85,7 +86,7 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
 
             <button
               aria-label="Cart"
-              className="transition-opacity hover:opacity-60 relative"
+              className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-60 relative"
               onClick={openCart}
             >
               <ShoppingBag size={18} strokeWidth={1.5} style={{ color: iconColor }} />
@@ -135,12 +136,12 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "tween", duration: 0.4, ease: [0.76, 0, 0.24, 1] }}
-              className="fixed top-0 left-0 bottom-0 z-[70] w-80 flex flex-col"
+              className="fixed top-0 left-0 bottom-0 z-[70] w-full max-w-xs flex flex-col"
               style={{ backgroundColor: "#faf8f5" }}
             >
               <div className="flex items-center justify-between px-8 py-6 border-b border-stone-200">
                 <span className="font-serif text-xl tracking-[0.3em]" style={{ color: "#1e1814" }}>MOI</span>
-                <button onClick={() => setMenuOpen(false)} className="transition-opacity hover:opacity-50">
+                <button onClick={() => setMenuOpen(false)} className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-50 -mr-2">
                   <X size={20} strokeWidth={1.5} />
                 </button>
               </div>

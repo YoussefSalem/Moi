@@ -77,7 +77,7 @@ export function WhatsAppButton() {
   return (
     <>
       <style>{PULSE_CSS}</style>
-      <div style={{ position: "fixed", bottom: 20, right: 20, zIndex: 50 }}>
+      <div style={{ position: "fixed", bottom: "max(20px, env(safe-area-inset-bottom) + 4px)", right: "max(20px, env(safe-area-inset-right) + 4px)", zIndex: 50 }}>
       <AnimatePresence>
         {open && (
           <motion.div
@@ -167,7 +167,8 @@ export function WhatsAppButton() {
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  padding: 4,
+                  padding: 10,
+                  margin: -6,
                   color: "rgba(255,255,255,0.5)",
                 }}
                 aria-label="Close chat"
@@ -299,8 +300,8 @@ export function WhatsAppButton() {
                 onClick={handleSend}
                 aria-label="Send message"
                 style={{
-                  width: 38,
-                  height: 38,
+                  width: 44,
+                  height: 44,
                   borderRadius: "50%",
                   background: "#1e1814",
                   border: "none",

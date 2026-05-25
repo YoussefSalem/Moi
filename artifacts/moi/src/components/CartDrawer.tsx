@@ -234,10 +234,10 @@ export function CartDrawer() {
                               </div>
                               <button
                                 onClick={() => removeItem(line.id)}
-                                className="flex-shrink-0 transition-opacity hover:opacity-50 mt-0.5"
+                                className="flex-shrink-0 w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50 mt-0.5"
                                 aria-label="Remove"
                               >
-                                <X size={13} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
+                                <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
                               </button>
                             </div>
                             <div className="flex items-center justify-between mt-auto">
@@ -247,23 +247,23 @@ export function CartDrawer() {
                               >
                                 <button
                                   onClick={() => updateQuantity(line.id, line.quantity - 1)}
-                                  className="w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-50"
+                                  className="w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50"
                                   aria-label="Decrease"
                                 >
-                                  <Minus size={11} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                                  <Minus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                                 <span
-                                  className="w-7 h-7 flex items-center justify-center text-[11px] font-semibold"
+                                  className="w-9 h-9 flex items-center justify-center text-[12px] font-semibold"
                                   style={{ color: "#17120f" }}
                                 >
                                   {line.quantity}
                                 </span>
                                 <button
                                   onClick={() => updateQuantity(line.id, line.quantity + 1)}
-                                  className="w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-50"
+                                  className="w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50"
                                   aria-label="Increase"
                                 >
-                                  <Plus size={11} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                                  <Plus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                               </div>
                               <p
@@ -317,10 +317,10 @@ export function CartDrawer() {
                               </div>
                               <button
                                 onClick={() => removeItem(item.id)}
-                                className="flex-shrink-0 transition-opacity hover:opacity-50 mt-0.5"
+                                className="flex-shrink-0 w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50 mt-0.5"
                                 aria-label="Remove"
                               >
-                                <X size={13} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
+                                <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
                               </button>
                             </div>
                             <div className="flex items-center justify-between mt-auto">
@@ -330,23 +330,23 @@ export function CartDrawer() {
                               >
                                 <button
                                   onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                  className="w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-50"
+                                  className="w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50"
                                   aria-label="Decrease"
                                 >
-                                  <Minus size={11} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                                  <Minus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                                 <span
-                                  className="w-7 h-7 flex items-center justify-center text-[11px] font-semibold"
+                                  className="w-9 h-9 flex items-center justify-center text-[12px] font-semibold"
                                   style={{ color: "#17120f" }}
                                 >
                                   {item.quantity}
                                 </span>
                                 <button
                                   onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                  className="w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-50"
+                                  className="w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50"
                                   aria-label="Increase"
                                 >
-                                  <Plus size={11} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                                  <Plus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                               </div>
                               <p
