@@ -19,6 +19,7 @@ import {
   trackShopifyCartViewed,
   trackShopifyCheckoutStarted,
 } from "@/lib/shopifyAnalytics";
+import { trackAddToCart as trackInternalAddToCart } from "@/lib/analytics";
 
 const CART_ID_KEY = "moi_cart_id";
 const LOCAL_CART_KEY = "moi_local_cart";
@@ -184,6 +185,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         value: Number.isFinite(params.priceAmount) && params.priceAmount != null ? params.priceAmount : 0,
         num_items: qty,
       });
+      trackInternalAddToCart(
+        params.variantId ?? params.title ?? "unknown",
+        params.title ?? "Item",
+        qty,
+        Number.isFinite(params.priceAmount) && params.priceAmount != null ? params.priceAmount : 0
+      );
       trackTikTokAddToCart({
         content_name: params.title,
         content_id: params.variantId,

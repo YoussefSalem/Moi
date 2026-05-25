@@ -423,6 +423,7 @@ export function CartDrawer() {
                       value: totalVal > 0 ? totalVal : undefined,
                       quantity: numItems,
                     });
+                    trackCheckoutStep("start", { numItems, totalVal });
                     openCheckout();
                   }}
                   disabled={loading}
