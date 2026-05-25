@@ -644,7 +644,7 @@ export function CheckoutPage() {
         num_items: purchaseItems,
         order_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
       });
-      import("@/lib/analytics").then(({ trackPurchase: trackInternalPurchase }) => {
+      import("@/lib/analytics").then(({ trackPurchaseWithTime: trackInternalPurchase }) => {
         trackInternalPurchase(String(data.orderNumber ?? data.shopifyOrderId ?? ""), purchaseValue, "cod");
       });
       trackTikTokPurchase({
@@ -770,7 +770,7 @@ export function CheckoutPage() {
       num_items: orderLines.reduce((s, l) => s + l.quantity, 0),
       order_id: txnId ?? "",
     });
-    import("@/lib/analytics").then(({ trackPurchase: trackInternalPurchase }) => {
+    import("@/lib/analytics").then(({ trackPurchaseWithTime: trackInternalPurchase }) => {
       trackInternalPurchase(txnId ?? "", totalVal, "card");
     });
     trackShopifyPurchase({
@@ -1151,7 +1151,7 @@ export function CheckoutPage() {
                   num_items: proofItems,
                   order_id: String(orderNumber),
                 });
-                import("@/lib/analytics").then(({ trackPurchase: trackInternalPurchase }) => {
+                import("@/lib/analytics").then(({ trackPurchaseWithTime: trackInternalPurchase }) => {
                   trackInternalPurchase(String(orderNumber), proofTotal, "instapay");
                 });
                 trackTikTokPurchase({

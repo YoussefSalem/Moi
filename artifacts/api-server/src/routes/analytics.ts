@@ -219,6 +219,109 @@ router.get("/admin/analytics", async (req, res) => {
       return typeof meta?.seconds === "number" && meta.seconds > 60;
     }).length;
 
+    // --- Exit pages ---
+    const exitPages: Record<string, number> = {};
+    for (const s of sessions) {
+      const url = s.exitUrl ?? s.entryUrl ?? "unknown";
+      exitPages[url] = (exitPages[url] ?? 0) + 1;
+    }
+    const exitPageRank = Object.entries(exitPages)
+      .map(([page, count]) => ({ page, count, pct: totalSessions > 0 ? Math.round((count / totalSessions) * 100) : 0 }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    // --- Click heatmap (aggregated by element) ---
+    const clickAgg: Record<string, { tag: string; text: string; count: number; rageTaps: number }> = {};
+    for (const e of events) {
+      if (e.category !== "interaction" || e.event !== "click") continue;
+      const meta = e.metadata as Record<string, unknown> | null;
+      if (!meta) continue;
+      const elId = String(meta.elementId ?? "unknown");
+      if (!clickAgg[elId]) clickAgg[elId] = { tag: String(meta.elementTag ?? ""), text: String(meta.elementText ?? ""), count: 0, rageTaps: 0 };
+      clickAgg[elId].count++;
+      if (meta.isRageTap) clickAgg[elId].rageTaps++;
+    }
+    const topClicks = Object.entries(clickAgg)
+      .map(([elementId, data]) => ({ elementId, ...data }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 12);
+
+    // --- Scroll depth distribution ---
+    const scrollDepths = events
+      .filter(e => e.category === "page" && e.event === "scroll_depth_max")
+      .map(e => (e.metadata as Record<string, unknown> | null)?.maxDepth as number ?? 0)
+      .filter(d => d > 0);
+    const scrollDistribution: Record<number, number> = {};
+    for (const d of scrollDepths) {
+      const bucket = Math.floor(d / 10) * 10;
+      scrollDistribution[bucket] = (scrollDistribution[bucket] ?? 0) + 1;
+    }
+
+    // --- Time to purchase ---
+    const ttpMinutes = events
+      .filter(e => e.category === "purchase" && e.event === "complete")
+      .map(e => (e.metadata as Record<string, unknown> | null)?.timeToPurchaseMinutes as number ?? null)
+      .filter((m): m is number => typeof m === "number" && m > 0);
+    const avgTtp = ttpMinutes.length > 0 ? Math.round(ttpMinutes.reduce((a, b) => a + b, 0) / ttpMinutes.length) : null;
+    const minTtp = ttpMinutes.length > 0 ? Math.min(...ttpMinutes) : null;
+    const maxTtp = ttpMinutes.length > 0 ? Math.max(...ttpMinutes) : null;
+
+    // --- Product conversion paths ---
+    const byProduct: Record<string, { title: string; views: number; carts: number; purchases: number }> = {};
+    for (const e of events) {
+      const pid = e.productId;
+      const meta = e.metadata as Record<string, unknown> | null;
+      const title = String(meta?.productTitle ?? e.productTitle ?? pid ?? "Unknown");
+      if (!pid) continue;
+      if (!byProduct[pid]) byProduct[pid] = { title, views: 0, carts: 0, purchases: 0 };
+      if (e.category === "product" && e.event === "view") byProduct[pid].views++;
+      if (e.category === "cart" && e.event === "add_to_cart") byProduct[pid].carts++;
+      if (e.category === "purchase" && e.event === "complete") byProduct[pid].purchases++;
+    }
+    const productPaths = Object.entries(byProduct)
+      .map(([productId, data]) => ({
+        productId,
+        ...data,
+        viewToCartRate: data.views > 0 ? Math.round((data.carts / data.views) * 100) : 0,
+        cartToPurchaseRate: data.carts > 0 ? Math.round((data.purchases / data.carts) * 100) : 0,
+        viewToPurchaseRate: data.views > 0 ? Math.round((data.purchases / data.views) * 100) : 0,
+      }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 10);
+
+    // --- Rage taps ---
+    const rageTapEvents = events.filter(e => e.category === "interaction" && e.event === "rage_tap");
+    const rageTapCount = rageTapEvents.length;
+    const rageTapByElement: Record<string, number> = {};
+    for (const e of rageTapEvents) {
+      const meta = e.metadata as Record<string, unknown> | null;
+      const el = String(meta?.elementId ?? "unknown");
+      rageTapByElement[el] = (rageTapByElement[el] ?? 0) + 1;
+    }
+    const topRageTaps = Object.entries(rageTapByElement)
+      .map(([elementId, count]) => ({ elementId, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    // --- Element interactions (buttons, images, selectors) ---
+    const elementInteractions: Record<string, number> = {};
+    for (const e of events) {
+      if (e.category !== "interaction" || e.event !== "element_interaction") continue;
+      const meta = e.metadata as Record<string, unknown> | null;
+      const key = `${meta?.elementType ?? "unknown"}::${meta?.action ?? "unknown"}`;
+      elementInteractions[key] = (elementInteractions[key] ?? 0) + 1;
+    }
+    const topElementInteractions = Object.entries(elementInteractions)
+      .map(([key, count]) => {
+        const [elementType, action] = key.split("::");
+        return { elementType, action, count };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // --- Add to cart rate (overall) ---
+    const overallAtcRate = totalSessions > 0 ? Math.round((addToCarts / totalSessions) * 100) : 0;
+
     res.json({
       period: rawFrom && rawTo ? { from: rawFrom, to: rawTo } : { days, since: since.toISOString() },
       summary: {
@@ -227,6 +330,7 @@ router.get("/admin/analytics", async (req, res) => {
         bounceRate,
         returningRate,
         pageViews,
+        overallAtcRate,
       },
       funnel,
       sourceQuality,
@@ -241,6 +345,13 @@ router.get("/admin/analytics", async (req, res) => {
         longViews,
         cartAbandons,
       },
+      exitPages: exitPageRank,
+      clickHeatmap: topClicks,
+      scrollDistribution,
+      timeToPurchase: { avg: avgTtp, min: minTtp, max: maxTtp, count: ttpMinutes.length },
+      productPaths,
+      rageTaps: { total: rageTapCount, topElements: topRageTaps },
+      elementInteractions: topElementInteractions,
     });
   } catch (err) {
     req.log.error({ err }, "Analytics dashboard query failed");

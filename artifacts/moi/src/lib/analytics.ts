@@ -110,7 +110,7 @@ function getTrafficSource(): string {
 
 /** Send an analytics event to the backend */
 export function trackEvent(
-  category: "page" | "product" | "cart" | "checkout" | "purchase",
+  category: "page" | "product" | "cart" | "checkout" | "purchase" | "interaction",
   event: string,
   metadata?: Record<string, unknown>,
 ): void {
@@ -269,9 +269,65 @@ export function trackRepeatedView(productId: string, viewCount: number): void {
   trackEvent("product", "repeated_view", { productId, viewCount });
 }
 
+/** Track a click with element and coordinate info */
+export function trackClick(x: number, y: number, elementId: string, elementTag: string, elementText?: string, isRageTap?: boolean): void {
+  trackEvent("interaction", "click", { x, y, elementId: elementId || "unknown", elementTag: elementTag || "unknown", elementText: elementText?.slice(0, 50), isRageTap });
+}
+
+/** Track a rage tap (rapid repeated taps on same element) */
+export function trackRageTap(elementId: string, tapCount: number, timeWindowMs: number): void {
+  trackEvent("interaction", "rage_tap", { elementId, tapCount, timeWindowMs });
+}
+
+/** Track element interaction (hover, focus, etc) */
+export function trackElementInteraction(elementType: string, elementId: string, action: string, productId?: string): void {
+  trackEvent("interaction", "element_interaction", { elementType, elementId, action, productId });
+}
+
+/** Track max scroll depth for current page */
+let pageScrollMax = 0;
+export function trackPageScrollDepth(): void {
+  if (typeof window === "undefined") return;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const depth = docHeight > 0 ? Math.round((window.scrollY / docHeight) * 100) : 0;
+  if (depth > pageScrollMax) {
+    pageScrollMax = depth;
+  }
+}
+
+/** Send final page scroll depth */
+function sendPageScroll(): void {
+  if (pageScrollMax > 0) {
+    trackEvent("page", "scroll_depth_max", { maxDepth: pageScrollMax, url: window.location.pathname });
+  }
+}
+
+/** Record first visit timestamp for time-to-purchase tracking */
+function recordFirstVisit(): void {
+  if (typeof window === "undefined") return;
+  if (!localStorage.getItem("moi_first_visit")) {
+    localStorage.setItem("moi_first_visit", String(Date.now()));
+  }
+}
+
+/** Get minutes from first visit to now */
+function getTimeSinceFirstVisit(): number | null {
+  if (typeof window === "undefined") return null;
+  const first = localStorage.getItem("moi_first_visit");
+  if (!first) return null;
+  return Math.round((Date.now() - parseInt(first, 10)) / 60000);
+}
+
+/** Track purchase with time-to-purchase */
+export function trackPurchaseWithTime(orderId: string, value: number, paymentMethod: string): void {
+  const minutes = getTimeSinceFirstVisit();
+  trackEvent("purchase", "complete", { orderId, value, paymentMethod, timeToPurchaseMinutes: minutes });
+}
+
 /** Initialize analytics on app mount */
 export function initAnalytics(): void {
   if (typeof window === "undefined") return;
+  recordFirstVisit();
   startAnalyticsSession();
   trackPageView();
 
@@ -279,6 +335,8 @@ export function initAnalytics(): void {
   let lastPath = window.location.pathname;
   const observer = new MutationObserver(() => {
     if (window.location.pathname !== lastPath) {
+      sendPageScroll();
+      pageScrollMax = 0;
       lastPath = window.location.pathname;
       trackPageView(lastPath);
     }
@@ -286,22 +344,62 @@ export function initAnalytics(): void {
   observer.observe(document.body, { childList: true, subtree: true });
 
   // Track scroll depth (throttled)
-  let maxDepth = 0;
   let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
   window.addEventListener("scroll", () => {
     if (scrollTimeout) return;
     scrollTimeout = setTimeout(() => {
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const depth = docHeight > 0 ? Math.round((window.scrollY / docHeight) * 100) : 0;
-      if (depth > maxDepth) {
-        maxDepth = depth;
-        if (depth % 25 === 0) trackScrollDepth(depth);
-      }
+      trackPageScrollDepth();
       scrollTimeout = null;
     }, 500);
   }, { passive: true });
 
+  // Click tracking with rage tap detection
+  const tapState: Record<string, { lastTap: number; count: number; timer: ReturnType<typeof setTimeout> | null }> = {};
+  document.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+    const elId = target.id || target.className?.slice(0, 30) || target.tagName;
+    const elTag = target.tagName;
+    const elText = target.textContent?.trim().slice(0, 30);
+    const x = e.clientX;
+    const y = e.clientY;
+
+    // Rage tap detection
+    const now = Date.now();
+    const state = tapState[elId] ?? { lastTap: 0, count: 0, timer: null };
+    if (now - state.lastTap < 500) {
+      state.count++;
+      if (state.timer) clearTimeout(state.timer);
+      state.timer = setTimeout(() => {
+        if (state.count >= 3) {
+          trackRageTap(elId, state.count, now - state.lastTap);
+        }
+        tapState[elId] = { lastTap: 0, count: 0, timer: null };
+      }, 600);
+    } else {
+      state.count = 1;
+    }
+    state.lastTap = now;
+    tapState[elId] = state;
+
+    trackClick(x, y, elId, elTag, elText, state.count >= 3);
+  }, { passive: true });
+
+  // Touch event tracking for mobile
+  if ("ontouchstart" in window) {
+    document.addEventListener("touchstart", (e) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      trackEvent("interaction", "touch", { x: touch.clientX, y: touch.clientY, touches: e.touches.length });
+    }, { passive: true });
+  }
+
   // End session on unload
-  window.addEventListener("beforeunload", endAnalyticsSession);
-  window.addEventListener("pagehide", endAnalyticsSession);
+  window.addEventListener("beforeunload", () => {
+    sendPageScroll();
+    endAnalyticsSession();
+  });
+  window.addEventListener("pagehide", () => {
+    sendPageScroll();
+    endAnalyticsSession();
+  });
 }

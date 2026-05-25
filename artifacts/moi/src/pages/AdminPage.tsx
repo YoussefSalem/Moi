@@ -789,8 +789,8 @@ interface DiscountUse {
 /* ------------------------------------------------------------------ */
 
 interface AnalyticsData {
-  period: { days: number; since: string };
-  summary: { totalVisitors: number; totalSessions: number; bounceRate: number; returningRate: number; pageViews: number };
+  period: { days: number; since: string } | { from: string; to: string };
+  summary: { totalVisitors: number; totalSessions: number; bounceRate: number; returningRate: number; pageViews: number; overallAtcRate: number };
   funnel: {
     visitors: number; productViews: number; addToCarts: number; checkouts: number; purchases: number;
     productViewRate: number; addToCartRate: number; checkoutRate: number; purchaseRate: number; overallConversion: number;
@@ -800,6 +800,13 @@ interface AnalyticsData {
   osSegmentation: { name: string; sessions: number; conversionRate: number }[];
   visitorType: { new: { count: number; purchases: number; conversionRate: number }; returning: { count: number; purchases: number; conversionRate: number } };
   hesitationSignals: { repeatedViews: number; longViews: number; cartAbandons: number };
+  exitPages: { page: string; count: number; pct: number }[];
+  clickHeatmap: { elementId: string; tag: string; text: string; count: number; rageTaps: number }[];
+  scrollDistribution: Record<number, number>;
+  timeToPurchase: { avg: number | null; min: number | null; max: number | null; count: number };
+  productPaths: { productId: string; title: string; views: number; carts: number; purchases: number; viewToCartRate: number; cartToPurchaseRate: number; viewToPurchaseRate: number }[];
+  rageTaps: { total: number; topElements: { elementId: string; count: number }[] };
+  elementInteractions: { elementType: string; action: string; count: number }[];
 }
 
 function FunnelBar({ label, value, max, rate, color }: { label: string; value: number; max: number; rate?: number; color: string }) {
@@ -858,7 +865,7 @@ function AnalyticsTab({ token }: { token: string }) {
   if (error) return <p style={{ fontSize: 13, color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>;
   if (!data) return null;
 
-  const { summary, funnel, sourceQuality, deviceSegmentation, osSegmentation, visitorType, hesitationSignals } = data;
+  const { summary, funnel, sourceQuality, deviceSegmentation, osSegmentation, visitorType, hesitationSignals, exitPages, clickHeatmap, scrollDistribution, timeToPurchase, productPaths, rageTaps, elementInteractions } = data;
 
   const statCard = (icon: React.ReactNode, label: string, value: string | number, sub?: string) => (
     <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "18px 16px", flex: 1, minWidth: 140 }}>
@@ -1016,7 +1023,7 @@ function AnalyticsTab({ token }: { token: string }) {
       </div>
 
       {/* Hesitation Signals */}
-      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px" }}>
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
         <div className="flex items-center gap-2 mb-5">
           <AlertTriangle size={16} color="#1e1814" />
           <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Hesitation Signals</p>
@@ -1026,6 +1033,169 @@ function AnalyticsTab({ token }: { token: string }) {
           {statCard(<Clock size={18} />, "Long Views (>60s)", hesitationSignals.longViews, "high intent / considering")}
           {statCard(<X size={18} />, "Cart Abandons", hesitationSignals.cartAbandons, "closed cart with items")}
         </div>
+      </div>
+
+      {/* Exit Pages */}
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
+        <div className="flex items-center gap-2 mb-5">
+          <ArrowRight size={16} color="#1e1814" />
+          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Exit Pages</p>
+        </div>
+        {exitPages.length === 0 ? (
+          <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No exit page data yet.</p>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {exitPages.map((ep) => (
+              <div key={ep.page} className="flex items-center justify-between" style={{ padding: "8px 0", borderBottom: "1px solid rgba(30,24,20,0.04)" }}>
+                <span style={{ ...mono, fontSize: 12, color: "#1e1814" }}>{ep.page}</span>
+                <div className="flex items-center gap-3">
+                  <span style={{ ...mono, fontSize: 12, fontWeight: 600, color: "#1e1814" }}>{ep.count}</span>
+                  <span style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.45)" }}>{ep.pct}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Click Heatmap */}
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
+        <div className="flex items-center gap-2 mb-5">
+          <MousePointer size={16} color="#1e1814" />
+          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Click Heatmap — Top Elements</p>
+        </div>
+        {clickHeatmap.length === 0 ? (
+          <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No click data yet. Browse the site to populate.</p>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {clickHeatmap.map((c) => (
+              <div key={c.elementId} className="flex items-center justify-between" style={{ padding: "8px 0", borderBottom: "1px solid rgba(30,24,20,0.04)" }}>
+                <div>
+                  <span style={{ ...mono, fontSize: 12, color: "#1e1814" }}>{c.elementId.slice(0, 40)}</span>
+                  {c.text && <span style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.4)", marginLeft: 8 }}>{c.text}</span>}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span style={{ ...mono, fontSize: 12, fontWeight: 600, color: "#1e1814" }}>{c.count} clicks</span>
+                  {c.rageTaps > 0 && <span style={{ ...mono, fontSize: 10, color: "#c0392b", fontWeight: 600 }}>{c.rageTaps} rage</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Scroll Depth Distribution */}
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
+        <div className="flex items-center gap-2 mb-5">
+          <TrendingUp size={16} color="#1e1814" />
+          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Scroll Depth Distribution</p>
+        </div>
+        {Object.keys(scrollDistribution).length === 0 ? (
+          <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No scroll data yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((bucket) => {
+              const count = scrollDistribution[bucket] ?? 0;
+              const maxCount = Math.max(...Object.values(scrollDistribution), 1);
+              const pct = Math.round((count / maxCount) * 100);
+              return (
+                <div key={bucket} style={{ flex: 1, minWidth: 40, textAlign: "center" }}>
+                  <div style={{ height: 80, display: "flex", alignItems: "flex-end", justifyContent: "center", marginBottom: 6 }}>
+                    <div style={{ width: 24, height: `${Math.max(pct, 4)}%`, backgroundColor: count > 0 ? "#1e1814" : "rgba(30,24,20,0.06)", borderRadius: 2 }} />
+                  </div>
+                  <p style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.5)" }}>{bucket}%</p>
+                  <p style={{ ...mono, fontSize: 10, fontWeight: 600, color: "#1e1814" }}>{count}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Time to Purchase */}
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
+        <div className="flex items-center gap-2 mb-5">
+          <Clock size={16} color="#1e1814" />
+          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Time to Purchase</p>
+        </div>
+        {timeToPurchase.count === 0 ? (
+          <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No purchase data yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-4">
+            {statCard(<Clock size={18} />, "Average", timeToPurchase.avg !== null ? `${timeToPurchase.avg} min` : "—", `${timeToPurchase.count} purchases`)}
+            {statCard(<TrendingUp size={18} />, "Fastest", timeToPurchase.min !== null ? `${timeToPurchase.min} min` : "—", "first visit → buy")}
+            {statCard(<TrendingUp size={18} />, "Slowest", timeToPurchase.max !== null ? `${timeToPurchase.max} min` : "—", "longest journey")}
+          </div>
+        )}
+      </div>
+
+      {/* Product Conversion Paths */}
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
+        <div className="flex items-center gap-2 mb-5">
+          <BarChart3 size={16} color="#1e1814" />
+          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Product Conversion Paths</p>
+        </div>
+        {productPaths.length === 0 ? (
+          <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No product path data yet.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {productPaths.map((p) => (
+              <div key={p.productId} style={{ background: "rgba(30,24,20,0.02)", border: "1px solid rgba(30,24,20,0.06)", padding: 14 }}>
+                <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+                  <span style={{ ...mono, fontSize: 12, fontWeight: 700, color: "#1e1814" }}>{p.title}</span>
+                  <span style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)" }}>{p.views} views</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)" }}>Cart: {p.carts} ({p.viewToCartRate}%)</span>
+                  <span style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)" }}>Purchase: {p.purchases} ({p.viewToPurchaseRate}%)</span>
+                  {p.cartToPurchaseRate > 0 && (
+                    <span style={{ ...mono, fontSize: 11, color: "#3a6b4a", fontWeight: 600 }}>Cart→Buy: {p.cartToPurchaseRate}%</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Rage Taps */}
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
+        <div className="flex items-center gap-2 mb-5">
+          <AlertTriangle size={16} color="#c0392b" />
+          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Rage Taps (Frustration Signals)</p>
+        </div>
+        {statCard(<AlertTriangle size={18} />, "Total Rage Taps", rageTaps.total, "rapid repeated clicks")}
+        {rageTaps.topElements.length > 0 && (
+          <div className="flex flex-col gap-1 mt-4">
+            <p style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", marginBottom: 6 }}>Most frustrating elements:</p>
+            {rageTaps.topElements.map((rt) => (
+              <div key={rt.elementId} className="flex items-center justify-between" style={{ padding: "6px 0", borderBottom: "1px solid rgba(30,24,20,0.04)" }}>
+                <span style={{ ...mono, fontSize: 11, color: "#1e1814" }}>{rt.elementId.slice(0, 40)}</span>
+                <span style={{ ...mono, fontSize: 11, fontWeight: 600, color: "#c0392b" }}>{rt.count}x</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Element Interactions */}
+      <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px" }}>
+        <div className="flex items-center gap-2 mb-5">
+          <MousePointer size={16} color="#1e1814" />
+          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Element Interactions</p>
+        </div>
+        {elementInteractions.length === 0 ? (
+          <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No element interaction data yet.</p>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {elementInteractions.map((ei) => (
+              <div key={`${ei.elementType}-${ei.action}`} className="flex items-center justify-between" style={{ padding: "6px 0", borderBottom: "1px solid rgba(30,24,20,0.04)" }}>
+                <span style={{ ...mono, fontSize: 12, color: "#1e1814" }}>{ei.elementType} • {ei.action}</span>
+                <span style={{ ...mono, fontSize: 12, fontWeight: 600, color: "rgba(30,24,20,0.6)" }}>{ei.count}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
