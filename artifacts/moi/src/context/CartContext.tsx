@@ -182,7 +182,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         content_name: params.title,
         content_ids: params.variantId ? [params.variantId] : undefined,
         currency: params.currencyCode ?? "EGP",
-        value: Number.isFinite(params.priceAmount) && params.priceAmount != null ? params.priceAmount : 0,
+        value: Number.isFinite(params.priceAmount) && (params.priceAmount ?? 0) > 0 ? params.priceAmount : undefined,
         num_items: qty,
       });
       trackInternalAddToCart(

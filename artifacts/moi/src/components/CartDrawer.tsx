@@ -414,7 +414,7 @@ export function CartDrawer() {
                     trackInitiateCheckout({
                       content_ids: ids,
                       currency: "EGP",
-                      value: Number.isFinite(totalVal) && totalVal > 0 ? totalVal : 0,
+                      value: Number.isFinite(totalVal) && totalVal > 0 ? totalVal : undefined,
                       num_items: numItems,
                     });
                     trackTikTokInitiateCheckout({

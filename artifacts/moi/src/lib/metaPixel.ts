@@ -29,31 +29,31 @@ export function trackEvent(
     cleaned[key] = value;
   }
 
-  // E-commerce validation: drop events with zero/negative value (Meta flags these as invalid)
+  // E-commerce events: currency must always be present; value must be a positive finite number.
   const isEcommerce = ECOMMERCE_EVENTS.has(eventName);
-  if (isEcommerce && "value" in cleaned) {
-    const val = cleaned.value as number;
-    if (typeof val !== "number" || val <= 0) {
-      delete cleaned.value;
-      delete cleaned.currency;
-      delete cleaned.num_items;
-      delete cleaned.content_ids;
-      delete cleaned.contents;
-    } else {
-      // Meta expects value rounded to exactly 2 decimals
-      cleaned.value = Math.round(val * 100) / 100;
-    }
-  }
+  if (isEcommerce) {
+    // Always set currency — never strip it, even when value is absent or invalid.
+    const rawCurrency = (cleaned.currency as string | undefined) ?? "EGP";
+    cleaned.currency = rawCurrency.toUpperCase().slice(0, 3);
 
-  // Currency must be uppercase 3-letter ISO code and always paired with value
-  if ("value" in cleaned && !("currency" in cleaned)) {
-    cleaned.currency = "EGP";
-  }
-  if ("currency" in cleaned) {
-    cleaned.currency = String(cleaned.currency).toUpperCase().slice(0, 3);
-  }
-  if ("currency" in cleaned && !("value" in cleaned)) {
-    cleaned.value = 0;
+    // Value: keep only if it's a valid positive number; strip silently otherwise (currency stays).
+    if ("value" in cleaned) {
+      const val = cleaned.value as number;
+      if (typeof val !== "number" || !Number.isFinite(val) || val <= 0) {
+        delete cleaned.value;
+      } else {
+        // Meta expects value rounded to exactly 2 decimal places.
+        cleaned.value = Math.round(val * 100) / 100;
+      }
+    }
+  } else {
+    // Non-e-commerce: currency must be a valid ISO code and paired with value.
+    if ("value" in cleaned && !("currency" in cleaned)) {
+      cleaned.currency = "EGP";
+    }
+    if ("currency" in cleaned) {
+      cleaned.currency = String(cleaned.currency).toUpperCase().slice(0, 3);
+    }
   }
 
   // Attach Meta attribution cookies for ad platform cross-device matching
