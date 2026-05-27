@@ -203,6 +203,8 @@ function buildEmail({
     <!-- Divider -->
     <tr><td style="padding:32px 48px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #ede9e3;font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>
 
+    ${itemsSection}
+
     <!-- Order details -->
     <tr><td style="padding:32px 48px 0;">
       <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:9px;letter-spacing:0.45em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Order Summary</p>
@@ -226,7 +228,7 @@ function buildEmail({
         </tr>
         ` : ""}
         <tr>
-          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;font-weight:700;">Total</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;font-weight:700;">Total to pay</td>
           <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;font-weight:700;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;">${emailTotal}&nbsp;EGP</td>
         </tr>
         <tr>
@@ -241,9 +243,8 @@ function buildEmail({
     </td></tr>
 
     <!-- gap -->
-    <tr><td style="height:36px;"></td></tr>
+    <tr><td style="height:24px;"></td></tr>
 
-    ${itemsSection}
     ${statusNoteHtml}
 
     <!-- CTA -->
