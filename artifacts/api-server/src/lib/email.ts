@@ -133,6 +133,8 @@ function buildEmail({
 
   const itemsSection = itemRows
     ? `
+    <!-- gap before items -->
+    <tr><td style="height:32px;"></td></tr>
     <!-- Items -->
     <tr><td style="padding:0 48px;">
       <p style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;font-size:9px;letter-spacing:0.45em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Your Items</p>
@@ -140,8 +142,8 @@ function buildEmail({
         ${itemRows}
       </table>
     </td></tr>
-    <!-- gap -->
-    <tr><td style="height:32px;"></td></tr>`
+    <!-- gap after items -->
+    <tr><td style="height:24px;"></td></tr>`
     : "";
 
   const statusNoteHtml = statusNote
