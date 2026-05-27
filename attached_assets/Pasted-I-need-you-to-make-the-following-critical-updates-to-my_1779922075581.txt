@@ -1,0 +1,77 @@
+I need you to make the following critical updates to my website and ensure all changes sync properly with the Shopify product dashboard and storefront.
+
+1. Create Individual Product Pages
+
+* Every product should have its own dedicated product page with proper Shopify linking, SEO-friendly URLs, and mobile optimization.
+
+2. Split Product Variants Into Separate Products
+
+We currently have 2 main products that are using color variants, but I now want each color to exist as its own standalone Shopify product while maintaining a clean and premium shopping experience.
+
+A) MOI WAVVY
+Currently has 3 color variants:
+
+* Light Blue
+* Navy
+* Mint
+
+Requirements:
+
+* Convert each color into its own separate Shopify product
+* Remove all color variants from the original/main product
+* Keep all existing product images/assets
+* Preserve styling, descriptions, and sizing structure
+* Ensure inventory and product management sync correctly inside Shopify
+
+Final structure should be:
+
+* MOI WAVVY – Light Blue
+* MOI WAVVY – Navy
+* MOI WAVVY – Mint
+
+B) MOI Versa Top
+Currently has 5 color variants:
+
+* White
+* Cashmere
+* Beige
+* Yellow
+* Teal
+
+Requirements:
+
+* Convert each color into its own standalone Shopify product
+* Remove all color variants from the original/main product
+* Keep only size variants on each new product:
+
+  * Small / Medium
+  * Large / XL
+* Keep all current images and assets
+* Ensure variants, inventory, and Shopify syncing work correctly
+
+Final structure should be:
+
+* MOI Versa Top – White
+* MOI Versa Top – Cashmere
+* MOI Versa Top – Beige
+* MOI Versa Top – Yellow
+* MOI Versa Top – Teal
+
+Each of the above should only contain the size variants.
+
+3. Create an Automatic “Best Sellers” Carousel
+
+Requirements:
+
+* Fully responsive and optimized for mobile devices
+* Smooth scrolling/swiping experience on phones
+* Luxury, minimal, premium-looking design matching the brand aesthetic
+* Fast loading and optimized performance
+* Add subtle animations/transitions for a polished feel
+
+Important:
+
+* All changes must properly reflect inside Shopify Admin
+* Do not hardcode products manually
+* Maintain existing branding, fonts, spacing, and overall website aesthetic
+* Ensure everything is responsive across desktop and mobile
