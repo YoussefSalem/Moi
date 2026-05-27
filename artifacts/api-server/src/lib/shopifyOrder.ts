@@ -282,7 +282,7 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return null;
 
-  // Fetch the full draft so we can recreate it as a real order with discount_codes tracked
+  // Fetch the draft to extract discount info for the return value
   type DraftFull = {
     id: number;
     email?: string;
@@ -308,9 +308,8 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
       const draftData = await draftRes.json() as { draft_order?: DraftFull };
       draft = draftData.draft_order ?? null;
     }
-  } catch { /* ignore — fallback to old completion path */ }
+  } catch { /* ignore */ }
 
-  // Extract discount and attribution from the draft
   const noteAttrs = draft?.note_attributes ?? [];
   const attributionRaw = noteAttrs.find((n) => n.name === "__attribution")?.value;
 
@@ -327,121 +326,53 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
     if (amountRaw) draftDiscountAmount = parseFloat(amountRaw);
   }
 
-  // Attempt: cancel the draft and create a real order via Orders API with discount_codes
-  // This is the only way to make Shopify's usage_count increment for API orders.
-  let orderResult: { orderId: number; orderNumber: number; total: string; lineItems: ShopifyLineItem[] } | null = null;
+  // Complete the draft order — applied_discount is preserved in the real order total.
+  // NOTE: We used to cancel the draft and recreate via POST /orders.json with
+  // discount_codes to increment Shopify's usage_count. However, Shopify's Orders API
+  // accepts discount_codes only for tracking — it does NOT reduce the order total.
+  // That caused discounts to be lost (frontend showed discounted price, Shopify showed
+  // full price). We already track usage_count ourselves via recordDiscountCodeUse(),
+  // so draft completion is the correct path.
+  const completeRes = await fetch(
+    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+    },
+  );
+  if (!completeRes.ok) return null;
 
-  if (draft?.line_items?.length && draft.shipping_address && draft.shipping_line) {
-    try {
-      const deleteRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}.json`,
-        { method: "DELETE", headers: { "X-Shopify-Access-Token": adminToken } },
-      );
+  const completeData = await completeRes.json() as {
+    draft_order: { order_id: number; total_price: string };
+  };
+  const orderId = completeData.draft_order.order_id;
+  const total = completeData.draft_order.total_price;
 
-      if (deleteRes.ok || deleteRes.status === 404) {
-        const sl = draft.shipping_line;
-        const orderPayload: Record<string, unknown> = {
-          send_receipt: true,
-          send_fulfillment_receipt: false,
-          financial_status: "paid",
-          fulfillment_status: null,
-          line_items: draft.line_items.map((li) => ({ variant_id: li.variant_id, quantity: li.quantity })),
-          shipping_address: draft.shipping_address,
-          shipping_lines: [{
-            price: sl.price,
-            title: sl.title,
-            code: sl.title.toUpperCase().replace(/ /g, "_"),
-            source: "custom",
-          }],
-          tags: (draft.tags ?? "") + ",instapay",  // Ensure instapay tag is present for webhook filtering
-          note: draft.note ?? "",
-          note_attributes: draft.note_attributes ?? [],
-          ...(draft.email ? { email: draft.email } : {}),
-          ...(draft.source_name ? { source_name: draft.source_name } : {}),
-          ...(draft.referring_site ? { referring_site: draft.referring_site } : {}),
-          ...(draft.landing_site ? { landing_site: draft.landing_site } : {}),
-          ...(draftDiscountCode && draftDiscountAmount && draftDiscountAmount > 0.01 ? {
-            discount_codes: [{ code: draftDiscountCode, amount: draftDiscountAmount.toFixed(2), type: "fixed_amount" }],
-          } : {}),
-        };
-
-        const createRes = await fetch(
-          `https://${storeDomain}/admin/api/2024-04/orders.json`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-            body: JSON.stringify({ order: orderPayload }),
-          },
-        );
-
-        if (createRes.ok) {
-          const createData = await createRes.json() as {
-            order: { id: number; order_number: number; total_price: string; line_items: unknown[] };
-          };
-          orderResult = {
-            orderId: createData.order.id,
-            orderNumber: createData.order.order_number,
-            total: createData.order.total_price,
-            lineItems: (createData.order.line_items ?? []) as unknown as ShopifyLineItem[],
-          };
-          logger.info({ orderId: orderResult.orderId, code: draftDiscountCode }, "completeShopifyDraftOrder: real order created via Orders API — discount_codes tracked");
-        } else {
-          const errText = await createRes.text();
-          logger.warn({ draftOrderId, status: createRes.status, body: errText }, "completeShopifyDraftOrder: Orders API creation failed, falling back to draft completion");
-        }
-      }
-    } catch (err) {
-      logger.warn({ err, draftOrderId }, "completeShopifyDraftOrder: error during cancel+recreate, falling back");
-    }
+  let orderNumber = orderId;
+  let lineItems: ShopifyLineItem[] = [];
+  const orderRes = await fetch(
+    `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=order_number,line_items`,
+    { headers: { "X-Shopify-Access-Token": adminToken } },
+  );
+  if (orderRes.ok) {
+    const orderData = await orderRes.json() as { order: { order_number: number; line_items: unknown[] } };
+    orderNumber = orderData.order.order_number ?? orderId;
+    lineItems = (orderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
   }
 
-  // Fallback: complete the draft the old way (usage_count won't increment, but order is created)
-  if (!orderResult) {
-    const completeRes = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false`,
+  // Completed order defaults to "pending" — mark it paid so Bosta doesn't treat as COD
+  try {
+    await fetch(
+      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+        body: JSON.stringify({ order: { financial_status: "paid" } }),
       },
     );
-    if (!completeRes.ok) return null;
+  } catch { /* ignore */ }
 
-    const completeData = await completeRes.json() as {
-      draft_order: { order_id: number; total_price: string };
-    };
-    const fallbackOrderId = completeData.draft_order.order_id;
-    const fallbackTotal = completeData.draft_order.total_price;
-
-    let fallbackOrderNumber = fallbackOrderId;
-    let fallbackLineItems: ShopifyLineItem[] = [];
-    const orderRes = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/orders/${fallbackOrderId}.json?fields=order_number,line_items`,
-      { headers: { "X-Shopify-Access-Token": adminToken } },
-    );
-    if (orderRes.ok) {
-      const orderData = await orderRes.json() as { order: { order_number: number; line_items: unknown[] } };
-      fallbackOrderNumber = orderData.order.order_number ?? fallbackOrderId;
-      fallbackLineItems = (orderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
-    }
-    orderResult = { orderId: fallbackOrderId, orderNumber: fallbackOrderNumber, total: fallbackTotal, lineItems: fallbackLineItems };
-
-    // Fallback creates order as "pending" — mark it paid so Bosta doesn't treat as COD
-    try {
-      await fetch(
-        `https://${storeDomain}/admin/api/2024-04/orders/${fallbackOrderId}.json`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-          body: JSON.stringify({ order: { financial_status: "paid" } }),
-        },
-      );
-      logger.info({ orderId: fallbackOrderId }, "completeShopifyDraftOrder: set financial_status=\"paid\" on fallback order");
-    } catch (err) {
-      logger.warn({ err, orderId: fallbackOrderId }, "completeShopifyDraftOrder: could not mark fallback order as paid");
-    }
-  }
-
-  // Re-apply referring_site / landing_site (Shopify strips them during API order creation)
+  // Re-apply referring_site / landing_site (Shopify strips them during completion)
   if (attributionRaw) {
     try {
       const parsed = JSON.parse(attributionRaw) as Record<string, unknown>;
@@ -450,12 +381,12 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
         ...(typeof parsed.landingSite === "string" ? { landingSite: parsed.landingSite } : {}),
       };
       if (draftAttr.referringSite || draftAttr.landingSite) {
-        void setShopifyOrderReferrer(orderResult.orderId, draftAttr);
+        void setShopifyOrderReferrer(orderId, draftAttr);
       }
     } catch { /* ignore */ }
   }
 
-  return { ...orderResult, discountAmount: draftDiscountAmount, discountCode: draftDiscountCode };
+  return { orderId, orderNumber, total, lineItems, discountAmount: draftDiscountAmount, discountCode: draftDiscountCode };
 }
 
 export async function createDraftOrder(params: {
@@ -710,9 +641,14 @@ export async function createDraftOrder(params: {
 }
 
 /**
- * Create a Shopify order directly via POST /orders.json (not draft orders).
- * This is the ONLY way to make Shopify increment discount code usage_count for API orders.
- * Use for COD and Card orders. InstaPay uses createDraftOrder + completeShopifyDraftOrder.
+ * Create a Shopify order for COD or Card payments.
+ *
+ * NOTE: We used to POST directly to /orders.json with discount_codes, but
+ * Shopify's Orders API accepts discount_codes only for tracking — it does NOT
+ * reduce the order total. That caused discounts to be lost (frontend showed
+ * discounted price, Shopify showed full price). We now create a draft order
+ * with applied_discount (which correctly reduces the total) and complete it
+ * immediately. Discount usage is tracked ourselves via recordDiscountCodeUse().
  */
 export async function createShopifyDirectOrder(params: {
   lines: OrderLine[];
@@ -724,144 +660,42 @@ export async function createShopifyDirectOrder(params: {
   attribution?: OrderAttribution;
   financialStatus?: "pending" | "paid";
 }): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string }> {
-  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = await getShopifyAdminToken();
-  if (!storeDomain || !adminToken) throw new Error("Shopify Admin API not configured");
+  const result = await createDraftOrder({
+    lines: params.lines,
+    customer: params.customer,
+    paymentMethod: params.paymentMethod,
+    cartId: params.cartId,
+    discountCode: params.discountCode,
+    extraTags: params.extraTags,
+    complete: true,
+    attribution: params.attribution,
+  });
 
-  const lineItems = params.lines.map((l) => ({
-    variant_id: extractVariantId(l.variantId),
-    quantity: l.quantity,
-  }));
-
-  const baseTags = params.paymentMethod === "cod" ? "cod,moi-checkout" : "paymob,moi-checkout";
-  const tags = params.extraTags ? `${baseTags},${params.extraTags}` : baseTags;
-  const noteText = params.paymentMethod === "cod" ? "Cash on Delivery" : "Credit/Debit Card";
-
-  let shippingPrice = "50.00";
-  let shippingTitle = "Standard Delivery";
-  let cartDiscountAmount = 0;
-  let cartDiscountCode = "";
-  let lineSubtotal = 0;
-
-  if (params.cartId) {
-    const cart = await fetchStorefrontCart(params.cartId);
-    if (cart) {
-      lineSubtotal = cart.subtotalAmount;
-      if (cart.totalAmount >= 2000) {
-        shippingPrice = "0.00";
-        shippingTitle = "Free Delivery";
-      }
-      cartDiscountAmount = cart.discountAmount;
-      const codeInCart = cart.discountCodes.find(
-        (d) => d.code.toLowerCase() === (params.discountCode || "").toLowerCase(),
-      );
-      cartDiscountCode = codeInCart?.code || params.discountCode || "";
+  // Draft completion creates orders with financial_status "pending" by default.
+  // For already-paid card orders, update it to "paid".
+  if (params.paymentMethod === "card" && params.financialStatus === "paid") {
+    const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+    const adminToken = await getShopifyAdminToken();
+    if (storeDomain && adminToken) {
+      try {
+        await fetch(
+          `https://${storeDomain}/admin/api/2024-04/orders/${result.orderId}.json`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+            body: JSON.stringify({ order: { financial_status: "paid" } }),
+          },
+        );
+      } catch { /* ignore */ }
     }
   }
 
-  if (cartDiscountAmount < 0.01 && params.discountCode) {
-    const base = lineSubtotal > 0 ? lineSubtotal : 0;
-    if (base > 0) {
-      const looked = await lookupDiscountCode(params.discountCode, base);
-      if (looked && looked.discountAmount > 0.01) {
-        cartDiscountAmount = looked.discountAmount;
-        cartDiscountCode = looked.discountCode;
-        const discountedTotal = base - cartDiscountAmount;
-        if (discountedTotal >= 2000) {
-          shippingPrice = "0.00";
-          shippingTitle = "Free Delivery";
-        }
-      }
-    }
-  }
-
-  const noteAttributes: Array<{ name: string; value: string }> = [
-    { name: "payment_method", value: params.paymentMethod },
-    { name: "customer_phone", value: params.customer.phone },
-    { name: "governorate", value: params.customer.governorate },
-    ...(params.customer.postalCode ? [{ name: "postal_code", value: params.customer.postalCode }] : []),
-    ...(cartDiscountAmount > 0.01 ? [
-      { name: "__discount_amount", value: cartDiscountAmount.toFixed(2) },
-      { name: "__discount_code", value: cartDiscountCode || "Discount" },
-    ] : []),
-  ];
-
-  const attr = params.attribution;
-  if (attr) {
-    if (attr.utm && Object.keys(attr.utm).length > 0) {
-      noteAttributes.push(...Object.entries(attr.utm).map(([k, v]) => ({ name: `utm_${k}`, value: v })));
-    }
-    if (attr.fbclid) noteAttributes.push({ name: "fbclid", value: attr.fbclid });
-    if (attr.gclid) noteAttributes.push({ name: "gclid", value: attr.gclid });
-    if (attr.ttclid) noteAttributes.push({ name: "ttclid", value: attr.ttclid });
-    noteAttributes.push({
-      name: "__attribution",
-      value: JSON.stringify({ sourceName: attr.sourceName, referringSite: attr.referringSite, landingSite: attr.landingSite }),
-    });
-  }
-
-  const orderPayload: Record<string, unknown> = {
-    send_receipt: true,
-    send_fulfillment_receipt: false,
-    financial_status: params.financialStatus ?? "pending",
-    fulfillment_status: null,
-    line_items: lineItems,
-    shipping_address: {
-      first_name: params.customer.firstName,
-      last_name: params.customer.lastName,
-      phone: params.customer.phone,
-      address1: params.customer.address,
-      address2: params.customer.governorate,
-      city: params.customer.city,
-      province: EGYPT_PROVINCE_CODES[params.customer.governorate] ?? params.customer.governorate,
-      zip: params.customer.postalCode ?? "",
-      country: "Egypt",
-      country_code: "EG",
-    },
-    shipping_lines: [{
-      price: shippingPrice,
-      title: shippingTitle,
-      code: shippingTitle.toUpperCase().replace(/ /g, "_"),
-      source: "custom",
-    }],
-    tags,
-    note: `Payment: ${noteText}`,
-    note_attributes: noteAttributes,
-    ...(params.customer.email ? { email: params.customer.email } : {}),
-    ...(attr?.sourceName ? { source_name: attr.sourceName } : {}),
-    ...(attr?.referringSite ? { referring_site: attr.referringSite } : {}),
-    ...(attr?.landingSite ? { landing_site: attr.landingSite } : {}),
-    ...(cartDiscountCode && cartDiscountAmount > 0.01 ? {
-      discount_codes: [{ code: cartDiscountCode, amount: cartDiscountAmount.toFixed(2), type: "fixed_amount" }],
-    } : {}),
+  return {
+    orderNumber: result.orderNumber,
+    orderId: result.orderId,
+    total: result.total,
+    lineItems: result.lineItems,
+    discountAmount: result.discountAmount,
+    discountCode: result.discountCode,
   };
-
-  const createRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/orders.json`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-      body: JSON.stringify({ order: orderPayload }),
-    },
-  );
-
-  if (!createRes.ok) {
-    const text = await createRes.text();
-    throw new Error(`Shopify order creation failed (${createRes.status}): ${text}`);
-  }
-
-  const createData = await createRes.json() as {
-    order: { id: number; order_number: number; total_price: string; line_items: unknown[] };
-  };
-
-  const orderId = createData.order.id;
-  const orderNumber = createData.order.order_number;
-  const total = createData.order.total_price;
-  const fetchedLineItems = (createData.order.line_items ?? []) as unknown as ShopifyLineItem[];
-
-  if (attr && (attr.referringSite || attr.landingSite)) {
-    void setShopifyOrderReferrer(orderId, { referringSite: attr.referringSite, landingSite: attr.landingSite });
-  }
-
-  return { orderNumber, orderId, total, lineItems: fetchedLineItems, discountAmount: cartDiscountAmount > 0.01 ? cartDiscountAmount : undefined, discountCode: cartDiscountCode || undefined };
 }
