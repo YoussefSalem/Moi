@@ -116,6 +116,16 @@ function buildEmail({
       }).join("")
     : "";
 
+  // Subtotal = sum of line item prices (not derived from total, which may not match)
+  const lineItemsSubtotal = lineItems && lineItems.length > 0
+    ? lineItems.reduce((sum, item) => {
+        const price = parseFloat(item.price.replace(/[^0-9.]/g, "")) || 0;
+        return sum + price * item.quantity;
+      }, 0)
+    : (shippingAmount !== undefined
+        ? parseFloat(total) - parseFloat(shippingAmount) + (discountAmount ? parseFloat(discountAmount) : 0)
+        : parseFloat(total));
+
   const itemsSection = itemRows
     ? `
     <!-- Items -->
@@ -195,7 +205,7 @@ function buildEmail({
         ${shippingAmount !== undefined ? `
         <tr>
           <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">Subtotal</td>
-          <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;">${(parseFloat(total) - parseFloat(shippingAmount) + (discountAmount ? parseFloat(discountAmount) : 0)).toFixed(2)}&nbsp;EGP</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;">${lineItemsSubtotal.toFixed(2)}&nbsp;EGP</td>
         </tr>
         ` : ""}
         ${discountAmount ? `
