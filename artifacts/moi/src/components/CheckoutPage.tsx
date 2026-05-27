@@ -304,6 +304,7 @@ export function CheckoutPage() {
   const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
   const [shopifyCheckoutToken, setShopifyCheckoutToken] = useState<string | null>(null);
   const isApplyingRef = useRef(false); // Prevents recursive re-apply while we update cart
+  const paymobTrackedRef = useRef(false); // Prevents duplicate trackPurchase when iframe fires twice
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", phone: "", email: "",
@@ -528,6 +529,7 @@ export function CheckoutPage() {
           sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
           sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
         }
+        paymobTrackedRef.current = false; // Reset guard for new card payment session
         setPaymobIframeUrl(
           `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(data.publicKey)}&clientSecret=${encodeURIComponent(data.clientSecret)}`
         );
@@ -749,6 +751,10 @@ export function CheckoutPage() {
   }, [emailInput, shopifyCart, isShopify, localItems, totalAmount, fmt]);
 
   const handleIframeSuccess = useCallback((txnId?: string) => {
+    // Guard: Paymob iframe can fire onSuccess twice (inline message + 3DS relay page)
+    if (paymobTrackedRef.current) return;
+    paymobTrackedRef.current = true;
+
     setPaymobIframeUrl(null);
     if (txnId) {
       setOrderResult((prev) => (prev ? { ...prev, paymobTxnId: txnId } : prev));
