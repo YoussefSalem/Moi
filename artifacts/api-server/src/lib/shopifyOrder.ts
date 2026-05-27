@@ -517,8 +517,10 @@ export async function createDraftOrder(params: {
     ...(cartDiscountAmount > 0.01 ? {
       applied_discount: {
         title: cartDiscountCode || "Discount",
+        description: cartDiscountCode || "Discount",
         value_type: "fixed_amount",
-        value: cartDiscountAmount.toFixed(2),
+        value: cartDiscountAmount,
+        amount: cartDiscountAmount.toFixed(2),
       },
     } : {}),
   };

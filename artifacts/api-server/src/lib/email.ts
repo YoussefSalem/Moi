@@ -126,6 +126,11 @@ function buildEmail({
         ? parseFloat(total) - parseFloat(shippingAmount) + (discountAmount ? parseFloat(discountAmount) : 0)
         : parseFloat(total));
 
+  // Compute correct email total from components so it always matches the math shown
+  const shippingNum = shippingAmount !== undefined ? parseFloat(shippingAmount) : 0;
+  const discountNum = discountAmount ? parseFloat(discountAmount) : 0;
+  const emailTotal = (lineItemsSubtotal - discountNum + shippingNum).toFixed(2);
+
   const itemsSection = itemRows
     ? `
     <!-- Items -->
@@ -222,7 +227,7 @@ function buildEmail({
         ` : ""}
         <tr>
           <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;font-weight:700;">Total</td>
-          <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;font-weight:700;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;">${total}&nbsp;EGP</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;font-weight:700;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;">${emailTotal}&nbsp;EGP</td>
         </tr>
         <tr>
           <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">Payment</td>
@@ -332,8 +337,12 @@ export function buildCODOrderEmail(params: {
 
   const discountText = discountAmount ? `\nDiscount ${discountCode ? `(${discountCode})` : ""}: -${discountAmount} EGP` : "";
   const shippingText = shippingAmount ? `\nShipping: ${parseFloat(shippingAmount) === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
+  const lineSubtotalText = lineItems && lineItems.length > 0
+    ? lineItems.reduce((sum, item) => sum + (parseFloat(item.price.replace(/[^0-9.]/g, "")) || 0) * item.quantity, 0)
+    : (parseFloat(total) - parseFloat(shippingAmount ?? "0") + (discountAmount ? parseFloat(discountAmount) : 0));
+  const emailTotalText = (lineSubtotalText - (discountAmount ? parseFloat(discountAmount) : 0) + parseFloat(shippingAmount ?? "0")).toFixed(2);
 
-  const text = `Order Placed \u2014 Moi\n\n${name ? `Thank you, ${name}.` : "Thank you."}\n\nYour order has been placed. Our team will be in touch shortly to arrange delivery. Payment is collected on arrival.\n\nOrder #${orderNumber}\n${itemsText}${discountText}${shippingText}\nTotal: ${total} EGP\nPayment: Cash on Delivery\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nbuy-moi.com`;
+  const text = `Order Placed \u2014 Moi\n\n${name ? `Thank you, ${name}.` : "Thank you."}\n\nYour order has been placed. Our team will be in touch shortly to arrange delivery. Payment is collected on arrival.\n\nOrder #${orderNumber}\n${itemsText}${discountText}${shippingText}\nTotal: ${emailTotalText} EGP\nPayment: Cash on Delivery\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nbuy-moi.com`;
 
   return { html, text };
 }
@@ -387,8 +396,12 @@ export function buildOrderConfirmationEmail(params: {
 
   const discountText = discountAmount ? `\nDiscount ${discountCode ? `(${discountCode})` : ""}: -${discountAmount} EGP` : "";
   const shippingText = shippingAmount ? `\nShipping: ${parseFloat(shippingAmount) === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
+  const lineSubtotalText2 = lineItems && lineItems.length > 0
+    ? lineItems.reduce((sum, item) => sum + (parseFloat(item.price.replace(/[^0-9.]/g, "")) || 0) * item.quantity, 0)
+    : (parseFloat(total) - parseFloat(shippingAmount ?? "0") + (discountAmount ? parseFloat(discountAmount) : 0));
+  const emailTotalText2 = (lineSubtotalText2 - (discountAmount ? parseFloat(discountAmount) : 0) + parseFloat(shippingAmount ?? "0")).toFixed(2);
 
-  const text = `Order Confirmed \u2014 Moi\n\n${name ? `Order confirmed, ${name}.` : "Order confirmed."}\n\nYour payment has been received and your order is now being prepared.\n\nOrder #${orderNumber}\n${itemsText}${discountText}${shippingText}\nTotal: ${total} EGP\nPayment: ${paymentMethod}\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nbuy-moi.com`;
+  const text = `Order Confirmed \u2014 Moi\n\n${name ? `Order confirmed, ${name}.` : "Order confirmed."}\n\nYour payment has been received and your order is now being prepared.\n\nOrder #${orderNumber}\n${itemsText}${discountText}${shippingText}\nTotal: ${emailTotalText2} EGP\nPayment: ${paymentMethod}\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nbuy-moi.com`;
 
   return { html, text };
 }
@@ -440,8 +453,10 @@ export function buildInstapayPendingEmail(params: {
 
   const discountText = discountAmount ? `\nDiscount ${discountCode ? `(${discountCode})` : ""}: -${discountAmount} EGP` : "";
   const shippingText = shippingAmount ? `\nShipping: ${parseFloat(shippingAmount) === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
+  const emailTotalText3 = (parseFloat(total) - parseFloat(shippingAmount ?? "0") + (discountAmount ? parseFloat(discountAmount) : 0)
+    - (discountAmount ? parseFloat(discountAmount) : 0) + parseFloat(shippingAmount ?? "0")).toFixed(2);
 
-  const text = `Payment Verification in Progress \u2014 Moi\n\n${name ? `Hi ${name},` : "Hello,"}\n\nWe've received your InstaPay proof for order #${orderNumber}.\n\nOrder #${orderNumber}${discountText}${shippingText}\nTotal: ${total} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Pending Verification\n\nOnce verified, you'll receive a WhatsApp confirmation and your order will be dispatched.\n\nbuy-moi.com`;
+  const text = `Payment Verification in Progress \u2014 Moi\n\n${name ? `Hi ${name},` : "Hello,"}\n\nWe've received your InstaPay proof for order #${orderNumber}.\n\nOrder #${orderNumber}${discountText}${shippingText}\nTotal: ${emailTotalText3} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Pending Verification\n\nOnce verified, you'll receive a WhatsApp confirmation and your order will be dispatched.\n\nbuy-moi.com`;
 
   return { html, text };
 }
@@ -496,8 +511,10 @@ export function buildInstapayConfirmedEmail(params: {
 
   const discountText = discountAmount ? `\nDiscount ${discountCode ? `(${discountCode})` : ""}: -${discountAmount} EGP` : "";
   const shippingText = shippingAmount ? `\nShipping: ${parseFloat(shippingAmount) === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
+  const emailTotalText4 = (parseFloat(total) - parseFloat(shippingAmount ?? "0") + (discountAmount ? parseFloat(discountAmount) : 0)
+    - (discountAmount ? parseFloat(discountAmount) : 0) + parseFloat(shippingAmount ?? "0")).toFixed(2);
 
-  const text = `Payment Confirmed — Moi\n\n${name ? `Thank you, ${name}.` : "Thank you."}\n\nYour payment has been successfully confirmed and your order is now being prepared.\n\nOrder #${orderNumber}${discountText}${shippingText}\nTotal: ${total} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Payment Confirmed — Order Being Prepared\nDeliver to: ${address}, ${city}, ${governorate}\n\nOur team is packing your order right now. You'll receive a WhatsApp message with your Bosta tracking number once it leaves our studio.\n\nQuestions? hello@buy-moi.com\n\nbuy-moi.com`;
+  const text = `Payment Confirmed — Moi\n\n${name ? `Thank you, ${name}.` : "Thank you."}\n\nYour payment has been successfully confirmed and your order is now being prepared.\n\nOrder #${orderNumber}${discountText}${shippingText}\nTotal: ${emailTotalText4} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Payment Confirmed — Order Being Prepared\nDeliver to: ${address}, ${city}, ${governorate}\n\nOur team is packing your order right now. You'll receive a WhatsApp message with your Bosta tracking number once it leaves our studio.\n\nQuestions? hello@buy-moi.com\n\nbuy-moi.com`;
 
   return { html, text };
 }
