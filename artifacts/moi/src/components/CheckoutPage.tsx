@@ -305,6 +305,7 @@ export function CheckoutPage() {
   const [shopifyCheckoutToken, setShopifyCheckoutToken] = useState<string | null>(null);
   const isApplyingRef = useRef(false); // Prevents recursive re-apply while we update cart
   const paymobTrackedRef = useRef(false); // Prevents duplicate trackPurchase when iframe fires twice
+  const instapayTrackedRef = useRef(false); // Prevents duplicate trackPurchase on double-submit
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", phone: "", email: "",
@@ -1139,6 +1140,10 @@ export function CheckoutPage() {
               orderResult={orderResult!}
               onDone={handleSuccessDone}
               onProofSubmitted={(orderNumber, shopifyOrderId, total) => {
+                // Guard: double-click or rapid re-submit can fire this callback twice
+                if (instapayTrackedRef.current) return;
+                instapayTrackedRef.current = true;
+
                 setOrderResult((prev) => prev ? { ...prev, orderNumber, shopifyOrderId, total } : prev);
                 sessionStorage.removeItem("moi_instapay_order_result");
                 clearCart();
