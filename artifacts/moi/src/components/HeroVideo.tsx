@@ -126,12 +126,12 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
             "linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.03) 30%, rgba(0,0,0,0.03) 50%, rgba(0,0,0,0.62) 100%)",
         }}
       />
-      {/* Vignette side edges */}
+      {/* Vignette: stronger darkening at bottom-center where text lives */}
       <div
         className="absolute inset-0 z-[2] pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 110% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.28) 100%)",
+            "radial-gradient(ellipse 110% 100% at 50% 50%, transparent 50%, rgba(0,0,0,0.42) 100%)",
         }}
       />
 
@@ -146,7 +146,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
         {/* Collection label */}
         <motion.p
           className="text-[9px] md:text-[10px] tracking-[0.55em] uppercase font-light mb-2"
-          style={{ color: "rgba(255,255,255,0.68)", fontFamily: "'Montserrat', sans-serif" }}
+          style={{ color: "rgba(255,255,255,0.70)", fontFamily: "'Montserrat', sans-serif", textShadow: "0 1px 6px rgba(0,0,0,0.25)" }}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
@@ -186,7 +186,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
         {/* Subheadline */}
         <motion.p
           className="mt-2 text-[10px] md:text-[11px] tracking-[0.28em] uppercase font-light"
-          style={{ color: "rgba(255,255,255,0.52)", fontFamily: "'Montserrat', sans-serif" }}
+          style={{ color: "rgba(255,255,255,0.55)", fontFamily: "'Montserrat', sans-serif", textShadow: "0 1px 6px rgba(0,0,0,0.35)" }}
           initial={{ opacity: 0 }}
           animate={{ opacity: loaded ? 1 : 0 }}
           transition={{ duration: 1, ease: "easeOut", delay: 0.7 }}
@@ -221,7 +221,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
         {/* Urgency line */}
         <motion.p
           className="mt-3 text-[9px] tracking-[0.2em] uppercase font-light"
-          style={{ color: "rgba(255,255,255,0.40)", fontFamily: "'Montserrat', sans-serif" }}
+          style={{ color: "rgba(255,255,255,0.45)", fontFamily: "'Montserrat', sans-serif", textShadow: "0 1px 6px rgba(0,0,0,0.35)" }}
           initial={{ opacity: 0 }}
           animate={{ opacity: loaded ? 1 : 0 }}
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.9 }}
