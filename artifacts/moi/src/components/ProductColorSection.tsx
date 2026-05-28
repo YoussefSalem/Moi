@@ -94,7 +94,7 @@ export function ProductColorSection({
 
         {/* Color cards grid — mobile: 2 columns; desktop: flex-wrap */}
         <div
-          className="grid grid-cols-2 md:flex md:flex-wrap md:justify-center gap-x-4 gap-y-6 md:gap-8"
+          className="grid grid-cols-2 md:flex md:flex-wrap md:justify-center md:items-stretch gap-x-4 gap-y-6 md:gap-8"
         >
           {colors.map((c, i) => {
             const img = colorImages[c.name] ?? product.productShot;
@@ -110,7 +110,7 @@ export function ProductColorSection({
             const lastOdd = isLast && isOdd;
 
             return (
-              <div key={handle} className={`w-full md:w-auto ${lastOdd ? "col-span-2 flex justify-center" : ""}`}>
+              <div key={handle} className={`w-full md:w-auto md:flex md:flex-col ${lastOdd ? "col-span-2 flex justify-center" : ""}`}>
                 <ColorCard
                   productName={sectionTitle}
                   colorName={c.name}

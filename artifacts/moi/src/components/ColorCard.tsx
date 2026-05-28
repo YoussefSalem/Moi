@@ -58,7 +58,7 @@ export function ColorCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: Math.min(index * 0.07, 0.35) }}
-      className={`flex flex-col cursor-pointer group w-full max-w-[360px] ${className ?? ""}`}
+      className={`flex flex-col cursor-pointer group w-full h-full max-w-[360px] ${className ?? ""}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => onNavigate(handle)}
@@ -218,7 +218,7 @@ export function ColorCard({
       )}
 
       {/* Info */}
-      <div className="flex flex-col items-center gap-2.5 pt-5 md:pt-6 pb-2 px-1 md:px-0">
+      <div className="flex flex-col items-center flex-grow pt-5 md:pt-6 pb-2 px-1 md:px-0">
         {/* Color name + badge */}
         <div className="flex items-center justify-center gap-2 flex-wrap md:flex-nowrap">
           <div className="flex items-center gap-2 min-w-0">
@@ -323,7 +323,7 @@ export function ColorCard({
               onNavigate(handle);
             }
           }}
-          className="self-center mt-3 md:mt-4 border transition-all duration-300 px-10 py-3.5 md:px-14 md:py-3.5 hover:shadow-lg"
+          className="self-center mt-auto border transition-all duration-300 px-10 py-3.5 md:px-14 md:py-3.5 hover:shadow-lg"
           style={{
             fontSize: "clamp(0.68rem, 2vw, 0.78rem)",
             letterSpacing: "0.28em",
