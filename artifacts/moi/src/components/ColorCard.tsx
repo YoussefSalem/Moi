@@ -69,7 +69,7 @@ export function ColorCard({
     >
       {/* Image container */}
       <div
-        className="relative overflow-hidden aspect-[3/4] md:aspect-[3/4] rounded-lg md:rounded-xl"
+        className="relative overflow-hidden aspect-[2/3] md:aspect-[3/4] rounded-lg md:rounded-xl"
         style={{
           backgroundColor: "#ffffff",
           boxShadow: "0 2px 16px rgba(30,24,20,0.04)",
