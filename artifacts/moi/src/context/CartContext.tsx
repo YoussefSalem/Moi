@@ -289,10 +289,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [shopifyCart, removeItem]);
 
   const applyDiscount = useCallback(async (code: string): Promise<{ applicable: boolean; code: string; discountAmount: number }> => {
-    if (!SHOPIFY_CONFIGURED || !shopifyCart) throw new Error("Cart not available");
+    if (!SHOPIFY_CONFIGURED) throw new Error("Shopify not configured");
+    // Ensure a cart exists first (creates one if necessary) so discount codes
+    // can always be applied even when the user only added items via local cart.
+    const c = await ensureShopifyCart();
     // Pass [] to clear all codes — Shopify rejects [""] as an invalid code
     const codes = code.trim() ? [code] : [];
-    const updated = await cartDiscountCodesUpdate(shopifyCart.id, codes);
+    const updated = await cartDiscountCodesUpdate(c.id, codes);
     setShopifyCart(updated);
     const applied = updated.discountCodes.find((d) => d.code === code);
     // Discount amount = raw line total minus Shopify's discounted totalAmount.
@@ -305,7 +308,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const discountedTotal = parseFloat(updated.cost.totalAmount.amount);
     const discountAmount = Math.max(0, rawLineTotal - discountedTotal);
     return { applicable: applied?.applicable ?? false, code, discountAmount };
-  }, [shopifyCart]);
+  }, [ensureShopifyCart]);
 
   const clearCart = useCallback(() => {
     setShopifyCart(null);
