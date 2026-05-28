@@ -43,10 +43,13 @@ export function ColorCard({
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onNavigate(handle); }}
       aria-label={`View ${productName} in ${colorName}`}
     >
-      {/* Image container — square on mobile, portrait on desktop */}
+      {/* Image container — soft rounded corners, subtle shadow */}
       <div
-        className="relative overflow-hidden aspect-[4/5] md:aspect-[3/4]"
-        style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
+        className="relative overflow-hidden aspect-[4/5] md:aspect-[3/4] rounded-lg md:rounded-xl"
+        style={{
+          backgroundColor: "#ffffff",
+          boxShadow: "0 2px 16px rgba(30,24,20,0.04)",
+        }}
       >
         {!imgLoaded && (
           <div
@@ -92,8 +95,8 @@ export function ColorCard({
         )}
       </div>
 
-      {/* Info */}
-      <div className="flex flex-col gap-1.5 pt-4 pb-1 px-0.5">
+      {/* Info — generous breathing room, clean typography */}
+      <div className="flex flex-col gap-2.5 pt-5 md:pt-6 pb-2 px-1 md:px-0">
         {/* Color label + swatch */}
         <div className="flex items-center gap-2">
           {swatchColor && (
@@ -146,20 +149,22 @@ export function ColorCard({
           {price}
         </p>
 
-        {/* CTA below image (always visible) */}
+        {/* CTA — refined, minimal, full-width on mobile */}
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onNavigate(handle); }}
-          className="self-center mt-3 border transition-all duration-300"
+          className="self-stretch md:self-center mt-3 md:mt-4 border transition-all duration-300"
           style={{
-            padding: "12px 28px",
+            padding: "14px 0",
             fontSize: "clamp(0.65rem, 2vw, 0.75rem)",
-            letterSpacing: "0.32em",
+            letterSpacing: "0.28em",
             textTransform: "uppercase",
             fontFamily: "'Montserrat', sans-serif",
-            color: "#faf8f5",
-            borderColor: "#1e1814",
-            backgroundColor: "#1e1814",
+            fontWeight: 500,
+            color: "#1e1814",
+            borderColor: "rgba(30,24,20,0.15)",
+            backgroundColor: "transparent",
+            borderRadius: 4,
           }}
         >
           Add to Cart

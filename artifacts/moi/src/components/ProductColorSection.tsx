@@ -32,10 +32,10 @@ export function ProductColorSection({
   const colorImages = (product.colorImages ?? {}) as unknown as Record<string, string>;
   const colorSwatches = (product.colorSwatches ?? {}) as unknown as Record<string, string>;
 
-  const bg = dark ? "#f0ece6" : "#faf8f5";
+  const bg = dark ? "#f0ece6" : "#ffffff";
 
   return (
-    <section id={id} className="w-full py-16 md:py-24 px-6 md:px-12" style={{ backgroundColor: bg }}>
+    <section id={id} className="w-full py-20 md:py-28 px-6 md:px-12" style={{ backgroundColor: bg }}>
       <div className="max-w-7xl mx-auto">
 
         {/* Section header */}
@@ -90,12 +90,9 @@ export function ProductColorSection({
           />
         </motion.div>
 
-        {/* Color cards grid */}
+        {/* Color cards grid — single column on mobile, 3+ on desktop */}
         <div
-          className="grid gap-5 md:gap-7"
-          style={{
-            gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, 220px), 1fr))`,
-          }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 md:gap-8"
         >
           {colors.map((c, i) => {
             const img = colorImages[c.name] ?? product.productShot;
