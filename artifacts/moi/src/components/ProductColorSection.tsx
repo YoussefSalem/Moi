@@ -93,7 +93,7 @@ export function ProductColorSection({
         </motion.div>
 
         {/* Color cards — flex-wrap so last row always centers naturally */}
-        <div className="flex flex-wrap justify-center gap-x-10 gap-y-12 md:gap-x-14 md:gap-y-16">
+        <div className="flex flex-wrap justify-center gap-x-2 gap-y-12 md:gap-x-14 md:gap-y-16">
           {colors.map((c, i) => {
             const img = colorImages[c.name] ?? product.productShot;
             const galleries = (product.colorGalleries ?? {}) as unknown as Record<string, string[]>;
@@ -106,7 +106,7 @@ export function ProductColorSection({
             return (
               <div
                 key={handle}
-                className="flex justify-center w-[calc(50%-20px)] md:w-[calc(33.33%-38px)]"
+                className="flex justify-center w-[calc(50%-4px)] md:w-[calc(33.33%-38px)]"
                 style={{ maxWidth: 360 }}
               >
                 <ColorCard
