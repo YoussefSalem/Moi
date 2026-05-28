@@ -15,6 +15,7 @@ interface ColorCardProps {
   onNavigate: (handle: string) => void;
   onAddToCart?: (handle: string, currentImage: string) => void;
   index?: number;
+  className?: string;
 }
 
 export function ColorCard({
@@ -29,6 +30,7 @@ export function ColorCard({
   onNavigate,
   onAddToCart,
   index = 0,
+  className,
 }: ColorCardProps) {
   const [hovered, setHovered] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -56,7 +58,7 @@ export function ColorCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: Math.min(index * 0.07, 0.35) }}
-      className="flex flex-col cursor-pointer group w-full max-w-[360px]"
+      className={`flex flex-col cursor-pointer group w-full max-w-[360px] ${className ?? ""}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => onNavigate(handle)}
@@ -342,7 +344,7 @@ export function ColorCard({
             (e.currentTarget as HTMLButtonElement).style.borderColor = "#1e1814";
           }}
         >
-          {onAddToCart ? "Add to Cart" : "View Details"}
+          {onAddToCart ? "Order Now" : "View Details"}
         </button>
       </div>
     </motion.article>

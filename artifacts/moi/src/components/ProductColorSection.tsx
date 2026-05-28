@@ -92,9 +92,9 @@ export function ProductColorSection({
           />
         </motion.div>
 
-        {/* Color cards grid — flex-wrap so last row always centers */}
+        {/* Color cards grid — mobile: 2 columns; desktop: flex-wrap */}
         <div
-          className="flex flex-wrap justify-center gap-10 md:gap-8"
+          className="grid grid-cols-2 md:flex md:flex-wrap justify-center gap-x-4 gap-y-6 md:gap-8"
         >
           {colors.map((c, i) => {
             const img = colorImages[c.name] ?? product.productShot;
@@ -104,6 +104,9 @@ export function ProductColorSection({
             const swatchKey = c.name.toLowerCase();
             const swatch = colorSwatches[swatchKey];
             const handle = `${product.slug}-${slugify(c.name)}`;
+            const isLast = i === colors.length - 1;
+            const isOdd = colors.length % 2 === 1;
+            const mobileLastOdd = isLast && isOdd ? "col-span-2 justify-self-center max-w-[360px]" : "";
 
             return (
               <ColorCard
@@ -119,6 +122,7 @@ export function ProductColorSection({
                 onNavigate={onNavigate}
                 onAddToCart={onAddToCart}
                 index={i}
+                className={mobileLastOdd}
               />
             );
           })}
