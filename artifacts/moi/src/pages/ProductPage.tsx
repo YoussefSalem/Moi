@@ -207,7 +207,12 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
 
   return (
     <>
-      <div className="min-h-screen" style={{ backgroundColor: BG }}>
+      <div
+        className="min-h-screen"
+        style={{
+          background: "radial-gradient(ellipse at 30% 20%, rgba(245,240,232,0.6) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(230,220,205,0.25) 0%, transparent 50%), #faf8f5",
+        }}
+      >
         {/* Back button — extra top padding to clear the fixed header (h-16 + safe-area) */}
         <div className="w-full px-5 md:px-12 pt-20 md:pt-24 pb-3">
           <button
@@ -255,82 +260,77 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
             className="max-w-6xl mx-auto px-5 md:px-12 pt-6 md:pt-10 pb-24 flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-16 items-center"
           >
             {/* ── IMAGE GALLERY ── */}
-            <div className="w-full flex flex-col gap-4">
-              {/* Image row: arrow | image | arrow */}
-              <div className="flex items-center gap-2 md:gap-4">
-                {/* Previous — minimal, outside image */}
-                {galleryImages.length > 1 && (
-                  <button
-                    type="button"
-                    aria-label="Previous image"
-                    onClick={(e) => { e.stopPropagation(); prevImg(); }}
-                    className="hidden md:flex shrink-0 items-center justify-center text-[rgba(30,24,20,0.15)] hover:text-[rgba(30,24,20,0.55)] transition-colors duration-200"
-                    style={{ width: 28, height: 60, background: "none", border: "none", cursor: "pointer" }}
-                  >
-                    <ChevronLeft size={22} strokeWidth={1} />
-                  </button>
+            <div className="w-full flex flex-col gap-5">
+              {/* Main image — with arrows inside, click opens lightbox */}
+              <div
+                className="relative w-full overflow-hidden rounded-sm cursor-pointer"
+                onClick={() => setLightboxOpen(true)}
+                onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
+                onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
+                onPointerUp={(e) => {
+                  const start = dragStartXRef.current;
+                  if (start === null) return;
+                  const delta = (dragLastXRef.current ?? e.clientX) - start;
+                  dragStartXRef.current = null; dragLastXRef.current = null;
+                  if (Math.abs(delta) > 40) { delta < 0 ? nextImg() : prevImg(); }
+                }}
+                onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
+                style={{ touchAction: "pan-y", aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.03)", userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
+              >
+                <AnimatePresence initial={false} mode="wait">
+                  <motion.img
+                    key={mainImage}
+                    src={mainImage}
+                    alt={`${product.name}`}
+                    className="absolute inset-0 w-full h-full"
+                    style={{ objectFit: "contain", objectPosition: "center" }}
+                    loading="eager"
+                    decoding="async"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: imgLoaded ? 1 : 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    onLoad={() => setImgLoaded(true)}
+                    onError={() => setImgLoaded(true)}
+                  />
+                </AnimatePresence>
+                {!imgLoaded && (
+                  <ImageSkeleton variant="warm" />
                 )}
 
-                {/* Main image — click opens lightbox zoom */}
-                <div
-                  className="relative flex-1 overflow-hidden rounded-sm cursor-pointer"
-                  onClick={() => setLightboxOpen(true)}
-                  onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
-                  onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
-                  onPointerUp={(e) => {
-                    const start = dragStartXRef.current;
-                    if (start === null) return;
-                    const delta = (dragLastXRef.current ?? e.clientX) - start;
-                    dragStartXRef.current = null; dragLastXRef.current = null;
-                    if (Math.abs(delta) > 40) { delta < 0 ? nextImg() : prevImg(); }
-                  }}
-                  onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
-                  style={{ touchAction: "pan-y", aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.03)", userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
-                >
-                  <AnimatePresence initial={false} mode="wait">
-                    <motion.img
-                      key={mainImage}
-                      src={mainImage}
-                      alt={`${product.name}`}
-                      className="absolute inset-0 w-full h-full"
-                      style={{ objectFit: "contain", objectPosition: "center" }}
-                      loading="eager"
-                      decoding="async"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: imgLoaded ? 1 : 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.25 }}
-                      onLoad={() => setImgLoaded(true)}
-                      onError={() => setImgLoaded(true)}
-                    />
-                  </AnimatePresence>
-                  {!imgLoaded && (
-                    <ImageSkeleton variant="warm" />
-                  )}
+                {/* Desktop arrows — inside image, minimal */}
+                {galleryImages.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      aria-label="Previous image"
+                      onClick={(e) => { e.stopPropagation(); prevImg(); }}
+                      className="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 z-10 items-center justify-center text-[rgba(30,24,20,0.2)] hover:text-[rgba(30,24,20,0.6)] transition-colors duration-200"
+                      style={{ width: 28, height: 60, background: "none", border: "none", cursor: "pointer" }}
+                    >
+                      <ChevronLeft size={22} strokeWidth={1} />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Next image"
+                      onClick={(e) => { e.stopPropagation(); nextImg(); }}
+                      className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 z-10 items-center justify-center text-[rgba(30,24,20,0.2)] hover:text-[rgba(30,24,20,0.6)] transition-colors duration-200"
+                      style={{ width: 28, height: 60, background: "none", border: "none", cursor: "pointer" }}
+                    >
+                      <ChevronRight size={22} strokeWidth={1} />
+                    </button>
+                  </>
+                )}
 
-                  {/* Zoom hint — subtle, fades on interaction */}
-                  <div className="absolute bottom-3 right-3" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 8, color: "rgba(30,24,20,0.35)", letterSpacing: "0.2em", textTransform: "uppercase" }}>
-                    tap to zoom
-                  </div>
+                {/* Zoom hint — subtle, fades on interaction */}
+                <div className="absolute bottom-3 right-3" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 8, color: "rgba(30,24,20,0.35)", letterSpacing: "0.2em", textTransform: "uppercase" }}>
+                  tap to zoom
                 </div>
-
-                {/* Next — minimal, outside image */}
-                {galleryImages.length > 1 && (
-                  <button
-                    type="button"
-                    aria-label="Next image"
-                    onClick={(e) => { e.stopPropagation(); nextImg(); }}
-                    className="hidden md:flex shrink-0 items-center justify-center text-[rgba(30,24,20,0.15)] hover:text-[rgba(30,24,20,0.55)] transition-colors duration-200"
-                    style={{ width: 28, height: 60, background: "none", border: "none", cursor: "pointer" }}
-                  >
-                    <ChevronRight size={22} strokeWidth={1} />
-                  </button>
-                )}
               </div>
 
               {/* Thumbnails */}
               {galleryImages.length > 1 && (
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-3 flex-wrap justify-center">
                   {galleryImages.map((src, i) => (
                     <button
                       key={`${src}-${i}`}
@@ -338,8 +338,8 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                       onClick={() => { setGalleryIndex(i); setImgLoaded(false); }}
                       className="overflow-hidden rounded-sm transition-all duration-200"
                       style={{
-                        width: 56,
-                        height: 72,
+                        width: 64,
+                        height: 80,
                         border: i === galleryIndex
                           ? "1.5px solid #1e1814"
                           : "1.5px solid rgba(30,24,20,0.12)",
