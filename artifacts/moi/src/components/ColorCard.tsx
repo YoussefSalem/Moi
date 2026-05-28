@@ -244,20 +244,44 @@ export function ColorCard({
               {colorName}
             </span>
           </div>
-          <span
-            className="flex-shrink-0"
-            style={{
-              fontFamily: "'Montserrat', sans-serif",
-              fontSize: "clamp(0.58rem, 1.6vw, 0.68rem)",
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "#c83232",
-              fontWeight: 500,
-              paddingLeft: 4,
-            }}
-          >
-            Only {getStockCount(handle.split("-")[0] ?? "", colorName)} left
-          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {productName === "MOI WAVVY" && colorName === "Light Blue" && (
+              <span
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm"
+                style={{
+                  backgroundColor: "rgba(200, 50, 50, 0.08)",
+                  border: "1px solid rgba(200, 50, 50, 0.18)",
+                }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#c83232" }} />
+                <span
+                  style={{
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: 8,
+                    letterSpacing: "0.16em",
+                    textTransform: "uppercase",
+                    color: "#c83232",
+                    fontWeight: 500,
+                  }}
+                >
+                  Selling Fast
+                </span>
+              </span>
+            )}
+            <span
+              style={{
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: "clamp(0.58rem, 1.6vw, 0.68rem)",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "#c83232",
+                fontWeight: 500,
+                paddingLeft: 4,
+              }}
+            >
+              Only {getStockCount(handle.split("-")[0] ?? "", colorName)} left
+            </span>
+          </div>
         </div>
 
         {/* Product name */}

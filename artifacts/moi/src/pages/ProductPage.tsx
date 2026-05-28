@@ -369,36 +369,16 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                 {product.name}
               </h1>
 
-              {/* Urgency indicator */}
+              {/* Stock count */}
               {stockCount && (
-                <div className="flex items-center gap-2 mb-4" style={{ marginTop: -4 }}>
-                  <span
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm"
-                    style={{
-                      backgroundColor: "rgba(200, 50, 50, 0.08)",
-                      border: "1px solid rgba(200, 50, 50, 0.18)",
-                    }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#c83232" }} />
-                    <span
-                      style={{
-                        fontFamily: "'Montserrat', sans-serif",
-                        fontSize: 9,
-                        letterSpacing: "0.18em",
-                        textTransform: "uppercase",
-                        color: "#c83232",
-                        fontWeight: 500,
-                      }}
-                    >
-                      Selling Fast
-                    </span>
-                  </span>
+                <div className="mb-4" style={{ marginTop: -4 }}>
                   <span
                     style={{
                       fontFamily: "'Montserrat', sans-serif",
                       fontSize: 10,
-                      color: "rgba(30, 24, 20, 0.55)",
+                      color: "#c83232",
                       letterSpacing: "0.04em",
+                      fontWeight: 500,
                     }}
                   >
                     Only {stockCount} left
