@@ -707,7 +707,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
             {/* ── CONTENT COLUMN ── */}
             <div
-              className="flex flex-col items-center md:items-start text-center md:text-left mt-5 md:mt-0"
+              className="flex flex-col items-center text-center mt-5 md:mt-0"
             >
               {/* Product name */}
               <motion.h2
@@ -766,7 +766,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
               {/* Color */}
               {displayColors.length > 0 && (
-                <motion.div variants={itemVariants} className="flex flex-col gap-3 mb-6 items-center md:items-start w-full">
+                <motion.div variants={itemVariants} className="flex flex-col gap-3 mb-6 items-center w-full">
                   <p
                     className="text-[10px] tracking-[0.28em] uppercase font-medium"
                     style={{ color: "#8a7e74", fontFamily: "'Montserrat', sans-serif" }}
@@ -774,7 +774,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     Color —{" "}
                     <span style={{ color: "#1e1814" }}>{selectedColor}</span>
                   </p>
-                  <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
+                  <div className="flex items-center gap-3 flex-wrap justify-center">
                     {displayColors.map((option, index) => (
                       <button
                         key={option.name}
@@ -817,7 +817,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
               {/* Size */}
               {hasSingleVariantPill ? (
-                <motion.div variants={itemVariants} className="flex flex-col gap-2 mb-4 items-center md:items-start w-full">
+                <motion.div variants={itemVariants} className="flex flex-col gap-2 mb-4 items-center w-full">
                   <button
                     type="button"
                     aria-pressed
@@ -833,14 +833,14 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   </button>
                 </motion.div>
               ) : displaySizes.length > 1 && (
-                <motion.div variants={itemVariants} className="flex flex-col gap-2 mb-4 items-center md:items-start w-full">
+                <motion.div variants={itemVariants} className="flex flex-col gap-2 mb-4 items-center w-full">
                   <p
                     className="text-[10px] tracking-[0.28em] uppercase font-medium"
                     style={{ color: "#8a7e74", fontFamily: "'Montserrat', sans-serif" }}
                   >
                     Size
                   </p>
-                  <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
                     {displaySizes.map((size) => {
                       const available = isSizeAvailable(size);
                       const isSelected = selectedSize === size;
@@ -954,7 +954,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
               )}
 
               {/* CTA */}
-              <motion.div variants={itemVariants} className="w-full flex flex-col items-center md:items-start">
+              <motion.div variants={itemVariants} className="w-full flex flex-col items-center">
                 {isOutOfStock ? (
                   <motion.button
                     type="button"

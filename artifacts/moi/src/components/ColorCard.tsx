@@ -216,9 +216,9 @@ export function ColorCard({
       )}
 
       {/* Info */}
-      <div className="flex flex-col gap-2.5 pt-5 md:pt-6 pb-2 px-1 md:px-0 pr-14 md:pr-0">
+      <div className="flex flex-col items-center gap-2.5 pt-5 md:pt-6 pb-2 px-1 md:px-0 pr-14 md:pr-0">
         {/* Color name + badge */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-center gap-2">
           <div className="flex items-center gap-2 min-w-0">
             {swatchColor && (
               <span
@@ -270,7 +270,7 @@ export function ColorCard({
         </div>
 
         {/* Product name + stock count */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-center gap-2">
           <h3
             style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -299,6 +299,7 @@ export function ColorCard({
 
         {/* Price */}
         <p
+          className="text-center"
           style={{
             fontFamily: "'Montserrat', sans-serif",
             fontSize: "clamp(0.81rem, 2.2vw, 0.88rem)",
@@ -320,7 +321,7 @@ export function ColorCard({
               onNavigate(handle);
             }
           }}
-          className="self-stretch md:self-center mt-3 md:mt-4 border transition-all duration-300 px-6 py-3.5 md:px-14 md:py-3.5 hover:shadow-lg"
+          className="self-center mt-3 md:mt-4 border transition-all duration-300 px-6 py-3.5 md:px-14 md:py-3.5 hover:shadow-lg"
           style={{
             fontSize: "clamp(0.68rem, 2vw, 0.78rem)",
             letterSpacing: "0.28em",
