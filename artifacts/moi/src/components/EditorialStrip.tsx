@@ -1,36 +1,16 @@
-import { useRef, useEffect, useState } from "react";
-import { motion, useInView } from "framer-motion";
+import { useRef } from "react";
+import { motion, useInView, useScroll, useTransform } from "framer-motion";
 
 export function EditorialStrip() {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
-  const [textY, setTextY] = useState(0);
 
-  // RAF-based scroll parallax — no Framer Motion useScroll overhead
-  useEffect(() => {
-    let raf = 0;
-    let ticking = false;
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      raf = requestAnimationFrame(() => {
-        const el = ref.current;
-        if (!el) { ticking = false; return; }
-        const rect = el.getBoundingClientRect();
-        const vh = window.innerHeight;
-        const progress = Math.max(0, Math.min(1, (vh - rect.top) / (vh + rect.height)));
-        // Map 0->1 to 14px -> -14px
-        setTextY(14 - progress * 28);
-        ticking = false;
-      });
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
+
+  const textY = useTransform(scrollYProgress, [0, 1], ["14px", "-14px"]);
 
   const words = ["Effortless", "Versatile", "Yours"];
 
@@ -53,8 +33,8 @@ export function EditorialStrip() {
         }}
       />
 
-      <div
-        style={{ transform: `translateY(${textY}px)`, willChange: "transform" }}
+      <motion.div
+        style={{ y: textY }}
         className="relative z-10 flex flex-col items-center text-center px-8"
       >
         {/* Label */}
@@ -107,7 +87,7 @@ export function EditorialStrip() {
           }}
         />
 
-      </div>
+      </motion.div>
     </section>
   );
 }

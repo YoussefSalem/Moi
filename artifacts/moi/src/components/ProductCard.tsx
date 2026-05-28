@@ -72,17 +72,15 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
     productEnterTimeRef.current = Date.now();
   }, [inView, product.variantId ?? "", product.name, product.price]);
 
-  // Track scroll depth on this product card — RAF-throttled to avoid layout thrash
+  // Track scroll depth on this product card
   useEffect(() => {
     if (!inView || !sectionRef.current) return;
     let maxDepth = 0;
-    let rafPending = false;
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
     const el = sectionRef.current;
     const onScroll = () => {
-      if (rafPending) return;
-      rafPending = true;
-      requestAnimationFrame(() => {
-        rafPending = false;
+      if (scrollTimeout) return;
+      scrollTimeout = setTimeout(() => {
         const rect = el.getBoundingClientRect();
         const visible = Math.max(0, Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0));
         const depth = Math.round((visible / rect.height) * 100);
@@ -90,7 +88,8 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
           maxDepth = depth;
           if (depth % 25 === 0) trackProductScroll(product.variantId ?? "", depth);
         }
-      });
+        scrollTimeout = null;
+      }, 500);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -385,11 +384,12 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
             {/* ── IMAGE COLUMN ── */}
             <motion.div variants={itemVariants} className="relative w-full">
-              {/* Ambient glow behind image — no blur filter for compositor performance */}
+              {/* Ambient glow behind image */}
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   background: `radial-gradient(ellipse 80% 70% at 50% 55%, ${AMBIENT_STRONG} 0%, transparent 72%)`,
+                  filter: "blur(32px)",
                   transform: "scale(1.18) translateZ(0)",
                 }}
               />

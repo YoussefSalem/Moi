@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
 import { getStockCount } from "@/lib/stock";
 
@@ -148,25 +148,22 @@ export function ColorCard({
         >
           {/* Skeleton — shown while next image loads after swipe */}
           <ImageSkeleton variant="card" className="z-0" borderRadius={8} />
-          {/* Mobile image crossfade — plain CSS for GPU compositing */}
-          {allImages.map((src, i) => (
-            <img
-              key={i}
-              src={src}
+          <AnimatePresence initial={false} mode="sync">
+            <motion.img
+              key={mobileIndex}
+              src={allImages[mobileIndex] ?? image}
               alt={`${productName} — ${colorName}`}
               className="absolute inset-0 w-full h-full z-10"
-              style={{
-                objectFit: "cover",
-                objectPosition: "center top",
-                opacity: i === mobileIndex ? 1 : 0,
-                transition: "opacity 400ms ease-in-out",
-                willChange: "opacity",
-              }}
+              style={{ objectFit: "cover", objectPosition: "center top" }}
               loading="lazy"
               decoding="async"
               onLoad={() => setImgLoaded(true)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
             />
-          ))}
+          </AnimatePresence>
         </div>
 
       </div>

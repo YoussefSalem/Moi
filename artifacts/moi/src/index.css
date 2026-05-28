@@ -6,8 +6,6 @@
 /* Let the browser use the fastest scroll path (no scroll-linked effects) */
 html {
   scroll-behavior: smooth;
-  overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
 }
 
 /* Promote the root stacking context onto the GPU immediately */
@@ -61,24 +59,6 @@ header[class*="fixed"] {
 /* Sections containing heavy content: contain layout recalculations */
 section {
   contain: layout style;
-}
-
-/* Color cards and product images: GPU layers for compositing */
-img {
-  image-rendering: auto;
-  backface-visibility: hidden;
-}
-
-/* Prevent scroll-jank on mobile image carousels */
-[role="button"] img {
-  pointer-events: none;
-}
-
-/* Grid images: keep on GPU so scroll never recalculates layout */
-.grid img,
-.grid-cols-2 img,
-.grid-cols-1 img {
-  will-change: auto;
 }
 
 @keyframes shimmer-sweep {
