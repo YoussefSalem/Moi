@@ -93,7 +93,7 @@ export function ProductColorSection({
         </motion.div>
 
         {/* Color cards — flex-wrap so last row always centers naturally */}
-        <div className="flex flex-wrap justify-center gap-x-10 gap-y-48 md:gap-x-14 md:gap-y-72">
+        <div className="flex flex-wrap justify-center gap-x-10 gap-y-12 md:gap-x-14 md:gap-y-16">
           {colors.map((c, i) => {
             const img = colorImages[c.name] ?? product.productShot;
             const galleries = (product.colorGalleries ?? {}) as unknown as Record<string, string[]>;
