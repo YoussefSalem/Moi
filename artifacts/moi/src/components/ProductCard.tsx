@@ -589,6 +589,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 <div
                   className="md:hidden relative w-full mx-auto"
                   onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId);
                     dragStartXRef.current = e.clientX;
                     dragLastXRef.current = e.clientX;
                     dragStartTimeRef.current = Date.now();
@@ -628,12 +629,6 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                       onLookView(product);
                     }
                   }}
-                  onPointerLeave={() => {
-                    dragStartXRef.current = null;
-                    dragLastXRef.current = null;
-                    dragStartTimeRef.current = null;
-                    setDraggingGallery(false);
-                  }}
                   style={{ touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none", cursor: "pointer" }}
                 >
                   <div
@@ -672,23 +667,50 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   </div>
                 </div>
 
-                {/* Gallery dots */}
+                {/* Gallery dots — mobile only (desktop uses arrows) */}
                 {galleryImages.length > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-4">
-                    {galleryImages.map((_, index) => (
-                      <button
-                        key={`${selectedColor}-${index}`}
-                        type="button"
-                        aria-label={`Image ${index + 1}`}
-                        onClick={(e) => { e.stopPropagation(); setGalleryIndex(index); }}
-                        className="transition-all duration-300 rounded-full"
-                        style={{
-                          width: index === galleryIndex ? 18 : 6,
-                          height: 6,
-                          backgroundColor: index === galleryIndex ? "#1e1814" : "rgba(30,24,20,0.2)",
-                        }}
-                      />
-                    ))}
+                  <div className="md:hidden flex flex-col items-center gap-2 mt-5">
+                    <div className="flex items-center justify-center gap-[10px]">
+                      {galleryImages.map((_, index) => (
+                        <button
+                          key={`${selectedColor}-${index}`}
+                          type="button"
+                          aria-label={`Image ${index + 1}`}
+                          onClick={(e) => { e.stopPropagation(); setGalleryIndex(index); }}
+                          style={{
+                            padding: "6px 4px",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <span
+                            className="block rounded-full transition-all duration-300"
+                            style={{
+                              width: index === galleryIndex ? 20 : 6,
+                              height: 6,
+                              backgroundColor: index === galleryIndex ? "#1e1814" : "rgba(30,24,20,0.22)",
+                            }}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <p
+                      style={{
+                        fontSize: "9px",
+                        letterSpacing: "0.32em",
+                        textTransform: "uppercase",
+                        color: "rgba(30,24,20,0.38)",
+                        fontFamily: "'Montserrat', sans-serif",
+                        fontWeight: 500,
+                        userSelect: "none",
+                      }}
+                    >
+                      swipe to browse
+                    </p>
                   </div>
                 )}
 
