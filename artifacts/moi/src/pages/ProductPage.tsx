@@ -77,6 +77,17 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
+  // Persistent stock indicator for "MOI WAVVY — Light Blue"
+  const [stockCount] = useState(() => {
+    if (pageColorName !== "Light Blue" || !product.name?.includes("MOI WAVVY")) return null;
+    const key = `moi_stock_${handle}`;
+    const saved = localStorage.getItem(key);
+    if (saved) return parseInt(saved, 10);
+    const count = Math.floor(Math.random() * 6) + 3; // 3–8
+    localStorage.setItem(key, String(count));
+    return count;
+  });
+
   // SEO: update document head imperatively so meta is reliably in the <head>
   useEffect(() => {
     const prevTitle = document.title;
@@ -382,6 +393,43 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
               >
                 {product.name}
               </h1>
+
+              {/* Urgency indicator — Light Blue only */}
+              {stockCount && (
+                <div className="flex items-center gap-2 mb-4" style={{ marginTop: -4 }}>
+                  <span
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm"
+                    style={{
+                      backgroundColor: "rgba(200, 50, 50, 0.08)",
+                      border: "1px solid rgba(200, 50, 50, 0.18)",
+                    }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#c83232" }} />
+                    <span
+                      style={{
+                        fontFamily: "'Montserrat', sans-serif",
+                        fontSize: 9,
+                        letterSpacing: "0.18em",
+                        textTransform: "uppercase",
+                        color: "#c83232",
+                        fontWeight: 500,
+                      }}
+                    >
+                      Selling Fast
+                    </span>
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: 10,
+                      color: "rgba(30, 24, 20, 0.55)",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    Only {stockCount} left
+                  </span>
+                </div>
+              )}
 
               {/* Price */}
               <p
