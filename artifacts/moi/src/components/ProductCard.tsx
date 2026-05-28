@@ -369,8 +369,8 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
         className="w-full overflow-hidden"
         style={{
           background: `radial-gradient(ellipse 100% 80% at 50% 40%, ${AMBIENT_RGBA} 0%, hsl(30 15% 95%) 68%)`,
-          paddingTop: "clamp(56px, 10vw, 96px)",
-          paddingBottom: "clamp(64px, 11vw, 104px)",
+          paddingTop: "clamp(24px, 3vw, 40px)",
+          paddingBottom: "clamp(28px, 4vw, 48px)",
         }}
       >
         <motion.div
@@ -380,7 +380,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
           className="w-full"
         >
           {/* ── Mobile layout: stacked ── Desktop layout: 2-col ── */}
-          <div className="max-w-6xl mx-auto px-5 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-16 items-center">
+          <div className="max-w-6xl mx-auto px-5 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-8 items-center">
 
             {/* ── IMAGE COLUMN ── */}
             <motion.div variants={itemVariants} className="relative w-full">
@@ -493,7 +493,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     {/* Image frame */}
                     <div
                       className="relative w-full overflow-hidden"
-                      style={{ height: "clamp(280px, 38vh, 440px)" }}
+                      style={{ height: "clamp(260px, 34vh, 400px)" }}
                     >
                       <AnimatePresence initial={false} mode="wait">
                         <motion.img
@@ -619,7 +619,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 >
                   <div
                     className="relative w-full overflow-hidden"
-                    style={{ height: "clamp(320px, 65vw, 480px)" }}
+                    style={{ height: "clamp(260px, 50vw, 380px)" }}
                   >
                     <AnimatePresence initial={false} mode="wait">
                       <motion.img
@@ -707,19 +707,19 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
             {/* ── CONTENT COLUMN ── */}
             <div
-              className="flex flex-col items-center text-center mt-5 md:mt-0"
+              className="flex flex-col items-center text-center mt-3 md:mt-0"
             >
               {/* Product name */}
               <motion.h2
                 variants={itemVariants}
                 style={{
                   fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontSize: "clamp(1.87rem, 5.5vw, 2.91rem)",
+                  fontSize: "clamp(1.6rem, 4.5vw, 2.4rem)",
                   fontWeight: 300,
                   color: "#1e1814",
                   letterSpacing: "0.04em",
                   lineHeight: 1.1,
-                  marginBottom: 10,
+                  marginBottom: 6,
                 }}
               >
                 {product.name}
@@ -731,7 +731,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   type="button"
                   variants={itemVariants}
                   onClick={() => onNavigateToProduct(`${product.slug}-${slugify(selectedColor)}`)}
-                  className="flex items-center gap-1.5 mb-3 transition-opacity duration-200 hover:opacity-55"
+                  className="flex items-center gap-1.5 mb-2 transition-opacity duration-200 hover:opacity-55"
                   style={{
                     fontFamily: "'Montserrat', sans-serif",
                     fontSize: 9,
@@ -752,7 +752,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
               <motion.p
                 variants={itemVariants}
                 className="text-sm leading-relaxed font-light max-w-xs md:max-w-sm"
-                style={{ color: "#6a5e56", marginBottom: 18 }}
+                style={{ color: "#6a5e56", marginBottom: 8 }}
               >
                 {product.description}
               </motion.p>
@@ -760,13 +760,13 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
               {/* Divider */}
               <motion.div
                 variants={itemVariants}
-                className="w-10 mb-4"
+                className="w-10 mb-2"
                 style={{ height: 1, backgroundColor: "rgba(180,160,140,0.4)" }}
               />
 
               {/* Color */}
               {displayColors.length > 0 && (
-                <motion.div variants={itemVariants} className="flex flex-col gap-3 mb-6 items-center w-full">
+                <motion.div variants={itemVariants} className="flex flex-col gap-1.5 mb-3 items-center w-full">
                   <p
                     className="text-[10px] tracking-[0.28em] uppercase font-medium"
                     style={{ color: "#8a7e74", fontFamily: "'Montserrat', sans-serif" }}
@@ -774,7 +774,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     Color —{" "}
                     <span style={{ color: "#1e1814" }}>{selectedColor}</span>
                   </p>
-                  <div className="flex items-center gap-3 flex-wrap justify-center">
+                  <div className="flex items-center gap-2.5 flex-wrap justify-center">
                     {displayColors.map((option, index) => (
                       <button
                         key={option.name}
@@ -817,11 +817,11 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
               {/* Size */}
               {hasSingleVariantPill ? (
-                <motion.div variants={itemVariants} className="flex flex-col gap-2 mb-4 items-center w-full">
+                <motion.div variants={itemVariants} className="flex flex-col gap-1.5 mb-2 items-center w-full">
                   <button
                     type="button"
                     aria-pressed
-                    className="px-6 py-2.5 text-[10px] tracking-[0.22em] uppercase font-medium border"
+                    className="px-4 py-1.5 text-[10px] tracking-[0.22em] uppercase font-medium border"
                     style={{
                       color: "#1e1814",
                       borderColor: "#1e1814",
@@ -833,14 +833,14 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   </button>
                 </motion.div>
               ) : displaySizes.length > 1 && (
-                <motion.div variants={itemVariants} className="flex flex-col gap-2 mb-4 items-center w-full">
+                <motion.div variants={itemVariants} className="flex flex-col gap-1.5 mb-2 items-center w-full">
                   <p
                     className="text-[10px] tracking-[0.28em] uppercase font-medium"
                     style={{ color: "#8a7e74", fontFamily: "'Montserrat', sans-serif" }}
                   >
                     Size
                   </p>
-                  <div className="flex items-center gap-2 flex-wrap justify-center">
+                  <div className="flex items-center gap-1.5 flex-wrap justify-center">
                     {displaySizes.map((size) => {
                       const available = isSizeAvailable(size);
                       const isSelected = selectedSize === size;
@@ -856,8 +856,8 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                           title={!available ? "Out of stock — notify me" : undefined}
                           className="relative overflow-hidden border transition-all duration-300"
                           style={{
-                            minWidth: 72,
-                            padding: "10px 16px",
+                            minWidth: 64,
+                            padding: "7px 12px",
                             fontSize: 10,
                             letterSpacing: "0.22em",
                             textTransform: "uppercase",
@@ -882,7 +882,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   {/* Size guide — updates when a size is selected */}
                   {selectedSize && (
                     <p
-                      className="mt-2.5 text-[10px] leading-5 max-w-xs"
+                      className="mt-1.5 text-[10px] leading-5 max-w-xs"
                       style={{
                         color: "rgba(120,108,96,0.5)",
                         fontFamily: "'Montserrat', sans-serif",
@@ -906,7 +906,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
               {!product.name.toLowerCase().includes("versa") && (
                 <motion.p
                   variants={itemVariants}
-                  className="mb-2"
+                  className="mb-1"
                   style={{
                     color: "#9e2a2b",
                     fontFamily: "'Montserrat', sans-serif",
@@ -923,7 +923,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
               {/* Price */}
               <motion.p
                 variants={itemVariants}
-                className="mb-7"
+                className="mb-3"
                 style={{
                   color: "#1e1814",
                   fontFamily: "'Montserrat', sans-serif",
@@ -963,7 +963,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     className="w-full md:w-auto flex items-center justify-center gap-2 border transition-all duration-300"
                     style={{
                       maxWidth: 320,
-                      padding: "15px 32px",
+                      padding: "11px 24px",
                       fontSize: 9,
                       letterSpacing: "0.38em",
                       textTransform: "uppercase",
@@ -985,7 +985,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     className="w-full md:w-auto border transition-all duration-500"
                     style={{
                       maxWidth: 320,
-                      padding: "15px 40px",
+                      padding: "11px 32px",
                       fontSize: 9,
                       letterSpacing: "0.42em",
                       textTransform: "uppercase",

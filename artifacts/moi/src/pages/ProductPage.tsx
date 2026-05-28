@@ -244,10 +244,10 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-6xl mx-auto px-5 md:px-12 pt-6 md:pt-10 pb-24 flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-16 items-center"
+          className="max-w-6xl mx-auto px-5 md:px-12 pt-4 md:pt-6 pb-12 md:pb-16 flex flex-col md:grid md:grid-cols-2 gap-6 md:gap-10 items-center"
         >
             {/* ── IMAGE GALLERY ── */}
-            <div className="w-full flex flex-col gap-5">
+            <div className="w-full flex flex-col gap-3">
               {/* Image row: arrow | image | arrow */}
               <div className="flex items-center gap-4 justify-center">
                 {/* Previous — minimal, outside image */}
@@ -322,7 +322,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
 
               {/* Thumbnails — centered under image */}
               {galleryImages.length > 1 && (
-                <div className="flex gap-3 flex-wrap justify-center">
+                <div className="flex gap-2 flex-wrap justify-center">
                   {galleryImages.map((src, i) => (
                     <button
                       key={`${src}-${i}`}
@@ -363,7 +363,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                   color: "#1e1814",
                   letterSpacing: "0.04em",
                   lineHeight: 1.1,
-                  marginBottom: 12,
+                  marginBottom: 8,
                 }}
               >
                 {product.name}
@@ -371,7 +371,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
 
               {/* Stock count */}
               {stockCount && (
-                <div className="mb-4" style={{ marginTop: -4 }}>
+                <div className="mb-2" style={{ marginTop: -2 }}>
                   <span
                     style={{
                       fontFamily: "'Montserrat', sans-serif",
@@ -440,7 +440,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                           className="relative overflow-hidden border transition-all duration-300"
                           style={{
                             minWidth: 88,
-                            padding: "11px 18px",
+                            padding: "9px 14px",
                             fontSize: 10,
                             letterSpacing: "0.22em",
                             textTransform: "uppercase",

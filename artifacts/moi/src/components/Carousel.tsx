@@ -82,7 +82,7 @@ export function Carousel() {
             id="carousel-strip"
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex gap-2 overflow-x-auto py-8"
+            className="flex gap-2 overflow-x-auto py-5"
             style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             <style>{`#carousel-strip::-webkit-scrollbar { display: none; }`}</style>

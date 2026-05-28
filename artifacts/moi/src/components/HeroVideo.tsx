@@ -137,8 +137,8 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
       <motion.div
         className="absolute bottom-0 left-0 right-0 z-[3] flex flex-col items-center text-center"
         style={isMobileRef.current
-          ? { paddingBottom: "clamp(80px, 14vw, 140px)", opacity: overlayOpacity, willChange: "opacity" }
-          : { y: textY, paddingBottom: "clamp(80px, 14vw, 140px)", opacity: overlayOpacity }
+          ? { paddingBottom: "clamp(60px, 10vw, 100px)", opacity: overlayOpacity, willChange: "opacity" }
+          : { y: textY, paddingBottom: "clamp(60px, 10vw, 100px)", opacity: overlayOpacity }
         }
       >
         {/* Collection label */}

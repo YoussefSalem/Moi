@@ -78,8 +78,8 @@ export function EditorialPhotoStrip() {
       className="relative w-full overflow-hidden"
       style={{
         backgroundColor: "hsl(30 15% 95%)",
-        paddingTop: "clamp(40px, 7vw, 80px)",
-        paddingBottom: "clamp(48px, 8vw, 96px)",
+        paddingTop: "clamp(28px, 4vw, 48px)",
+        paddingBottom: "clamp(32px, 5vw, 56px)",
       }}
     >
       {/* Label */}
@@ -87,7 +87,7 @@ export function EditorialPhotoStrip() {
         initial={{ opacity: 0, y: 10 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-        className="text-center text-[9px] tracking-[0.55em] uppercase mb-8"
+        className="text-center text-[9px] tracking-[0.55em] uppercase mb-5"
         style={{ color: "rgba(120,108,96,0.6)", fontFamily: "'Montserrat', sans-serif" }}
       >
         The Collection
@@ -205,7 +205,7 @@ export function EditorialPhotoStrip() {
         initial={{ opacity: 0 }}
         animate={inView ? { opacity: 1 } : {}}
         transition={{ duration: 1, delay: 0.55 }}
-        className="text-center mt-8 text-[9px] tracking-[0.35em] uppercase"
+        className="text-center mt-5 text-[9px] tracking-[0.35em] uppercase"
         style={{ color: "rgba(120,108,96,0.42)", fontFamily: "'Montserrat', sans-serif" }}
       >
         Height of model: 178 cm — Size S

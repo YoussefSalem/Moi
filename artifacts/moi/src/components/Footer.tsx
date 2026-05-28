@@ -67,10 +67,10 @@ export function Footer({ onNavigate }: FooterProps) {
 
   return (
     <>
-      <footer className="w-full px-6 md:px-12 py-14 md:py-18" style={{ backgroundColor: "#28211d" }}>
+      <footer className="w-full px-6 md:px-12 py-10 md:py-14" style={{ backgroundColor: "#28211d" }}>
         <div className="max-w-6xl mx-auto">
           {/* Social links */}
-          <div className="flex items-center justify-center gap-6 mb-10">
+          <div className="flex items-center justify-center gap-6 mb-8">
             <a
               href="https://www.instagram.com/shopmoi___?igsh=MW5xa3lvaXB3dmF3cw%3D%3D&utm_source=qr"
               target="_blank"
