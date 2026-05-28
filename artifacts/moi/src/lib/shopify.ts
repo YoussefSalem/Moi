@@ -385,8 +385,12 @@ export function formatMoney(amount: string, currencyCode: string): string {
   const parts = [];
   let remaining = whole;
   while (remaining > 0) {
-    parts.unshift((remaining % 1000).toString().padStart(parts.length > 0 ? 3 : 0, "0"));
+    parts.unshift((remaining % 1000).toString());
     remaining = Math.floor(remaining / 1000);
+  }
+  // Pad all parts except the first (most significant) to 3 digits
+  for (let i = 1; i < parts.length; i++) {
+    parts[i] = parts[i].padStart(3, "0");
   }
   const formatted = parts.length ? parts.join(".") : "0";
   return fraction > 0 ? `${formatted},${fraction.toString().padStart(2, "0")} ${currencyCode}` : `${formatted} ${currencyCode}`;
