@@ -298,6 +298,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const updated = await cartDiscountCodesUpdate(c.id, codes);
     setShopifyCart(updated);
     const applied = updated.discountCodes.find((d) => d.code === code);
+
+    // The Storefront API may return applicable:false when the cart is empty or
+    // when discount codes cannot be pre-evaluated without real line items.
+    // Fallback to our backend discount-lookup endpoint which validates the
+    // code against the Admin API independently of cart contents.
+    if (!applied?.applicable && code.trim()) {
+      const localSubtotal = localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
+      if (localSubtotal > 0) {
+        try {
+          const res = await fetch(
+            `/api/orders/discount-lookup?code=${encodeURIComponent(code)}&subtotal=${localSubtotal}`,
+          );
+          const data = (await res.json()) as {
+            applicable?: boolean;
+            discountAmount?: number;
+            code?: string;
+          };
+          if (data.applicable && typeof data.discountAmount === "number") {
+            return { applicable: true, code: data.code ?? code, discountAmount: data.discountAmount };
+          }
+        } catch {
+          // Swallow: backend fallback is best-effort; return Shopify result below
+        }
+      }
+    }
+
     // Discount amount = raw line total minus Shopify's discounted totalAmount.
     // Shopify reflects applied discount codes in cost.totalAmount immediately,
     // so this difference is the true discount amount.
@@ -308,7 +334,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const discountedTotal = parseFloat(updated.cost.totalAmount.amount);
     const discountAmount = Math.max(0, rawLineTotal - discountedTotal);
     return { applicable: applied?.applicable ?? false, code, discountAmount };
-  }, [ensureShopifyCart]);
+  }, [ensureShopifyCart, localItems]);
 
   const clearCart = useCallback(() => {
     setShopifyCart(null);
