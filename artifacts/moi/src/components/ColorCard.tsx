@@ -218,7 +218,7 @@ export function ColorCard({
       {/* Info */}
       <div className="flex flex-col gap-2.5 pt-5 md:pt-6 pb-2 px-1 md:px-0 pr-14 md:pr-0">
         {/* Color label + swatch + urgency */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2 min-w-0">
             {swatchColor && (
               <span
@@ -244,10 +244,10 @@ export function ColorCard({
               {colorName}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap justify-end">
+          <div className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-start md:justify-end">
             {productName === "MOI WAVVY" && colorName === "Light Blue" && (
               <span
-                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm"
                 style={{
                   backgroundColor: "rgba(200, 50, 50, 0.08)",
                   border: "1px solid rgba(200, 50, 50, 0.18)",
@@ -257,8 +257,8 @@ export function ColorCard({
                 <span
                   style={{
                     fontFamily: "'Montserrat', sans-serif",
-                    fontSize: "clamp(0.55rem, 1.5vw, 0.65rem)",
-                    letterSpacing: "0.16em",
+                    fontSize: "clamp(0.5rem, 1.4vw, 0.6rem)",
+                    letterSpacing: "0.14em",
                     textTransform: "uppercase",
                     color: "#c83232",
                     fontWeight: 500,
