@@ -193,7 +193,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
     <>
       <div className="min-h-screen" style={{ backgroundColor: BG }}>
         {/* Back button */}
-        <div className="w-full px-5 md:px-12 pt-6 pb-2">
+        <div className="w-full px-5 md:px-12 pt-10 md:pt-16 pb-2">
           <button
             type="button"
             onClick={onBack}
@@ -226,7 +226,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-6xl mx-auto px-5 md:px-12 py-6 pb-24 flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-16 items-start"
+            className="max-w-6xl mx-auto px-5 md:px-12 pt-10 md:pt-14 pb-24 flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-16 items-start"
           >
             {/* ── IMAGE GALLERY ── */}
             <div className="w-full flex flex-col gap-4">
@@ -503,26 +503,6 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                 </motion.button>
               )}
 
-              {/* Material info */}
-              {(product.outer || product.lining) && (
-                <div className="mt-10 pt-8 flex flex-col gap-2" style={{ borderTop: "1px solid rgba(180,160,140,0.25)" }}>
-                  {product.outer && (
-                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.18em", color: "rgba(30,24,20,0.45)" }}>
-                      {product.outer}
-                    </p>
-                  )}
-                  {product.lining && (
-                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.18em", color: "rgba(30,24,20,0.45)" }}>
-                      {product.lining}
-                    </p>
-                  )}
-                  {product.ref && (
-                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.18em", color: "rgba(30,24,20,0.3)" }}>
-                      Ref: {product.ref}
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
           </motion.div>
         )}
