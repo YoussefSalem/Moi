@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
 import { parseEGP } from "@/lib/price";
@@ -118,29 +118,53 @@ function AppContent() {
 
   const [page, setPage] = useState<PageType>(() => parsePath().page);
   const [productHandle, setProductHandle] = useState<string>(() => parsePath().productHandle);
+  const [curtainActive, setCurtainActive] = useState(false);
+  const curtainTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Duration in ms for the curtain to fully cover the screen before the page switches
+  const CURTAIN_IN = 220;
+  // Duration in ms the curtain stays visible after the new page mounts before fading out
+  const CURTAIN_HOLD = 60;
+
+  const triggerCurtainNav = useCallback((doNav: () => void) => {
+    if (curtainTimer.current) clearTimeout(curtainTimer.current);
+    setCurtainActive(true);
+    curtainTimer.current = setTimeout(() => {
+      doNav();
+      curtainTimer.current = setTimeout(() => {
+        setCurtainActive(false);
+      }, CURTAIN_HOLD);
+    }, CURTAIN_IN);
+  }, []);
 
   function navigateToProduct(handle: string) {
-    setPage("product");
-    setProductHandle(handle);
-    window.history.pushState(null, "", `/products/${handle}`);
+    triggerCurtainNav(() => {
+      setPage("product");
+      setProductHandle(handle);
+      window.history.pushState(null, "", `/products/${handle}`);
+    });
   }
 
   function navigateTo(p: PageType) {
-    setPage(p);
-    setProductHandle("");
-    window.history.pushState(null, "", p === "home" ? "/" : `/${p}`);
+    triggerCurtainNav(() => {
+      setPage(p);
+      setProductHandle("");
+      window.history.pushState(null, "", p === "home" ? "/" : `/${p}`);
+    });
   }
 
-  // Handle browser back/forward
+  // Handle browser back/forward — use curtain too
   useEffect(() => {
     function onPopState() {
       const parsed = parsePath();
-      setPage(parsed.page);
-      setProductHandle(parsed.productHandle);
+      triggerCurtainNav(() => {
+        setPage(parsed.page);
+        setProductHandle(parsed.productHandle);
+      });
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [triggerCurtainNav]);
 
   // Scroll to top on every page change
   useEffect(() => {
@@ -274,10 +298,10 @@ function AppContent() {
       <AnimatePresence mode="wait">
         <motion.div
           key={isProductPage ? `product-${productHandle}` : page}
-          initial={{ opacity: 1, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 1, y: -4 }}
-          transition={{ duration: 0.45, ease: "easeInOut" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.28, ease: "easeInOut" }}
         >
           {isProductPage ? (
             <Suspense fallback={<div style={{ minHeight: "80vh", background: "#faf8f5" }} />}>
@@ -373,6 +397,22 @@ function AppContent() {
       </AnimatePresence>
 
       {page === "home" && <LoadingScreen ready={heroReady && !loading} />}
+
+      {/* Page transition curtain — covers the screen during every navigation */}
+      <AnimatePresence>
+        {curtainActive && (
+          <motion.div
+            key="page-curtain"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            className="fixed inset-0 pointer-events-none"
+            style={{ backgroundColor: "#faf8f5", zIndex: 198 }}
+          />
+        )}
+      </AnimatePresence>
+
       <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
 
       <WhatsAppButton />
