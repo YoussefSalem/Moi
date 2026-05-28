@@ -92,9 +92,9 @@ export function ProductColorSection({
           />
         </motion.div>
 
-        {/* Color cards grid — mobile: 2 columns; desktop: flex-wrap */}
+        {/* Color cards grid — mobile: 2 columns; desktop: 3 columns */}
         <div
-          className="grid grid-cols-2 md:flex md:flex-wrap md:justify-center md:items-stretch gap-x-4 gap-y-6 md:gap-8"
+          className="grid grid-cols-2 md:grid-cols-3 md:justify-items-center gap-x-4 gap-y-6 md:gap-8"
         >
           {colors.map((c, i) => {
             const img = colorImages[c.name] ?? product.productShot;
@@ -106,11 +106,15 @@ export function ProductColorSection({
             const handle = `${product.slug}-${slugify(c.name)}`;
             const isLast = i === colors.length - 1;
             const isOdd = colors.length % 2 === 1;
-
             const lastOdd = isLast && isOdd;
 
+            const remainder = colors.length % 3;
+            const lastRowStart = remainder > 0 ? colors.length - remainder : -1;
+            const isLastRow = remainder > 0 && i >= lastRowStart;
+            const colStart = isLastRow ? i - lastRowStart + 2 : undefined;
+
             return (
-              <div key={handle} className={`w-full md:w-auto md:flex md:flex-col ${lastOdd ? "col-span-2 flex justify-center" : ""}`}>
+              <div key={handle} className={`w-full ${lastOdd ? "col-span-2 flex justify-center md:col-span-1" : ""} ${colStart ? `md:col-start-${colStart}` : ""}`}>
                 <ColorCard
                   productName={sectionTitle}
                   colorName={c.name}
