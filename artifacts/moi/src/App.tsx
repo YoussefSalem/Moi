@@ -121,20 +121,22 @@ function AppContent() {
   const [curtainActive, setCurtainActive] = useState(false);
   const curtainTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Duration in ms for the curtain to fully cover the screen before the page switches
-  const CURTAIN_IN = 220;
-  // Duration in ms the curtain stays visible after the new page mounts before fading out
-  const CURTAIN_HOLD = 60;
+  // Duration in ms the curtain stays visible after nav fires (give new page time to mount)
+  const CURTAIN_HOLD = 120;
 
   const triggerCurtainNav = useCallback((doNav: () => void) => {
     if (curtainTimer.current) clearTimeout(curtainTimer.current);
+    // Curtain snaps opaque immediately — no fade-in delay
     setCurtainActive(true);
-    curtainTimer.current = setTimeout(() => {
-      doNav();
-      curtainTimer.current = setTimeout(() => {
-        setCurtainActive(false);
-      }, CURTAIN_HOLD);
-    }, CURTAIN_IN);
+    // Give React one microtask tick to flush the curtain to the DOM, then navigate
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        doNav();
+        curtainTimer.current = setTimeout(() => {
+          setCurtainActive(false);
+        }, CURTAIN_HOLD);
+      });
+    });
   }, []);
 
   function navigateToProduct(handle: string) {
@@ -398,15 +400,14 @@ function AppContent() {
 
       {page === "home" && <LoadingScreen ready={heroReady && !loading} />}
 
-      {/* Page transition curtain — covers the screen during every navigation */}
+      {/* Page transition curtain — snaps opaque instantly, fades out after new page mounts */}
       <AnimatePresence>
         {curtainActive && (
           <motion.div
             key="page-curtain"
-            initial={{ opacity: 0 }}
+            initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22, ease: "easeInOut" }}
+            exit={{ opacity: 0, transition: { duration: 0.35, ease: "easeOut" } }}
             className="fixed inset-0 pointer-events-none"
             style={{ backgroundColor: "#faf8f5", zIndex: 198 }}
           />
