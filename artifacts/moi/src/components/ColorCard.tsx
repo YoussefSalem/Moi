@@ -217,8 +217,8 @@ export function ColorCard({
 
       {/* Info */}
       <div className="flex flex-col gap-2.5 pt-5 md:pt-6 pb-2 px-1 md:px-0 pr-14 md:pr-0">
-        {/* Color label + swatch + urgency */}
-        <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+        {/* Color name + badge */}
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             {swatchColor && (
               <span
@@ -244,58 +244,58 @@ export function ColorCard({
               {colorName}
             </span>
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-start md:justify-end">
-            {productName === "MOI WAVVY" && colorName === "Light Blue" && (
-              <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm"
-                style={{
-                  backgroundColor: "rgba(200, 50, 50, 0.08)",
-                  border: "1px solid rgba(200, 50, 50, 0.18)",
-                }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#c83232" }} />
-                <span
-                  style={{
-                    fontFamily: "'Montserrat', sans-serif",
-                    fontSize: "clamp(0.5rem, 1.4vw, 0.6rem)",
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    color: "#c83232",
-                    fontWeight: 500,
-                  }}
-                >
-                  Selling Fast
-                </span>
-              </span>
-            )}
+          {productName === "MOI WAVVY" && colorName === "Light Blue" && (
             <span
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm flex-shrink-0"
               style={{
-                fontFamily: "'Montserrat', sans-serif",
-                fontSize: "clamp(0.58rem, 1.6vw, 0.68rem)",
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "#c83232",
-                fontWeight: 500,
+                backgroundColor: "rgba(200, 50, 50, 0.08)",
+                border: "1px solid rgba(200, 50, 50, 0.18)",
               }}
             >
-              Only {getStockCount(handle.split("-")[0] ?? "", colorName)} left
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#c83232" }} />
+              <span
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "clamp(0.5rem, 1.4vw, 0.6rem)",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "#c83232",
+                  fontWeight: 500,
+                }}
+              >
+                Selling Fast
+              </span>
             </span>
-          </div>
+          )}
         </div>
 
-        {/* Product name */}
-        <h3
-          style={{
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
-            fontSize: "clamp(1.05rem, 3vw, 1.3rem)",
-            fontWeight: 300,
-            color: "#1e1814",
-            letterSpacing: "0.04em",
-            lineHeight: 1.15,
-          }}
-        >
-          {productName}
-        </h3>
+        {/* Product name + stock count */}
+        <div className="flex items-center justify-between gap-2">
+          <h3
+            style={{
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontSize: "clamp(1.05rem, 3vw, 1.3rem)",
+              fontWeight: 300,
+              color: "#1e1814",
+              letterSpacing: "0.04em",
+              lineHeight: 1.15,
+            }}
+          >
+            {productName}
+          </h3>
+          <span
+            style={{
+              fontFamily: "'Montserrat', sans-serif",
+              fontSize: "clamp(0.58rem, 1.6vw, 0.68rem)",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "#c83232",
+              fontWeight: 500,
+            }}
+          >
+            Only {getStockCount(handle.split("-")[0] ?? "", colorName)} left
+          </span>
+        </div>
 
         {/* Price */}
         <p
