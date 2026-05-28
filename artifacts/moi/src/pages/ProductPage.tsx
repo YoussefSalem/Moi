@@ -465,14 +465,14 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                           style={{
                             minWidth: 88,
                             padding: "9px 14px",
-                            fontSize: 10,
+                            fontSize: 11,
                             letterSpacing: "0.22em",
                             textTransform: "uppercase",
                             fontFamily: "'Montserrat', sans-serif",
                             fontWeight: 500,
-                            color: !available ? "rgba(30,24,20,0.36)" : isSelected ? "#1e1814" : "#7a6e64",
-                            borderColor: isSelected ? "#1e1814" : "rgba(30,24,20,0.16)",
-                            backgroundColor: isSelected ? "rgba(30,24,20,0.05)" : "rgba(250,248,245,0.8)",
+                            color: !available ? "rgba(30,24,20,0.36)" : isSelected ? "#1e1814" : "#5a4e44",
+                            borderColor: isSelected ? "#1e1814" : "rgba(30,24,20,0.28)",
+                            backgroundColor: isSelected ? "rgba(30,24,20,0.08)" : "rgba(250,248,245,0.8)",
                           }}
                         >
                           {!available && (
@@ -488,10 +488,10 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     })}
                   </div>
                   {selectedSize && (
-                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, color: "rgba(120,108,96,0.5)", lineHeight: 1.7 }}>
+                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "11.5px", color: "rgba(90,78,68,0.78)", lineHeight: 1.7 }}>
                       {selectedSize.toLowerCase().includes("s") || selectedSize.toLowerCase().includes("m")
-                        ? <><span style={{ color: "rgba(30,24,20,0.65)" }}>{selectedSize}</span> — a closer fit. Best for heights up to 1.65 m.</>
-                        : <><span style={{ color: "rgba(30,24,20,0.65)" }}>{selectedSize}</span> — a relaxed fit. Best for heights 1.65 m and above.</>
+                        ? <><span style={{ color: "rgba(30,24,20,0.8)" }}>{selectedSize}</span> — a closer fit. Best for heights up to 1.65 m.</>
+                        : <><span style={{ color: "rgba(30,24,20,0.8)" }}>{selectedSize}</span> — a relaxed fit. Best for heights 1.65 m and above.</>
                       }
                     </p>
                   )}
