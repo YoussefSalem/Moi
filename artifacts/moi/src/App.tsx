@@ -37,14 +37,16 @@ const IS_ADMIN = window.location.pathname.startsWith("/admin");
 type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product";
 const POLICY_PAGES: PageType[] = ["privacy", "refund", "return", "delivery"];
 
-function parseHash(): { page: PageType; productHandle: string } {
+function parsePath(): { page: PageType; productHandle: string } {
   if (typeof window === "undefined") return { page: "home", productHandle: "" };
-  const hash = window.location.hash.slice(1);
-  if (hash.startsWith("products/")) {
-    return { page: "product", productHandle: hash.slice("products/".length) };
+  const pathname = window.location.pathname;
+  if (pathname.startsWith("/products/")) {
+    return { page: "product", productHandle: pathname.slice("/products/".length) };
   }
-  if (hash === "accessories" || hash === "ambassador") return { page: hash, productHandle: "" };
-  if (POLICY_PAGES.includes(hash as PageType)) return { page: hash as PageType, productHandle: "" };
+  if (pathname === "/accessories") return { page: "accessories", productHandle: "" };
+  if (pathname === "/ambassador") return { page: "ambassador", productHandle: "" };
+  const slug = pathname.slice(1) as PageType;
+  if (POLICY_PAGES.includes(slug)) return { page: slug, productHandle: "" };
   return { page: "home", productHandle: "" };
 }
 
@@ -88,30 +90,26 @@ function AppContent() {
     });
   }
 
-  const [page, setPage] = useState<PageType>(() => parseHash().page);
-  const [productHandle, setProductHandle] = useState<string>(() => parseHash().productHandle);
+  const [page, setPage] = useState<PageType>(() => parsePath().page);
+  const [productHandle, setProductHandle] = useState<string>(() => parsePath().productHandle);
 
   function navigateToProduct(handle: string) {
     setPage("product");
     setProductHandle(handle);
-    window.history.pushState(null, "", window.location.pathname + `#products/${handle}`);
+    window.history.pushState(null, "", `/products/${handle}`);
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
   }
 
   function navigateTo(p: PageType) {
     setPage(p);
     setProductHandle("");
-    if (p === "home") {
-      window.history.pushState(null, "", window.location.pathname);
-    } else {
-      window.history.pushState(null, "", window.location.pathname + `#${p}`);
-    }
+    window.history.pushState(null, "", p === "home" ? "/" : `/${p}`);
   }
 
   // Handle browser back/forward
   useEffect(() => {
     function onPopState() {
-      const parsed = parseHash();
+      const parsed = parsePath();
       setPage(parsed.page);
       setProductHandle(parsed.productHandle);
     }
@@ -131,16 +129,16 @@ function AppContent() {
       .then((data: unknown) => {
         const d = data as { recovered?: boolean; email?: string; cartId?: string; lineItems?: Array<{ title: string; variant?: string; quantity: number; price: string; imageUrl?: string; variantId?: string }>; totalAmount?: string };
         if (d.recovered) {
-          window.history.replaceState(null, "", window.location.pathname);
+          window.history.replaceState(null, "", "/");
           return;
         }
         if (d.lineItems && d.lineItems.length > 0 && cart) {
           cart.replaceRecoveredCart(d.lineItems, d.email ?? undefined);
         }
-        window.history.replaceState(null, "", window.location.pathname);
+        window.history.replaceState(null, "", "/");
       })
       .catch(() => {
-        window.history.replaceState(null, "", window.location.pathname);
+        window.history.replaceState(null, "", "/");
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -151,7 +149,7 @@ function AppContent() {
   useEffect(() => {
     if (page === "home") {
       const hash = window.location.hash.slice(1);
-      if (!hash || hash.startsWith("products/")) return;
+      if (!hash) return;
       const el = document.getElementById(hash);
       if (el) {
         setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
@@ -182,8 +180,8 @@ function AppContent() {
       <nav aria-label="Breadcrumb" className="sr-only">
         <ol>
           <li><a href="/">Home</a></li>
-          {page === "accessories" && <li><a href="#accessories">Accessories</a></li>}
-          {page === "ambassador" && <li><a href="#ambassador">Ambassador</a></li>}
+          {page === "accessories" && <li><a href="/accessories">Accessories</a></li>}
+          {page === "ambassador" && <li><a href="/ambassador">Ambassador</a></li>}
           {isProductPage && <li><span>{productHandle}</span></li>}
         </ol>
       </nav>

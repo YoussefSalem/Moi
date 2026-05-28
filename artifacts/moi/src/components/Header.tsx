@@ -156,7 +156,7 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
                       transition={{ delay: 0.1 + i * 0.07 }}
                     >
                       <a
-                        href={link === "Accessories" ? "#accessories" : link === "Become an Ambassador" ? "#ambassador" : "/"}
+                        href={link === "Accessories" ? "/accessories" : link === "Become an Ambassador" ? "/ambassador" : "/"}
                         className="block text-2xl font-light tracking-wide hover:opacity-50 transition-opacity"
                         style={{ color: "#1e1814", letterSpacing: "0.08em" }}
                         onClick={(e) => {
