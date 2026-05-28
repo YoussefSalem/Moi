@@ -18,12 +18,17 @@ import {
   trackRepeatedView,
 } from "@/lib/analytics";
 
+function slugify(str: string): string {
+  return str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+}
+
 interface ProductCardProps {
   product: ProductConfig;
   onLookView: (product: ProductConfig) => void;
+  onNavigateToProduct?: (handle: string) => void;
 }
 
-export function ProductCard({ product, onLookView }: ProductCardProps) {
+export function ProductCard({ product, onLookView, onNavigateToProduct }: ProductCardProps) {
   const { addToCart } = useCart();
   const { customer } = useCustomer();
   const [addedFeedback, setAddedFeedback] = useState(false);
@@ -710,6 +715,29 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                 {product.name}
               </motion.h2>
 
+              {/* View product page link */}
+              {onNavigateToProduct && (
+                <motion.button
+                  type="button"
+                  variants={itemVariants}
+                  onClick={() => onNavigateToProduct(`${product.slug}-${slugify(selectedColor)}`)}
+                  className="flex items-center gap-1.5 mb-3 transition-opacity duration-200 hover:opacity-55"
+                  style={{
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: 9,
+                    letterSpacing: "0.32em",
+                    textTransform: "uppercase",
+                    color: "#7a6e64",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  View Details →
+                </motion.button>
+              )}
+
               {/* Description */}
               <motion.p
                 variants={itemVariants}
@@ -741,11 +769,15 @@ export function ProductCard({ product, onLookView }: ProductCardProps) {
                       <button
                         key={option.name}
                         type="button"
-                        aria-label={option.name}
+                        aria-label={`View ${option.name}`}
                         aria-pressed={selectedColor === option.name}
                         onClick={() => {
-                          setSelectedColor(option.name);
-                          trackVariantChange(product.variantId ?? "", option.name);
+                          if (onNavigateToProduct) {
+                            onNavigateToProduct(`${product.slug}-${slugify(option.name)}`);
+                          } else {
+                            setSelectedColor(option.name);
+                            trackVariantChange(product.variantId ?? "", option.name);
+                          }
                         }}
                         className="relative"
                         style={{ width: 30, height: 30, flexShrink: 0 }}

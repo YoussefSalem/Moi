@@ -8,7 +8,6 @@ import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
 import { ProductCard } from "@/components/ProductCard";
-import { ProductDivider } from "@/components/ProductDivider";
 import { EditorialStrip } from "@/components/EditorialStrip";
 import { LookView } from "@/components/LookView";
 import { CartProvider, useCart } from "@/context/CartContext";
@@ -31,8 +30,27 @@ const CustomerAuthModal = lazy(() => import("@/components/CustomerAuthModal").th
 const AccountPage = lazy(() => import("@/components/AccountPage").then(m => ({ default: m.AccountPage })));
 const SearchDrawer = lazy(() => import("@/components/SearchDrawer").then(m => ({ default: m.SearchDrawer })));
 const AdminPage = lazy(() => import("@/pages/AdminPage").then(m => ({ default: m.AdminPage })));
+const ProductPage = lazy(() => import("@/pages/ProductPage").then(m => ({ default: m.ProductPage })));
 
 const IS_ADMIN = window.location.pathname.startsWith("/admin");
+
+type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product";
+const POLICY_PAGES: PageType[] = ["privacy", "refund", "return", "delivery"];
+
+function parseHash(): { page: PageType; productHandle: string } {
+  if (typeof window === "undefined") return { page: "home", productHandle: "" };
+  const hash = window.location.hash.slice(1);
+  if (hash.startsWith("products/")) {
+    return { page: "product", productHandle: hash.slice("products/".length) };
+  }
+  if (hash === "accessories" || hash === "ambassador") return { page: hash, productHandle: "" };
+  if (POLICY_PAGES.includes(hash as PageType)) return { page: hash as PageType, productHandle: "" };
+  return { page: "home", productHandle: "" };
+}
+
+function slugify(str: string): string {
+  return str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+}
 
 function ProductSkeleton() {
   return (
@@ -64,18 +82,8 @@ function ProductSkeleton() {
 
 const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
 
-
 function AppContent() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
-  function getInitialPage(): "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" {
-    if (typeof window === "undefined") return "home";
-    const hash = window.location.hash.slice(1);
-    if (hash === "accessories" || hash === "ambassador") return hash;
-    if (["privacy", "refund", "return", "delivery"].includes(hash)) return hash as "privacy" | "refund" | "return" | "delivery";
-    return "home";
-  }
-
-  const [page, setPage] = useState<"home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery">(getInitialPage);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [heroReady, setHeroReady] = useState(false);
@@ -83,6 +91,37 @@ function AppContent() {
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
   useRestockChecker();
   const cart = useCart();
+
+  const [page, setPage] = useState<PageType>(() => parseHash().page);
+  const [productHandle, setProductHandle] = useState<string>(() => parseHash().productHandle);
+
+  function navigateToProduct(handle: string) {
+    setPage("product");
+    setProductHandle(handle);
+    window.history.pushState(null, "", window.location.pathname + `#products/${handle}`);
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  }
+
+  function navigateTo(p: PageType) {
+    setPage(p);
+    setProductHandle("");
+    if (p === "home") {
+      window.history.pushState(null, "", window.location.pathname);
+    } else {
+      window.history.pushState(null, "", window.location.pathname + `#${p}`);
+    }
+  }
+
+  // Handle browser back/forward
+  useEffect(() => {
+    function onPopState() {
+      const parsed = parseHash();
+      setPage(parsed.page);
+      setProductHandle(parsed.productHandle);
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   // Handle abandoned-cart recovery links (?recover-cart=TOKEN)
   useEffect(() => {
@@ -116,25 +155,13 @@ function AppContent() {
   useEffect(() => {
     if (page === "home") {
       const hash = window.location.hash.slice(1);
-      if (!hash) return;
+      if (!hash || hash.startsWith("products/")) return;
       const el = document.getElementById(hash);
       if (el) {
         setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
       }
     }
   }, [page, loading, product1.slug, product2.slug]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (page === "home") {
-      if (window.location.hash) window.history.replaceState(null, "", window.location.pathname);
-    } else {
-      const currentHash = window.location.hash.slice(1);
-      if (currentHash !== page) {
-        window.location.hash = page;
-      }
-    }
-  }, [page]);
 
   // Shopify Analytics: page_viewed fires on mount and on every in-app navigation
   useEffect(() => {
@@ -148,7 +175,10 @@ function AppContent() {
         page_path: window.location.pathname + window.location.hash,
       });
     }
-  }, [page]);
+  }, [page, productHandle]);
+
+  const isProductPage = page === "product" && Boolean(productHandle);
+  const isDark = page === "accessories" || page === "ambassador";
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "hsl(30 15% 95%)" }}>
@@ -158,11 +188,17 @@ function AppContent() {
           <li><a href="/">Home</a></li>
           {page === "accessories" && <li><a href="#accessories">Accessories</a></li>}
           {page === "ambassador" && <li><a href="#ambassador">Ambassador</a></li>}
+          {isProductPage && <li><span>{productHandle}</span></li>}
         </ol>
       </nav>
-      <Header onNavigate={setPage} onSearch={() => setSearchOpen(true)} dark={page === "accessories" || page === "ambassador"} />
+      <Header onNavigate={(p) => navigateTo(p as PageType)} onSearch={() => setSearchOpen(true)} dark={isDark} />
 
-      {page === "home" ? (
+      {isProductPage ? (
+        <Suspense fallback={<div style={{ minHeight: "80vh", background: "#faf8f5" }} />}>
+          <ProductPage handle={productHandle} onBack={() => navigateTo("home")} />
+          <Footer onNavigate={(p) => navigateTo(p as PageType)} />
+        </Suspense>
+      ) : page === "home" ? (
         <main>
           <HeroVideo onReady={handleHeroReady} />
 
@@ -194,6 +230,7 @@ function AppContent() {
                 <ProductCard
                   product={product1}
                   onLookView={setLookProduct}
+                  onNavigateToProduct={navigateToProduct}
                 />
               )}
             </div>
@@ -206,6 +243,7 @@ function AppContent() {
               <ProductCard
                 product={product2}
                 onLookView={setLookProduct}
+                onNavigateToProduct={navigateToProduct}
               />
             </div>
           )}
@@ -232,25 +270,25 @@ function AppContent() {
         <div>
           <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
             <AccessoriesPage onLookView={setLookProduct} />
-            <Footer onNavigate={setPage} />
+            <Footer onNavigate={(p) => navigateTo(p as PageType)} />
           </Suspense>
         </div>
       ) : page === "ambassador" ? (
         <div>
           <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
             <AmbassadorPage />
-            <Footer onNavigate={setPage} />
+            <Footer onNavigate={(p) => navigateTo(p as PageType)} />
           </Suspense>
         </div>
       ) : (
         <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
-          <PolicyPage policy={page} onClose={() => setPage("home")} />
+          <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home")} />
         </Suspense>
       )}
 
       {page === "home" && (
         <Suspense fallback={null}>
-          <Footer onNavigate={setPage} />
+          <Footer onNavigate={(p) => navigateTo(p as PageType)} />
         </Suspense>
       )}
 
@@ -274,7 +312,7 @@ function AppContent() {
             setLookProduct(product);
             setSearchOpen(false);
             setSearchQuery("");
-            setPage("home");
+            navigateTo("home");
           }}
         />
       </Suspense>

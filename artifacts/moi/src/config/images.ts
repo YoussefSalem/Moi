@@ -450,7 +450,7 @@ export const IMAGES = {
    * SWAP ME: replace productShot with the Taupe CDN a15 URL when it becomes available.
    */
   product2: {
-    slug: "moi-versa",
+    slug: "moi-versa-top",
     productShot: WHITE_MAIN,
     filmstrip: [FS_A3, FS_A4, FS_A5, FS_A6, FS_A7, FS_A8, FS_A1, FS_A2],
     look: {
