@@ -32,36 +32,9 @@ for (const cfg of Object.values(IMAGES)) {
 }
 
 // FIRST50 discount banner — placed at checkout button area for high conversion visibility
-function DiscountBanner({
-  applyDiscount,
-  openCheckout,
-}: {
-  applyDiscount: (code: string) => Promise<{ applicable: boolean; code: string; discountAmount: number }>;
-  openCheckout: (email?: string) => void;
-}) {
+function DiscountBanner() {
   const [copied, setCopied] = useState(false);
-  const [applying, setApplying] = useState(false);
   const CODE = "FIRST50";
-
-  const handleApply = async () => {
-    setApplying(true);
-    try {
-      const result = await applyDiscount(CODE);
-      if (result.applicable && result.discountAmount > 0) {
-        toast.success(`Discount "${CODE}" applied — ${result.discountAmount.toFixed(0)} EGP off`, { duration: 3000 });
-        openCheckout();
-      } else if (result.applicable) {
-        toast.info(`Discount "${CODE}" applied`, { duration: 2000 });
-        openCheckout();
-      } else {
-        toast.error("This discount doesn't apply to your current cart.");
-      }
-    } catch {
-      toast.error("Could not apply discount. Please try again.");
-    } finally {
-      setApplying(false);
-    }
-  };
 
   const handleCopy = async () => {
     try {
@@ -76,55 +49,43 @@ function DiscountBanner({
 
   return (
     <div
-      className="mx-4 mb-3 rounded"
+      className="mx-4 mb-3 rounded flex items-center gap-3 px-3 py-2.5"
       style={{
         backgroundColor: "rgba(250,248,245,0.95)",
         border: "1px solid rgba(30,24,20,0.08)",
       }}
     >
-      {/* Banner text */}
-      <div className="px-4 pt-4 pb-2 text-center">
-        <p
-          style={{
-            fontFamily: "'Cormorant Garamond', serif",
-            fontSize: 17,
-            fontWeight: 600,
-            color: "#1e1814",
-            lineHeight: 1.35,
-          }}
-        >
-          <span role="img" aria-label="celebration" style={{ fontSize: 15, marginRight: 4 }}>
-            &#127881;
-          </span>
-          Your 10% discount is ready — {CODE} applied at checkout
-        </p>
-      </div>
+      {/* Compact text */}
+      <p
+        className="flex-1 min-w-0"
+        style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontSize: 15,
+          fontWeight: 600,
+          color: "#1e1814",
+          lineHeight: 1.35,
+        }}
+      >
+        <span role="img" aria-label="celebration" style={{ fontSize: 14, marginRight: 4 }}>
+          &#127881;
+        </span>
+        10% off — use <span style={{ fontWeight: 700 }}>{CODE}</span>
+      </p>
 
-      {/* Buttons */}
-      <div className="flex items-center gap-2 px-4 pb-4">
-        <button
-          type="button"
-          onClick={handleApply}
-          disabled={applying}
-          className="flex-1 py-3 text-[10px] tracking-[0.28em] uppercase font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50 text-center rounded"
-          style={{ backgroundColor: "#1e1814" }}
-        >
-          {applying ? "Applying…" : "Apply Discount Automatically"}
-        </button>
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="py-3 px-3 text-[10px] tracking-[0.2em] uppercase font-medium transition-opacity hover:opacity-70 text-center rounded flex items-center gap-1.5"
-          style={{
-            backgroundColor: "transparent",
-            border: "1px solid rgba(30,24,20,0.15)",
-            color: "#1e1814",
-          }}
-        >
-          {copied ? <Check size={13} /> : <Copy size={13} />}
-          {copied ? "Copied" : "Copy Code"}
-        </button>
-      </div>
+      {/* Copy button */}
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="shrink-0 py-2 px-2.5 text-[9px] tracking-[0.22em] uppercase font-medium transition-opacity hover:opacity-70 text-center rounded flex items-center gap-1"
+        style={{
+          backgroundColor: "transparent",
+          border: "1px solid rgba(30,24,20,0.15)",
+          color: "#1e1814",
+        }}
+      >
+        {copied ? <Check size={12} /> : <Copy size={12} />}
+        {copied ? "Copied" : "Copy"}
+      </button>
     </div>
   );
 }
@@ -499,10 +460,7 @@ export function CartDrawer() {
                   </p>
                 </div>
                 {/* Conversion Banner — FIRST50 */}
-                <DiscountBanner
-                  applyDiscount={applyDiscount}
-                  openCheckout={openCheckout}
-                />
+                <DiscountBanner />
                 <button
                   type="button"
                   onClick={() => {
