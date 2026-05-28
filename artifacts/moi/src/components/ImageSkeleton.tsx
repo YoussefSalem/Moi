@@ -14,10 +14,17 @@ export function ImageSkeleton({
   borderRadius,
 }: ImageSkeletonProps) {
   const bg = {
-    light: "rgba(30,24,20,0.06)",
-    dark: "rgba(255,255,255,0.06)",
-    warm: "rgba(30,24,20,0.06)",
-    card: "rgba(30,24,20,0.06)",
+    light: "rgba(30,24,20,0.22)",
+    dark: "rgba(255,255,255,0.10)",
+    warm: "rgba(30,24,20,0.18)",
+    card: "rgba(30,24,20,0.22)",
+  }[variant];
+
+  const shimmer = {
+    light: "rgba(255,255,255,0.65)",
+    dark: "rgba(255,255,255,0.22)",
+    warm: "rgba(255,255,255,0.55)",
+    card: "rgba(255,255,255,0.65)",
   }[variant];
 
   return (
@@ -32,8 +39,7 @@ export function ImageSkeleton({
       <div
         className="absolute inset-0"
         style={{
-          background:
-            "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%)",
+          background: `linear-gradient(110deg, transparent 30%, ${shimmer} 50%, transparent 70%)`,
           animation: "moi-shimmer 1.6s ease-in-out infinite",
         }}
       />
