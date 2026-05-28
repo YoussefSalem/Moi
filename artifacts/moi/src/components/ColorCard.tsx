@@ -201,21 +201,6 @@ export function ColorCard({
         </div>
       )}
 
-      {/* Swipe hint — mobile only, shown below dots when gallery has multiple */}
-      {allImages.length > 1 && (
-        <p
-          className="md:hidden text-center mt-1"
-          style={{
-            fontFamily: "'Montserrat', sans-serif",
-            fontSize: 8,
-            letterSpacing: "0.32em",
-            textTransform: "uppercase",
-            color: "rgba(30,24,20,0.38)",
-          }}
-        >
-          swipe to browse
-        </p>
-      )}
 
       {/* Info */}
       <div className="flex flex-col items-center flex-grow pt-3 md:pt-4 pb-4 md:pb-5 px-1 md:px-0 gap-y-2 md:gap-y-2.5">
