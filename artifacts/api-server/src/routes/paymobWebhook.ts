@@ -12,6 +12,7 @@ import { createShopifyDirectOrder, recordDiscountCodeUse, type OrderLine, type C
 import { sendEmail, buildOrderConfirmationEmail } from "../lib/email";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
+import { parseEGP } from "@workspace/utils";
 
 const router: IRouter = Router();
 
@@ -155,7 +156,7 @@ router.post("/webhooks/paymob", async (req, res) => {
 
     // Send branded order confirmation email to customer (fire-and-forget)
     if (customer.email) {
-      const shippingPrice = parseFloat(amount) >= 2000 ? "0.00" : "50.00";
+      const shippingPrice = parseEGP(amount) >= 2000 ? "0.00" : "50.00";
       const { html, text } = buildOrderConfirmationEmail({
         orderNumber: shopifyOrderNumber,
         customerName: customer.firstName,

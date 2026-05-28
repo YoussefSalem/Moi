@@ -17,6 +17,7 @@ import {
   type OrderAttribution,
 } from "../lib/shopifyOrder";
 import { sendEmail, buildCODOrderEmail } from "../lib/email";
+import { parseEGP } from "@workspace/utils";
 
 const router: IRouter = Router();
 
@@ -240,7 +241,7 @@ router.post("/orders/create", async (req, res) => {
 
     // Branded order confirmation email (fire-and-forget)
     if (customer.email) {
-      const shippingPrice = result.shippingAmount ?? (parseFloat(total) >= 2000 ? "0.00" : "50.00");
+      const shippingPrice = result.shippingAmount ?? (parseEGP(total) >= 2000 ? "0.00" : "50.00");
       const { html, text } = buildCODOrderEmail({
         orderNumber,
         customerName: customer.firstName,
@@ -279,7 +280,7 @@ router.post("/orders/create", async (req, res) => {
       address: customer.address,
       city: customer.city,
       orderReference: `#${orderNumber}`,
-      codAmount: parseFloat(total),
+      codAmount: parseEGP(total),
     });
 
     if (trackingNumber) {

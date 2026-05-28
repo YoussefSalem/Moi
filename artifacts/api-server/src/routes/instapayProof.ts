@@ -7,6 +7,7 @@ import { objectStorageClient } from "../lib/objectStorage";
 import { addShopifyOrderNote, tagShopifyOrder, sendWhatsApp, getShopifyAdminToken } from "../lib/integrations";
 import { sendEmail, buildInstapayPendingEmail } from "../lib/email";
 import { logger } from "../lib/logger";
+import { parseEGP } from "@workspace/utils";
 
 const router: IRouter = Router();
 
@@ -184,7 +185,7 @@ router.post(
 
     // 5. Branded pending-verification email to customer (fire-and-forget)
     if (customerEmail) {
-      const shippingPrice = draftShippingAmount ?? (parseFloat(amountDisplay) >= 2000 ? "0.00" : "50.00");
+      const shippingPrice = draftShippingAmount ?? (parseEGP(amountDisplay) >= 2000 ? "0.00" : "50.00");
       const { html, text } = buildInstapayPendingEmail({
         orderNumber: draftOrderId,
         customerName: customerName,
@@ -237,8 +238,8 @@ router.post(
 
     // 8. WhatsApp to customer
     if (customerPhone) {
-      const shippingForWA = draftShippingAmount ?? (parseFloat(amountDisplay) >= 2000 ? "0.00" : "50.00");
-      const shippingNum = parseFloat(shippingForWA);
+      const shippingForWA = draftShippingAmount ?? (parseEGP(amountDisplay) >= 2000 ? "0.00" : "50.00");
+      const shippingNum = parseEGP(shippingForWA);
       const whatsappShippingNote = shippingNum === 0
         ? "Complimentary shipping"
         : `Includes ${shippingNum.toFixed(0)} EGP shipping`;

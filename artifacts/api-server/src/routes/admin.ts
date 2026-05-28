@@ -18,6 +18,7 @@ import { listDiscountCodeUses } from "@workspace/db";
 import { sendEmail, buildAbandonedCartEmail, buildInstapayConfirmedEmail, buildInstapayRejectedEmail } from "../lib/email";
 import { getSiteUrl } from "../lib/siteUrl";
 import { completeShopifyDraftOrder } from "../lib/shopifyOrder";
+import { parseEGP } from "@workspace/utils";
 
 const router: IRouter = Router();
 
@@ -291,7 +292,7 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
     );
   }
   if (customerEmail) {
-    const shippingPrice = parseFloat(proof.amount ?? "0") >= 2000 ? "0.00" : "50.00";
+    const shippingPrice = parseEGP(proof.amount ?? "0") >= 2000 ? "0.00" : "50.00";
     const { html, text } = buildInstapayConfirmedEmail({
       orderNumber: orderNumber!,
       customerName: proof.customerName ?? "",
@@ -809,7 +810,7 @@ router.post("/admin/abandoned-carts/send-test", requireAdminAuth, async (req, re
         { title: "Moi Wavvy", price: "1.690 EGP", quantity: 1, variant: "Beige", imageUrl: "https://buy-moi.com/images/beige.webp" },
         { title: "Moi Versa Top", price: "1.690 EGP", quantity: 1, variant: "White", imageUrl: "https://buy-moi.com/images/white.webp" },
       ];
-  const totalAmount = body.totalAmount ?? sampleItems.reduce((sum, i) => sum + parseFloat(i.price.replace(/[^0-9.]/g, "")) * i.quantity, 0).toFixed(3);
+  const totalAmount = body.totalAmount ?? sampleItems.reduce((sum, i) => sum + parseEGP(i.price) * i.quantity, 0).toFixed(3);
 
   try {
     const token = crypto.randomBytes(16).toString("hex");
