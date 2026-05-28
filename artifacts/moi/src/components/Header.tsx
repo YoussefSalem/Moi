@@ -8,9 +8,10 @@ interface HeaderProps {
   onNavigate?: (page: "home" | "accessories" | "ambassador") => void;
   onSearch?: () => void;
   dark?: boolean;
+  page?: string;
 }
 
-export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
+export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { itemCount, openCart } = useCart();
@@ -43,7 +44,11 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
         <div className="flex items-center justify-between px-6 md:px-12 h-16" style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "max(1.5rem, env(safe-area-inset-left))", paddingRight: "max(1.5rem, env(safe-area-inset-right))" }}>
           <button
             onClick={() => {
-              onNavigate?.("home");
+              if (page === "home") {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              } else {
+                onNavigate?.("home");
+              }
             }}
             className="absolute left-1/2 -translate-x-1/2 font-serif select-none transition-colors duration-500"
             style={{ color: iconColor, letterSpacing: "0.3em", fontSize: "1.75rem" }}

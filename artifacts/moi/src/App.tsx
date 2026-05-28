@@ -200,7 +200,7 @@ function AppContent() {
           {isProductPage && <li><span>{productHandle}</span></li>}
         </ol>
       </nav>
-      <Header onNavigate={(p) => navigateTo(p as PageType)} onSearch={() => setSearchOpen(true)} dark={isDark} />
+      <Header onNavigate={(p) => navigateTo(p as PageType)} onSearch={() => setSearchOpen(true)} dark={isDark} page={page} />
 
       <AnimatePresence mode="wait">
         <motion.div
