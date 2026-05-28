@@ -7,7 +7,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
-import { ProductCard } from "@/components/ProductCard";
+import { ProductColorSection } from "@/components/ProductColorSection";
 import { EditorialStrip } from "@/components/EditorialStrip";
 import { LookView } from "@/components/LookView";
 import { CartProvider, useCart } from "@/context/CartContext";
@@ -48,37 +48,10 @@ function parseHash(): { page: PageType; productHandle: string } {
   return { page: "home", productHandle: "" };
 }
 
-function slugify(str: string): string {
-  return str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-}
-
-function ProductSkeleton() {
-  return (
-    <section className="w-full py-16 md:py-24 overflow-hidden" style={{ background: "hsl(30 15% 95%)" }}>
-      <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-16 items-center">
-        <div className="flex flex-col gap-4">
-          <div className="h-5 w-36 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.08)" }} />
-          <div className="h-3 w-full rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.06)" }} />
-          <div className="h-3 w-4/5 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.06)" }} />
-        </div>
-        <div className="flex justify-center">
-          <div className="w-64 h-80 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.07)" }} />
-        </div>
-        <div className="flex flex-col gap-4 items-center">
-          <div className="h-3 w-28 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.07)" }} />
-          <div className="flex gap-3">
-            {[0,1,2,3].map((i) => <div key={i} className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.08)" }} />)}
-          </div>
-          <div className="flex gap-3 mt-2">
-            {[0,1].map((i) => <div key={i} className="w-20 h-10 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.07)" }} />)}
-          </div>
-          <div className="h-3 w-20 rounded animate-pulse mt-2" style={{ backgroundColor: "rgba(30,24,20,0.07)" }} />
-          <div className="w-48 h-12 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.1)" }} />
-        </div>
-      </div>
-    </section>
-  );
-}
+// Colours shown on the homepage for each product line.
+// product1 (moi-wavvy) → WAVVY line; product2 (moi-versa-top) → Versa Top line.
+const WAVVY_COLORS  = [{ name: "Light Blue" }, { name: "Navy" }, { name: "Mint" }];
+const VERSA_COLORS  = [{ name: "White" }, { name: "Cashmere" }, { name: "Beige" }, { name: "Yellow" }, { name: "Teal" }];
 
 const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
 
@@ -225,41 +198,27 @@ function AppContent() {
           </div>
 
           <div id="collection">
-            <div id={product1.slug}>
-              {loading ? <ProductSkeleton /> : (
-                <ProductCard
-                  product={product1}
-                  onLookView={setLookProduct}
-                  onNavigateToProduct={navigateToProduct}
-                />
-              )}
-            </div>
+            <ProductColorSection
+              id={product1.slug}
+              product={product1}
+              sectionTitle="MOI WAVVY"
+              sectionSubtitle="The ultimate throw-and-go. Light, breathable, and made for drifting."
+              colors={WAVVY_COLORS}
+              onNavigate={navigateToProduct}
+            />
           </div>
 
           <EditorialStrip />
 
-          {loading ? <ProductSkeleton /> : (
-            <div id={product2.slug}>
-              <ProductCard
-                product={product2}
-                onLookView={setLookProduct}
-                onNavigateToProduct={navigateToProduct}
-              />
-            </div>
-          )}
-
-          {/* Section end divider */}
-          <div className="w-full py-4 md:py-6 px-6 md:px-12">
-            <svg className="w-full" height="16" viewBox="0 0 1200 16" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M0 8 Q75 0 150 8 T300 8 T450 8 T600 8 T750 8 T900 8 T1050 8 T1200 8"
-                stroke="rgba(180,160,140,0.45)"
-                strokeWidth="1.5"
-                fill="none"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
+          <ProductColorSection
+            id={product2.slug}
+            product={product2}
+            sectionTitle="MOI VERSA TOP"
+            sectionSubtitle="Effortlessly versatile. A silhouette that moves with you, in every shade of summer."
+            colors={VERSA_COLORS}
+            onNavigate={navigateToProduct}
+            dark
+          />
 
           <Suspense fallback={null}>
             <TikTokSocialProof />
