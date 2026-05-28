@@ -100,7 +100,7 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
-                    className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full text-[9px] font-medium flex items-center justify-center"
+                    className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full text-[9px] font-medium flex items-center justify-center"
                     style={{
                       backgroundColor: iconColor,
                       color: iconColor === "#fff" ? "#1e1814" : "#fff",
