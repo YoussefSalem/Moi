@@ -252,7 +252,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-6xl mx-auto px-5 md:px-12 pt-6 md:pt-10 pb-24 flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-16 items-start"
+            className="max-w-6xl mx-auto px-5 md:px-12 pt-6 md:pt-10 pb-24 flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-16 items-center"
           >
             {/* ── IMAGE GALLERY ── */}
             <div className="w-full flex flex-col gap-4">
@@ -361,7 +361,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
             </div>
 
             {/* ── PRODUCT INFO ── */}
-            <div className="flex flex-col pt-0 md:pt-8 w-full">
+            <div className="flex flex-col pt-0 w-full">
               {/* Name */}
               <h1
                 style={{
