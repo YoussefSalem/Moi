@@ -92,60 +92,40 @@ export function ProductColorSection({
           />
         </motion.div>
 
-        {/* Color cards grid — mobile: 2 columns; desktop: 3 columns (2 when only 2 items) */}
-        {(() => {
-          const desktopCols = colors.length <= 2 ? 2 : 3;
-          const remainder = colors.length % desktopCols;
+        {/* Color cards — flex-wrap so last row always centers naturally */}
+        <div className="flex flex-wrap justify-center gap-x-10 gap-y-48 md:gap-x-14 md:gap-y-72">
+          {colors.map((c, i) => {
+            const img = colorImages[c.name] ?? product.productShot;
+            const galleries = (product.colorGalleries ?? {}) as unknown as Record<string, string[]>;
+            const gallery = galleries[c.name] ?? [];
+            const hoverImg = gallery[1] ?? gallery[0] ?? img;
+            const swatchKey = c.name.toLowerCase();
+            const swatch = colorSwatches[swatchKey];
+            const handle = `${product.slug}-${slugify(c.name)}`;
 
-          return (
-            <div
-              className="grid grid-cols-2 gap-x-10 gap-y-48 md:gap-x-28 md:gap-y-72"
-              style={{ gridTemplateColumns: `repeat(${desktopCols}, minmax(0, 1fr))` }}
-            >
-              {colors.map((c, i) => {
-                const img = colorImages[c.name] ?? product.productShot;
-                const galleries = (product.colorGalleries ?? {}) as unknown as Record<string, string[]>;
-                const gallery = galleries[c.name] ?? [];
-                const hoverImg = gallery[1] ?? gallery[0] ?? img;
-                const swatchKey = c.name.toLowerCase();
-                const swatch = colorSwatches[swatchKey];
-                const handle = `${product.slug}-${slugify(c.name)}`;
-                const isLast = i === colors.length - 1;
-                const isOdd = colors.length % 2 === 1;
-                const lastOdd = isLast && isOdd;
-
-                const lastRowStart = remainder > 0 ? colors.length - remainder : -1;
-                const isLastRow = remainder > 0 && i >= lastRowStart;
-                const colStartVal = isLastRow
-                  ? Math.floor((desktopCols - remainder) / 2) + (i - lastRowStart) + 1
-                  : undefined;
-
-                return (
-                  <div
-                    key={handle}
-                    className={`w-full h-full flex justify-center ${lastOdd ? "col-span-2 md:col-span-1" : ""}`}
-                    style={colStartVal ? { gridColumnStart: colStartVal } : undefined}
-                  >
-                    <ColorCard
-                      productName={sectionTitle}
-                      colorName={c.name}
-                      image={img}
-                      hoverImage={hoverImg !== img ? hoverImg : undefined}
-                      gallery={gallery.length > 0 ? gallery : undefined}
-                      price={product.price}
-                      handle={handle}
-                      swatchColor={swatch}
-                      onNavigate={onNavigate}
-                      onAddToCart={onAddToCart}
-                      index={i}
-                      className={lastOdd ? "max-w-[calc(50%-8px)] md:max-w-[360px]" : undefined}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
+            return (
+              <div
+                key={handle}
+                className="flex justify-center w-[calc(50%-20px)] md:w-[calc(33.33%-38px)]"
+                style={{ maxWidth: 360 }}
+              >
+                <ColorCard
+                  productName={sectionTitle}
+                  colorName={c.name}
+                  image={img}
+                  hoverImage={hoverImg !== img ? hoverImg : undefined}
+                  gallery={gallery.length > 0 ? gallery : undefined}
+                  price={product.price}
+                  handle={handle}
+                  swatchColor={swatch}
+                  onNavigate={onNavigate}
+                  onAddToCart={onAddToCart}
+                  index={i}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
