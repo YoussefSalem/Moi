@@ -16,7 +16,7 @@ interface ProductColorSectionProps {
   sectionSubtitle?: string;
   colors: ColorEntry[];
   onNavigate: (handle: string) => void;
-  onAddToCart?: (handle: string) => void;
+  onAddToCart?: (handle: string, currentImage: string) => void;
   id?: string;
   dark?: boolean;
 }
@@ -112,6 +112,7 @@ export function ProductColorSection({
                 colorName={c.name}
                 image={img}
                 hoverImage={hoverImg !== img ? hoverImg : undefined}
+                gallery={gallery.length > 0 ? gallery : undefined}
                 price={product.price}
                 handle={handle}
                 swatchColor={swatch}

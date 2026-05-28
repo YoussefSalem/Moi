@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 
 interface ColorCardProps {
@@ -6,11 +6,12 @@ interface ColorCardProps {
   colorName: string;
   image: string;
   hoverImage?: string;
+  gallery?: string[];
   price: string;
   handle: string;
   swatchColor?: string;
   onNavigate: (handle: string) => void;
-  onAddToCart?: (handle: string) => void;
+  onAddToCart?: (handle: string, currentImage: string) => void;
   index?: number;
 }
 
@@ -19,6 +20,7 @@ export function ColorCard({
   colorName,
   image,
   hoverImage,
+  gallery,
   price,
   handle,
   swatchColor,
@@ -29,6 +31,28 @@ export function ColorCard({
   const [hovered, setHovered] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [hoverImgLoaded, setHoverImgLoaded] = useState(false);
+  const [mobileIndex, setMobileIndex] = useState(0);
+
+  const dragStartXRef = useRef<number | null>(null);
+  const dragLastXRef = useRef<number | null>(null);
+
+  // Full image list for mobile swipe — gallery already starts with the main image
+  const allImages: string[] = gallery && gallery.length > 0
+    ? gallery
+    : [image, ...(hoverImage ? [hoverImage] : [])];
+
+  const mobileImg = allImages[mobileIndex] ?? image;
+
+  function swipeBy(dir: 1 | -1) {
+    setMobileIndex(i => (i + dir + allImages.length) % allImages.length);
+  }
+
+  // The image currently visible (used when adding to cart)
+  // On mobile we use the swiped index; on desktop we use the hover image if showing
+  function getCurrentImage(isMobileEvent: boolean): string {
+    if (isMobileEvent) return mobileImg;
+    return hovered && hoverImage ? hoverImage : image;
+  }
 
   return (
     <motion.article
@@ -45,7 +69,7 @@ export function ColorCard({
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onNavigate(handle); }}
       aria-label={`View ${productName} in ${colorName}`}
     >
-      {/* Image container — soft rounded corners, subtle shadow */}
+      {/* Image container */}
       <div
         className="relative overflow-hidden aspect-[4/5] md:aspect-[3/4] rounded-lg md:rounded-xl"
         style={{
@@ -60,44 +84,123 @@ export function ColorCard({
           />
         )}
 
-        {/* Default image */}
-        <img
-          src={image}
-          alt={`${productName} — ${colorName}`}
-          className="absolute inset-0 w-full h-full"
-          style={{
-            objectFit: "cover",
-            objectPosition: "center top",
-            opacity: hovered && hoverImage ? 0 : 1,
-            transform: hovered ? "scale(1.02)" : "scale(1)",
-            transition: "opacity 500ms ease, transform 800ms cubic-bezier(0.22,1,0.36,1)",
-          }}
-          loading="lazy"
-          decoding="async"
-          onLoad={() => setImgLoaded(true)}
-        />
-
-        {/* Hover image — second photo with subtle zoom */}
-        {hoverImage && (
+        {/* ── DESKTOP: hover crossfade ── */}
+        <div className="hidden md:block absolute inset-0">
           <img
-            src={hoverImage}
-            alt={`${productName} — ${colorName} alternate`}
+            src={image}
+            alt={`${productName} — ${colorName}`}
             className="absolute inset-0 w-full h-full"
             style={{
               objectFit: "cover",
               objectPosition: "center top",
-              opacity: hovered && hoverImgLoaded ? 1 : 0,
-              transform: hovered ? "scale(1.03)" : "scale(1)",
+              opacity: hovered && hoverImage ? 0 : 1,
+              transform: hovered ? "scale(1.02)" : "scale(1)",
               transition: "opacity 500ms ease, transform 800ms cubic-bezier(0.22,1,0.36,1)",
             }}
-            loading="eager"
+            loading="lazy"
             decoding="async"
-            onLoad={() => setHoverImgLoaded(true)}
+            onLoad={() => setImgLoaded(true)}
           />
+          {hoverImage && (
+            <img
+              src={hoverImage}
+              alt={`${productName} — ${colorName} alternate`}
+              className="absolute inset-0 w-full h-full"
+              style={{
+                objectFit: "cover",
+                objectPosition: "center top",
+                opacity: hovered && hoverImgLoaded ? 1 : 0,
+                transform: hovered ? "scale(1.03)" : "scale(1)",
+                transition: "opacity 500ms ease, transform 800ms cubic-bezier(0.22,1,0.36,1)",
+              }}
+              loading="eager"
+              decoding="async"
+              onLoad={() => setHoverImgLoaded(true)}
+            />
+          )}
+        </div>
+
+        {/* ── MOBILE: swipeable image ── */}
+        <div
+          className="md:hidden absolute inset-0"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            e.currentTarget.setPointerCapture(e.pointerId);
+            dragStartXRef.current = e.clientX;
+            dragLastXRef.current = e.clientX;
+          }}
+          onPointerMove={(e) => {
+            if (dragStartXRef.current === null) return;
+            dragLastXRef.current = e.clientX;
+          }}
+          onPointerUp={(e) => {
+            e.stopPropagation();
+            if (dragStartXRef.current === null) return;
+            const delta = (dragLastXRef.current ?? e.clientX) - dragStartXRef.current;
+            dragStartXRef.current = null;
+            dragLastXRef.current = null;
+            if (Math.abs(delta) > 30) {
+              swipeBy(delta < 0 ? 1 : -1);
+            } else {
+              onNavigate(handle);
+            }
+          }}
+          onPointerCancel={() => {
+            dragStartXRef.current = null;
+            dragLastXRef.current = null;
+          }}
+          style={{ touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none" }}
+        >
+          <img
+            src={mobileImg}
+            alt={`${productName} — ${colorName}`}
+            className="absolute inset-0 w-full h-full"
+            style={{ objectFit: "cover", objectPosition: "center top" }}
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setImgLoaded(true)}
+          />
+        </div>
+
+        {/* Mobile pagination dots — inside image, bottom center */}
+        {allImages.length > 1 && (
+          <div
+            className="md:hidden absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 pointer-events-none"
+          >
+            {allImages.map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  width: i === mobileIndex ? 14 : 5,
+                  height: 5,
+                  borderRadius: 3,
+                  backgroundColor: i === mobileIndex ? "#ffffff" : "rgba(255,255,255,0.55)",
+                  transition: "all 0.22s ease",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
+                }}
+              />
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Info — generous breathing room, clean typography */}
+      {/* Swipe hint — mobile only, shown below image when gallery has multiple */}
+      {allImages.length > 1 && (
+        <p
+          className="md:hidden text-center mt-2"
+          style={{
+            fontFamily: "'Montserrat', sans-serif",
+            fontSize: 8,
+            letterSpacing: "0.32em",
+            textTransform: "uppercase",
+            color: "rgba(30,24,20,0.38)",
+          }}
+        >
+          swipe to browse
+        </p>
+      )}
+
+      {/* Info */}
       <div className="flex flex-col gap-2.5 pt-5 md:pt-6 pb-2 px-1 md:px-0">
         {/* Color label + swatch */}
         <div className="flex items-center gap-2">
@@ -151,13 +254,15 @@ export function ColorCard({
           {price}
         </p>
 
-        {/* CTA — solid dark, generous horizontal padding on desktop */}
+        {/* CTA */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             if (onAddToCart) {
-              onAddToCart(handle);
+              // Pass the image currently visible so cart shows what user is looking at
+              const isMobile = window.matchMedia("(max-width: 767px)").matches;
+              onAddToCart(handle, getCurrentImage(isMobile));
             } else {
               onNavigate(handle);
             }

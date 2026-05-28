@@ -354,8 +354,9 @@ export function CheckoutPage() {
   // Discount is always derived from the live Shopify cart so it recalculates
   // automatically when items are added or removed. Shopify's cart.cost.totalAmount
   // reflects applied discount codes immediately after cartDiscountCodesUpdate.
-  const lineItemsSubtotal = shopifyCart
-    ? shopifyCart.lines.nodes.reduce(
+  const shopifyHasLines = Boolean(shopifyCart && shopifyCart.lines.nodes.length > 0);
+  const lineItemsSubtotal = shopifyHasLines
+    ? shopifyCart!.lines.nodes.reduce(
         (sum, line) => sum + parseFloat(line.merchandise.price.amount) * line.quantity,
         0,
       )
@@ -365,7 +366,7 @@ export function CheckoutPage() {
   // recalculates automatically when items are added or removed. When a user-
   // applied promo code is active, Shopify's cart.cost.totalAmount already
   // reflects it; when no code is applied, cartSavings handles automatic discounts.
-  const cartDiscountedTotal = shopifyCart ? parseFloat(shopifyCart.cost.totalAmount.amount) : localSubtotal;
+  const cartDiscountedTotal = shopifyHasLines ? parseFloat(shopifyCart!.cost.totalAmount.amount) : localSubtotal;
   const cartSavings = Math.max(0, subtotalAmount - cartDiscountedTotal);
   const savings = cartSavings;
   const discountedSubtotal = subtotalAmount - savings;
