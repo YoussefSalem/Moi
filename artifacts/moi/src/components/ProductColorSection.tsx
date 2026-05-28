@@ -110,7 +110,7 @@ export function ProductColorSection({
             const lastOdd = isLast && isOdd;
 
             return (
-              <div key={handle} className={`w-full ${lastOdd ? "col-span-2 flex justify-center" : ""}`}>
+              <div key={handle} className={`w-full md:w-auto ${lastOdd ? "col-span-2 flex justify-center" : ""}`}>
                 <ColorCard
                   productName={sectionTitle}
                   colorName={c.name}
