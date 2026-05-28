@@ -244,33 +244,12 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
           </button>
         </div>
 
-        {loading ? (
-          <div className="flex flex-col md:flex-row gap-10 md:gap-16 max-w-6xl mx-auto px-5 md:px-12 py-10">
-            <div className="w-full md:w-1/2 aspect-[3/4] rounded relative overflow-hidden">
-              <ImageSkeleton variant="warm" borderRadius={4} />
-            </div>
-            <div className="flex-1 flex flex-col gap-5 pt-4">
-              <div className="h-7 w-2/3 rounded relative overflow-hidden">
-                <ImageSkeleton variant="warm" borderRadius={4} />
-              </div>
-              <div className="h-4 w-full rounded relative overflow-hidden">
-                <ImageSkeleton variant="warm" borderRadius={4} />
-              </div>
-              <div className="h-4 w-4/5 rounded relative overflow-hidden">
-                <ImageSkeleton variant="warm" borderRadius={4} />
-              </div>
-              <div className="h-12 w-48 rounded relative overflow-hidden mt-6">
-                <ImageSkeleton variant="warm" borderRadius={4} />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 1, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-6xl mx-auto px-5 md:px-12 pt-6 md:pt-10 pb-24 flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-16 items-center"
-          >
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="max-w-6xl mx-auto px-5 md:px-12 pt-6 md:pt-10 pb-24 flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-16 items-center"
+        >
             {/* ── IMAGE GALLERY ── */}
             <div className="w-full flex flex-col gap-5">
               {/* Image row: arrow | image | arrow */}
@@ -313,10 +292,10 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                       style={{ objectFit: "contain", objectPosition: "center" }}
                       loading="eager"
                       decoding="async"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: imgLoaded ? 1 : 0 }}
+                      initial={{ opacity: 1 }}
+                      animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.25 }}
+                      transition={{ duration: 0.2 }}
                       onLoad={() => setImgLoaded(true)}
                       onError={() => setImgLoaded(true)}
                     />
@@ -593,7 +572,6 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
 
             </div>
           </motion.div>
-        )}
       </div>
 
       <NotifyMeModal

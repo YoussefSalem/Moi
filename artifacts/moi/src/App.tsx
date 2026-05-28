@@ -32,8 +32,8 @@ const CustomerAuthModal = lazy(() => import("@/components/CustomerAuthModal").th
 const AccountPage = lazy(() => import("@/components/AccountPage").then(m => ({ default: m.AccountPage })));
 const SearchDrawer = lazy(() => import("@/components/SearchDrawer").then(m => ({ default: m.SearchDrawer })));
 import type { SearchItem } from "@/components/SearchDrawer";
+import { ProductPage } from "@/pages/ProductPage";
 const AdminPage = lazy(() => import("@/pages/AdminPage").then(m => ({ default: m.AdminPage })));
-const ProductPage = lazy(() => import("@/pages/ProductPage").then(m => ({ default: m.ProductPage })));
 const NotFoundPage = lazy(() => import("@/components/NotFoundPage").then(m => ({ default: m.NotFoundPage })));
 
 const IS_ADMIN = window.location.pathname.startsWith("/admin");
@@ -281,10 +281,10 @@ function AppContent() {
           }}
         >
           {isProductPage ? (
-            <Suspense fallback={<div style={{ minHeight: "80vh", background: "#faf8f5" }} />}>
+            <div>
               <ProductPage handle={productHandle} onBack={() => navigateTo("home")} />
               <Footer onNavigate={(p) => navigateTo(p as PageType)} />
-            </Suspense>
+            </div>
           ) : page === "home" ? (
             <main>
               <HeroVideo onReady={handleHeroReady} />
