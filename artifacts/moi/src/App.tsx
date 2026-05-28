@@ -146,8 +146,10 @@ function AppContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const product1 = products[0] ?? IMAGES.product1;
-  const product2 = products[1] ?? IMAGES.product2;
+  // Resolve homepage products by stable handle/slug prefix instead of array index,
+  // so the mapping doesn't break when the Shopify store grows.
+  const product1 = products.find(p => p.slug === "moi-wavvy") ?? IMAGES.product1;
+  const product2 = products.find(p => p.slug === "moi-versa-top") ?? IMAGES.product2;
 
   useEffect(() => {
     if (page === "home") {

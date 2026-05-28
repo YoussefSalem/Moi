@@ -414,7 +414,11 @@ export function CheckoutPage() {
       // the code is applicable plus the actual discount amount (raw line total minus
       // Shopify's updated totalAmount, which reflects the discount immediately).
       const result = await applyDiscount(code);
-      if (result.applicable && result.discountAmount > 0) {
+      // Trust Shopify's `applicable` flag directly. The `discountAmount` from the
+      // Storefront API may be 0 because Shopify doesn't always reflect discount
+      // codes in cart totals immediately — the actual discount is resolved later
+      // on the backend via discount-lookup.
+      if (result.applicable) {
         setPromoApplied({ code: result.code });
         setPromoError("");
       } else {
