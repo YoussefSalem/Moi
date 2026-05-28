@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ArrowLeft, Bell } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { NotifyMeModal } from "@/components/NotifyMeModal";
 import { CinematicLightbox } from "@/components/CinematicLightbox";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
 import { trackAddToCart } from "@/lib/analytics";
+import { getStockCount } from "@/lib/stock";
 
 function slugify(str: string): string {
   return str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -77,16 +78,11 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
-  // Persistent stock indicator for "MOI WAVVY — Light Blue"
-  const [stockCount] = useState(() => {
-    if (pageColorName !== "Light Blue" || !product.name?.includes("MOI WAVVY")) return null;
-    const key = `moi_stock_${handle}`;
-    const saved = localStorage.getItem(key);
-    if (saved) return parseInt(saved, 10);
-    const count = Math.floor(Math.random() * 6) + 3; // 3–8
-    localStorage.setItem(key, String(count));
-    return count;
-  });
+  // Persistent stock indicator for all products
+  const stockCount = useMemo(() => {
+    const color = pageColorName || product.name;
+    return getStockCount(handle.split("-")[0] ?? "", color);
+  }, [handle, pageColorName, product.name]);
 
   // SEO: update document head imperatively so meta is reliably in the <head>
   useEffect(() => {
@@ -373,7 +369,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                 {product.name}
               </h1>
 
-              {/* Urgency indicator — Light Blue only */}
+              {/* Urgency indicator */}
               {stockCount && (
                 <div className="flex items-center gap-2 mb-4" style={{ marginTop: -4 }}>
                   <span

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
+import { getStockCount } from "@/lib/stock";
 
 interface ColorCardProps {
   productName: string;
@@ -243,38 +244,20 @@ export function ColorCard({
               {colorName}
             </span>
           </div>
-          {productName === "MOI WAVVY" && colorName === "Light Blue" && (
-            <span
-              className="flex-shrink-0 hidden md:block"
-              style={{
-                fontFamily: "'Montserrat', sans-serif",
-                fontSize: "clamp(0.58rem, 1.6vw, 0.68rem)",
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "#c83232",
-                fontWeight: 500,
-                paddingLeft: 4,
-              }}
-            >
-              Selling Fast
-            </span>
-          )}
-          {productName === "MOI WAVVY" && colorName === "Light Blue" && (
-            <span
-              className="flex-shrink-0 md:hidden"
-              style={{
-                fontFamily: "'Montserrat', sans-serif",
-                fontSize: "0.58rem",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: "#c83232",
-                fontWeight: 500,
-                paddingLeft: 4,
-              }}
-            >
-              Selling Fast
-            </span>
-          )}
+          <span
+            className="flex-shrink-0"
+            style={{
+              fontFamily: "'Montserrat', sans-serif",
+              fontSize: "clamp(0.58rem, 1.6vw, 0.68rem)",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "#c83232",
+              fontWeight: 500,
+              paddingLeft: 4,
+            }}
+          >
+            Only {getStockCount(handle.split("-")[0] ?? "", colorName)} left
+          </span>
         </div>
 
         {/* Product name */}

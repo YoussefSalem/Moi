@@ -19,6 +19,7 @@ import {
   trackAddToCart,
   trackRepeatedView,
 } from "@/lib/analytics";
+import { getStockCount } from "@/lib/stock";
 
 function slugify(str: string): string {
   return str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -36,26 +37,6 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
-
-  function getUserScarcitySeed(): string {
-    if (typeof window === "undefined") return "0";
-    const seed = localStorage.getItem("moi_scarcity_seed");
-    if (seed) return seed;
-    const newSeed = Math.random().toString(36).slice(2, 10);
-    localStorage.setItem("moi_scarcity_seed", newSeed);
-    return newSeed;
-  }
-
-  function getScarcityNumber(name: string, color: string, size: string): number {
-    const seed = getUserScarcitySeed();
-    const key = `${seed}_${name}_${color}_${size}`;
-    let hash = 0;
-    for (let i = 0; i < key.length; i++) {
-      hash = ((hash << 5) - hash) + key.charCodeAt(i);
-      hash |= 0;
-    }
-    return 2 + (Math.abs(hash) % 4);
-  }
 
   const dragStartXRef = useRef<number | null>(null);
   const dragLastXRef = useRef<number | null>(null);
@@ -157,7 +138,8 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
     () => sizeOption?.values[0] ?? "Small"
   );
 
-  const scarcityNumber = getScarcityNumber(product.name, selectedColor, selectedSize);
+  // Persistent stock count for the selected color
+  const stockCount = getStockCount(product.slug ?? "", selectedColor);
 
   const prevVariantsRef = useRef<readonly VariantOption[] | undefined>(undefined);
   useEffect(() => {
@@ -959,14 +941,15 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   variants={itemVariants}
                   className="mb-3"
                   style={{
-                    color: "rgba(158,42,43,0.65)",
+                    color: "#c83232",
                     fontFamily: "'Montserrat', sans-serif",
                     fontSize: "11px",
                     letterSpacing: "0.18em",
+                    fontWeight: 500,
                     textShadow: "0 0 12px rgba(158,42,43,0.12)",
                   }}
                 >
-                  Only {scarcityNumber} left
+                  Only {stockCount} left
                 </motion.p>
               )}
 
