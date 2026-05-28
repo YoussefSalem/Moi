@@ -65,6 +65,29 @@ function AppContent() {
   useRestockChecker();
   const cart = useCart();
 
+  function handleColorCardAddToCart(handle: string) {
+    const products: ProductConfig[] = [IMAGES.product1, IMAGES.product2, IMAGES.product3] as ProductConfig[];
+    const product = products.find((p) => handle.startsWith(p.slug + "-") || handle === p.slug);
+    if (!product) return;
+    const colorSlug = handle.startsWith(product.slug + "-")
+      ? handle.slice(product.slug.length + 1)
+      : "";
+    const colorName = Object.keys((product.colorImages ?? {}) as Record<string, string>).find(
+      (c) => c.toLowerCase().replace(/\s+/g, "-") === colorSlug,
+    ) ?? "";
+    const image = ((product.colorImages ?? {}) as Record<string, string>)[colorName] ?? product.productShot;
+    cart.addToCart({
+      variantId: product.variantId ?? handle,
+      title: product.name,
+      price: product.price,
+      priceAmount: parseFloat(product.price.replace(/[^0-9.]/g, "")) || 0,
+      currencyCode: "EGP",
+      image,
+      size: "One Size",
+      color: colorName,
+    });
+  }
+
   const [page, setPage] = useState<PageType>(() => parseHash().page);
   const [productHandle, setProductHandle] = useState<string>(() => parseHash().productHandle);
 
@@ -205,6 +228,7 @@ function AppContent() {
               sectionSubtitle="The ultimate throw-and-go. Light, breathable, and made for drifting."
               colors={WAVVY_COLORS}
               onNavigate={navigateToProduct}
+              onAddToCart={handleColorCardAddToCart}
             />
           </div>
 
@@ -217,6 +241,7 @@ function AppContent() {
             sectionSubtitle="Effortlessly versatile. A silhouette that moves with you, in every shade of summer."
             colors={VERSA_COLORS}
             onNavigate={navigateToProduct}
+            onAddToCart={handleColorCardAddToCart}
             dark
           />
 

@@ -16,6 +16,7 @@ interface ProductColorSectionProps {
   sectionSubtitle?: string;
   colors: ColorEntry[];
   onNavigate: (handle: string) => void;
+  onAddToCart?: (handle: string) => void;
   id?: string;
   dark?: boolean;
 }
@@ -26,6 +27,7 @@ export function ProductColorSection({
   sectionSubtitle,
   colors,
   onNavigate,
+  onAddToCart,
   id,
   dark = false,
 }: ProductColorSectionProps) {
@@ -114,6 +116,7 @@ export function ProductColorSection({
                 handle={handle}
                 swatchColor={swatch}
                 onNavigate={onNavigate}
+                onAddToCart={onAddToCart}
                 index={i}
               />
             );

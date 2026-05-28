@@ -343,8 +343,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const shopifyItemCount = shopifyCart?.totalQuantity ?? 0;
   const localItemCount = localItems.reduce((sum, i) => sum + i.quantity, 0);
-  const shopifyActive = SHOPIFY_CONFIGURED && shopifyCart !== null;
-  const itemCount = shopifyActive ? shopifyItemCount : localItemCount;
+  const shopifyActive = SHOPIFY_CONFIGURED && shopifyCart !== null && (shopifyCart?.lines.nodes.length ?? 0) > 0;
+  const itemCount = shopifyActive
+    ? shopifyItemCount
+    : localItemCount;
 
   const shopifyTotal = shopifyCart
     ? formatMoney(shopifyCart.cost.totalAmount.amount, shopifyCart.cost.totalAmount.currencyCode)

@@ -10,6 +10,7 @@ interface ColorCardProps {
   handle: string;
   swatchColor?: string;
   onNavigate: (handle: string) => void;
+  onAddToCart?: (handle: string) => void;
   index?: number;
 }
 
@@ -22,6 +23,7 @@ export function ColorCard({
   handle,
   swatchColor,
   onNavigate,
+  onAddToCart,
   index = 0,
 }: ColorCardProps) {
   const [hovered, setHovered] = useState(false);
@@ -152,7 +154,14 @@ export function ColorCard({
         {/* CTA — solid dark, generous horizontal padding on desktop */}
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onNavigate(handle); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onAddToCart) {
+              onAddToCart(handle);
+            } else {
+              onNavigate(handle);
+            }
+          }}
           className="self-stretch md:self-center mt-3 md:mt-4 border transition-all duration-300 px-6 py-3.5 md:px-14 md:py-3.5 hover:shadow-lg"
           style={{
             fontSize: "clamp(0.65rem, 2vw, 0.75rem)",
@@ -174,7 +183,7 @@ export function ColorCard({
             (e.currentTarget as HTMLButtonElement).style.borderColor = "#1e1814";
           }}
         >
-          Add to Cart
+          {onAddToCart ? "Add to Cart" : "View Details"}
         </button>
       </div>
     </motion.article>

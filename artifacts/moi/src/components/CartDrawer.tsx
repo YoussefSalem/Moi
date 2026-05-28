@@ -191,9 +191,7 @@ export function CartDrawer() {
     applyDiscount,
   } = useCart();
 
-  const hasItems = isShopify
-    ? (shopifyCart?.lines.nodes.length ?? 0) > 0
-    : localItems.length > 0;
+  const hasItems = (isShopify && (shopifyCart?.lines.nodes.length ?? 0) > 0) || localItems.length > 0;
 
   return (
     <AnimatePresence>
@@ -295,7 +293,7 @@ export function CartDrawer() {
                 </motion.div>
               ) : (
                 <ul className="space-y-6">
-                  {isShopify && shopifyCart
+                  {isShopify && shopifyCart && shopifyCart.lines.nodes.length > 0
                     ? shopifyCart.lines.nodes.map((line, i) => (
                         <motion.li
                           key={line.id}
