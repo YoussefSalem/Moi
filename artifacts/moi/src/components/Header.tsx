@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ShoppingBag, User, X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -9,6 +9,12 @@ interface HeaderProps {
   onSearch?: () => void;
   dark?: boolean;
   page?: string;
+}
+
+function isInAppBrowser() {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return /Instagram|FB_IAB|FBAN|FBAV|Messenger|WhatsApp|Twitter/i.test(ua);
 }
 
 export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
@@ -23,9 +29,20 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const inAppBrowser = useMemo(() => isInAppBrowser(), []);
+
+  useEffect(() => {
+    if (inAppBrowser) {
+      document.body.style.setProperty("--header-offset", "44px");
+    } else {
+      document.body.style.removeProperty("--header-offset");
+    }
+  }, [inAppBrowser]);
+
   const iconColor = dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff";
   const navLinks = ["Clothing", "Accessories", "Become an Ambassador"];
   const displayName = customer?.firstName ?? customer?.email?.split("@")[0] ?? null;
+  const extraTop = inAppBrowser ? 44 : 0;
 
   return (
     <>
@@ -41,7 +58,7 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
           transition: "background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease",
         }}
       >
-        <div className="flex items-center justify-between px-6 md:px-12 h-16" style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "max(1.5rem, env(safe-area-inset-left))", paddingRight: "max(1.5rem, env(safe-area-inset-right))" }}>
+        <div className="flex items-center justify-between px-6 md:px-12 h-16" style={{ paddingTop: `calc(${extraTop}px + env(safe-area-inset-top))`, paddingLeft: "max(1.5rem, env(safe-area-inset-left))", paddingRight: "max(1.5rem, env(safe-area-inset-right))" }}>
           <button
             onClick={() => {
               if (page === "home") {
