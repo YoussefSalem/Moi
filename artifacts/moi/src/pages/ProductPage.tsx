@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ArrowLeft, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { useShopifyProductByHandle } from "@/hooks/useShopifyProductByHandle";
+import { parseEGP } from "@/lib/price";
 import { useCart } from "@/context/CartContext";
 import { useCustomer } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
@@ -158,13 +159,13 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
       selectedVariant?.id ?? product.variantId ?? "",
       product.name,
       1,
-      parseFloat(String(effectivePrice).replace(/[^0-9]/g, "")) || 0,
+      parseEGP(String(effectivePrice)) || 0,
     );
     await addToCart({
       variantId: selectedVariant?.id ?? product.variantId ?? "",
       title: product.name,
       price: effectivePrice,
-      priceAmount: parseFloat(String(effectivePrice).replace(/[^0-9]/g, "")),
+      priceAmount: parseEGP(String(effectivePrice)),
       currencyCode: "EGP",
       image: galleryImages[0] ?? product.productShot,
       size: selectedSize || "One Size",

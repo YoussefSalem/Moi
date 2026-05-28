@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { trackShopifyProductView } from "@/lib/shopifyAnalytics";
+import { parseEGP } from "@/lib/price";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { toast } from "sonner";
 import { Bell, ChevronLeft, ChevronRight } from "lucide-react";
@@ -71,7 +72,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
   useEffect(() => {
     if (!inView) return;
-    const priceNum = parseFloat(product.price.replace(/[^0-9]/g, ""));
+    const priceNum = parseEGP(product.price);
     trackShopifyProductView({
       productId: product.variantId ?? "",
       productTitle: product.name,
@@ -314,13 +315,13 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
       selectedVariant?.id ?? product.variantId ?? "",
       product.name,
       1,
-      parseFloat(String(effectivePrice).replace(/[^0-9]/g, "")) || 0,
+      parseEGP(String(effectivePrice)) || 0,
     );
     await addToCart({
       variantId: selectedVariant?.id ?? product.variantId ?? "",
       title: product.name,
       price: effectivePrice,
-      priceAmount: parseFloat(String(effectivePrice).replace(/[^0-9]/g, "")),
+      priceAmount: parseEGP(String(effectivePrice)),
       currencyCode: "EGP",
       image: resolvedColorImage ?? product.productShot,
       size: selectedSize,

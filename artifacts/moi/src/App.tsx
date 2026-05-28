@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
+import { parseEGP } from "@/lib/price";
 import { captureAttribution } from "@/lib/adAttribution";
 import { initAnalytics } from "@/lib/analytics";
 import { AnalyticsDebug } from "@/components/AnalyticsDebug";
@@ -90,7 +91,7 @@ function AppContent() {
       variantId,
       title: product.name,
       price: product.price,
-      priceAmount: parseFloat(product.price.replace(/[^0-9]/g, "")) || 0,
+      priceAmount: parseEGP(product.price) || 0,
       currencyCode: "EGP",
       image,
       size: "One Size",

@@ -5,6 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED, cartBuyerIdentityUpdate } from "@/lib/shopify";
 import { IMAGES } from "@/config/images";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
+import { parseEGP } from "@/lib/price";
 import { trackTikTokPurchase } from "@/lib/tiktokPixel";
 import { trackShopifyPurchase } from "@/lib/shopifyAnalytics";
 import { getAttribution } from "@/lib/adAttribution";
@@ -655,7 +656,7 @@ export function CheckoutPage() {
       });
 
       clearCart();
-      const purchaseValue = Number.isFinite(parseFloat(data.total?.replace(/[^0-9]/g, "") ?? "NaN")) ? parseFloat(data.total!.replace(/[^0-9]/g, "")) : (Number.isFinite(totalAmount) ? totalAmount : 0);
+      const purchaseValue = data.total ? parseEGP(data.total) || (Number.isFinite(totalAmount) ? totalAmount : 0) : (Number.isFinite(totalAmount) ? totalAmount : 0);
       const purchaseItems = orderLines.reduce((s, l) => s + l.quantity, 0);
       trackPurchase({
         content_ids: orderLines.map((l) => l.variantId),

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import type { ProductConfig } from "@/config/images";
 import { useCart } from "@/context/CartContext";
+import { parseEGP } from "@/lib/price";
 import { CinematicLightbox } from "@/components/CinematicLightbox";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
 
@@ -130,7 +131,7 @@ export function LookView({ product, onClose }: LookViewProps) {
         variantId: product.variantId,
         title: product.name,
         price: product.price,
-        priceAmount: parseFloat(product.price.replace(/[^0-9]/g, "")),
+        priceAmount: parseEGP(product.price),
         currencyCode: "EGP",
         image: product.look.model,
       });

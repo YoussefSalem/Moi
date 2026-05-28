@@ -1,0 +1,1 @@
+export { parseEGP } from "./price";

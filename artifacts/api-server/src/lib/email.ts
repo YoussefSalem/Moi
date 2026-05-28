@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { logger } from "./logger";
+import { parseEGP } from "@workspace/utils";
 
 let _resend: Resend | null = null;
 
@@ -119,7 +120,7 @@ function buildEmail({
   // Subtotal = sum of line item prices (not derived from total, which may not match)
   const lineItemsSubtotal = lineItems && lineItems.length > 0
     ? lineItems.reduce((sum, item) => {
-        const price = parseFloat(item.price.replace(/[^0-9.]/g, "")) || 0;
+        const price = parseEGP(item.price) || 0;
         return sum + price * item.quantity;
       }, 0)
     : (shippingAmount !== undefined
@@ -341,7 +342,7 @@ export function buildCODOrderEmail(params: {
   const discountText = discountAmount ? `\nDiscount ${discountCode ? `(${discountCode})` : ""}: -${discountAmount} EGP` : "";
   const shippingText = shippingAmount ? `\nShipping: ${parseFloat(shippingAmount) === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
   const lineSubtotalText = lineItems && lineItems.length > 0
-    ? lineItems.reduce((sum, item) => sum + (parseFloat(item.price.replace(/[^0-9.]/g, "")) || 0) * item.quantity, 0)
+    ? lineItems.reduce((sum, item) => sum + (parseEGP(item.price) || 0) * item.quantity, 0)
     : (parseFloat(total) - parseFloat(shippingAmount ?? "0") + (discountAmount ? parseFloat(discountAmount) : 0));
   const emailTotalText = (lineSubtotalText - (discountAmount ? parseFloat(discountAmount) : 0) + parseFloat(shippingAmount ?? "0")).toFixed(2);
 
@@ -400,7 +401,7 @@ export function buildOrderConfirmationEmail(params: {
   const discountText = discountAmount ? `\nDiscount ${discountCode ? `(${discountCode})` : ""}: -${discountAmount} EGP` : "";
   const shippingText = shippingAmount ? `\nShipping: ${parseFloat(shippingAmount) === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
   const lineSubtotalText2 = lineItems && lineItems.length > 0
-    ? lineItems.reduce((sum, item) => sum + (parseFloat(item.price.replace(/[^0-9.]/g, "")) || 0) * item.quantity, 0)
+    ? lineItems.reduce((sum, item) => sum + (parseEGP(item.price) || 0) * item.quantity, 0)
     : (parseFloat(total) - parseFloat(shippingAmount ?? "0") + (discountAmount ? parseFloat(discountAmount) : 0));
   const emailTotalText2 = (lineSubtotalText2 - (discountAmount ? parseFloat(discountAmount) : 0) + parseFloat(shippingAmount ?? "0")).toFixed(2);
 

@@ -13,6 +13,7 @@ import {
   SHOPIFY_CONFIGURED,
 } from "@/lib/shopify";
 import { trackAddToCart } from "@/lib/metaPixel";
+import { parseEGP } from "@/lib/price";
 import { trackTikTokAddToCart } from "@/lib/tiktokPixel";
 import {
   trackShopifyAddToCart,
@@ -97,7 +98,7 @@ function loadLocalCart(): LocalCartItem[] {
     // Always re-parse from the price string so stale cached values are corrected.
     return items.map((item) => {
       if (!item.price) return item;
-      const reparsed = parseFloat(item.price.replace(/[^0-9]/g, ""));
+      const reparsed = parseEGP(item.price);
       if (Number.isFinite(reparsed) && reparsed > 0 && reparsed !== item.priceAmount) {
         return { ...item, priceAmount: reparsed };
       }
@@ -349,7 +350,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       variantId: item.variantId ?? `recovery-${i}`,
       title: item.title,
       price: item.price,
-      priceAmount: parseFloat(item.price.replace(/[^0-9]/g, "")),
+      priceAmount: parseEGP(item.price),
       currencyCode: "EGP",
       image: item.imageUrl ?? null,
       color: item.variant,
