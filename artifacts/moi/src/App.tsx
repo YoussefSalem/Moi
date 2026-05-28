@@ -33,17 +33,33 @@ const AccountPage = lazy(() => import("@/components/AccountPage").then(m => ({ d
 const SearchDrawer = lazy(() => import("@/components/SearchDrawer").then(m => ({ default: m.SearchDrawer })));
 const AdminPage = lazy(() => import("@/pages/AdminPage").then(m => ({ default: m.AdminPage })));
 const ProductPage = lazy(() => import("@/pages/ProductPage").then(m => ({ default: m.ProductPage })));
+const NotFoundPage = lazy(() => import("@/components/NotFoundPage").then(m => ({ default: m.NotFoundPage })));
 
 const IS_ADMIN = window.location.pathname.startsWith("/admin");
 
-type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product";
+type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product" | "notfound";
 const POLICY_PAGES: PageType[] = ["privacy", "refund", "return", "delivery"];
+
+const VALID_PRODUCTS: Record<string, string[] | null> = {
+  "moi-wavvy": ["light-blue", "navy", "mint"],
+  "moi-versa-top": ["taupe", "espresso", "brown", "white", "cashmere", "navy", "mint"],
+  "trio-bangles": null,
+};
 
 function parsePath(): { page: PageType; productHandle: string } {
   if (typeof window === "undefined") return { page: "home", productHandle: "" };
   const pathname = window.location.pathname;
   if (pathname.startsWith("/products/")) {
-    return { page: "product", productHandle: pathname.slice("/products/".length) };
+    const handle = pathname.slice("/products/".length);
+    const matchedProduct = Object.keys(VALID_PRODUCTS).find(
+      (p) => handle === p || handle.startsWith(p + "-"),
+    );
+    if (!matchedProduct) return { page: "notfound", productHandle: handle };
+    const validColors = VALID_PRODUCTS[matchedProduct];
+    if (validColors === null) return { page: "product", productHandle: handle }; // trio-bangles has no color variants
+    const colorSlug = handle.slice(matchedProduct.length + 1);
+    if (!colorSlug || validColors.includes(colorSlug)) return { page: "product", productHandle: handle };
+    return { page: "notfound", productHandle: handle };
   }
   if (pathname === "/accessories") return { page: "accessories", productHandle: "" };
   if (pathname === "/ambassador") return { page: "ambassador", productHandle: "" };
@@ -55,7 +71,7 @@ function parsePath(): { page: PageType; productHandle: string } {
 // Colours shown on the homepage for each product line.
 // product1 (moi-wavvy) → WAVVY line; product2 (moi-versa-top) → Versa Top line.
 const WAVVY_COLORS  = [{ name: "Light Blue" }, { name: "Navy" }, { name: "Mint" }];
-const VERSA_COLORS  = [{ name: "White" }, { name: "Cashmere" }, { name: "Beige" }, { name: "Yellow" }, { name: "Teal" }];
+const VERSA_COLORS  = [{ name: "Taupe" }, { name: "Espresso" }, { name: "Brown" }, { name: "White" }, { name: "Cashmere" }, { name: "Navy" }, { name: "Mint" }];
 
 const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
 
@@ -285,6 +301,10 @@ function AppContent() {
                 <Footer onNavigate={(p) => navigateTo(p as PageType)} />
               </Suspense>
             </div>
+          ) : page === "notfound" ? (
+            <Suspense fallback={<div style={{ minHeight: "100vh", background: "#faf8f5" }} />}>
+              <NotFoundPage onNavigateHome={() => navigateTo("home")} />
+            </Suspense>
           ) : (
             <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
               <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home")} />
