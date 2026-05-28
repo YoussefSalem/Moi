@@ -20,11 +20,7 @@ run = "pnpm --filter @workspace/moi run dev"
 [services.production]
 build = [ "pnpm", "--filter", "@workspace/moi", "run", "build" ]
 publicDir = "artifacts/moi/dist/public"
-serve = "static"
-
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+run = "pnpm --filter @workspace/moi run serve:prod"
 
 [services.env]
 PORT = "18266"
