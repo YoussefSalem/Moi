@@ -92,40 +92,70 @@ export function ProductColorSection({
           />
         </motion.div>
 
-        {/* Color cards grid — mobile: 2 columns; desktop: flex-wrap */}
+        {/* Color cards — mobile: horizontal scroll carousel (1 card visible); desktop: flex-wrap */}
         <div
-          className="grid grid-cols-2 md:flex md:flex-wrap justify-center gap-x-4 gap-y-6 md:gap-8"
+          className="md:flex md:flex-wrap md:justify-center md:gap-8"
         >
-          {colors.map((c, i) => {
-            const img = colorImages[c.name] ?? product.productShot;
-            const galleries = (product.colorGalleries ?? {}) as unknown as Record<string, string[]>;
-            const gallery = galleries[c.name] ?? [];
-            const hoverImg = gallery[1] ?? gallery[0] ?? img;
-            const swatchKey = c.name.toLowerCase();
-            const swatch = colorSwatches[swatchKey];
-            const handle = `${product.slug}-${slugify(c.name)}`;
-            const isLast = i === colors.length - 1;
-            const isOdd = colors.length % 2 === 1;
-            const mobileLastOdd = isLast && isOdd ? "col-span-2 justify-self-center w-[calc(50%-8px)]" : "";
+          {/* Mobile: horizontal scroll carousel */}
+          <div className="md:hidden flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-6 px-6 scrollbar-hide">
+            {colors.map((c, i) => {
+              const img = colorImages[c.name] ?? product.productShot;
+              const galleries = (product.colorGalleries ?? {}) as unknown as Record<string, string[]>;
+              const gallery = galleries[c.name] ?? [];
+              const hoverImg = gallery[1] ?? gallery[0] ?? img;
+              const swatchKey = c.name.toLowerCase();
+              const swatch = colorSwatches[swatchKey];
+              const handle = `${product.slug}-${slugify(c.name)}`;
 
-            return (
-              <ColorCard
-                key={handle}
-                productName={sectionTitle}
-                colorName={c.name}
-                image={img}
-                hoverImage={hoverImg !== img ? hoverImg : undefined}
-                gallery={gallery.length > 0 ? gallery : undefined}
-                price={product.price}
-                handle={handle}
-                swatchColor={swatch}
-                onNavigate={onNavigate}
-                onAddToCart={onAddToCart}
-                index={i}
-                className={mobileLastOdd}
-              />
-            );
-          })}
+              return (
+                <div key={handle} className="snap-center flex-shrink-0 w-[78vw] max-w-[320px]">
+                  <ColorCard
+                    productName={sectionTitle}
+                    colorName={c.name}
+                    image={img}
+                    hoverImage={hoverImg !== img ? hoverImg : undefined}
+                    gallery={gallery.length > 0 ? gallery : undefined}
+                    price={product.price}
+                    handle={handle}
+                    swatchColor={swatch}
+                    onNavigate={onNavigate}
+                    onAddToCart={onAddToCart}
+                    index={i}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop: flex-wrap grid */}
+          <div className="hidden md:flex md:flex-wrap md:justify-center md:gap-8">
+            {colors.map((c, i) => {
+              const img = colorImages[c.name] ?? product.productShot;
+              const galleries = (product.colorGalleries ?? {}) as unknown as Record<string, string[]>;
+              const gallery = galleries[c.name] ?? [];
+              const hoverImg = gallery[1] ?? gallery[0] ?? img;
+              const swatchKey = c.name.toLowerCase();
+              const swatch = colorSwatches[swatchKey];
+              const handle = `${product.slug}-${slugify(c.name)}`;
+
+              return (
+                <ColorCard
+                  key={handle}
+                  productName={sectionTitle}
+                  colorName={c.name}
+                  image={img}
+                  hoverImage={hoverImg !== img ? hoverImg : undefined}
+                  gallery={gallery.length > 0 ? gallery : undefined}
+                  price={product.price}
+                  handle={handle}
+                  swatchColor={swatch}
+                  onNavigate={onNavigate}
+                  onAddToCart={onAddToCart}
+                  index={i}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
