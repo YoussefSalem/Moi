@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, ArrowLeft, Bell } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Bell, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useShopifyProductByHandle } from "@/hooks/useShopifyProductByHandle";
 import { parseEGP } from "@/lib/price";
@@ -75,6 +75,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const { customer } = useCustomer();
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [thumbLoaded, setThumbLoaded] = useState<boolean[]>([]);
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -136,6 +137,8 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     const raw = film?.length > 0 ? [product.productShot, ...film] : [product.productShot];
     return Array.from(new Set(raw));
   })();
+
+  useEffect(() => { setThumbLoaded(new Array(galleryImages.length).fill(false)); }, [galleryImages.length, handle]);
 
   const mainImage = galleryImages[galleryIndex] ?? product.productShot;
 
@@ -363,13 +366,37 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         opacity: i === galleryIndex ? 1 : 0.65,
                       }}
                     >
-                      <img
-                        src={src}
-                        alt={`View ${i + 1}`}
-                        className="w-full h-full"
-                        style={{ objectFit: "cover" }}
-                        loading="lazy"
-                      />
+                      <div className="relative w-full h-full">
+                        {/* Thumbnail image — hidden until loaded */}
+                        <img
+                          src={src}
+                          alt={`View ${i + 1}`}
+                          className="w-full h-full"
+                          style={{ objectFit: "cover", opacity: thumbLoaded[i] ? 1 : 0 }}
+                          loading="lazy"
+                          onLoad={() => setThumbLoaded(prev => {
+                            const next = [...prev];
+                            next[i] = true;
+                            return next;
+                          })}
+                          onError={() => setThumbLoaded(prev => {
+                            const next = [...prev];
+                            next[i] = true;
+                            return next;
+                          })}
+                        />
+                        {/* Circular spinner while loading */}
+                        {!thumbLoaded[i] && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-[rgba(30,24,20,0.04)]">
+                            <Loader2
+                              size={18}
+                              strokeWidth={1.5}
+                              className="animate-spin text-[rgba(30,24,20,0.3)]"
+                              style={{ animationDuration: "1s" }}
+                            />
+                          </div>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
