@@ -60,6 +60,12 @@ interface ProductPageProps {
 export function ProductPage({ handle, onBack }: ProductPageProps) {
   const fallback = deriveFallbackFromHandle(handle);
   const { product, loading } = useShopifyProductByHandle(handle, fallback);
+  // When Shopify returns all variants for the base product (e.g. all MOI WAVVY colors),
+  // we need to filter to the color in the URL. Extract from fallback.name which is
+  // e.g. "MOI WAVVY — Light Blue" (set by deriveFallbackFromHandle).
+  const pageColorName = fallback.name.includes(" — ")
+    ? (fallback.name.split(" — ").pop() ?? "")
+    : "";
   const { addToCart } = useCart();
   const { customer } = useCustomer();
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -127,11 +133,18 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
   const dragLastXRef = useRef<number | null>(null);
 
   const selectedVariant = product.variants?.find((v) => {
+    const colorMatch = !pageColorName || v.selectedOptions.some(
+      (o) => o.name.toLowerCase() === "color" && o.value === pageColorName,
+    );
     const sizeMatch = !sizeOption || v.selectedOptions.some(
       (o) => o.name.toLowerCase() === sizeOption.optionName.toLowerCase() && o.value === selectedSize,
     );
-    return sizeMatch;
-  }) ?? product.variants?.[0];
+    return colorMatch && sizeMatch;
+  }) ?? product.variants?.find((v) =>
+    !pageColorName || v.selectedOptions.some(
+      (o) => o.name.toLowerCase() === "color" && o.value === pageColorName,
+    ),
+  ) ?? product.variants?.[0];
 
   const isOutOfStock = selectedVariant ? !selectedVariant.availableForSale : false;
   const effectivePrice = selectedVariant?.price ?? product.price;

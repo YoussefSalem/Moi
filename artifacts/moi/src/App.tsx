@@ -68,8 +68,10 @@ function AppContent() {
   const cart = useCart();
 
   function handleColorCardAddToCart(handle: string, _image?: string) {
-    const products: ProductConfig[] = [IMAGES.product1, IMAGES.product2, IMAGES.product3] as ProductConfig[];
-    const product = products.find((p) => handle.startsWith(p.slug + "-") || handle === p.slug);
+    // Use Shopify-fetched products (real variant GIDs) + IMAGES.product3 fallback.
+    // DO NOT shadow the outer `products` state — we need the live Shopify data.
+    const allProducts: ProductConfig[] = [...products, IMAGES.product3 as ProductConfig];
+    const product = allProducts.find((p) => handle.startsWith(p.slug + "-") || handle === p.slug);
     if (!product) return;
     const colorSlug = handle.startsWith(product.slug + "-")
       ? handle.slice(product.slug.length + 1)
@@ -78,8 +80,13 @@ function AppContent() {
       (c) => c.toLowerCase().replace(/\s+/g, "-") === colorSlug,
     ) ?? "";
     const image = ((product.colorImages ?? {}) as Record<string, string>)[colorName] ?? product.productShot;
+    // Find the color-specific Shopify variant; fall back to first available
+    const variant = product.variants?.find((v) =>
+      v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === colorName)
+    );
+    const variantId = variant?.id ?? product.variantId ?? handle;
     cart.addToCart({
-      variantId: product.variantId ?? handle,
+      variantId,
       title: product.name,
       price: product.price,
       priceAmount: parseFloat(product.price.replace(/[^0-9]/g, "")) || 0,

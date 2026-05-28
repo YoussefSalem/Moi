@@ -43,7 +43,9 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
     name: shopify.title || fallback.name,
     description: shopify.description || fallback.description,
     price: priceFormatted || fallback.price,
-    productShot: mainImage ?? fallback.productShot,
+    // Preserve the config's color-specific productShot (set by deriveFallbackFromHandle).
+    // Shopify's featuredImage is used for look.model but must not override the per-color image.
+    productShot: fallback.productShot,
     filmstrip: (fallback.filmstrip?.length ? fallback.filmstrip : filmstripImages) as string[],
     look,
     variantId: firstAvailable?.id,

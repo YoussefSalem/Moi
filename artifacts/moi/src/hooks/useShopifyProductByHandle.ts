@@ -20,7 +20,10 @@ export function useShopifyProductByHandle(
     let cancelled = false;
     setLoading(true);
 
-    getProductByHandle(handle)
+    // Color-suffixed handles like "moi-wavvy-light-blue" don't exist in Shopify;
+    // use the base product slug from the fallback config to fetch the real product.
+    const shopifyHandle = fallback.slug ?? handle;
+    getProductByHandle(shopifyHandle)
       .then((shopifyProduct) => {
         if (cancelled) return;
         if (shopifyProduct) {
