@@ -151,7 +151,7 @@ function AppContent() {
   }, [page, productHandle]);
 
   const isProductPage = page === "product" && Boolean(productHandle);
-  const isDark = page === "accessories" || page === "ambassador";
+  const isDark = page === "accessories" || page === "ambassador" || isProductPage;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "hsl(30 15% 95%)" }}>

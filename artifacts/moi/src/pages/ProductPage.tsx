@@ -45,6 +45,7 @@ function deriveFallbackFromHandle(handle: string): ProductConfig {
 
   return {
     ...(matched as unknown as ProductConfig),
+    name: colorSlug ? `${matched.name} — ${colorName}` : matched.name,
     productShot: mainImage,
     filmstrip: gallery,
     variants: resolvedVariants,
@@ -225,7 +226,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-6xl mx-auto px-5 md:px-12 py-6 pb-24 grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-16 items-start"
+            className="max-w-6xl mx-auto px-5 md:px-12 py-6 pb-24 flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-16 items-start"
           >
             {/* ── IMAGE GALLERY ── */}
             <div className="w-full flex flex-col gap-4">
@@ -242,7 +243,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                   if (Math.abs(delta) > 40) { delta < 0 ? nextImg() : prevImg(); }
                 }}
                 onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
-                style={{ touchAction: "pan-y", aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.03)", userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
+                style={{ touchAction: "pan-y", aspectRatio: "4/5", backgroundColor: "rgba(30,24,20,0.03)", userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
               >
                 <AnimatePresence initial={false} mode="wait">
                   <motion.img
@@ -330,7 +331,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
             </div>
 
             {/* ── PRODUCT INFO ── */}
-            <div className="flex flex-col pt-2 md:pt-8">
+            <div className="flex flex-col pt-0 md:pt-8 w-full">
               {/* Name */}
               <h1
                 style={{
