@@ -41,10 +41,11 @@ export function ColorCard({
   const dragStartXRef = useRef<number | null>(null);
   const dragLastXRef = useRef<number | null>(null);
 
-  // Full image list for mobile swipe — gallery already starts with the main image
-  const allImages: string[] = gallery && gallery.length > 0
+  // Full image list for mobile swipe — filter empty strings so src is never ""
+  const allImages: string[] = (gallery && gallery.length > 0
     ? gallery
-    : [image, ...(hoverImage ? [hoverImage] : [])];
+    : [image, ...(hoverImage ? [hoverImage] : [])]
+  ).filter(Boolean);
 
   function swipeBy(dir: 1 | -1) {
     setSwipeDirection(dir);
@@ -81,21 +82,23 @@ export function ColorCard({
 
         {/* ── DESKTOP: hover crossfade ── */}
         <div className="hidden md:block absolute inset-0">
-          <img
-            src={image}
-            alt={`${productName} — ${colorName}`}
-            className="absolute inset-0 w-full h-full"
-            style={{
-              objectFit: "cover",
-              objectPosition: "center top",
-              opacity: hovered && hoverImage ? 0 : 1,
-              transform: hovered ? "scale(1.02)" : "scale(1)",
-              transition: "opacity 500ms ease, transform 800ms cubic-bezier(0.22,1,0.36,1)",
-            }}
-            loading="lazy"
-            decoding="async"
-            onLoad={() => setImgLoaded(true)}
-          />
+          {image && (
+            <img
+              src={image}
+              alt={`${productName} — ${colorName}`}
+              className="absolute inset-0 w-full h-full"
+              style={{
+                objectFit: "cover",
+                objectPosition: "center top",
+                opacity: hovered && hoverImage ? 0 : 1,
+                transform: hovered ? "scale(1.02)" : "scale(1)",
+                transition: "opacity 500ms ease, transform 800ms cubic-bezier(0.22,1,0.36,1)",
+              }}
+              loading="lazy"
+              decoding="async"
+              onLoad={() => setImgLoaded(true)}
+            />
+          )}
           {hoverImage && (
             <img
               src={hoverImage}
