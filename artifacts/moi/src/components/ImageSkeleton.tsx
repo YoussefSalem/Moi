@@ -14,19 +14,18 @@ export function ImageSkeleton({
   borderRadius,
 }: ImageSkeletonProps) {
   const bg = {
-    light: "#e8e3dc",
-    dark: "rgba(255,255,255,0.12)",
-    warm: "#e8e3dc",
-    card: "#ece6de",
+    light: "rgba(30,24,20,0.06)",
+    dark: "rgba(255,255,255,0.08)",
+    warm: "rgba(30,24,20,0.06)",
+    card: "rgba(30,24,20,0.06)",
   }[variant];
 
   return (
     <div
-      className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}
+      className={`absolute inset-0 overflow-hidden pointer-events-none animate-pulse ${className}`}
       style={{
         backgroundColor: bg,
         borderRadius: borderRadius ?? 0,
-        animation: "moi-skeleton-pulse 1.8s ease-in-out infinite",
         ...style,
       }}
     />
