@@ -34,7 +34,7 @@ export function ColorCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: Math.min(index * 0.07, 0.35) }}
-      className="flex flex-col cursor-pointer group"
+      className="flex flex-col cursor-pointer group w-full max-w-[360px]"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => onNavigate(handle)}
