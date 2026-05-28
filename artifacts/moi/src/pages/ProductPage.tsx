@@ -243,7 +243,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                   if (Math.abs(delta) > 40) { delta < 0 ? nextImg() : prevImg(); }
                 }}
                 onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
-                style={{ touchAction: "pan-y", aspectRatio: "4/5", backgroundColor: "rgba(30,24,20,0.03)", userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
+                style={{ touchAction: "pan-y", aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.03)", userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
               >
                 <AnimatePresence initial={false} mode="wait">
                   <motion.img
@@ -336,7 +336,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
               <h1
                 style={{
                   fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontSize: "clamp(2rem, 6vw, 3rem)",
+                  fontSize: "clamp(1.7rem, 7vw, 3rem)",
                   fontWeight: 300,
                   color: "#1e1814",
                   letterSpacing: "0.04em",
@@ -464,11 +464,11 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                   type="button"
                   onClick={handleNotifyMe}
                   whileTap={{ scale: 0.98 }}
-                  className="flex items-center justify-center gap-2 border transition-all duration-300"
+                  className="flex items-center justify-center gap-2 border transition-all duration-300 w-full md:w-auto"
                   style={{
                     padding: "16px 40px",
                     maxWidth: 320,
-                    fontSize: 9,
+                    fontSize: "clamp(0.7rem, 2.5vw, 0.8rem)",
                     letterSpacing: "0.38em",
                     textTransform: "uppercase",
                     fontFamily: "'Montserrat', sans-serif",
@@ -485,11 +485,11 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                   type="button"
                   onClick={handleAddToCart}
                   whileTap={{ scale: 0.98 }}
-                  className="border transition-all duration-500"
+                  className="border transition-all duration-500 w-full md:w-auto flex items-center justify-center"
                   style={{
                     padding: "16px 40px",
                     maxWidth: 320,
-                    fontSize: 9,
+                    fontSize: "clamp(0.7rem, 2.5vw, 0.8rem)",
                     letterSpacing: "0.42em",
                     textTransform: "uppercase",
                     fontFamily: "'Montserrat', sans-serif",
@@ -499,7 +499,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                     boxShadow: addedFeedback ? "none" : "0 8px 28px rgba(30,24,20,0.22)",
                   }}
                 >
-                  {addedFeedback ? "Added to Bag ✓" : "Order Now"}
+                  {addedFeedback ? "Added to Bag ✓" : "Add to Cart"}
                 </motion.button>
               )}
 

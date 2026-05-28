@@ -40,10 +40,10 @@ export function ColorCard({
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onNavigate(handle); }}
       aria-label={`View ${productName} in ${colorName}`}
     >
-      {/* Image container */}
+      {/* Image container — square on mobile, portrait on desktop */}
       <div
-        className="relative overflow-hidden"
-        style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.04)" }}
+        className="relative overflow-hidden aspect-[4/5] md:aspect-[3/4]"
+        style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
       >
         {!imgLoaded && (
           <div
@@ -82,9 +82,9 @@ export function ColorCard({
             onClick={(e) => { e.stopPropagation(); onNavigate(handle); }}
             className="border"
             style={{
-              padding: "11px 30px",
-              fontSize: 8,
-              letterSpacing: "0.44em",
+              padding: "12px 32px",
+              fontSize: "clamp(0.65rem, 2vw, 0.75rem)",
+              letterSpacing: "0.36em",
               textTransform: "uppercase",
               fontFamily: "'Montserrat', sans-serif",
               color: "#faf8f5",
@@ -97,7 +97,7 @@ export function ColorCard({
               whiteSpace: "nowrap",
             }}
           >
-            Order Now
+            Add to Cart
           </button>
         </div>
       </div>
@@ -120,7 +120,7 @@ export function ColorCard({
           <span
             style={{
               fontFamily: "'Montserrat', sans-serif",
-              fontSize: 9,
+              fontSize: "clamp(0.65rem, 2vw, 0.75rem)",
               letterSpacing: "0.24em",
               textTransform: "uppercase",
               color: "#8a7e74",
@@ -148,7 +148,7 @@ export function ColorCard({
         <p
           style={{
             fontFamily: "'Montserrat', sans-serif",
-            fontSize: "clamp(0.68rem, 1.8vw, 0.76rem)",
+            fontSize: "clamp(0.78rem, 2.2vw, 0.85rem)",
             letterSpacing: "0.14em",
             color: "#7a6e64",
           }}
@@ -160,11 +160,11 @@ export function ColorCard({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onNavigate(handle); }}
-          className="self-start mt-2 border transition-all duration-300"
+          className="self-center mt-3 border transition-all duration-300"
           style={{
-            padding: "10px 22px",
-            fontSize: 8,
-            letterSpacing: "0.4em",
+            padding: "12px 28px",
+            fontSize: "clamp(0.65rem, 2vw, 0.75rem)",
+            letterSpacing: "0.32em",
             textTransform: "uppercase",
             fontFamily: "'Montserrat', sans-serif",
             color: "#faf8f5",
@@ -172,7 +172,7 @@ export function ColorCard({
             backgroundColor: "#1e1814",
           }}
         >
-          Order Now
+          Add to Cart
         </button>
       </div>
     </motion.article>
