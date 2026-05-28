@@ -67,7 +67,7 @@ function AppContent() {
   useRestockChecker();
   const cart = useCart();
 
-  function handleColorCardAddToCart(handle: string, currentImage?: string) {
+  function handleColorCardAddToCart(handle: string, _image?: string) {
     const products: ProductConfig[] = [IMAGES.product1, IMAGES.product2, IMAGES.product3] as ProductConfig[];
     const product = products.find((p) => handle.startsWith(p.slug + "-") || handle === p.slug);
     if (!product) return;
@@ -77,10 +77,7 @@ function AppContent() {
     const colorName = Object.keys((product.colorImages ?? {}) as Record<string, string>).find(
       (c) => c.toLowerCase().replace(/\s+/g, "-") === colorSlug,
     ) ?? "";
-    const fallbackImage = ((product.colorImages ?? {}) as Record<string, string>)[colorName] ?? product.productShot;
-    // Use the image the user was actually looking at (passed from ColorCard);
-    // fall back to the static config image if not provided.
-    const image = currentImage ?? fallbackImage;
+    const image = ((product.colorImages ?? {}) as Record<string, string>)[colorName] ?? product.productShot;
     cart.addToCart({
       variantId: product.variantId ?? handle,
       title: product.name,

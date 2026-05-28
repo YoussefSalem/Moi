@@ -47,12 +47,6 @@ export function ColorCard({
     setMobileIndex(i => (i + dir + allImages.length) % allImages.length);
   }
 
-  // The image currently visible (used when adding to cart)
-  // On mobile we use the swiped index; on desktop we use the hover image if showing
-  function getCurrentImage(isMobileEvent: boolean): string {
-    if (isMobileEvent) return mobileImg;
-    return hovered && hoverImage ? hoverImage : image;
-  }
 
   return (
     <motion.article
@@ -274,9 +268,7 @@ export function ColorCard({
           onClick={(e) => {
             e.stopPropagation();
             if (onAddToCart) {
-              // Pass the image currently visible so cart shows what user is looking at
-              const isMobile = window.matchMedia("(max-width: 767px)").matches;
-              onAddToCart(handle, getCurrentImage(isMobile));
+              onAddToCart(handle, image);
             } else {
               onNavigate(handle);
             }
