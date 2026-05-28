@@ -155,6 +155,15 @@ async function sendRecoveryEmails(): Promise<void> {
       if (!isSendTime(row.createdAt)) continue;
       if (!Array.isArray(row.lineItems) || row.lineItems.length === 0) continue;
 
+      // Skip rows with invalid email addresses and mark them so they aren't retried
+      if (!row.email || !row.email.includes("@")) {
+        await db.update(abandonedCarts)
+          .set({ status: "failed", updatedAt: new Date() })
+          .where(eq(abandonedCarts.id, row.id));
+        logger.warn({ id: row.id, email: row.email }, "abandoned-cart: invalid email, marking failed");
+        continue;
+      }
+
       const siteUrl = getSiteUrl();
       const recoveryUrl = `${siteUrl}/?recover-cart=${row.recoveryToken}`;
 
@@ -200,6 +209,10 @@ async function sendRecoveryEmails(): Promise<void> {
         logger.info({ id: row.id, email: row.email }, "abandoned-cart: recovery email sent");
       } catch (err) {
         logger.warn({ err, id: row.id }, "abandoned-cart: failed to send recovery email");
+        // Mark as failed so the scheduler doesn't retry indefinitely
+        await db.update(abandonedCarts)
+          .set({ status: "failed", updatedAt: new Date() })
+          .where(eq(abandonedCarts.id, row.id));
       }
     }
   } catch (err) {
