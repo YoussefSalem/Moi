@@ -255,9 +255,9 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
           </div>
         ) : (
           <motion.div
-            initial={{ opacity: 0, y: 18 }}
+            initial={{ opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
             className="max-w-6xl mx-auto px-5 md:px-12 pt-6 md:pt-10 pb-24 flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-16 items-center"
           >
             {/* ── IMAGE GALLERY ── */}

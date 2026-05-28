@@ -205,10 +205,10 @@ function AppContent() {
       <AnimatePresence mode="wait">
         <motion.div
           key={isProductPage ? `product-${productHandle}` : page}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
-          transition={{ duration: 0.22, ease: "easeInOut" }}
+          transition={{ duration: 0.42, ease: "easeInOut" }}
         >
           {isProductPage ? (
             <Suspense fallback={<div style={{ minHeight: "80vh", background: "#faf8f5" }} />}>
