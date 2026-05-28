@@ -43,7 +43,7 @@ const POLICY_PAGES: PageType[] = ["privacy", "refund", "return", "delivery"];
 
 const VALID_PRODUCTS: Record<string, string[] | null> = {
   "moi-wavvy": ["light-blue", "navy", "mint"],
-  "moi-versa-top": ["taupe", "espresso", "brown", "white", "cashmere", "navy", "mint"],
+  "moi-versa-top": ["white", "cashmere", "beige", "yellow", "teal"],
   "trio-bangles": null,
 };
 
@@ -72,7 +72,7 @@ function parsePath(): { page: PageType; productHandle: string } {
 // Colours shown on the homepage for each product line.
 // product1 (moi-wavvy) → WAVVY line; product2 (moi-versa-top) → Versa Top line.
 const WAVVY_COLORS  = [{ name: "Light Blue" }, { name: "Navy" }, { name: "Mint" }];
-const VERSA_COLORS  = [{ name: "Taupe" }, { name: "Espresso" }, { name: "Brown" }, { name: "White" }, { name: "Cashmere" }, { name: "Navy" }, { name: "Mint" }];
+const VERSA_COLORS  = [{ name: "White" }, { name: "Cashmere" }, { name: "Beige" }, { name: "Yellow" }, { name: "Teal" }];
 
 const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
 
