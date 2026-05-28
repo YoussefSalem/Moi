@@ -31,6 +31,7 @@ const CheckoutPage = lazy(() => import("@/components/CheckoutPage").then(m => ({
 const CustomerAuthModal = lazy(() => import("@/components/CustomerAuthModal").then(m => ({ default: m.CustomerAuthModal })));
 const AccountPage = lazy(() => import("@/components/AccountPage").then(m => ({ default: m.AccountPage })));
 const SearchDrawer = lazy(() => import("@/components/SearchDrawer").then(m => ({ default: m.SearchDrawer })));
+import type { SearchItem } from "@/components/SearchDrawer";
 const AdminPage = lazy(() => import("@/pages/AdminPage").then(m => ({ default: m.AdminPage })));
 const ProductPage = lazy(() => import("@/pages/ProductPage").then(m => ({ default: m.ProductPage })));
 const NotFoundPage = lazy(() => import("@/components/NotFoundPage").then(m => ({ default: m.NotFoundPage })));
@@ -176,6 +177,58 @@ function AppContent() {
   // so the mapping doesn't break when the Shopify store grows.
   const product1 = products.find(p => p.slug === "moi-wavvy") ?? IMAGES.product1;
   const product2 = products.find(p => p.slug === "moi-versa-top") ?? IMAGES.product2;
+  const product3 = IMAGES.product3 as ProductConfig;
+
+  // Build search items: one entry per color variant, plus accessories
+  const searchItems: SearchItem[] = useMemo(() => {
+    const items: SearchItem[] = [];
+
+    const allProducts: ProductConfig[] = [product1, product2, product3];
+    for (const product of allProducts) {
+      if (product.slug === "trio-bangles") {
+        items.push({
+          id: product.slug,
+          name: product.name,
+          handle: product.slug,
+          image: product.productShot,
+          price: product.price,
+          product,
+        });
+        continue;
+      }
+
+      const colorImages = product.colorImages as Record<string, string> | undefined;
+      const validColors = VALID_PRODUCTS[product.slug];
+      if (!validColors) continue;
+
+      // For each valid color slug, generate a variant search item
+      for (const colorSlug of validColors) {
+        const colorName = colorSlug
+          .split("-")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
+        const handle = `${product.slug}-${colorSlug}`;
+        const colorImage = colorImages?.[colorName] ?? product.productShot;
+        const variant = product.variants?.find((v) =>
+          v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === colorName)
+        );
+        const price = variant?.price ?? product.price;
+        const sizeOption = variant?.selectedOptions.find((o) => o.name.toLowerCase() === "size");
+        const subtitle = sizeOption ? `Size: ${sizeOption.value}` : undefined;
+
+        items.push({
+          id: handle,
+          name: `${product.name} \u2014 ${colorName}`,
+          subtitle,
+          handle,
+          image: colorImage,
+          price,
+          product,
+        });
+      }
+    }
+    return items;
+  }, [product1, product2, product3]);
 
   useEffect(() => {
     if (page === "home") {
@@ -331,15 +384,14 @@ function AppContent() {
         <AccountPage />
         <SearchDrawer
           open={searchOpen}
-          products={products}
+          items={searchItems}
           query={searchQuery}
           onQueryChange={setSearchQuery}
           onClose={() => setSearchOpen(false)}
-          onSelect={(product) => {
-            setLookProduct(product);
+          onSelect={(item) => {
             setSearchOpen(false);
             setSearchQuery("");
-            navigateTo("home");
+            navigateToProduct(item.handle);
           }}
         />
       </Suspense>

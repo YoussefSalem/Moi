@@ -2,30 +2,42 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Search } from "lucide-react";
 import type { ProductConfig } from "@/config/images";
 
+export interface SearchItem {
+  id: string;
+  name: string;
+  subtitle?: string;
+  handle: string;
+  image: string;
+  price: string;
+  product: ProductConfig;
+}
+
 interface SearchDrawerProps {
   open: boolean;
-  products: ProductConfig[];
+  items: SearchItem[];
   query: string;
   onQueryChange: (value: string) => void;
   onClose: () => void;
-  onSelect: (product: ProductConfig) => void;
+  onSelect: (item: SearchItem) => void;
 }
 
-export function SearchDrawer({ open, products, query, onQueryChange, onClose, onSelect }: SearchDrawerProps) {
+export function SearchDrawer({ open, items, query, onQueryChange, onClose, onSelect }: SearchDrawerProps) {
+  const safeItems = items ?? [];
   const normalizedQuery = query.trim().toLowerCase();
   const results = normalizedQuery
-    ? products.filter((product) => {
+    ? safeItems.filter((item) => {
       const haystack = [
-        product.name,
-        product.description,
-        product.ref,
-        ...(product.variants?.flatMap((variant) => variant.selectedOptions.map((option) => option.value)) ?? []),
+        item.name,
+        item.subtitle,
+        item.handle,
+        item.price,
       ]
+        .filter(Boolean)
         .join(" ")
         .toLowerCase();
       return haystack.includes(normalizedQuery);
     })
-    : products;
+    : safeItems;
 
   return (
     <AnimatePresence>
@@ -63,29 +75,37 @@ export function SearchDrawer({ open, products, query, onQueryChange, onClose, on
                 <input
                   value={query}
                   onChange={(e) => onQueryChange(e.target.value)}
-                  placeholder="Search by product, color, or ref"
+                  placeholder="Search by product, color, or price"
                   className="w-full px-4 py-3 text-base tracking-wide outline-none bg-transparent"
                   style={{ border: "1px solid rgba(30,24,20,0.14)", color: "#1e1814", fontSize: "16px" }}
                   autoFocus
                 />
 
                 <div className="mt-5 max-h-[55vh] overflow-y-auto pr-1 grid gap-3">
-                  {results.length > 0 ? results.map((product) => (
+                  {results.length > 0 ? results.map((item) => (
                     <button
-                      key={product.ref}
+                      key={item.id}
                       type="button"
-                      onClick={() => onSelect(product)}
+                      onClick={() => onSelect(item)}
                       className="flex items-center gap-4 text-left p-3 transition-colors hover:bg-black/5"
                     >
                       <img
-                        src={product.productShot}
-                        alt={product.name}
+                        src={item.image}
+                        alt={item.name}
                         className="w-16 h-20 object-cover flex-shrink-0"
                       />
-                      <div className="min-w-0">
-                        <p className="text-sm uppercase tracking-[0.16em]" style={{ color: "#1e1814" }}>{product.name}</p>
-                        <p className="text-[11px] mt-1" style={{ color: "#7a6e64" }}>{product.ref}</p>
-                        <p className="text-[11px] mt-1 truncate" style={{ color: "#7a6e64" }}>{product.description}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm uppercase tracking-[0.16em]" style={{ color: "#1e1814" }}>
+                          {item.name}
+                        </p>
+                        {item.subtitle && (
+                          <p className="text-[11px] mt-1" style={{ color: "#7a6e64" }}>
+                            {item.subtitle}
+                          </p>
+                        )}
+                        <p className="text-[11px] mt-1" style={{ color: "#7a6e64" }}>
+                          {item.price}
+                        </p>
                       </div>
                     </button>
                   )) : (
