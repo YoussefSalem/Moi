@@ -302,7 +302,7 @@ export function ColorCard({
 
         {/* Price */}
         <p
-          className="text-center"
+          className="text-center mt-auto"
           style={{
             fontFamily: "'Montserrat', sans-serif",
             fontSize: "clamp(0.81rem, 2.2vw, 0.88rem)",
@@ -324,7 +324,7 @@ export function ColorCard({
               onNavigate(handle);
             }
           }}
-          className="self-center mt-auto border transition-all duration-300 px-6 py-2.5 md:px-14 md:py-3.5 hover:shadow-lg w-full md:w-auto"
+          className="self-center border transition-all duration-300 px-6 py-2.5 md:px-14 md:py-3.5 hover:shadow-lg w-full md:w-auto"
           style={{
             fontSize: "clamp(0.62rem, 2vw, 0.78rem)",
             letterSpacing: "0.28em",
