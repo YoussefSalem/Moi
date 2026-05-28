@@ -218,7 +218,7 @@ export function ColorCard({
       )}
 
       {/* Info */}
-      <div className="flex flex-col items-center flex-grow pt-24 md:pt-36 pb-6 md:pb-8 px-1 md:px-0 gap-y-16 md:gap-y-24">
+      <div className="flex flex-col items-center flex-grow pt-3 md:pt-4 pb-4 md:pb-5 px-1 md:px-0 gap-y-2 md:gap-y-2.5">
         {/* Color name + badge */}
         <div className="flex items-center justify-center gap-2 flex-wrap md:flex-nowrap">
           <div className="flex items-center gap-2 min-w-0">
