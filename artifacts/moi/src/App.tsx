@@ -211,15 +211,15 @@ function AppContent() {
             style={{ backgroundColor: "#faf8f5" }}
           >
             {[
-              { emoji: "\u2744\uFE0F", text: "New summer drop" },
+              { emoji: "\u2600\uFE0F", text: "New summer drop" },
               { emoji: "\u26A1", text: "Fast delivery across Egypt" },
               { emoji: "\uD83D\uDD25", text: "Limited stock available" },
             ].map((item) => (
               <div key={item.text} className="flex items-center gap-1.5">
                 <span className="text-[11px]" aria-hidden="true">{item.emoji}</span>
                 <span
-                  className="text-[9px] md:text-[10px] tracking-[0.18em] uppercase font-light"
-                  style={{ color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif" }}
+                  className="text-[9px] md:text-[10px] tracking-[0.18em] uppercase font-medium"
+                  style={{ color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}
                 >
                   {item.text}
                 </span>

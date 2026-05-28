@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ColorCardProps {
   productName: string;
@@ -32,6 +32,7 @@ export function ColorCard({
   const [imgLoaded, setImgLoaded] = useState(false);
   const [hoverImgLoaded, setHoverImgLoaded] = useState(false);
   const [mobileIndex, setMobileIndex] = useState(0);
+  const [swipeDirection, setSwipeDirection] = useState<1 | -1>(1);
 
   const dragStartXRef = useRef<number | null>(null);
   const dragLastXRef = useRef<number | null>(null);
@@ -41,9 +42,8 @@ export function ColorCard({
     ? gallery
     : [image, ...(hoverImage ? [hoverImage] : [])];
 
-  const mobileImg = allImages[mobileIndex] ?? image;
-
   function swipeBy(dir: 1 | -1) {
+    setSwipeDirection(dir);
     setMobileIndex(i => (i + dir + allImages.length) % allImages.length);
   }
 
@@ -114,7 +114,7 @@ export function ColorCard({
           )}
         </div>
 
-        {/* ── MOBILE: swipeable image ── */}
+        {/* ── MOBILE: swipeable image with animated transition ── */}
         <div
           className="md:hidden absolute inset-0"
           onPointerDown={(e) => {
@@ -145,46 +145,52 @@ export function ColorCard({
           }}
           style={{ touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none" }}
         >
-          <img
-            src={mobileImg}
-            alt={`${productName} — ${colorName}`}
-            className="absolute inset-0 w-full h-full"
-            style={{ objectFit: "cover", objectPosition: "center top" }}
-            loading="lazy"
-            decoding="async"
-            onLoad={() => setImgLoaded(true)}
-          />
+          <AnimatePresence initial={false} mode="popLayout">
+            <motion.img
+              key={mobileIndex}
+              src={allImages[mobileIndex] ?? image}
+              alt={`${productName} — ${colorName}`}
+              className="absolute inset-0 w-full h-full"
+              style={{ objectFit: "cover", objectPosition: "center top" }}
+              loading="lazy"
+              decoding="async"
+              onLoad={() => setImgLoaded(true)}
+              initial={{ x: swipeDirection * 100, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: swipeDirection * -100, opacity: 0 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            />
+          </AnimatePresence>
         </div>
 
       </div>
 
-      {/* Mobile pagination dots — below the image, bottom-aligned */}
+      {/* Mobile pagination dots — pill style */}
       {allImages.length > 1 && (
-        <div className="md:hidden flex justify-center gap-2 mt-2">
+        <div className="md:hidden flex justify-center mt-2">
           {allImages.map((_, i) => (
             <button
               key={i}
               type="button"
               aria-label={`Go to image ${i + 1}`}
               onClick={(e) => { e.stopPropagation(); setMobileIndex(i); }}
-              className="p-1"
               style={{
-                width: 14,
-                height: 14,
+                padding: "6px 2px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: "none",
-                border: "none",
               }}
             >
               <div
                 style={{
-                  width: i === mobileIndex ? 14 : 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: i === mobileIndex ? "#1e1814" : "rgba(30,24,20,0.28)",
-                  transition: "all 0.22s ease",
+                  width: i === mobileIndex ? 14 : 4,
+                  height: 4,
+                  borderRadius: 999,
+                  backgroundColor: i === mobileIndex ? "#1e1814" : "rgba(30,24,20,0.24)",
+                  transition: "all 0.28s ease",
                 }}
               />
             </button>

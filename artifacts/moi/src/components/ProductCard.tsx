@@ -670,7 +670,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 {/* Gallery dots — mobile only (desktop uses arrows) */}
                 {galleryImages.length > 1 && (
                   <div className="md:hidden flex flex-col items-center gap-2 mt-5">
-                    <div className="flex items-center justify-center gap-[10px]">
+                    <div className="flex items-center justify-center">
                       {galleryImages.map((_, index) => (
                         <button
                           key={`${selectedColor}-${index}`}
@@ -678,7 +678,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                           aria-label={`Image ${index + 1}`}
                           onClick={(e) => { e.stopPropagation(); setGalleryIndex(index); }}
                           style={{
-                            padding: "6px 4px",
+                            padding: "6px 2px",
                             background: "none",
                             border: "none",
                             cursor: "pointer",
@@ -690,9 +690,10 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                           <span
                             className="block rounded-full transition-all duration-300"
                             style={{
-                              width: index === galleryIndex ? 20 : 6,
-                              height: 6,
-                              backgroundColor: index === galleryIndex ? "#1e1814" : "rgba(30,24,20,0.22)",
+                              width: index === galleryIndex ? 14 : 4,
+                              height: 4,
+                              borderRadius: 999,
+                              backgroundColor: index === galleryIndex ? "#1e1814" : "rgba(30,24,20,0.24)",
                             }}
                           />
                         </button>
