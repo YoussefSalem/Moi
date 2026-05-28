@@ -69,7 +69,7 @@ export function ColorCard({
     >
       {/* Image container */}
       <div
-        className="relative overflow-hidden aspect-[4/5] md:aspect-[3/4] rounded-lg md:rounded-xl"
+        className="relative overflow-hidden aspect-[3/4] md:aspect-[3/4] rounded-lg md:rounded-xl"
         style={{
           backgroundColor: "#ffffff",
           boxShadow: "0 2px 16px rgba(30,24,20,0.04)",
@@ -237,8 +237,8 @@ export function ColorCard({
               className="truncate"
               style={{
                 fontFamily: "'Montserrat', sans-serif",
-                fontSize: "clamp(0.68rem, 2vw, 0.78rem)",
-                letterSpacing: "0.24em",
+                fontSize: "clamp(0.6rem, 2vw, 0.78rem)",
+                letterSpacing: "0.16em",
                 textTransform: "uppercase",
                 color: "#8a7e74",
               }}
@@ -272,15 +272,16 @@ export function ColorCard({
         </div>
 
         {/* Product name + stock count */}
-        <div className="flex items-center justify-center gap-4 md:gap-6">
+        <div className="flex flex-col items-center gap-0.5 md:flex-row md:items-center md:justify-center md:gap-6">
           <h3
             style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
-              fontSize: "clamp(1.09rem, 3vw, 1.35rem)",
+              fontSize: "clamp(0.88rem, 2.5vw, 1.35rem)",
               fontWeight: 300,
               color: "#1e1814",
               letterSpacing: "0.04em",
               lineHeight: 1.15,
+              textAlign: "center",
             }}
           >
             {productName}
@@ -288,7 +289,7 @@ export function ColorCard({
           <span
             style={{
               fontFamily: "'Montserrat', sans-serif",
-              fontSize: "clamp(0.6rem, 1.6vw, 0.71rem)",
+              fontSize: "clamp(0.56rem, 1.6vw, 0.71rem)",
               letterSpacing: "0.12em",
               textTransform: "uppercase",
               color: "#c83232",
@@ -323,9 +324,9 @@ export function ColorCard({
               onNavigate(handle);
             }
           }}
-          className="self-center mt-auto border transition-all duration-300 px-10 py-3.5 md:px-14 md:py-3.5 hover:shadow-lg"
+          className="self-center mt-auto border transition-all duration-300 px-6 py-2.5 md:px-14 md:py-3.5 hover:shadow-lg w-full md:w-auto"
           style={{
-            fontSize: "clamp(0.68rem, 2vw, 0.78rem)",
+            fontSize: "clamp(0.62rem, 2vw, 0.78rem)",
             letterSpacing: "0.28em",
             textTransform: "uppercase",
             fontFamily: "'Montserrat', sans-serif",
