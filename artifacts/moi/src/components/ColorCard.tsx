@@ -215,31 +215,66 @@ export function ColorCard({
       )}
 
       {/* Info */}
-      <div className="flex flex-col gap-2.5 pt-5 md:pt-6 pb-2 px-1 md:px-0">
-        {/* Color label + swatch */}
-        <div className="flex items-center gap-2">
-          {swatchColor && (
+      <div className="flex flex-col gap-2.5 pt-5 md:pt-6 pb-2 px-1 md:px-0 pr-14 md:pr-0">
+        {/* Color label + swatch + urgency */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            {swatchColor && (
+              <span
+                className="rounded-full flex-shrink-0"
+                style={{
+                  width: 10,
+                  height: 10,
+                  backgroundColor: swatchColor,
+                  border: "1px solid rgba(30,24,20,0.18)",
+                }}
+              />
+            )}
             <span
-              className="rounded-full flex-shrink-0"
+              className="truncate"
               style={{
-                width: 10,
-                height: 10,
-                backgroundColor: swatchColor,
-                border: "1px solid rgba(30,24,20,0.18)",
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: "clamp(0.65rem, 2vw, 0.75rem)",
+                letterSpacing: "0.24em",
+                textTransform: "uppercase",
+                color: "#8a7e74",
               }}
-            />
+            >
+              {colorName}
+            </span>
+          </div>
+          {productName === "MOI WAVVY" && colorName === "Light Blue" && (
+            <span
+              className="flex-shrink-0 hidden md:block"
+              style={{
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: "clamp(0.58rem, 1.6vw, 0.68rem)",
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "#c83232",
+                fontWeight: 500,
+                paddingLeft: 4,
+              }}
+            >
+              Selling Fast
+            </span>
           )}
-          <span
-            style={{
-              fontFamily: "'Montserrat', sans-serif",
-              fontSize: "clamp(0.65rem, 2vw, 0.75rem)",
-              letterSpacing: "0.24em",
-              textTransform: "uppercase",
-              color: "#8a7e74",
-            }}
-          >
-            {colorName}
-          </span>
+          {productName === "MOI WAVVY" && colorName === "Light Blue" && (
+            <span
+              className="flex-shrink-0 md:hidden"
+              style={{
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: "0.58rem",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "#c83232",
+                fontWeight: 500,
+                paddingLeft: 4,
+              }}
+            >
+              Selling Fast
+            </span>
+          )}
         </div>
 
         {/* Product name */}

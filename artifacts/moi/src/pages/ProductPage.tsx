@@ -325,8 +325,8 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                     <ImageSkeleton variant="warm" />
                   )}
 
-                  {/* Zoom hint — subtle, fades on interaction */}
-                  <div className="absolute bottom-3 right-3" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 8, color: "rgba(30,24,20,0.35)", letterSpacing: "0.2em", textTransform: "uppercase" }}>
+                  {/* Zoom hint — mobile only */}
+                  <div className="absolute bottom-3 right-3 md:hidden" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 8, color: "rgba(30,24,20,0.35)", letterSpacing: "0.2em", textTransform: "uppercase" }}>
                     tap to zoom
                   </div>
                 </div>

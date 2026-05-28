@@ -299,7 +299,7 @@ function AppContent() {
         </motion.div>
       </AnimatePresence>
 
-      <LoadingScreen ready={page !== "home" ? !loading : heroReady && !loading} />
+      {page === "home" && <LoadingScreen ready={heroReady && !loading} />}
       <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
 
       <WhatsAppButton />
