@@ -551,9 +551,10 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               {onNavigate && (
                 <div className="mt-12 pt-10 border-t border-[rgba(30,24,20,0.08)]">
                   <p
+                    className="text-center"
                     style={{
                       fontFamily: "'Montserrat', sans-serif",
-                      fontSize: 10,
+                      fontSize: "clamp(10px, 2.8vw, 11px)",
                       letterSpacing: "0.28em",
                       textTransform: "uppercase",
                       color: "#8a7e74",
@@ -572,7 +573,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         { handle: "moi-wavvy-navy", name: "MOI WAVVY", color: "Navy", price: "899 EGP", image: IMAGES.product1.colorImages.Navy as string, swatch: "#3a5a7a" },
                         { handle: "moi-wavvy-mint", name: "MOI WAVVY", color: "Mint", price: "899 EGP", image: IMAGES.product1.colorImages.Mint as string, swatch: "#98c8a8" },
                       ];
-                      const visible = clothingRecs.filter((r) => r.handle !== handle).slice(0, 3);
+                      const visible = clothingRecs.filter((r) => r.handle !== handle).slice(0, 6);
                       return visible.map((rec) => (
                         <button
                           key={rec.handle}
