@@ -117,7 +117,7 @@ export function useShopifyProducts(fallbacks: ProductConfig[]): UseShopifyProduc
     ricId = ric(() => {
     if (cancelled) return;
 
-    getProducts(10)
+    getProducts(50)
       .then((shopifyProducts) => {
         if (cancelled) return;
         if (shopifyProducts.length === 0) {

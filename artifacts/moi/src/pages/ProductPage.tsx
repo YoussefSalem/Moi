@@ -66,6 +66,24 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
 
+  // SEO: update document head imperatively so meta is reliably in the <head>
+  useEffect(() => {
+    const prevTitle = document.title;
+    document.title = `${product.name} — Moi`;
+    let descTag = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+    const prevDesc = descTag?.content ?? "";
+    if (!descTag) {
+      descTag = document.createElement("meta");
+      descTag.name = "description";
+      document.head.appendChild(descTag);
+    }
+    descTag.content = product.description?.slice(0, 160) ?? "";
+    return () => {
+      document.title = prevTitle;
+      if (descTag) descTag.content = prevDesc;
+    };
+  }, [product.name, product.description]);
+
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, [handle]);
   useEffect(() => { setGalleryIndex(0); setImgLoaded(false); }, [handle]);
 
@@ -172,10 +190,6 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
 
   return (
     <>
-      {/* SEO */}
-      <title>{`${product.name} — Moi`}</title>
-      <meta name="description" content={product.description} />
-
       <div className="min-h-screen" style={{ backgroundColor: BG }}>
         {/* Back button */}
         <div className="w-full px-5 md:px-12 pt-6 pb-2">

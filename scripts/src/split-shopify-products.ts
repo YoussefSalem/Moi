@@ -90,6 +90,23 @@ async function handleExists(handle: string): Promise<boolean> {
   }
 }
 
+/** Find parent variants matching a given colour name (case-insensitive). */
+function parentVariantsForColor(
+  parent: ShopifyAdminProduct,
+  colorName: string,
+): ShopifyAdminProduct["variants"] {
+  const colorOption = parent.options.find(
+    (o) => o.name.toLowerCase() === "color" || o.name.toLowerCase() === "colour",
+  );
+  if (!colorOption) return parent.variants;
+  // Shopify stores option values in option1/option2/option3 by position index
+  const colorOptionIdx = parent.options.indexOf(colorOption); // 0-based
+  const optKey = `option${colorOptionIdx + 1}` as "option1" | "option2" | "option3";
+  return parent.variants.filter(
+    (v) => (v[optKey] ?? "").toLowerCase() === colorName.toLowerCase(),
+  );
+}
+
 async function createColorProduct(
   parent: ShopifyAdminProduct,
   colorName: string,
@@ -106,14 +123,31 @@ async function createColorProduct(
     (o) => o.name.toLowerCase() === "size" || o.name.toLowerCase() === "titre",
   );
 
-  const variants = sizeValues.map((size, idx) => ({
-    option1: sizeValues.length > 1 ? size : "One Size",
-    price: parent.variants[0]?.price ?? "0.00",
-    sku: `${newHandle.toUpperCase()}-${slugify(size).toUpperCase()}`,
-    inventory_management: "shopify",
-    inventory_quantity: 5,
-    position: idx + 1,
-  }));
+  // Derive price and inventory from matching parent variants where possible
+  const colorVariants = parentVariantsForColor(parent, colorName);
+  const fallbackPrice = parent.variants[0]?.price ?? "0.00";
+
+  const variants = sizeValues.map((size, idx) => {
+    // Find the parent variant with the same size if it exists
+    const sizeNorm = size.toLowerCase().replace(/\s+/g, "");
+    const parentMatch = colorVariants.find((pv) => {
+      const optionVals = [pv.option1, pv.option2, pv.option3]
+        .filter(Boolean)
+        .map((s) => (s ?? "").toLowerCase().replace(/\s+/g, ""));
+      return optionVals.some((v) => v === sizeNorm || sizeNorm.includes(v) || v.includes(sizeNorm));
+    }) ?? colorVariants[idx] ?? colorVariants[0];
+
+    return {
+      option1: sizeValues.length > 1 ? size : "One Size",
+      price: parentMatch?.price ?? fallbackPrice,
+      sku: parentMatch?.sku
+        ? `${parentMatch.sku}-SPLIT`
+        : `${newHandle.toUpperCase()}-${slugify(size).toUpperCase()}`,
+      inventory_management: "shopify",
+      inventory_quantity: parentMatch?.inventory_quantity ?? 0,
+      position: idx + 1,
+    };
+  });
 
   const newProduct = {
     product: {
