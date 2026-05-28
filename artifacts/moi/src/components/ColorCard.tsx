@@ -149,22 +149,29 @@ export function ColorCard({
           {price}
         </p>
 
-        {/* CTA — refined, minimal, full-width on mobile */}
+        {/* CTA — solid dark, generous horizontal padding on desktop */}
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onNavigate(handle); }}
-          className="self-stretch md:self-center mt-3 md:mt-4 border transition-all duration-300"
+          className="self-stretch md:self-center mt-3 md:mt-4 border transition-all duration-300 px-6 py-3.5 md:px-14 md:py-3.5 hover:shadow-lg"
           style={{
-            padding: "14px 0",
             fontSize: "clamp(0.65rem, 2vw, 0.75rem)",
             letterSpacing: "0.28em",
             textTransform: "uppercase",
             fontFamily: "'Montserrat', sans-serif",
             fontWeight: 500,
-            color: "#1e1814",
-            borderColor: "rgba(30,24,20,0.15)",
-            backgroundColor: "transparent",
-            borderRadius: 4,
+            color: "#faf8f5",
+            borderColor: "#1e1814",
+            backgroundColor: "#1e1814",
+            borderRadius: 6,
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#2d231c";
+            (e.currentTarget as HTMLButtonElement).style.borderColor = "#2d231c";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#1e1814";
+            (e.currentTarget as HTMLButtonElement).style.borderColor = "#1e1814";
           }}
         >
           Add to Cart

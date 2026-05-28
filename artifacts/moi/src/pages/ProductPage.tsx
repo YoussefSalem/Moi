@@ -458,7 +458,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                 </div>
               )}
 
-              {/* CTA */}
+              {/* CTA — wide, luxurious, generous padding */}
               {isOutOfStock ? (
                 <motion.button
                   type="button"
@@ -466,15 +466,17 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                   whileTap={{ scale: 0.98 }}
                   className="flex items-center justify-center gap-2 border transition-all duration-300 w-full md:w-auto"
                   style={{
-                    padding: "16px 40px",
-                    maxWidth: 320,
+                    padding: "18px 48px",
+                    minWidth: 280,
+                    maxWidth: 400,
                     fontSize: "clamp(0.7rem, 2.5vw, 0.8rem)",
-                    letterSpacing: "0.38em",
+                    letterSpacing: "0.32em",
                     textTransform: "uppercase",
                     fontFamily: "'Montserrat', sans-serif",
                     color: "#f5f0e8",
                     borderColor: "rgba(245,240,232,0.2)",
                     backgroundColor: "rgba(30,24,20,0.9)",
+                    borderRadius: 6,
                   }}
                 >
                   <Bell size={11} strokeWidth={1.8} />
@@ -487,16 +489,18 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                   whileTap={{ scale: 0.98 }}
                   className="border transition-all duration-500 w-full md:w-auto flex items-center justify-center"
                   style={{
-                    padding: "16px 40px",
-                    maxWidth: 320,
+                    padding: "18px 56px",
+                    minWidth: 280,
+                    maxWidth: 400,
                     fontSize: "clamp(0.7rem, 2.5vw, 0.8rem)",
-                    letterSpacing: "0.42em",
+                    letterSpacing: "0.32em",
                     textTransform: "uppercase",
                     fontFamily: "'Montserrat', sans-serif",
                     color: addedFeedback ? "#1e1814" : "#faf8f5",
                     borderColor: "#1e1814",
                     backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
-                    boxShadow: addedFeedback ? "none" : "0 8px 28px rgba(30,24,20,0.22)",
+                    boxShadow: addedFeedback ? "none" : "0 10px 32px rgba(30,24,20,0.18)",
+                    borderRadius: 6,
                   }}
                 >
                   {addedFeedback ? "Added to Bag ✓" : "Add to Cart"}
