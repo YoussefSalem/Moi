@@ -8,6 +8,7 @@ import { useCustomer } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { NotifyMeModal } from "@/components/NotifyMeModal";
 import { CinematicLightbox } from "@/components/CinematicLightbox";
+import { ImageSkeleton } from "@/components/ImageSkeleton";
 import { trackAddToCart } from "@/lib/analytics";
 
 function slugify(str: string): string {
@@ -122,8 +123,8 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
 
   const galleryImages: string[] = (() => {
     const film = product.filmstrip as string[];
-    if (film?.length > 0) return [product.productShot, ...film];
-    return [product.productShot];
+    const raw = film?.length > 0 ? [product.productShot, ...film] : [product.productShot];
+    return Array.from(new Set(raw));
   })();
 
   const mainImage = galleryImages[galleryIndex] ?? product.productShot;
@@ -228,12 +229,22 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
 
         {loading ? (
           <div className="flex flex-col md:flex-row gap-10 md:gap-16 max-w-6xl mx-auto px-5 md:px-12 py-10">
-            <div className="w-full md:w-1/2 aspect-[3/4] rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.06)" }} />
+            <div className="w-full md:w-1/2 aspect-[3/4] rounded relative overflow-hidden">
+              <ImageSkeleton variant="warm" borderRadius={4} />
+            </div>
             <div className="flex-1 flex flex-col gap-5 pt-4">
-              <div className="h-7 w-2/3 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.07)" }} />
-              <div className="h-4 w-full rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.05)" }} />
-              <div className="h-4 w-4/5 rounded animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.05)" }} />
-              <div className="h-12 w-48 rounded animate-pulse mt-6" style={{ backgroundColor: "rgba(30,24,20,0.09)" }} />
+              <div className="h-7 w-2/3 rounded relative overflow-hidden">
+                <ImageSkeleton variant="warm" borderRadius={4} />
+              </div>
+              <div className="h-4 w-full rounded relative overflow-hidden">
+                <ImageSkeleton variant="warm" borderRadius={4} />
+              </div>
+              <div className="h-4 w-4/5 rounded relative overflow-hidden">
+                <ImageSkeleton variant="warm" borderRadius={4} />
+              </div>
+              <div className="h-12 w-48 rounded relative overflow-hidden mt-6">
+                <ImageSkeleton variant="warm" borderRadius={4} />
+              </div>
             </div>
           </div>
         ) : (
@@ -294,7 +305,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                     />
                   </AnimatePresence>
                   {!imgLoaded && (
-                    <div className="absolute inset-0 animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.05)" }} />
+                    <ImageSkeleton variant="warm" />
                   )}
 
                   {/* Zoom hint — subtle, fades on interaction */}

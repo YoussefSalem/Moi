@@ -325,6 +325,12 @@ section {
   100% { transform: translateX(140%); opacity: 0; }
 }
 
+@keyframes moi-skeleton-shimmer {
+  0% { transform: translateX(-110%); }
+  50% { transform: translateX(110%); }
+  100% { transform: translateX(110%); }
+}
+
 @layer utilities {
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;

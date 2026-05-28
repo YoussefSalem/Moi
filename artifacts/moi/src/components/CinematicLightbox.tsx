@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ImageSkeleton } from "@/components/ImageSkeleton";
 
 interface CinematicLightboxProps {
   images: readonly string[];
@@ -246,17 +247,15 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
           style={{
             opacity: loaded ? 0 : 1,
             transition: "opacity 0.25s ease-out",
-            backgroundColor: "rgba(30,24,20,0.03)",
           }}
         >
-          <div
-            className="animate-pulse"
+          <ImageSkeleton
+            variant="card"
             style={{
               width: "min(72%, 340px)",
               height: "min(55vh, 480px)",
-              backgroundColor: "rgba(30,24,20,0.07)",
-              borderRadius: 2,
             }}
+            borderRadius={2}
           />
         </div>
 

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { IMAGES } from "@/config/images";
+import { ImageSkeleton } from "@/components/ImageSkeleton";
 
 // Detect mobile once on mount (never re-check — prevents layout jitter)
 const getIsMobile = () => typeof window !== "undefined" && window.innerWidth < 768;
@@ -71,10 +72,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
     >
       {/* Skeleton shown while hero image/video is loading */}
       {!loaded && (
-        <div
-          className="absolute inset-0 z-[1] animate-pulse"
-          style={{ backgroundColor: "#e8e3dc" }}
-        />
+        <ImageSkeleton variant="warm" className="z-[1]" />
       )}
 
       {/* Ambient edge glow */}

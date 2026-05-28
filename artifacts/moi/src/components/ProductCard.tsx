@@ -7,6 +7,7 @@ import type { ProductConfig, VariantOption } from "@/config/images";
 import { useCart } from "@/context/CartContext";
 import { useCustomer } from "@/context/CustomerContext";
 import { NotifyMeModal } from "@/components/NotifyMeModal";
+import { ImageSkeleton } from "@/components/ImageSkeleton";
 import {
   trackProductView,
   trackProductImageInteraction,
@@ -533,11 +534,12 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                         {(!imgLoaded || isSwapping) && (
                           <motion.div
                             key="skeleton"
-                            className="absolute inset-0 pointer-events-none animate-pulse"
-                            style={{ backgroundColor: "rgba(30,24,20,0.06)" }}
+                            className="absolute inset-0 pointer-events-none"
                             initial={{ opacity: 1 }}
                             exit={{ opacity: 0, transition: { duration: 0.3 } }}
-                          />
+                          >
+                            <ImageSkeleton variant="card" />
+                          </motion.div>
                         )}
                       </AnimatePresence>
 
@@ -657,11 +659,12 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                       {(!imgLoaded || isSwapping) && (
                         <motion.div
                           key="skeleton"
-                          className="absolute inset-0 pointer-events-none animate-pulse"
-                          style={{ backgroundColor: "rgba(30,24,20,0.06)" }}
+                          className="absolute inset-0 pointer-events-none"
                           initial={{ opacity: 1 }}
                           exit={{ opacity: 0, transition: { duration: 0.3 } }}
-                        />
+                        >
+                          <ImageSkeleton variant="card" />
+                        </motion.div>
                       )}
                     </AnimatePresence>
                   </div>

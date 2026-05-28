@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import type { ProductConfig } from "@/config/images";
 import { useCart } from "@/context/CartContext";
 import { CinematicLightbox } from "@/components/CinematicLightbox";
+import { ImageSkeleton } from "@/components/ImageSkeleton";
 
 interface LookViewProps {
   product: ProductConfig | null;
@@ -282,10 +283,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                           />
                           {/* Skeleton pulse while new image loads (between fade-out and onLoad) */}
                           {thumbLoading && !fading && (
-                            <div
-                              className="absolute inset-0 animate-pulse rounded-sm pointer-events-none"
-                              style={{ backgroundColor: "rgba(30,24,20,0.07)" }}
-                            />
+                            <ImageSkeleton variant="card" borderRadius={2} />
                           )}
                         </button>
 

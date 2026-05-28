@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ImageSkeleton } from "@/components/ImageSkeleton";
 
 interface ColorCardProps {
   productName: string;
@@ -72,10 +73,7 @@ export function ColorCard({
         }}
       >
         {!imgLoaded && (
-          <div
-            className="absolute inset-0 animate-pulse"
-            style={{ backgroundColor: "rgba(30,24,20,0.06)" }}
-          />
+          <ImageSkeleton variant="card" className="z-0" borderRadius={8} />
         )}
 
         {/* ── DESKTOP: hover crossfade ── */}

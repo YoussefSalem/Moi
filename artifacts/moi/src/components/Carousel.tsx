@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Heart } from "lucide-react";
 import { IMAGES } from "@/config/images";
+import { ImageSkeleton } from "@/components/ImageSkeleton";
 
 export function Carousel() {
   const images: readonly string[] = IMAGES.product1.filmstrip;
@@ -201,10 +202,7 @@ export function Carousel() {
               <div className="flex-1 flex items-center justify-center relative bg-black">
                 {/* Skeleton while image loads */}
                 {!lbImgLoaded && (
-                  <div
-                    className="absolute inset-0 animate-pulse"
-                    style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
-                  />
+                  <ImageSkeleton variant="dark" />
                 )}
                 <AnimatePresence initial={false} mode="wait">
                   <motion.img
