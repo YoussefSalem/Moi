@@ -455,9 +455,9 @@ export function buildInstapayPendingEmail(params: {
   });
 
   const discountText = discountAmount ? `\nDiscount ${discountCode ? `(${discountCode})` : ""}: -${discountAmount} EGP` : "";
-  const shippingText = shippingAmount ? `\nShipping: ${parseFloat(shippingAmount) === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
-  const emailTotalText3 = (parseFloat(total) - parseFloat(shippingAmount ?? "0") + (discountAmount ? parseFloat(discountAmount) : 0)
-    - (discountAmount ? parseFloat(discountAmount) : 0) + parseFloat(shippingAmount ?? "0")).toFixed(2);
+  const shippingAmountNum3 = parseFloat((shippingAmount ?? "0").replace(/[^0-9.]/g, "")) || 0;
+  const shippingText = shippingAmount ? `\nShipping: ${shippingAmountNum3 === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
+  const emailTotalText3 = (parseFloat(total.replace(/[^0-9.]/g, "")) || 0).toFixed(2);
 
   const text = `Payment Verification in Progress \u2014 Moi\n\n${name ? `Hi ${name},` : "Hello,"}\n\nWe've received your InstaPay proof for order #${orderNumber}.\n\nOrder #${orderNumber}${discountText}${shippingText}\nTotal: ${emailTotalText3} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Pending Verification\n\nOnce verified, you'll receive a WhatsApp confirmation and your order will be dispatched.\n\nbuy-moi.com`;
 
@@ -513,9 +513,9 @@ export function buildInstapayConfirmedEmail(params: {
   });
 
   const discountText = discountAmount ? `\nDiscount ${discountCode ? `(${discountCode})` : ""}: -${discountAmount} EGP` : "";
-  const shippingText = shippingAmount ? `\nShipping: ${parseFloat(shippingAmount) === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
-  const emailTotalText4 = (parseFloat(total) - parseFloat(shippingAmount ?? "0") + (discountAmount ? parseFloat(discountAmount) : 0)
-    - (discountAmount ? parseFloat(discountAmount) : 0) + parseFloat(shippingAmount ?? "0")).toFixed(2);
+  const shippingAmountNum4 = parseFloat((shippingAmount ?? "0").replace(/[^0-9.]/g, "")) || 0;
+  const shippingText = shippingAmount ? `\nShipping: ${shippingAmountNum4 === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
+  const emailTotalText4 = (parseFloat(total.replace(/[^0-9.]/g, "")) || 0).toFixed(2);
 
   const text = `Payment Confirmed — Moi\n\n${name ? `Thank you, ${name}.` : "Thank you."}\n\nYour payment has been successfully confirmed and your order is now being prepared.\n\nOrder #${orderNumber}${discountText}${shippingText}\nTotal: ${emailTotalText4} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Payment Confirmed — Order Being Prepared\nDeliver to: ${address}, ${city}, ${governorate}\n\nOur team is packing your order right now. You'll receive a WhatsApp message with your Bosta tracking number once it leaves our studio.\n\nQuestions? hello@buy-moi.com\n\nbuy-moi.com`;
 

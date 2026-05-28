@@ -87,13 +87,14 @@ router.post(
     let customerEmail: string | null = null;
     let draftDiscountAmount: number | undefined;
     let draftDiscountCode: string | undefined;
+    let draftShippingAmount: string | undefined;
 
     try {
       const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
       const adminToken = await getShopifyAdminToken();
       if (storeDomain && adminToken) {
         const draftRes = await fetch(
-          `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}.json?fields=total_price,email,line_items,applied_discount,note_attributes`,
+          `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}.json?fields=total_price,email,line_items,applied_discount,note_attributes,shipping_line`,
           { headers: { "X-Shopify-Access-Token": adminToken } },
         );
         if (draftRes.ok) {
@@ -103,6 +104,7 @@ router.post(
               email?: string;
               applied_discount?: { title?: string; amount?: string } | null;
               note_attributes?: { name: string; value: string }[];
+              shipping_line?: { price?: string } | null;
             };
           };
           const d = draftData.draft_order;
@@ -111,6 +113,9 @@ router.post(
             customerEmail = d.email ?? null;
             if (d.applied_discount?.title) draftDiscountCode = d.applied_discount.title;
             if (d.applied_discount?.amount) draftDiscountAmount = parseFloat(d.applied_discount.amount);
+            if (d.shipping_line?.price !== undefined && d.shipping_line.price !== null) {
+              draftShippingAmount = d.shipping_line.price;
+            }
           }
         }
       }
@@ -179,7 +184,7 @@ router.post(
 
     // 5. Branded pending-verification email to customer (fire-and-forget)
     if (customerEmail) {
-      const shippingPrice = parseFloat(amountDisplay) >= 2000 ? "0.00" : "50.00";
+      const shippingPrice = draftShippingAmount ?? (parseFloat(amountDisplay) >= 2000 ? "0.00" : "50.00");
       const { html, text } = buildInstapayPendingEmail({
         orderNumber: draftOrderId,
         customerName: customerName,
@@ -232,9 +237,14 @@ router.post(
 
     // 8. WhatsApp to customer
     if (customerPhone) {
+      const shippingForWA = draftShippingAmount ?? (parseFloat(amountDisplay) >= 2000 ? "0.00" : "50.00");
+      const shippingNum = parseFloat(shippingForWA);
+      const whatsappShippingNote = shippingNum === 0
+        ? "Complimentary shipping"
+        : `Includes ${shippingNum.toFixed(0)} EGP shipping`;
       void sendWhatsApp(
         customerPhone,
-        `🎉 Your Moi order #${draftOrderId} is being verified!\n\nRef: ${referenceNumber.trim()}\nTotal: ${amountDisplay} EGP\n\nOur team will confirm your order via WhatsApp once payment is verified. Thank you! 🖤`,
+        `🎉 Your Moi order #${draftOrderId} is being verified!\n\nRef: ${referenceNumber.trim()}\nTotal: ${amountDisplay} EGP (${whatsappShippingNote})\n\nOur team will confirm your order via WhatsApp once payment is verified. Thank you! 🖤`,
       );
     }
 
