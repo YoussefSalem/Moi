@@ -162,32 +162,46 @@ export function ColorCard({
           />
         </div>
 
-        {/* Mobile pagination dots — inside image, bottom center */}
-        {allImages.length > 1 && (
-          <div
-            className="md:hidden absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 pointer-events-none"
-          >
-            {allImages.map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  width: i === mobileIndex ? 14 : 5,
-                  height: 5,
-                  borderRadius: 3,
-                  backgroundColor: i === mobileIndex ? "#ffffff" : "rgba(255,255,255,0.55)",
-                  transition: "all 0.22s ease",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
-                }}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* Swipe hint — mobile only, shown below image when gallery has multiple */}
+      {/* Mobile pagination dots — below the image, bottom-aligned */}
+      {allImages.length > 1 && (
+        <div className="md:hidden flex justify-center gap-2 mt-2">
+          {allImages.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              aria-label={`Go to image ${i + 1}`}
+              onClick={(e) => { e.stopPropagation(); setMobileIndex(i); }}
+              className="p-1"
+              style={{
+                width: 14,
+                height: 14,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "none",
+                border: "none",
+              }}
+            >
+              <div
+                style={{
+                  width: i === mobileIndex ? 14 : 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: i === mobileIndex ? "#1e1814" : "rgba(30,24,20,0.28)",
+                  transition: "all 0.22s ease",
+                }}
+              />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Swipe hint — mobile only, shown below dots when gallery has multiple */}
       {allImages.length > 1 && (
         <p
-          className="md:hidden text-center mt-2"
+          className="md:hidden text-center mt-1"
           style={{
             fontFamily: "'Montserrat', sans-serif",
             fontSize: 8,
