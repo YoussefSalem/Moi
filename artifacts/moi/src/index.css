@@ -336,6 +336,12 @@ section {
   50% { opacity: 0.85; }
 }
 
+@keyframes moi-shimmer {
+  0% { transform: translateX(-120%); }
+  50% { transform: translateX(120%); }
+  100% { transform: translateX(120%); }
+}
+
 @layer utilities {
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
