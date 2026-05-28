@@ -245,71 +245,76 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
           >
             {/* ── IMAGE GALLERY ── */}
             <div className="w-full flex flex-col gap-4">
-              {/* Main image — click opens lightbox zoom */}
-              <div
-                className="relative w-full overflow-hidden rounded-sm cursor-pointer"
-                onClick={() => setLightboxOpen(true)}
-                onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
-                onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
-                onPointerUp={(e) => {
-                  const start = dragStartXRef.current;
-                  if (start === null) return;
-                  const delta = (dragLastXRef.current ?? e.clientX) - start;
-                  dragStartXRef.current = null; dragLastXRef.current = null;
-                  if (Math.abs(delta) > 40) { delta < 0 ? nextImg() : prevImg(); }
-                }}
-                onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
-                style={{ touchAction: "pan-y", aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.03)", userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
-              >
-                <AnimatePresence initial={false} mode="wait">
-                  <motion.img
-                    key={mainImage}
-                    src={mainImage}
-                    alt={`${product.name}`}
-                    className="absolute inset-0 w-full h-full"
-                    style={{ objectFit: "contain", objectPosition: "center" }}
-                    loading="eager"
-                    decoding="async"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: imgLoaded ? 1 : 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                    onLoad={() => setImgLoaded(true)}
-                    onError={() => setImgLoaded(true)}
-                  />
-                </AnimatePresence>
-                {!imgLoaded && (
-                  <div className="absolute inset-0 animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.05)" }} />
-                )}
-
-                {/* Arrow buttons */}
+              {/* Image row: arrow | image | arrow */}
+              <div className="flex items-center gap-2 md:gap-4">
+                {/* Previous — minimal, outside image */}
                 {galleryImages.length > 1 && (
-                  <>
-                    <button
-                      type="button"
-                      aria-label="Previous image"
-                      onClick={prevImg}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 hidden md:flex items-center justify-center rounded-full transition-all duration-200"
-                      style={{ width: 34, height: 34, background: "rgba(250,248,245,0.85)", backdropFilter: "blur(8px)", border: "1px solid rgba(30,24,20,0.08)" }}
-                    >
-                      <ChevronLeft size={16} strokeWidth={1.4} style={{ color: "#1e1814" }} />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Next image"
-                      onClick={nextImg}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:flex items-center justify-center rounded-full transition-all duration-200"
-                      style={{ width: 34, height: 34, background: "rgba(250,248,245,0.85)", backdropFilter: "blur(8px)", border: "1px solid rgba(30,24,20,0.08)" }}
-                    >
-                      <ChevronRight size={16} strokeWidth={1.4} style={{ color: "#1e1814" }} />
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    aria-label="Previous image"
+                    onClick={(e) => { e.stopPropagation(); prevImg(); }}
+                    className="hidden md:flex shrink-0 items-center justify-center text-[rgba(30,24,20,0.15)] hover:text-[rgba(30,24,20,0.55)] transition-colors duration-200"
+                    style={{ width: 28, height: 60, background: "none", border: "none", cursor: "pointer" }}
+                  >
+                    <ChevronLeft size={22} strokeWidth={1} />
+                  </button>
                 )}
 
-                {/* Zoom hint — subtle, fades on interaction */}
-                <div className="absolute bottom-3 right-3" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 8, color: "rgba(30,24,20,0.35)", letterSpacing: "0.2em", textTransform: "uppercase" }}>
-                  tap to zoom
+                {/* Main image — click opens lightbox zoom */}
+                <div
+                  className="relative flex-1 overflow-hidden rounded-sm cursor-pointer"
+                  onClick={() => setLightboxOpen(true)}
+                  onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
+                  onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
+                  onPointerUp={(e) => {
+                    const start = dragStartXRef.current;
+                    if (start === null) return;
+                    const delta = (dragLastXRef.current ?? e.clientX) - start;
+                    dragStartXRef.current = null; dragLastXRef.current = null;
+                    if (Math.abs(delta) > 40) { delta < 0 ? nextImg() : prevImg(); }
+                  }}
+                  onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
+                  style={{ touchAction: "pan-y", aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.03)", userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
+                >
+                  <AnimatePresence initial={false} mode="wait">
+                    <motion.img
+                      key={mainImage}
+                      src={mainImage}
+                      alt={`${product.name}`}
+                      className="absolute inset-0 w-full h-full"
+                      style={{ objectFit: "contain", objectPosition: "center" }}
+                      loading="eager"
+                      decoding="async"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: imgLoaded ? 1 : 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      onLoad={() => setImgLoaded(true)}
+                      onError={() => setImgLoaded(true)}
+                    />
+                  </AnimatePresence>
+                  {!imgLoaded && (
+                    <div className="absolute inset-0 animate-pulse" style={{ backgroundColor: "rgba(30,24,20,0.05)" }} />
+                  )}
+
+                  {/* Zoom hint — subtle, fades on interaction */}
+                  <div className="absolute bottom-3 right-3" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 8, color: "rgba(30,24,20,0.35)", letterSpacing: "0.2em", textTransform: "uppercase" }}>
+                    tap to zoom
+                  </div>
                 </div>
+
+                {/* Next — minimal, outside image */}
+                {galleryImages.length > 1 && (
+                  <button
+                    type="button"
+                    aria-label="Next image"
+                    onClick={(e) => { e.stopPropagation(); nextImg(); }}
+                    className="hidden md:flex shrink-0 items-center justify-center text-[rgba(30,24,20,0.15)] hover:text-[rgba(30,24,20,0.55)] transition-colors duration-200"
+                    style={{ width: 28, height: 60, background: "none", border: "none", cursor: "pointer" }}
+                  >
+                    <ChevronRight size={22} strokeWidth={1} />
+                  </button>
+                )}
               </div>
 
               {/* Thumbnails */}
