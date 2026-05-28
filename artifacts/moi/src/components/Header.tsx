@@ -33,7 +33,7 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
 
   useEffect(() => {
     if (inAppBrowser) {
-      document.body.style.setProperty("--header-offset", "44px");
+      document.body.style.setProperty("--header-offset", "calc(44px + env(safe-area-inset-top))");
     } else {
       document.body.style.removeProperty("--header-offset");
     }
@@ -50,6 +50,7 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
         className="fixed top-0 left-0 right-0 z-50"
         style={{
           willChange: "transform",
+          paddingTop: `calc(${extraTop}px + env(safe-area-inset-top))`,
           backgroundColor: dark ? "rgba(30,24,20,0.08)" : scrolled ? "rgba(250, 248, 245, 0.97)" : "transparent",
           WebkitBackdropFilter: dark || scrolled ? "blur(12px)" : "none",
           backdropFilter: dark || scrolled ? "blur(12px)" : "none",
@@ -58,7 +59,7 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
           transition: "background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease",
         }}
       >
-        <div className="flex items-center justify-between px-6 md:px-12 h-16" style={{ paddingTop: `calc(${extraTop}px + env(safe-area-inset-top))`, paddingLeft: "max(1.5rem, env(safe-area-inset-left))", paddingRight: "max(1.5rem, env(safe-area-inset-right))" }}>
+        <div className="flex items-center justify-between px-6 md:px-12 h-16">
           <button
             onClick={() => {
               if (page === "home") {
