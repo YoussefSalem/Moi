@@ -389,6 +389,39 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
   return { orderId, orderNumber, total, lineItems, discountAmount: draftDiscountAmount, discountCode: draftDiscountCode };
 }
 
+/**
+ * Batch-fetch variant prices from Shopify Admin REST API.
+ * Used when there is no Storefront cart to derive lineSubtotal from,
+ * so we can apply the free-shipping threshold correctly.
+ */
+async function fetchVariantLineSubtotal(
+  lines: OrderLine[],
+  storeDomain: string,
+  adminToken: string,
+): Promise<number> {
+  const ids = lines
+    .map((l) => extractVariantId(l.variantId))
+    .filter((id) => id > 0)
+    .join(",");
+  if (!ids) return 0;
+  try {
+    const res = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/variants.json?ids=${ids}`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+    if (!res.ok) return 0;
+    const data = await res.json() as { variants: Array<{ id: number; price: string }> };
+    const priceMap = new Map(data.variants.map((v) => [v.id, parseFloat(v.price)]));
+    return lines.reduce((sum, line) => {
+      const varId = extractVariantId(line.variantId);
+      const price = priceMap.get(varId) ?? 0;
+      return sum + price * line.quantity;
+    }, 0);
+  } catch {
+    return 0;
+  }
+}
+
 export async function createDraftOrder(params: {
   lines: OrderLine[];
   customer: CustomerInfo;
@@ -399,7 +432,7 @@ export async function createDraftOrder(params: {
   complete?: boolean;
   /** Marketing attribution to pass to Shopify for channel/sales source reporting */
   attribution?: OrderAttribution;
-}): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; draftOrderId?: number; discountAmount?: number; discountCode?: string }> {
+}): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; draftOrderId?: number; discountAmount?: number; discountCode?: string; shippingAmount?: string }> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) throw new Error("Shopify Admin API not configured");
@@ -432,6 +465,16 @@ export async function createDraftOrder(params: {
 
   // Track the line subtotal so we can compute percentage discounts below
   let lineSubtotal = 0;
+
+  // When there is no Storefront cart, fetch variant prices from Admin API
+  // so we can correctly evaluate the free-shipping threshold.
+  if (!params.cartId) {
+    lineSubtotal = await fetchVariantLineSubtotal(params.lines, storeDomain, adminToken);
+    if (lineSubtotal >= 2000) {
+      shippingPrice = "0.00";
+      shippingTitle = "Free Delivery";
+    }
+  }
 
   if (params.cartId) {
     const cart = await fetchStorefrontCart(params.cartId);
@@ -590,7 +633,7 @@ export async function createDraftOrder(params: {
 
   // For instapay we return early with the draft ID — order is only completed when proof is submitted
   if (params.complete === false) {
-    return { orderNumber: draftId, orderId: draftId, total: draftTotal, lineItems: [], draftOrderId: draftId, discountAmount: cartDiscountAmount > 0.01 ? cartDiscountAmount : undefined, discountCode: cartDiscountCode || undefined };
+    return { orderNumber: draftId, orderId: draftId, total: draftTotal, lineItems: [], draftOrderId: draftId, discountAmount: cartDiscountAmount > 0.01 ? cartDiscountAmount : undefined, discountCode: cartDiscountCode || undefined, shippingAmount: shippingPrice };
   }
 
   const completeRes = await fetch(
@@ -639,7 +682,7 @@ export async function createDraftOrder(params: {
     });
   }
 
-  return { orderNumber, orderId, total, lineItems: fetchedLineItems, discountAmount: cartDiscountAmount > 0.01 ? cartDiscountAmount : undefined, discountCode: cartDiscountCode || undefined };
+  return { orderNumber, orderId, total, lineItems: fetchedLineItems, discountAmount: cartDiscountAmount > 0.01 ? cartDiscountAmount : undefined, discountCode: cartDiscountCode || undefined, shippingAmount: shippingPrice };
 }
 
 /**
@@ -661,7 +704,7 @@ export async function createShopifyDirectOrder(params: {
   extraTags?: string;
   attribution?: OrderAttribution;
   financialStatus?: "pending" | "paid";
-}): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string }> {
+}): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string; shippingAmount?: string }> {
   const result = await createDraftOrder({
     lines: params.lines,
     customer: params.customer,
@@ -699,5 +742,6 @@ export async function createShopifyDirectOrder(params: {
     lineItems: result.lineItems,
     discountAmount: result.discountAmount,
     discountCode: result.discountCode,
+    shippingAmount: result.shippingAmount,
   };
 }

@@ -89,7 +89,20 @@ export const CartContext = createContext<CartContextValue | null>(null);
 function loadLocalCart(): LocalCartItem[] {
   try {
     const raw = localStorage.getItem(LOCAL_CART_KEY);
-    return raw ? (JSON.parse(raw) as LocalCartItem[]) : [];
+    if (!raw) return [];
+    const items = JSON.parse(raw) as LocalCartItem[];
+    // Migrate items stored before the price-parsing fix.
+    // Old code used /[^0-9.]/g so "1.399 EGP" → parseFloat("1.399") = 1.399.
+    // New code uses /[^0-9]/g so "1.399 EGP" → parseFloat("1399") = 1399.
+    // Always re-parse from the price string so stale cached values are corrected.
+    return items.map((item) => {
+      if (!item.price) return item;
+      const reparsed = parseFloat(item.price.replace(/[^0-9]/g, ""));
+      if (Number.isFinite(reparsed) && reparsed > 0 && reparsed !== item.priceAmount) {
+        return { ...item, priceAmount: reparsed };
+      }
+      return item;
+    });
   } catch {
     return [];
   }

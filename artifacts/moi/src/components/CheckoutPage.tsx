@@ -458,8 +458,10 @@ export function CheckoutPage() {
   }, [clearCart, closeCheckout, markAbandonedCartRecovered]);
 
   const handleSubmit = useCallback(async () => {
-    if (!isShopify || !shopifyCart) {
-      setSubmitError("Our store is temporarily unavailable. Please try again later.");
+    const hasShopifyItems = isShopify && !!shopifyCart && shopifyCart.lines.nodes.length > 0;
+    const hasLocalItems = localItems.length > 0;
+    if (!hasShopifyItems && !hasLocalItems) {
+      setSubmitError("Your cart appears to be empty. Please add items before checking out.");
       return;
     }
     if (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.address.trim() || !form.city.trim() || !form.governorate.trim()) {
@@ -1241,7 +1243,7 @@ export function CheckoutPage() {
                             </div>
                             <div className="flex justify-between items-end">
                               <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {item.quantity}</span>
-                              <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.price}</span>
+                              <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{fmt(item.priceAmount * item.quantity)}</span>
                             </div>
                           </div>
                         </div>

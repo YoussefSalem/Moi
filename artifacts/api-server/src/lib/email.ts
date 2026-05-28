@@ -119,7 +119,7 @@ function buildEmail({
   // Subtotal = sum of line item prices (not derived from total, which may not match)
   const lineItemsSubtotal = lineItems && lineItems.length > 0
     ? lineItems.reduce((sum, item) => {
-        const price = parseFloat(item.price.replace(/[^0-9.]/g, "")) || 0;
+        const price = parseFloat(item.price.replace(/[^0-9]/g, "")) || 0;
         return sum + price * item.quantity;
       }, 0)
     : (shippingAmount !== undefined

@@ -240,7 +240,7 @@ router.post("/orders/create", async (req, res) => {
 
     // Branded order confirmation email (fire-and-forget)
     if (customer.email) {
-      const shippingPrice = parseFloat(total) >= 2000 ? "0.00" : "50.00";
+      const shippingPrice = result.shippingAmount ?? (parseFloat(total) >= 2000 ? "0.00" : "50.00");
       const { html, text } = buildCODOrderEmail({
         orderNumber,
         customerName: customer.firstName,
@@ -263,9 +263,13 @@ router.post("/orders/create", async (req, res) => {
         .catch((err) => req.log.warn({ err, email: customer.email }, "COD order confirmation email failed"));
     }
 
+    const shippingNum = parseFloat(result.shippingAmount ?? "50.00");
+    const whatsappShippingNote = shippingNum === 0
+      ? "Complimentary shipping"
+      : `Includes ${shippingNum.toFixed(0)} EGP shipping`;
     void sendWhatsApp(
       customer.phone,
-      `✅ Your Moi order #${orderNumber} has been placed!\n\nTotal: ${total} EGP (includes 50 EGP shipping)\nComplimentary shipping on orders over 2,000 EGP\nPayment: Cash on Delivery\n\nOur team will contact you shortly. Thank you for shopping with Moi. 🖤`,
+      `✅ Your Moi order #${orderNumber} has been placed!\n\nTotal: ${total} EGP (${whatsappShippingNote})\nPayment: Cash on Delivery\n\nOur team will contact you shortly. Thank you for shopping with Moi. 🖤`,
     );
 
     const trackingNumber = await createBostaShipment({
