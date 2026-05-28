@@ -289,7 +289,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                       type="button"
                       aria-label="Previous image"
                       onClick={prevImg}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-full transition-all duration-200"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 hidden md:flex items-center justify-center rounded-full transition-all duration-200"
                       style={{ width: 34, height: 34, background: "rgba(250,248,245,0.85)", backdropFilter: "blur(8px)", border: "1px solid rgba(30,24,20,0.08)" }}
                     >
                       <ChevronLeft size={16} strokeWidth={1.4} style={{ color: "#1e1814" }} />
@@ -298,7 +298,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                       type="button"
                       aria-label="Next image"
                       onClick={nextImg}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-full transition-all duration-200"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:flex items-center justify-center rounded-full transition-all duration-200"
                       style={{ width: 34, height: 34, background: "rgba(250,248,245,0.85)", backdropFilter: "blur(8px)", border: "1px solid rgba(30,24,20,0.08)" }}
                     >
                       <ChevronRight size={16} strokeWidth={1.4} style={{ color: "#1e1814" }} />
