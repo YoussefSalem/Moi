@@ -99,6 +99,9 @@ export function ProductColorSection({
         >
           {colors.map((c, i) => {
             const img = colorImages[c.name] ?? product.productShot;
+            const galleries = (product.colorGalleries ?? {}) as unknown as Record<string, string[]>;
+            const gallery = galleries[c.name] ?? [];
+            const hoverImg = gallery[1] ?? gallery[0] ?? img;
             const swatchKey = c.name.toLowerCase();
             const swatch = colorSwatches[swatchKey];
             const handle = `${product.slug}-${slugify(c.name)}`;
@@ -109,6 +112,7 @@ export function ProductColorSection({
                 productName={sectionTitle}
                 colorName={c.name}
                 image={img}
+                hoverImage={hoverImg !== img ? hoverImg : undefined}
                 price={product.price}
                 handle={handle}
                 swatchColor={swatch}

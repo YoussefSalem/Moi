@@ -5,6 +5,7 @@ interface ColorCardProps {
   productName: string;
   colorName: string;
   image: string;
+  hoverImage?: string;
   price: string;
   handle: string;
   swatchColor?: string;
@@ -16,6 +17,7 @@ export function ColorCard({
   productName,
   colorName,
   image,
+  hoverImage,
   price,
   handle,
   swatchColor,
@@ -24,6 +26,7 @@ export function ColorCard({
 }: ColorCardProps) {
   const [hovered, setHovered] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [hoverImgLoaded, setHoverImgLoaded] = useState(false);
 
   return (
     <motion.article
@@ -52,6 +55,7 @@ export function ColorCard({
           />
         )}
 
+        {/* Default image */}
         <img
           src={image}
           alt={`${productName} — ${colorName}`}
@@ -59,47 +63,33 @@ export function ColorCard({
           style={{
             objectFit: "cover",
             objectPosition: "center top",
-            transform: hovered ? "scale(1.05)" : "scale(1)",
-            transition: "transform 700ms cubic-bezier(0.22,1,0.36,1)",
+            opacity: hovered && hoverImage ? 0 : 1,
+            transform: hovered ? "scale(1.02)" : "scale(1)",
+            transition: "opacity 500ms ease, transform 800ms cubic-bezier(0.22,1,0.36,1)",
           }}
           loading="lazy"
           decoding="async"
           onLoad={() => setImgLoaded(true)}
         />
 
-        {/* Gradient + hover CTA */}
-        <div
-          className="absolute inset-0 flex items-end justify-center pb-5"
-          style={{
-            background: hovered
-              ? "linear-gradient(to top, rgba(30,24,20,0.72) 0%, rgba(30,24,20,0.12) 55%, transparent 100%)"
-              : "linear-gradient(to top, rgba(30,24,20,0.18) 0%, transparent 40%)",
-            transition: "background 350ms ease",
-          }}
-        >
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onNavigate(handle); }}
-            className="border"
+        {/* Hover image — second photo with subtle zoom */}
+        {hoverImage && (
+          <img
+            src={hoverImage}
+            alt={`${productName} — ${colorName} alternate`}
+            className="absolute inset-0 w-full h-full"
             style={{
-              padding: "12px 32px",
-              fontSize: "clamp(0.65rem, 2vw, 0.75rem)",
-              letterSpacing: "0.36em",
-              textTransform: "uppercase",
-              fontFamily: "'Montserrat', sans-serif",
-              color: "#faf8f5",
-              borderColor: "rgba(250,248,245,0.65)",
-              backgroundColor: "rgba(30,24,20,0.45)",
-              backdropFilter: "blur(6px)",
-              opacity: hovered ? 1 : 0,
-              transform: hovered ? "translateY(0)" : "translateY(8px)",
-              transition: "opacity 280ms ease, transform 280ms ease",
-              whiteSpace: "nowrap",
+              objectFit: "cover",
+              objectPosition: "center top",
+              opacity: hovered && hoverImgLoaded ? 1 : 0,
+              transform: hovered ? "scale(1.03)" : "scale(1)",
+              transition: "opacity 500ms ease, transform 800ms cubic-bezier(0.22,1,0.36,1)",
             }}
-          >
-            Add to Cart
-          </button>
-        </div>
+            loading="eager"
+            decoding="async"
+            onLoad={() => setHoverImgLoaded(true)}
+          />
+        )}
       </div>
 
       {/* Info */}
