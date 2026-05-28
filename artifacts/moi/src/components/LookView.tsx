@@ -221,7 +221,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                     className="flex items-center gap-2 text-[11px] tracking-[0.25em] uppercase active:opacity-40 transition-opacity duration-100"
                     style={{ color: "#1e1814", touchAction: "manipulation", userSelect: "none", WebkitTapHighlightColor: "transparent", minHeight: 44, minWidth: 44 }}
                   >
-                    <span style={{ fontFamily: "monospace", fontSize: 16 }}>&#8592;</span>
+                    <span style={{ fontFamily: "monospace", fontSize: 17 }}>&#8592;</span>
                     <span>Back</span>
                   </button>
                   <button
@@ -239,7 +239,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                   className="text-center font-serif leading-none mb-8 select-none pointer-events-none"
                   style={{
                     color: "#1e1814",
-                    fontSize: "clamp(2.5rem, 9vw, 11rem)",
+                    fontSize: "clamp(2.6rem, 9vw, 11.44rem)",
                     letterSpacing: "0.08em",
                     fontWeight: 300,
                     opacity: 0.18,
@@ -404,7 +404,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                       <h2
                         style={{
                           fontFamily: "'Cormorant Garamond', Georgia, serif",
-                          fontSize: "clamp(1.4rem, 3vw, 2rem)",
+                          fontSize: "clamp(1.46rem, 3vw, 2.08rem)",
                           fontWeight: 300,
                           letterSpacing: "0.06em",
                           color: "#1e1814",
@@ -415,7 +415,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                       <p
                         style={{
                           fontFamily: "'Montserrat', sans-serif",
-                          fontSize: "clamp(0.95rem, 2vw, 1.1rem)",
+                          fontSize: "clamp(0.99rem, 2vw, 1.14rem)",
                           fontWeight: 500,
                           letterSpacing: "0.12em",
                           color: "#1e1814",

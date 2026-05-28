@@ -63,7 +63,7 @@ export function ProductColorSection({
           <h2
             style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
-              fontSize: "clamp(2.2rem, 7vw, 3.8rem)",
+              fontSize: "clamp(2.29rem, 7vw, 3.95rem)",
               fontWeight: 300,
               color: "#1e1814",
               letterSpacing: "0.07em",
@@ -77,7 +77,7 @@ export function ProductColorSection({
             <p
               style={{
                 color: "#7a6e64",
-                fontSize: "clamp(0.8rem, 2vw, 0.88rem)",
+                fontSize: "clamp(0.83rem, 2vw, 0.92rem)",
                 maxWidth: 380,
                 lineHeight: 1.75,
                 fontWeight: 300,

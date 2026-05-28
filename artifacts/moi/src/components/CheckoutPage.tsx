@@ -184,7 +184,7 @@ const inputStyle: React.CSSProperties = {
   borderBottom: "1px solid rgba(30,24,20,0.22)",
   outline: "none",
   padding: "10px 0",
-  fontSize: "14px",
+  fontSize: "15px",
   color: "#1e1814",
   fontWeight: 500,
   fontFamily: "'Montserrat', sans-serif",
@@ -206,7 +206,7 @@ const optionStyle: React.CSSProperties = {
   padding: "12px 14px",
   textAlign: "left",
   fontFamily: "'Montserrat', sans-serif",
-  fontSize: "13px",
+  fontSize: "14px",
   letterSpacing: "0.02em",
   color: "#1e1814",
 };
@@ -221,7 +221,7 @@ const governorateInputStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: "block",
-  fontSize: "14px",
+  fontSize: "15px",
   letterSpacing: "0.24em",
   textTransform: "uppercase" as const,
   color: "rgba(30,24,20,0.92)",
@@ -953,11 +953,11 @@ export function CheckoutPage() {
               aria-label="Back"
             >
               <ArrowLeft size={16} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-              <span style={{ fontSize: "13px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif" }}>
+              <span style={{ fontSize: "14px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif" }}>
                 {isConfirmStep ? "Continue shopping" : isCardCheckoutStep ? "Cancel" : "Back"}
               </span>
             </button>
-            <span style={{ fontSize: "13px", letterSpacing: "0.4em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
+            <span style={{ fontSize: "14px", letterSpacing: "0.4em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
               MOI
             </span>
             <div style={{ width: 80 }} />
@@ -973,7 +973,7 @@ export function CheckoutPage() {
             >
               {/* Left: compact order summary */}
               <div>
-                <p style={{ fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
+                <p style={{ fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
                   Order Summary
                 </p>
                 <div style={{ borderTop: "1px solid rgba(30,24,20,0.16)" }}>
@@ -986,10 +986,10 @@ export function CheckoutPage() {
                             )}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
-                            <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{line.merchandise.product.title}</p>
+                            <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{line.merchandise.product.title}</p>
                             <div className="flex justify-between items-end">
-                              <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif" }}>Qty {line.quantity}</span>
-                              <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{formatShopifyLinePrice(line)}</span>
+                              <span style={{ fontSize: "14px", color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif" }}>Qty {line.quantity}</span>
+                              <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{formatShopifyLinePrice(line)}</span>
                             </div>
                           </div>
                         </div>
@@ -1001,12 +1001,12 @@ export function CheckoutPage() {
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
                             <div>
-                              <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.title}</p>
-                              {item.color && <p style={{ fontSize: "13px", color: "#7a6e64", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{item.color}</p>}
+                              <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.title}</p>
+                              {item.color && <p style={{ fontSize: "14px", color: "#7a6e64", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{item.color}</p>}
                             </div>
                             <div className="flex justify-between items-end">
-                              <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif" }}>Qty {item.quantity}</span>
-                              <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{fmt(item.priceAmount * item.quantity)}</span>
+                              <span style={{ fontSize: "14px", color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif" }}>Qty {item.quantity}</span>
+                              <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{fmt(item.priceAmount * item.quantity)}</span>
                             </div>
                           </div>
                         </div>
@@ -1028,13 +1028,13 @@ export function CheckoutPage() {
                         </div>
                       </div>
                       <div style={{ textAlign: "right" }}>
-                        <p style={{ fontSize: "14px", color: "#2f6644", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{Math.round((savings / subtotalAmount) * 100)}% off</p>
+                        <p style={{ fontSize: "15px", color: "#2f6644", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{Math.round((savings / subtotalAmount) * 100)}% off</p>
                       </div>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
-                    <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(discountedSubtotal)}</span>
+                    <span style={{ fontSize: "14px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
+                    <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(discountedSubtotal)}</span>
                   </div>
                   {!freeShipping && discountedSubtotal > 0 && (
                     <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "#6b8f5e" }}>
@@ -1048,18 +1048,18 @@ export function CheckoutPage() {
                   )}
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: "15px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
+                      <span style={{ fontSize: "16px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
                       {!freeShipping && (
-                        <span style={{ fontSize: "18px", fontStyle: "italic", color: "rgba(107,143,94,0.85)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>— free over 2,000 EGP</span>
+                        <span style={{ fontSize: "19px", fontStyle: "italic", color: "rgba(107,143,94,0.85)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>— free over 2,000 EGP</span>
                       )}
                     </div>
-                    <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
-                      {freeShipping ? <span style={{ fontSize: "13px", fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", fontWeight: 400 }}>Complimentary</span> : fmt(SHIPPING_EGP)}
+                    <span style={{ fontSize: "14px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
+                      {freeShipping ? <span style={{ fontSize: "14px", fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", fontWeight: 400 }}>Complimentary</span> : fmt(SHIPPING_EGP)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center pt-3" style={{ borderTop: "1px solid rgba(30,24,20,0.22)" }}>
                     <span style={{ fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>Total</span>
-                    <span style={{ fontSize: "18px", color: "#1e1814", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, letterSpacing: "0.03em" }}>
+                    <span style={{ fontSize: "19px", color: "#1e1814", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, letterSpacing: "0.03em" }}>
                       {orderResult?.total ?? fmt(totalAmount)}
                     </span>
                   </div>
@@ -1081,7 +1081,7 @@ export function CheckoutPage() {
                       <p style={{ fontSize: "10px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", marginBottom: "2px" }}>
                         Payment
                       </p>
-                      <p style={{ fontSize: "13px", letterSpacing: "0.18em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
+                      <p style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
                         Credit / Debit Card
                       </p>
                     </div>
@@ -1117,10 +1117,10 @@ export function CheckoutPage() {
               className="flex flex-col items-center justify-center min-h-[75vh] px-6"
             >
               <div style={{ width: "100%", maxWidth: "440px" }}>
-                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(28px, 5vw, 38px)", fontWeight: 400, color: "#1e1814", marginBottom: "8px", letterSpacing: "0.02em", lineHeight: 1.15 }}>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(29px, 5vw, 40px)", fontWeight: 400, color: "#1e1814", marginBottom: "8px", letterSpacing: "0.02em", lineHeight: 1.15 }}>
                   What's your email?
                 </h2>
-                <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", marginBottom: "40px" }}>
+                <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", marginBottom: "40px" }}>
                   We'll send your order confirmation here.
                 </p>
                 <div style={{ marginBottom: "28px" }}>
@@ -1132,7 +1132,7 @@ export function CheckoutPage() {
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && emailInput.trim()) void handleEmailContinue(); }}
-                    style={{ ...inputStyle, fontSize: "16px", padding: "14px 0" }}
+                    style={{ ...inputStyle, fontSize: "17px", padding: "14px 0" }}
                     placeholder="your@email.com"
                     autoFocus
                     className="checkout-input"
@@ -1167,7 +1167,7 @@ export function CheckoutPage() {
                 transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
                 style={{ width: 28, height: 28, border: "1.5px solid rgba(30,24,20,0.32)", borderTopColor: "#1e1814", borderRadius: "50%" }}
               />
-              <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}>
+              <p style={{ fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}>
                 {loadingText}
               </p>
             </div>
@@ -1241,7 +1241,7 @@ export function CheckoutPage() {
             <div className="max-w-5xl mx-auto px-6 md:px-10 py-8 md:py-12 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
               {/* Left: Order Summary */}
               <div>
-                <p style={{ fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
+                <p style={{ fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
                   Order Summary
                 </p>
 
@@ -1256,14 +1256,14 @@ export function CheckoutPage() {
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
                             <div>
-                              <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{line.merchandise.product.title}</p>
+                              <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{line.merchandise.product.title}</p>
                               {line.merchandise.title !== "Default Title" && (
-                                <p style={{ fontSize: "13px", color: "#7a6e64", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{line.merchandise.title}</p>
+                                <p style={{ fontSize: "14px", color: "#7a6e64", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{line.merchandise.title}</p>
                               )}
                             </div>
                             <div className="flex justify-between items-end">
-                              <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {line.quantity}</span>
-                              <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{formatShopifyLinePrice(line)}</span>
+                              <span style={{ fontSize: "14px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {line.quantity}</span>
+                              <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{formatShopifyLinePrice(line)}</span>
                             </div>
                           </div>
                         </div>
@@ -1275,12 +1275,12 @@ export function CheckoutPage() {
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
                             <div>
-                              <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.title}</p>
-                              {item.color && <p style={{ fontSize: "13px", color: "#7a6e64", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{item.color}</p>}
+                              <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.title}</p>
+                              {item.color && <p style={{ fontSize: "14px", color: "#7a6e64", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{item.color}</p>}
                             </div>
                             <div className="flex justify-between items-end">
-                              <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {item.quantity}</span>
-                              <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{fmt(item.priceAmount * item.quantity)}</span>
+                              <span style={{ fontSize: "14px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {item.quantity}</span>
+                              <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{fmt(item.priceAmount * item.quantity)}</span>
                             </div>
                           </div>
                         </div>
@@ -1335,7 +1335,7 @@ export function CheckoutPage() {
                         </div>
                         {subtotalAmount > 0 && (
                           <span style={{
-                            fontSize: "14px", color: "#2f6644",
+                            fontSize: "15px", color: "#2f6644",
                             fontFamily: "'Montserrat', sans-serif", fontWeight: 700,
                             letterSpacing: "0.02em", flexShrink: 0,
                           }}>
@@ -1346,8 +1346,8 @@ export function CheckoutPage() {
                     )}
                   </AnimatePresence>
                   <div className="flex justify-between">
-                    <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
-                    <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(discountedSubtotal)}</span>
+                    <span style={{ fontSize: "14px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
+                    <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(discountedSubtotal)}</span>
                   </div>
                   {/* "X away from free delivery" nudge */}
                   {!freeShipping && discountedSubtotal > 0 && (
@@ -1373,20 +1373,20 @@ export function CheckoutPage() {
                   )}
                   <div className="flex justify-between">
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: "15px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
+                      <span style={{ fontSize: "16px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
                       {!freeShipping && (
-                        <span style={{ fontSize: "18px", fontStyle: "italic", color: "rgba(107,143,94,0.85)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>— free over 2,000 EGP</span>
+                        <span style={{ fontSize: "19px", fontStyle: "italic", color: "rgba(107,143,94,0.85)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>— free over 2,000 EGP</span>
                       )}
                     </div>
-                    <span style={{ fontSize: "13px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
+                    <span style={{ fontSize: "14px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
                       {freeShipping ? (
-                        <span style={{ fontSize: "13px", fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", fontWeight: 400 }}>Complimentary</span>
+                        <span style={{ fontSize: "14px", fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", fontWeight: 400 }}>Complimentary</span>
                       ) : fmt(SHIPPING_EGP)}
                     </span>
                   </div>
                   <div className="flex justify-between pt-3" style={{ borderTop: "1px solid rgba(30,24,20,0.22)" }}>
-                    <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.12em" }}>Total Amount</span>
-                    <span style={{ fontSize: "16px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.02em" }}>{fmt(totalAmount)}</span>
+                    <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.12em" }}>Total Amount</span>
+                    <span style={{ fontSize: "17px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.02em" }}>{fmt(totalAmount)}</span>
                   </div>
                 </div>
 
@@ -1396,7 +1396,7 @@ export function CheckoutPage() {
                       onClick={() => setPromoOpen((o) => !o)}
                       className="flex items-center gap-2 transition-opacity hover:opacity-60"
                     >
-                      <span style={{ fontSize: "13px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.88)", fontFamily: "'Montserrat', sans-serif" }}>
+                      <span style={{ fontSize: "14px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.88)", fontFamily: "'Montserrat', sans-serif" }}>
                         Promo / Gift Card
                       </span>
                       {promoOpen ? <ChevronUp size={12} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.72)" }} /> : <ChevronDown size={12} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.72)" }} />}
@@ -1416,9 +1416,9 @@ export function CheckoutPage() {
                               <div className="flex items-center justify-between py-2 px-3" style={{ backgroundColor: "rgba(90,122,90,0.08)", border: "1px solid rgba(90,122,90,0.2)" }}>
                                 <div className="flex items-center gap-2">
                                   <Check size={12} strokeWidth={2} style={{ color: "#5a7a5a" }} />
-                                  <span style={{ fontSize: "13px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>{promoApplied.code}</span>
+                                  <span style={{ fontSize: "14px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>{promoApplied.code}</span>
                                 </div>
-                                <button onClick={handleRemovePromo} style={{ fontSize: "13px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}>
+                                <button onClick={handleRemovePromo} style={{ fontSize: "14px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}>
                                   Remove
                                 </button>
                               </div>
@@ -1437,14 +1437,14 @@ export function CheckoutPage() {
                                   onClick={handleApplyPromo}
                                   disabled={promoLoading || !promoInput.trim()}
                                   className="transition-opacity hover:opacity-70 disabled:opacity-40"
-                                  style={{ fontSize: "13px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, padding: "0 12px", borderBottom: "1px solid rgba(30,24,20,0.18)" }}
+                                  style={{ fontSize: "14px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, padding: "0 12px", borderBottom: "1px solid rgba(30,24,20,0.18)" }}
                                 >
                                   {promoLoading ? "…" : "Apply"}
                                 </button>
                               </div>
                             )}
                             {promoError && (
-                              <p style={{ fontSize: "13px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: 6, letterSpacing: "0.04em" }}>{promoError}</p>
+                              <p style={{ fontSize: "14px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: 6, letterSpacing: "0.04em" }}>{promoError}</p>
                             )}
                           </div>
                         </motion.div>
@@ -1457,7 +1457,7 @@ export function CheckoutPage() {
               {/* Right: Payment + Form */}
               <div>
                 {/* Payment method tiles */}
-                <p style={{ fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "16px" }}>
+                <p style={{ fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "16px" }}>
                   Payment Method
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-8">
@@ -1472,7 +1472,7 @@ export function CheckoutPage() {
                         backgroundColor: paymentMethod === m ? "rgba(30,24,20,0.03)" : "transparent",
                       }}
                     >
-                      <div style={{ fontSize: "16px", marginBottom: "5px" }}>
+                      <div style={{ fontSize: "17px", marginBottom: "5px" }}>
                         {m === "cod" ? "🚚" : "📱"}
                       </div>
                       <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
@@ -1492,7 +1492,7 @@ export function CheckoutPage() {
                       opacity: 0.55,
                     }}
                   >
-                    <div style={{ fontSize: "16px", marginBottom: "5px", filter: "grayscale(1)" }}>
+                    <div style={{ fontSize: "17px", marginBottom: "5px", filter: "grayscale(1)" }}>
                       💳
                     </div>
                     <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
@@ -1505,7 +1505,7 @@ export function CheckoutPage() {
                 </div>
 
                 {/* Delivery form */}
-                <p style={{ fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
+                <p style={{ fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
                   Delivery Details
                 </p>
 
@@ -1591,7 +1591,7 @@ export function CheckoutPage() {
                   </div>
 
                   {submitError && (
-                    <p style={{ fontSize: "13px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: "12px", letterSpacing: "0.04em" }}>{submitError}</p>
+                    <p style={{ fontSize: "14px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: "12px", letterSpacing: "0.04em" }}>{submitError}</p>
                   )}
 
                   {paymentMethod === "instapay" && (
@@ -1605,13 +1605,13 @@ export function CheckoutPage() {
                   <button
                     type="submit"
                     className="w-full mt-8 py-4 transition-opacity hover:opacity-80"
-                    style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+                    style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
                   >
                     Place Order
                   </button>
                 </form>
 
-                <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.58)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "14px", letterSpacing: "0.18em" }}>
+                <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.58)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "14px", letterSpacing: "0.18em" }}>
                   By placing your order you agree to our terms of service.
                 </p>
               </div>
@@ -1675,10 +1675,10 @@ function CardFailed({
         <X size={22} strokeWidth={1.5} style={{ color: "#c0392b" }} />
       </div>
       <div>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "36px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "37px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
           Payment Failed.
         </h1>
-        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.06em" }}>
+        <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.06em" }}>
           No charge was made. You can try again or choose another method.
         </p>
       </div>
@@ -1686,21 +1686,21 @@ function CardFailed({
         <button
           onClick={onRetry}
           className="w-full py-4 transition-opacity hover:opacity-80"
-          style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+          style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
         >
           Try Again with Card
         </button>
         <button
           onClick={onChooseDifferent}
           className="w-full py-3 transition-opacity hover:opacity-80"
-          style={{ backgroundColor: "transparent", border: "1.5px solid #1e1814", color: "#1e1814", fontSize: "13px", letterSpacing: "0.22em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}
+          style={{ backgroundColor: "transparent", border: "1.5px solid #1e1814", color: "#1e1814", fontSize: "14px", letterSpacing: "0.22em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}
         >
           Choose Different Method
         </button>
         <button
           onClick={onDone}
           className="w-full py-3 transition-opacity hover:opacity-60"
-          style={{ fontSize: "13px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", border: "1px solid rgba(30,24,20,0.18)" }}
+          style={{ fontSize: "14px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", border: "1px solid rgba(30,24,20,0.18)" }}
         >
           Cancel Order
         </button>
@@ -1858,10 +1858,10 @@ function InstapayConfirmation({
     >
       {/* Heading — changes once order is confirmed */}
       <div style={{ textAlign: "center" }}>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "32px", fontWeight: 700, color: "#1e1814", marginBottom: "6px" }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "33px", fontWeight: 700, color: "#1e1814", marginBottom: "6px" }}>
           {subStep === "review" ? "Order Confirmed." : "Payment Instructions"}
         </h1>
-        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.06em" }}>
+        <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.06em" }}>
           {subStep === "review"
             ? "We'll verify your payment and contact you shortly."
             : "Complete the steps below to place your order."}
@@ -1872,7 +1872,7 @@ function InstapayConfirmation({
       {confirmedOrderNumber != null && (
         <div style={{ padding: "14px 24px", border: "1px solid rgba(30,24,20,0.22)", width: "100%", textAlign: "center" }}>
           <p style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>Order Number</p>
-          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", color: "#1e1814", fontWeight: 700 }}>#{confirmedOrderNumber}</p>
+          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "29px", color: "#1e1814", fontWeight: 700 }}>#{confirmedOrderNumber}</p>
         </div>
       )}
 
@@ -1914,7 +1914,7 @@ function InstapayConfirmation({
                     <span style={{ width: 20, height: 20, borderRadius: "50%", backgroundColor: "#1e1814", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "11px", color: "#fff", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
                       {i + 1}
                     </span>
-                    <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.88)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.6 }}>{text}</p>
+                    <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.88)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.6 }}>{text}</p>
                   </div>
                 ))}
               </div>
@@ -1929,7 +1929,7 @@ function InstapayConfirmation({
                   <div className="flex items-center justify-between">
                     <div>
                       <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>Name</p>
-                      <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{instapayAccount}</p>
+                      <p style={{ fontSize: "15px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{instapayAccount}</p>
                     </div>
                     <button onClick={() => copyToClipboard(instapayAccount, "name")} style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: copied === "name" ? "#5a7a5a" : "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", padding: "6px 10px", border: "1px solid rgba(30,24,20,0.16)" }}>
                       {copied === "name" ? "Copied" : "Copy"}
@@ -1940,7 +1940,7 @@ function InstapayConfirmation({
                   <div className="flex items-center justify-between">
                     <div>
                       <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>Account / Number</p>
-                      <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.04em" }}>{instapayNumber}</p>
+                      <p style={{ fontSize: "15px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.04em" }}>{instapayNumber}</p>
                     </div>
                     <button onClick={() => copyToClipboard(instapayNumber, "number")} style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: copied === "number" ? "#5a7a5a" : "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", padding: "6px 10px", border: "1px solid rgba(30,24,20,0.16)" }}>
                       {copied === "number" ? "Copied" : "Copy"}
@@ -1950,7 +1950,7 @@ function InstapayConfirmation({
                 <div className="flex items-center justify-between pt-1" style={{ borderTop: "1px solid rgba(30,24,20,0.1)" }}>
                   <div>
                     <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>Amount</p>
-                    <p style={{ fontSize: "16px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{orderResult.total} EGP</p>
+                    <p style={{ fontSize: "17px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{orderResult.total} EGP</p>
                   </div>
                   <button onClick={() => copyToClipboard(orderResult.total, "amount")} style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: copied === "amount" ? "#5a7a5a" : "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", padding: "6px 10px", border: "1px solid rgba(30,24,20,0.16)" }}>
                     {copied === "amount" ? "Copied" : "Copy"}
@@ -1962,7 +1962,7 @@ function InstapayConfirmation({
             <button
               onClick={() => setSubStep("upload")}
               className="w-full py-4 transition-opacity hover:opacity-80"
-              style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+              style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
             >
               I've Sent the Payment →
             </button>
@@ -2021,7 +2021,7 @@ function InstapayConfirmation({
                 ) : (
                   <>
                     <Upload size={20} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
-                    <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", lineHeight: 1.6 }}>
+                    <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", lineHeight: 1.6 }}>
                       {isTouch ? "Tap to upload your screenshot" : "Drag & drop, paste, or click to upload"}<br />
                       <span style={{ fontSize: "11px", opacity: 0.7 }}>JPG, PNG, HEIC accepted</span>
                     </p>
@@ -2043,14 +2043,14 @@ function InstapayConfirmation({
             )}
 
             {uploadError && (
-              <p style={{ fontSize: "13px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em" }}>{uploadError}</p>
+              <p style={{ fontSize: "14px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em" }}>{uploadError}</p>
             )}
 
             <button
               onClick={handleSubmitProof}
               disabled={uploading || !referenceNumber.trim()}
               className="w-full py-4 transition-opacity hover:opacity-80 disabled:opacity-40"
-              style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+              style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
             >
               {uploading ? "Submitting…" : "Submit Proof"}
             </button>
@@ -2070,10 +2070,10 @@ function InstapayConfirmation({
               <Check size={24} strokeWidth={1.5} style={{ color: "#1e1814" }} />
             </div>
             <div style={{ textAlign: "center" }}>
-              <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "29px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
                 Proof Submitted
               </h2>
-              <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
+              <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
                 {confirmedOrderNumber != null
                   ? <>We've received your payment proof for order <strong style={{ color: "#1e1814" }}>#{confirmedOrderNumber}</strong>. Our team will verify and confirm your order via WhatsApp shortly.</>
                   : <>We've received your payment proof. Our team will verify and confirm your order via WhatsApp shortly.</>}
@@ -2087,7 +2087,7 @@ function InstapayConfirmation({
             <button
               onClick={onDone}
               className="mt-2 transition-opacity hover:opacity-60"
-              style={{ fontSize: "13px", letterSpacing: "0.28em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", padding: "12px 32px", border: "1px solid rgba(30,24,20,0.18)" }}
+              style={{ fontSize: "14px", letterSpacing: "0.28em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", padding: "12px 32px", border: "1px solid rgba(30,24,20,0.18)" }}
             >
               Continue Shopping
             </button>
@@ -2181,7 +2181,7 @@ function OrderSuccessScreen({
         <p style={{ fontSize: "11px", letterSpacing: "0.34em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif" }}>
           {subtitle}
         </p>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "38px", fontWeight: 700, color: "#1e1814", lineHeight: 1 }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "40px", fontWeight: 700, color: "#1e1814", lineHeight: 1 }}>
           {title}
         </h1>
       </div>
@@ -2192,7 +2192,7 @@ function OrderSuccessScreen({
           <span style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>
             {accentLabel}
           </span>
-          <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
+          <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
             {orderResult.total} EGP
           </span>
         </div>
@@ -2203,7 +2203,7 @@ function OrderSuccessScreen({
               {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {item.title}
               </p>
               {item.variantTitle && (
@@ -2214,7 +2214,7 @@ function OrderSuccessScreen({
             </div>
             <div className="text-right">
               <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>Qty {item.quantity}</p>
-              <p style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
+              <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
                 {item.price ?? orderResult.total}
               </p>
             </div>
@@ -2229,16 +2229,16 @@ function OrderSuccessScreen({
         <div className="flex flex-col gap-3">
           {orderResult.paymobTxnId ? null : null}
           <div className="flex items-center justify-between gap-4">
-            <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>Order Summary</span>
+            <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>Order Summary</span>
           </div>
         </div>
       </div>
 
-      <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.8)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 420 }}>
+      <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.8)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 420 }}>
         {detail}
       </p>
 
-      <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.68)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 420 }}>
+      <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.68)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 420 }}>
         {note}
       </p>
 

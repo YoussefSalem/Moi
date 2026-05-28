@@ -61,7 +61,7 @@ export function EditorialStrip() {
               transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: i * 0.12 }}
               style={{
                 fontFamily: "'Cormorant Garamond', Georgia, serif",
-                fontSize: "clamp(2.4rem, 8vw, 5.2rem)",
+                fontSize: "clamp(2.5rem, 8vw, 5.41rem)",
                 fontWeight: 300,
                 color: i === 1 ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.42)",
                 letterSpacing: "0.04em",

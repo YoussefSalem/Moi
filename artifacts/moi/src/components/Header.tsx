@@ -51,7 +51,7 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
               }
             }}
             className="absolute left-1/2 -translate-x-1/2 font-serif select-none transition-colors duration-500"
-            style={{ color: iconColor, letterSpacing: "0.3em", fontSize: "1.75rem" }}
+            style={{ color: iconColor, letterSpacing: "0.3em", fontSize: "1.82rem" }}
             aria-label="Go to home"
           >
             MOI

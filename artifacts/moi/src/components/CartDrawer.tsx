@@ -60,13 +60,13 @@ function DiscountBanner() {
         className="flex-1 min-w-0"
         style={{
           fontFamily: "'Cormorant Garamond', serif",
-          fontSize: 15,
+          fontSize: 16,
           fontWeight: 600,
           color: "#1e1814",
           lineHeight: 1.35,
         }}
       >
-        <span role="img" aria-label="celebration" style={{ fontSize: 14, marginRight: 4 }}>
+        <span role="img" aria-label="celebration" style={{ fontSize: 15, marginRight: 4 }}>
           &#127881;
         </span>
         10% off — use <span style={{ fontWeight: 700 }}>{CODE}</span>

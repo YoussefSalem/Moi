@@ -358,7 +358,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
               <h1
                 style={{
                   fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontSize: "clamp(1.7rem, 7vw, 3rem)",
+                  fontSize: "clamp(1.77rem, 7vw, 3.12rem)",
                   fontWeight: 300,
                   color: "#1e1814",
                   letterSpacing: "0.04em",
@@ -390,7 +390,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
               <p
                 style={{
                   fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "clamp(1rem, 3vw, 1.15rem)",
+                  fontSize: "clamp(1.04rem, 3vw, 1.2rem)",
                   fontWeight: 500,
                   letterSpacing: "0.12em",
                   color: "#1e1814",
@@ -406,7 +406,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
               {/* Description */}
               <p
                 className="leading-relaxed font-light mb-8"
-                style={{ color: "#6a5e56", fontSize: "clamp(0.82rem, 2.2vw, 0.9rem)", maxWidth: 400 }}
+                style={{ color: "#6a5e56", fontSize: "clamp(0.85rem, 2.2vw, 0.94rem)", maxWidth: 400 }}
               >
                 {product.description}
               </p>
@@ -508,7 +508,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                     padding: "18px 48px",
                     minWidth: 280,
                     maxWidth: 400,
-                    fontSize: "clamp(0.7rem, 2.5vw, 0.8rem)",
+                    fontSize: "clamp(0.73rem, 2.5vw, 0.83rem)",
                     letterSpacing: "0.32em",
                     textTransform: "uppercase",
                     fontFamily: "'Montserrat', sans-serif",
@@ -531,7 +531,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                     padding: "18px 56px",
                     minWidth: 280,
                     maxWidth: 400,
-                    fontSize: "clamp(0.7rem, 2.5vw, 0.8rem)",
+                    fontSize: "clamp(0.73rem, 2.5vw, 0.83rem)",
                     letterSpacing: "0.32em",
                     textTransform: "uppercase",
                     fontFamily: "'Montserrat', sans-serif",

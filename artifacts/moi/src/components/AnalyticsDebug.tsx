@@ -142,7 +142,7 @@ export function AnalyticsDebug() {
             boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
           }}
         >
-          <span style={{ fontSize: 14 }}>●</span> Debug
+          <span style={{ fontSize: 15 }}>●</span> Debug
         </button>
       ) : (
         <div style={{ background: "rgba(30,24,20,0.98)", color: "#faf8f5", borderRadius: 8, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.4)" }}>

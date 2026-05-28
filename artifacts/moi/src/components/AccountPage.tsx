@@ -201,7 +201,7 @@ export function AccountPage() {
               className="flex items-center gap-2 text-[11px] tracking-[0.25em] uppercase hover:opacity-50 transition-opacity"
               style={{ color: "#1e1814" }}
             >
-              <span style={{ fontFamily: "monospace", fontSize: 16 }}>←</span>
+              <span style={{ fontFamily: "monospace", fontSize: 17 }}>←</span>
               <span>Back</span>
             </button>
             <span className="font-serif text-xl tracking-[0.3em]" style={{ color: "#1e1814" }}>MOI</span>

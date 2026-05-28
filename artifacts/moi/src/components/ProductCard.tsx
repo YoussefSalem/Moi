@@ -714,7 +714,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 variants={itemVariants}
                 style={{
                   fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontSize: "clamp(1.8rem, 5.5vw, 2.8rem)",
+                  fontSize: "clamp(1.87rem, 5.5vw, 2.91rem)",
                   fontWeight: 300,
                   color: "#1e1814",
                   letterSpacing: "0.04em",
@@ -927,7 +927,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 style={{
                   color: "#1e1814",
                   fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "clamp(1.05rem, 3.5vw, 1.25rem)",
+                  fontSize: "clamp(1.09rem, 3.5vw, 1.3rem)",
                   fontWeight: 500,
                   letterSpacing: "0.12em",
                 }}

@@ -235,7 +235,7 @@ export function ColorCard({
               className="truncate"
               style={{
                 fontFamily: "'Montserrat', sans-serif",
-                fontSize: "clamp(0.65rem, 2vw, 0.75rem)",
+                fontSize: "clamp(0.68rem, 2vw, 0.78rem)",
                 letterSpacing: "0.24em",
                 textTransform: "uppercase",
                 color: "#8a7e74",
@@ -256,7 +256,7 @@ export function ColorCard({
               <span
                 style={{
                   fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "clamp(0.5rem, 1.4vw, 0.6rem)",
+                  fontSize: "clamp(0.52rem, 1.4vw, 0.62rem)",
                   letterSpacing: "0.14em",
                   textTransform: "uppercase",
                   color: "#c83232",
@@ -274,7 +274,7 @@ export function ColorCard({
           <h3
             style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
-              fontSize: "clamp(1.05rem, 3vw, 1.3rem)",
+              fontSize: "clamp(1.09rem, 3vw, 1.35rem)",
               fontWeight: 300,
               color: "#1e1814",
               letterSpacing: "0.04em",
@@ -286,7 +286,7 @@ export function ColorCard({
           <span
             style={{
               fontFamily: "'Montserrat', sans-serif",
-              fontSize: "clamp(0.58rem, 1.6vw, 0.68rem)",
+              fontSize: "clamp(0.6rem, 1.6vw, 0.71rem)",
               letterSpacing: "0.12em",
               textTransform: "uppercase",
               color: "#c83232",
@@ -301,7 +301,7 @@ export function ColorCard({
         <p
           style={{
             fontFamily: "'Montserrat', sans-serif",
-            fontSize: "clamp(0.78rem, 2.2vw, 0.85rem)",
+            fontSize: "clamp(0.81rem, 2.2vw, 0.88rem)",
             letterSpacing: "0.14em",
             color: "#7a6e64",
           }}
@@ -322,7 +322,7 @@ export function ColorCard({
           }}
           className="self-stretch md:self-center mt-3 md:mt-4 border transition-all duration-300 px-6 py-3.5 md:px-14 md:py-3.5 hover:shadow-lg"
           style={{
-            fontSize: "clamp(0.65rem, 2vw, 0.75rem)",
+            fontSize: "clamp(0.68rem, 2vw, 0.78rem)",
             letterSpacing: "0.28em",
             textTransform: "uppercase",
             fontFamily: "'Montserrat', sans-serif",

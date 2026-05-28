@@ -128,7 +128,7 @@ export function WhatsAppButton() {
                 <p
                   style={{
                     color: "#fff",
-                    fontSize: 15,
+                    fontSize: 16,
                     fontWeight: 600,
                     margin: 0,
                     letterSpacing: "0.02em",
@@ -203,7 +203,7 @@ export function WhatsAppButton() {
                 <p
                   style={{
                     color: "#1e1814",
-                    fontSize: 13,
+                    fontSize: 14,
                     lineHeight: 1.55,
                     margin: 0,
                   }}
@@ -235,7 +235,7 @@ export function WhatsAppButton() {
                     boxShadow: "0 1px 4px rgba(30,24,20,0.04)",
                   }}
                 >
-                  <p style={{ color: "#1e1814", fontSize: 13, lineHeight: 1.55, margin: 0 }}>
+                  <p style={{ color: "#1e1814", fontSize: 14, lineHeight: 1.55, margin: 0 }}>
                     {message.trim() || WHATSAPP_MESSAGE}
                   </p>
                   <p
@@ -280,7 +280,7 @@ export function WhatsAppButton() {
                   border: "1px solid rgba(30,24,20,0.12)",
                   borderRadius: 20,
                   padding: "10px 14px",
-                  fontSize: 16,
+                  fontSize: 17,
                   fontFamily: "'Montserrat', sans-serif",
                   lineHeight: 1.5,
                   outline: "none",

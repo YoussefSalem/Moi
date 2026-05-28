@@ -44,7 +44,7 @@ export function LoadingScreen({ ready }: LoadingScreenProps) {
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="font-serif font-light text-[#1e1814]"
             style={{
-              fontSize: "clamp(3rem, 10vw, 5rem)",
+              fontSize: "clamp(3.12rem, 10vw, 5.2rem)",
               letterSpacing: "0.12em",
               fontFamily: "'Cormorant Garamond', Georgia, serif",
             }}

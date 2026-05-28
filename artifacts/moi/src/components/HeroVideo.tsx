@@ -157,7 +157,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
           className="font-serif font-light"
           style={{
             color: "#fff",
-            fontSize: "clamp(5.2rem, 22vw, 13rem)",
+            fontSize: "clamp(5.41rem, 22vw, 13.52rem)",
             letterSpacing: "0.03em",
             lineHeight: 0.88,
             fontFamily: "'Cormorant Garamond', Georgia, serif",

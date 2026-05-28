@@ -48,7 +48,7 @@ const inputStyle: React.CSSProperties = {
   padding: "9px 12px",
   border: "1px solid rgba(30,24,20,0.2)",
   backgroundColor: "#fff",
-  fontSize: "13px",
+  fontSize: "14px",
   fontFamily: "'Montserrat', sans-serif",
   color: "#1e1814",
   outline: "none",
@@ -112,7 +112,7 @@ function PinGate({ onAuth }: { onAuth: (token: string) => void }) {
         animate={{ opacity: 1, y: 0 }}
         style={{ width: "100%", maxWidth: 360, padding: "40px 32px" }}
       >
-        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "32px", fontWeight: 700, color: "#1e1814", marginBottom: "4px" }}>
+        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "33px", fontWeight: 700, color: "#1e1814", marginBottom: "4px" }}>
           Admin
         </p>
         <p style={{ fontSize: "12px", letterSpacing: "0.25em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", marginBottom: "28px" }}>
@@ -203,9 +203,9 @@ function ScreenshotModal({ proofId, token, onClose }: { proofId: number; token: 
         >
           <X size={14} strokeWidth={2} style={{ color: "#fff" }} />
         </button>
-        {error && <p style={{ padding: "24px 40px", fontSize: "13px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>}
+        {error && <p style={{ padding: "24px 40px", fontSize: "14px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>}
         {!src && !error && (
-          <div style={{ padding: "40px 60px", fontSize: "13px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}>Loading…</div>
+          <div style={{ padding: "40px 60px", fontSize: "14px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}>Loading…</div>
         )}
         {src && <img src={src} alt="Payment screenshot" style={{ maxWidth: "80vw", maxHeight: "80vh", display: "block" }} />}
       </div>
@@ -221,7 +221,7 @@ function RejectDialog({ onConfirm, onCancel }: { onConfirm: (reason: string) => 
       style={{ backgroundColor: "rgba(30,24,20,0.5)" }}
     >
       <div style={{ background: "#efe6da", padding: "28px", width: 360, maxWidth: "95vw" }}>
-        <p style={{ fontSize: "13px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, marginBottom: "16px" }}>
+        <p style={{ fontSize: "14px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, marginBottom: "16px" }}>
           Reject Payment
         </p>
         <div>
@@ -306,7 +306,7 @@ function ProofsTab({ token, onAuth }: { token: string; onAuth?: (t: string | nul
 
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700 }}>
+          <p style={{ fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700 }}>
             Instapay Proofs
           </p>
           {pendingCount > 0 && (
@@ -355,11 +355,11 @@ function ProofsTab({ token, onAuth }: { token: string; onAuth?: (t: string | nul
         ))}
       </div>
 
-      {error && <p style={{ fontSize: "13px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginBottom: 12 }}>{error}</p>}
-      {loading && <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Loading…</p>}
+      {error && <p style={{ fontSize: "14px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginBottom: 12 }}>{error}</p>}
+      {loading && <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Loading…</p>}
 
       {!loading && filtered.length === 0 && (
-        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}>
+        <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}>
           No {filterStatus === "all" ? "" : filterStatus} proofs found.
         </p>
       )}
@@ -370,7 +370,7 @@ function ProofsTab({ token, onAuth }: { token: string; onAuth?: (t: string | nul
             <div className="flex items-center justify-between p-4" style={{ gap: 12 }}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 flex-wrap">
-                  <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "18px", fontWeight: 700, color: "#1e1814" }}>
+                  <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "19px", fontWeight: 700, color: "#1e1814" }}>
                     #{proof.shopifyOrderNumber ?? `Draft ${proof.draftOrderId}`}
                   </span>
                   <StatusBadge status={proof.status} />
@@ -486,7 +486,7 @@ function ProofGallery({
       <div className="fixed inset-0 z-[220] flex items-center justify-center" style={{ backgroundColor: "rgba(30,24,20,0.62)", backdropFilter: "blur(5px)" }} onClick={onClose}>
         <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: "#efe6da", width: "92vw", maxWidth: 1100, maxHeight: "90vh", overflow: "auto", padding: 24 }}>
           <div className="flex items-center justify-between mb-5">
-            <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700 }}>
+            <p style={{ fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700 }}>
               All Proof Images
             </p>
             <button onClick={onClose} style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)" }}>
@@ -494,7 +494,7 @@ function ProofGallery({
             </button>
           </div>
           {proofs.length === 0 ? (
-            <p style={{ fontSize: "13px", fontFamily: "'Montserrat', sans-serif", color: "rgba(30,24,20,0.6)" }}>No proof images uploaded yet.</p>
+            <p style={{ fontSize: "14px", fontFamily: "'Montserrat', sans-serif", color: "rgba(30,24,20,0.6)" }}>No proof images uploaded yet.</p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {proofs.map((proof) => (
@@ -589,7 +589,7 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700 }}>
+          <p style={{ fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700 }}>
             Card Orders
           </p>
           {pendingCount > 0 && (
@@ -622,11 +622,11 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
         ))}
       </div>
 
-      {error && <p style={{ fontSize: "13px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginBottom: 12 }}>{error}</p>}
-      {loading && <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Loading…</p>}
+      {error && <p style={{ fontSize: "14px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginBottom: 12 }}>{error}</p>}
+      {loading && <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Loading…</p>}
 
       {!loading && filtered.length === 0 && (
-        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}>
+        <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}>
           No {filterDispatched === "pending" ? "pending" : filterDispatched === "dispatched" ? "dispatched" : ""} card orders.
         </p>
       )}
@@ -637,7 +637,7 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
             <div className="flex items-center justify-between p-4" style={{ gap: 12 }}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 flex-wrap">
-                  <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "18px", fontWeight: 700, color: "#1e1814" }}>
+                  <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "19px", fontWeight: 700, color: "#1e1814" }}>
                     {order.shopifyOrderId ? `Shopify #${order.shopifyOrderId}` : `Txn ${order.paymobTxnId ?? order.intentId}`}
                   </span>
                   <span style={{
@@ -734,11 +734,11 @@ function SettingsTab({ token, onAuth }: { token: string; onAuth?: (t: string | n
     }
   }
 
-  if (loading) return <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Loading…</p>;
+  if (loading) return <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Loading…</p>;
 
   return (
     <div>
-      <p style={{ fontSize: "13px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700, marginBottom: "20px" }}>
+      <p style={{ fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700, marginBottom: "20px" }}>
         Paymob Configuration
       </p>
       <div className="flex flex-col gap-4">
@@ -835,7 +835,7 @@ function FunnelBar({ label, value, max, rate, color }: { label: string; value: n
       <div className="flex items-end justify-between" style={{ marginBottom: 6 }}>
         <span style={{ ...mono, fontSize: 12, fontWeight: 600, color: "#1e1814" }}>{label}</span>
         <div className="flex items-center gap-2">
-          <span style={{ ...mono, fontSize: 15, fontWeight: 700, color: "#1e1814" }}>{value}</span>
+          <span style={{ ...mono, fontSize: 16, fontWeight: 700, color: "#1e1814" }}>{value}</span>
           {rate !== undefined && <span style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)" }}>({rate}%)</span>}
         </div>
       </div>
@@ -903,11 +903,11 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
 
   useEffect(() => { void load(); }, [load]);
 
-  if (loading) return <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Loading analytics…</p>;
-  if (analyticsDisabled) return <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Analytics tracking is currently disabled.</p>;
+  if (loading) return <p style={{ ...mono, fontSize: 14, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Loading analytics…</p>;
+  if (analyticsDisabled) return <p style={{ ...mono, fontSize: 14, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Analytics tracking is currently disabled.</p>;
   if (error) return (
     <div style={{ padding: "40px 0", textAlign: "center" }}>
-      <p style={{ fontSize: 13, color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginBottom: 16 }}>{error}</p>
+      <p style={{ fontSize: 14, color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginBottom: 16 }}>{error}</p>
       <button onClick={load} style={{ ...btn, backgroundColor: "#1e1814", color: "#fff", padding: "8px 16px", fontSize: 12 }}>
         Retry
       </button>
@@ -925,7 +925,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
   const statCard = (icon: React.ReactNode, label: string, value: string | number, sub?: string) => (
     <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "18px 16px", flex: 1, minWidth: 140 }}>
       <div style={{ color: "rgba(30,24,20,0.45)", marginBottom: 8 }}>{icon}</div>
-      <p style={{ ...mono, fontSize: 22, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>{value}</p>
+      <p style={{ ...mono, fontSize: 23, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>{value}</p>
       <p style={{ ...mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)" }}>{label}</p>
       {sub && <p style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.4)", marginTop: 4 }}>{sub}</p>}
     </div>
@@ -993,7 +993,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
         <div className="flex items-center gap-2 mb-5">
           <BarChart3 size={16} color="#1e1814" />
-          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Conversion Funnel</p>
+          <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Conversion Funnel</p>
         </div>
         <FunnelBar label="Visitors" value={funnel.visitors} max={funnel.visitors} color="#1e1814" />
         <FunnelBar label="Product Views" value={funnel.productViews} max={funnel.visitors} rate={funnel.productViewRate} color="#3a6b4a" />
@@ -1016,7 +1016,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
         <div className="flex items-center gap-2 mb-5">
           <Globe size={16} color="#1e1814" />
-          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Traffic Source Quality</p>
+          <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Traffic Source Quality</p>
         </div>
         {sourceQuality.length === 0 ? (
           <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No traffic data yet.</p>
@@ -1043,7 +1043,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
         <div style={{ flex: 1, minWidth: 260, background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px" }}>
           <div className="flex items-center gap-2 mb-4">
             <Monitor size={16} color="#1e1814" />
-            <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Device</p>
+            <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Device</p>
           </div>
           {deviceSegmentation.map((d) => (
             <div key={d.name} className="flex items-center justify-between" style={{ padding: "6px 0", borderBottom: "1px solid rgba(30,24,20,0.04)" }}>
@@ -1055,7 +1055,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
         <div style={{ flex: 1, minWidth: 260, background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px" }}>
           <div className="flex items-center gap-2 mb-4">
             <Smartphone size={16} color="#1e1814" />
-            <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Operating System</p>
+            <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Operating System</p>
           </div>
           {osSegmentation.map((o) => (
             <div key={o.name} className="flex items-center justify-between" style={{ padding: "6px 0", borderBottom: "1px solid rgba(30,24,20,0.04)" }}>
@@ -1070,17 +1070,17 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
         <div className="flex items-center gap-2 mb-5">
           <Users size={16} color="#1e1814" />
-          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>New vs Returning Visitors</p>
+          <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>New vs Returning Visitors</p>
         </div>
         <div className="flex flex-wrap gap-4">
           <div style={{ flex: 1, minWidth: 200, background: "rgba(30,24,20,0.02)", border: "1px solid rgba(30,24,20,0.06)", padding: 16 }}>
             <p style={{ ...mono, fontSize: 12, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>New</p>
-            <p style={{ ...mono, fontSize: 24, fontWeight: 700, color: "#1e1814" }}>{visitorType.new.count}</p>
+            <p style={{ ...mono, fontSize: 25, fontWeight: 700, color: "#1e1814" }}>{visitorType.new.count}</p>
             <p style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)" }}>{visitorType.new.purchases} purchases ({visitorType.new.conversionRate}%)</p>
           </div>
           <div style={{ flex: 1, minWidth: 200, background: "rgba(30,24,20,0.02)", border: "1px solid rgba(30,24,20,0.06)", padding: 16 }}>
             <p style={{ ...mono, fontSize: 12, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>Returning</p>
-            <p style={{ ...mono, fontSize: 24, fontWeight: 700, color: "#1e1814" }}>{visitorType.returning.count}</p>
+            <p style={{ ...mono, fontSize: 25, fontWeight: 700, color: "#1e1814" }}>{visitorType.returning.count}</p>
             <p style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)" }}>{visitorType.returning.purchases} purchases ({visitorType.returning.conversionRate}%)</p>
           </div>
         </div>
@@ -1090,7 +1090,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
         <div className="flex items-center gap-2 mb-5">
           <AlertTriangle size={16} color="#1e1814" />
-          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Hesitation Signals</p>
+          <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Hesitation Signals</p>
         </div>
         <div className="flex flex-wrap gap-3">
           {statCard(<Eye size={18} />, "Repeated Views", hesitationSignals.repeatedViews, "viewed same product 2+")}
@@ -1103,7 +1103,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
         <div className="flex items-center gap-2 mb-5">
           <ArrowRight size={16} color="#1e1814" />
-          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Exit Pages</p>
+          <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Exit Pages</p>
         </div>
         {exitPages.length === 0 ? (
           <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No exit page data yet.</p>
@@ -1117,7 +1117,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
                   <div className="flex items-end justify-between" style={{ marginBottom: 6 }}>
                     <span style={{ ...mono, fontSize: 12, fontWeight: 500, color: "#1e1814" }}>{ep.page}</span>
                     <div className="flex items-center gap-2">
-                      <span style={{ ...mono, fontSize: 14, fontWeight: 700, color: "#1e1814" }}>{ep.count}</span>
+                      <span style={{ ...mono, fontSize: 15, fontWeight: 700, color: "#1e1814" }}>{ep.count}</span>
                       <span style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.45)", background: "rgba(30,24,20,0.06)", padding: "2px 6px", borderRadius: 4 }}>{ep.pct}%</span>
                     </div>
                   </div>
@@ -1140,7 +1140,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
         <div className="flex items-center gap-2 mb-5">
           <MousePointer size={16} color="#1e1814" />
-          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Click Heatmap — Top Elements</p>
+          <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Click Heatmap — Top Elements</p>
         </div>
         {clickHeatmap.length === 0 ? (
           <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No click data yet. Browse the site to populate.</p>
@@ -1166,7 +1166,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
         <div className="flex items-center gap-2 mb-5">
           <TrendingUp size={16} color="#1e1814" />
-          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Scroll Depth Distribution</p>
+          <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Scroll Depth Distribution</p>
         </div>
         {Object.keys(scrollDistribution).length === 0 ? (
           <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No scroll data yet.</p>
@@ -1194,7 +1194,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
         <div className="flex items-center gap-2 mb-5">
           <Clock size={16} color="#1e1814" />
-          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Time to Purchase</p>
+          <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Time to Purchase</p>
         </div>
         {timeToPurchase.count === 0 ? (
           <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No purchase data yet.</p>
@@ -1211,7 +1211,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
         <div className="flex items-center gap-2 mb-5">
           <BarChart3 size={16} color="#1e1814" />
-          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Product Conversion Paths</p>
+          <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Product Conversion Paths</p>
         </div>
         {productPaths.length === 0 ? (
           <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No product path data yet.</p>
@@ -1240,7 +1240,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
         <div className="flex items-center gap-2 mb-5">
           <AlertTriangle size={16} color="#c0392b" />
-          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Rage Taps (Frustration Signals)</p>
+          <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Rage Taps (Frustration Signals)</p>
         </div>
         {statCard(<AlertTriangle size={18} />, "Total Rage Taps", rageTaps.total, "rapid repeated clicks")}
         {rageTaps.topElements.length > 0 && (
@@ -1260,7 +1260,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px", marginBottom: 24 }}>
         <div className="flex items-center gap-2 mb-5">
           <MousePointer size={16} color="#1e1814" />
-          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Element Interactions</p>
+          <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Element Interactions</p>
         </div>
         {elementInteractions.length === 0 ? (
           <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.45)" }}>No element interaction data yet.</p>
@@ -1280,7 +1280,7 @@ function AnalyticsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       <div style={{ background: "#fff", border: "1px solid rgba(30,24,20,0.08)", padding: "22px 20px" }}>
         <div className="flex items-center gap-2 mb-5">
           <MessageCircle size={16} color="#1e1814" />
-          <p style={{ ...mono, fontSize: 13, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Chat Activity</p>
+          <p style={{ ...mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814" }}>Chat Activity</p>
         </div>
         <div className="flex flex-wrap gap-3 mb-6">
           {statCard(<MessageCircle size={18} />, "Chat Opens", chatActivity.opens, `${Math.round((chatActivity.opens / Math.max(summary.totalSessions, 1)) * 100)}% of sessions`)}
@@ -1359,14 +1359,14 @@ function DiscountsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
     return m;
   };
 
-  if (loading) return <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Loading…</p>;
-  if (error) return <p style={{ fontSize: 13, color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>;
+  if (loading) return <p style={{ ...mono, fontSize: 14, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Loading…</p>;
+  if (error) return <p style={{ fontSize: 14, color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>;
 
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 26, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 27, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>
             Discount Codes
           </p>
           <p style={{ ...mono, fontSize: 11, letterSpacing: "0.15em", color: "rgba(30,24,20,0.5)", textTransform: "uppercase" }}>
@@ -1386,14 +1386,14 @@ function DiscountsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
       </div>
 
       {uses.length === 0 ? (
-        <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.45)", textAlign: "center", padding: "48px 0" }}>No discount codes used yet.</p>
+        <p style={{ ...mono, fontSize: 14, color: "rgba(30,24,20,0.45)", textAlign: "center", padding: "48px 0" }}>No discount codes used yet.</p>
       ) : (
         <div className="flex flex-col gap-6">
           {Object.entries(grouped).map(([code, codeUses]) => (
             <div key={code} style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)" }}>
               {/* Code header */}
               <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(30,24,20,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ ...mono, fontSize: 14, fontWeight: 700, color: "#1e1814", letterSpacing: "0.12em" }}>{code}</span>
+                <span style={{ ...mono, fontSize: 15, fontWeight: 700, color: "#1e1814", letterSpacing: "0.12em" }}>{code}</span>
                 <span style={{ ...mono, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", backgroundColor: "rgba(30,24,20,0.07)", padding: "3px 10px", color: "#1e1814", fontWeight: 700 }}>
                   {codeUses.length} {codeUses.length === 1 ? "use" : "uses"}
                 </span>
@@ -1410,7 +1410,7 @@ function DiscountsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
                 <tbody>
                   {codeUses.map((u, i) => (
                     <tr key={u.id} style={{ borderBottom: i < codeUses.length - 1 ? "1px solid rgba(30,24,20,0.05)" : "none" }}>
-                      <td style={{ ...mono, fontSize: 13, color: "#1e1814", padding: "10px 18px" }}>
+                      <td style={{ ...mono, fontSize: 14, color: "#1e1814", padding: "10px 18px" }}>
                         {u.orderNumber ? `#${u.orderNumber}` : u.orderId ? `id:${u.orderId}` : "—"}
                       </td>
                       <td style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.7)", padding: "10px 18px" }}>{methodLabel(u.paymentMethod)}</td>
@@ -1499,7 +1499,7 @@ function AbandonedCartsTab({ token, onAuth }: { token: string; onAuth?: (t: stri
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 26, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 27, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>
             Abandoned Carts
           </p>
           <p style={{ ...mono, fontSize: 11, letterSpacing: "0.15em", color: "rgba(30,24,20,0.5)", textTransform: "uppercase" }}>
@@ -1524,7 +1524,7 @@ function AbandonedCartsTab({ token, onAuth }: { token: string; onAuth?: (t: stri
             { label: "Auto-Converted", value: stats.convertedBeforeEmail, sub: "ordered before email" },
           ].map((s) => (
             <div key={s.label} style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)", padding: "16px 18px" }}>
-              <p style={{ ...mono, fontSize: 22, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>{s.value}</p>
+              <p style={{ ...mono, fontSize: 23, fontWeight: 700, color: "#1e1814", marginBottom: 4 }}>{s.value}</p>
               <p style={{ ...mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700 }}>{s.label}</p>
               <p style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.4)", marginTop: 2 }}>{s.sub}</p>
             </div>
@@ -1582,12 +1582,12 @@ function AbandonedCartsTab({ token, onAuth }: { token: string; onAuth?: (t: stri
         <p style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.4)", marginTop: 8 }}>Creates a sample cart and sends the recovery email immediately — no 30-minute wait.</p>
       </div>
 
-      {loading && <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Loading…</p>}
-      {error && <p style={{ fontSize: 13, color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>}
+      {loading && <p style={{ ...mono, fontSize: 14, color: "rgba(30,24,20,0.5)", padding: "40px 0" }}>Loading…</p>}
+      {error && <p style={{ fontSize: 14, color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>}
 
       {!loading && !error && (
         items.length === 0 ? (
-          <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.45)", textAlign: "center", padding: "48px 0" }}>No abandoned carts yet.</p>
+          <p style={{ ...mono, fontSize: 14, color: "rgba(30,24,20,0.45)", textAlign: "center", padding: "48px 0" }}>No abandoned carts yet.</p>
         ) : (
           <div style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)", overflow: "hidden" }}>
             <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
@@ -1607,9 +1607,9 @@ function AbandonedCartsTab({ token, onAuth }: { token: string; onAuth?: (t: stri
                     const recoveredBeforeEmail = isRecovered && (!item.emailSentAt || (item.recoveredAt && new Date(item.recoveredAt) < new Date(item.emailSentAt)));
                     return (
                       <tr key={item.id} style={{ borderBottom: i < items.length - 1 ? "1px solid rgba(30,24,20,0.05)" : "none" }}>
-                        <td style={{ ...mono, fontSize: 13, color: "#1e1814", padding: "10px 14px", whiteSpace: "nowrap" }}>{item.email}</td>
-                        <td style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.7)", padding: "10px 14px", whiteSpace: "nowrap" }}>{item.lineItemsCount}</td>
-                        <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 600, padding: "10px 14px", whiteSpace: "nowrap" }}>{item.totalAmount}&nbsp;EGP</td>
+                        <td style={{ ...mono, fontSize: 14, color: "#1e1814", padding: "10px 14px", whiteSpace: "nowrap" }}>{item.email}</td>
+                        <td style={{ ...mono, fontSize: 14, color: "rgba(30,24,20,0.7)", padding: "10px 14px", whiteSpace: "nowrap" }}>{item.lineItemsCount}</td>
+                        <td style={{ ...mono, fontSize: 14, color: "#1e1814", fontWeight: 600, padding: "10px 14px", whiteSpace: "nowrap" }}>{item.totalAmount}&nbsp;EGP</td>
                         <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
                           <span style={{ ...mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px", backgroundColor: sc.bg, color: sc.text }}>
                             {item.status.replace("_", " ")}
@@ -1685,7 +1685,7 @@ export function AdminPage() {
       {/* Header */}
       <div style={{ backgroundColor: "#1e1814", padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "22px", fontWeight: 700, color: "#fff", letterSpacing: "0.08em" }}>MOI</span>
+          <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "23px", fontWeight: 700, color: "#fff", letterSpacing: "0.08em" }}>MOI</span>
           <span style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(255,255,255,0.5)", fontFamily: "'Montserrat', sans-serif", marginLeft: 12 }}>Admin</span>
         </div>
         <button

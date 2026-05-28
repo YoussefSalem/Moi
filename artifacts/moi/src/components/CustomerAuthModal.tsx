@@ -78,7 +78,7 @@ export function CustomerAuthModal() {
     border: "1px solid rgba(30,24,20,0.14)",
     width: "100%",
     padding: "12px 16px",
-    fontSize: "14px",
+    fontSize: "15px",
     fontWeight: 300,
     letterSpacing: "0.04em",
     backgroundColor: "transparent",
@@ -227,7 +227,7 @@ export function CustomerAuthModal() {
                           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                           style={{
                             ...inputStyle,
-                            fontSize: "22px",
+                            fontSize: "23px",
                             letterSpacing: "0.4em",
                             textAlign: "center",
                             fontWeight: 500,
