@@ -71,7 +71,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const pageColorName = fallback.name.includes(" — ")
     ? (fallback.name.split(" — ").pop() ?? "")
     : "";
-  const { addToCart } = useCart();
+  const { addToCart, clearCart, openCheckout } = useCart();
   const { customer } = useCustomer();
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -183,6 +183,28 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     toast.success(`${product.name} added to bag`, { duration: 2500 });
     setAddedFeedback(true);
     setTimeout(() => setAddedFeedback(false), 1800);
+  };
+
+  const handleBuyNow = async () => {
+    if (isOutOfStock) return;
+    clearCart();
+    trackAddToCart(
+      selectedVariant?.id ?? product.variantId ?? "",
+      product.name,
+      1,
+      parseEGP(String(effectivePrice)) || 0,
+    );
+    await addToCart({
+      variantId: selectedVariant?.id ?? product.variantId ?? "",
+      title: product.name,
+      price: effectivePrice,
+      priceAmount: parseEGP(String(effectivePrice)),
+      currencyCode: "EGP",
+      image: galleryImages[0] ?? product.productShot,
+      size: selectedSize || "One Size",
+      color: product.name,
+    });
+    openCheckout();
   };
 
   const subscribeToRestock = async (email: string): Promise<{ success: boolean; error?: string }> => {
@@ -524,28 +546,51 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                   Notify Me When Back
                 </motion.button>
               ) : (
-                <motion.button
-                  type="button"
-                  onClick={handleAddToCart}
-                  whileTap={{ scale: 0.98 }}
-                  className="border transition-all duration-500 w-full md:w-auto flex items-center justify-center"
-                  style={{
-                    padding: "18px 56px",
-                    minWidth: 280,
-                    maxWidth: 400,
-                    fontSize: "clamp(0.73rem, 2.5vw, 0.83rem)",
-                    letterSpacing: "0.32em",
-                    textTransform: "uppercase",
-                    fontFamily: "'Montserrat', sans-serif",
-                    color: addedFeedback ? "#1e1814" : "#faf8f5",
-                    borderColor: "#1e1814",
-                    backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "#1e1814",
-                    boxShadow: addedFeedback ? "none" : "0 10px 32px rgba(30,24,20,0.18)",
-                    borderRadius: 6,
-                  }}
-                >
-                  {addedFeedback ? "Added to Bag ✓" : "Buy It Now"}
-                </motion.button>
+                <div className="flex flex-col gap-3 w-full md:w-auto">
+                  <motion.button
+                    type="button"
+                    onClick={handleAddToCart}
+                    whileTap={{ scale: 0.98 }}
+                    className="border transition-all duration-500 w-full flex items-center justify-center"
+                    style={{
+                      padding: "16px 56px",
+                      minWidth: 280,
+                      maxWidth: 400,
+                      fontSize: "clamp(0.73rem, 2.5vw, 0.83rem)",
+                      letterSpacing: "0.32em",
+                      textTransform: "uppercase",
+                      fontFamily: "'Montserrat', sans-serif",
+                      color: addedFeedback ? "#1e1814" : "#1e1814",
+                      borderColor: "#1e1814",
+                      backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "transparent",
+                      borderRadius: 6,
+                    }}
+                  >
+                    {addedFeedback ? "Added to Bag ✓" : "Add to Cart"}
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    onClick={handleBuyNow}
+                    whileTap={{ scale: 0.98 }}
+                    className="border transition-all duration-500 w-full flex items-center justify-center"
+                    style={{
+                      padding: "18px 56px",
+                      minWidth: 280,
+                      maxWidth: 400,
+                      fontSize: "clamp(0.73rem, 2.5vw, 0.83rem)",
+                      letterSpacing: "0.32em",
+                      textTransform: "uppercase",
+                      fontFamily: "'Montserrat', sans-serif",
+                      color: "#faf8f5",
+                      borderColor: "#1e1814",
+                      backgroundColor: "#1e1814",
+                      boxShadow: "0 10px 32px rgba(30,24,20,0.18)",
+                      borderRadius: 6,
+                    }}
+                  >
+                    Buy It Now
+                  </motion.button>
+                </div>
               )}
 
               {/* You May Also Like — clothing recommendations */}
