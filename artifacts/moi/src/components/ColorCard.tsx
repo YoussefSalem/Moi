@@ -218,7 +218,7 @@ export function ColorCard({
       {/* Info */}
       <div className="flex flex-col gap-2.5 pt-5 md:pt-6 pb-2 px-1 md:px-0 pr-14 md:pr-0">
         {/* Color label + swatch + urgency */}
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             {swatchColor && (
               <span
@@ -245,18 +245,6 @@ export function ColorCard({
             </span>
           </div>
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
-            <span
-              style={{
-                fontFamily: "'Montserrat', sans-serif",
-                fontSize: "clamp(0.58rem, 1.6vw, 0.68rem)",
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "#c83232",
-                fontWeight: 500,
-              }}
-            >
-              Only {getStockCount(handle.split("-")[0] ?? "", colorName)} left
-            </span>
             {productName === "MOI WAVVY" && colorName === "Light Blue" && (
               <span
                 className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm"
@@ -280,6 +268,18 @@ export function ColorCard({
                 </span>
               </span>
             )}
+            <span
+              style={{
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: "clamp(0.58rem, 1.6vw, 0.68rem)",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "#c83232",
+                fontWeight: 500,
+              }}
+            >
+              Only {getStockCount(handle.split("-")[0] ?? "", colorName)} left
+            </span>
           </div>
         </div>
 
