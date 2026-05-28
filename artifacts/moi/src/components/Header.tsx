@@ -44,8 +44,6 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
           <button
             onClick={() => {
               onNavigate?.("home");
-              window.history.replaceState(null, "", window.location.pathname);
-              window.scrollTo({ top: 0, behavior: "smooth" });
             }}
             className="absolute left-1/2 -translate-x-1/2 font-serif select-none transition-colors duration-500"
             style={{ color: iconColor, letterSpacing: "0.3em", fontSize: "1.75rem" }}
@@ -161,11 +159,7 @@ export function Header({ onNavigate, onSearch, dark }: HeaderProps) {
                         style={{ color: "#1e1814", letterSpacing: "0.08em" }}
                         onClick={(e) => {
                           const dest = link === "Accessories" ? "accessories" : link === "Become an Ambassador" ? "ambassador" : "home";
-                          if (dest === "home") {
-                            e.preventDefault();
-                            window.history.replaceState(null, "", window.location.pathname);
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                          }
+                          e.preventDefault();
                           setMenuOpen(false);
                           onNavigate?.(dest);
                         }}

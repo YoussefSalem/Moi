@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
 import { captureAttribution } from "@/lib/adAttribution";
 import { initAnalytics } from "@/lib/analytics";
@@ -104,7 +105,6 @@ function AppContent() {
     setPage("product");
     setProductHandle(handle);
     window.history.pushState(null, "", `/products/${handle}`);
-    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
   }
 
   function navigateTo(p: PageType) {
@@ -123,6 +123,11 @@ function AppContent() {
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
+
+  // Scroll to top on every page change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  }, [page, productHandle]);
 
   // Handle abandoned-cart recovery links (?recover-cart=TOKEN)
   useEffect(() => {
@@ -196,92 +201,102 @@ function AppContent() {
       </nav>
       <Header onNavigate={(p) => navigateTo(p as PageType)} onSearch={() => setSearchOpen(true)} dark={isDark} />
 
-      {isProductPage ? (
-        <Suspense fallback={<div style={{ minHeight: "80vh", background: "#faf8f5" }} />}>
-          <ProductPage handle={productHandle} onBack={() => navigateTo("home")} />
-          <Footer onNavigate={(p) => navigateTo(p as PageType)} />
-        </Suspense>
-      ) : page === "home" ? (
-        <main>
-          <HeroVideo onReady={handleHeroReady} />
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={isProductPage ? `product-${productHandle}` : page}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.22, ease: "easeInOut" }}
+        >
+          {isProductPage ? (
+            <Suspense fallback={<div style={{ minHeight: "80vh", background: "#faf8f5" }} />}>
+              <ProductPage handle={productHandle} onBack={() => navigateTo("home")} />
+              <Footer onNavigate={(p) => navigateTo(p as PageType)} />
+            </Suspense>
+          ) : page === "home" ? (
+            <main>
+              <HeroVideo onReady={handleHeroReady} />
 
-          {/* Trust bar — 3 conversion points, minimal style */}
-          <div
-            className="w-full flex items-center justify-center gap-4 md:gap-8 py-4 px-4"
-            style={{ backgroundColor: "#faf8f5" }}
-          >
-            {[
-              { emoji: "\u2600\uFE0F", text: "New summer drop" },
-              { emoji: "\u26A1", text: "Fast delivery across Egypt" },
-              { emoji: "\uD83D\uDD25", text: "Limited stock available" },
-            ].map((item) => (
-              <div key={item.text} className="flex items-center gap-1.5">
-                <span className="text-[11px]" aria-hidden="true">{item.emoji}</span>
-                <span
-                  className="text-[9px] md:text-[10px] tracking-[0.18em] uppercase font-medium"
-                  style={{ color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}
-                >
-                  {item.text}
-                </span>
+              {/* Trust bar — 3 conversion points, minimal style */}
+              <div
+                className="w-full flex items-center justify-center gap-4 md:gap-8 py-4 px-4"
+                style={{ backgroundColor: "#faf8f5" }}
+              >
+                {[
+                  { emoji: "\u2600\uFE0F", text: "New summer drop" },
+                  { emoji: "\u26A1", text: "Fast delivery across Egypt" },
+                  { emoji: "\uD83D\uDD25", text: "Limited stock available" },
+                ].map((item) => (
+                  <div key={item.text} className="flex items-center gap-1.5">
+                    <span className="text-[11px]" aria-hidden="true">{item.emoji}</span>
+                    <span
+                      className="text-[9px] md:text-[10px] tracking-[0.18em] uppercase font-medium"
+                      style={{ color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}
+                    >
+                      {item.text}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div id="collection">
-            <ProductColorSection
-              id={product1.slug}
-              product={product1}
-              sectionTitle="MOI WAVVY"
-              sectionSubtitle="The ultimate throw-and-go. Light, breathable, and made for drifting."
-              colors={WAVVY_COLORS}
-              onNavigate={navigateToProduct}
-              onAddToCart={handleColorCardAddToCart}
-            />
-          </div>
+              <div id="collection">
+                <ProductColorSection
+                  id={product1.slug}
+                  product={product1}
+                  sectionTitle="MOI WAVVY"
+                  sectionSubtitle="The ultimate throw-and-go. Light, breathable, and made for drifting."
+                  colors={WAVVY_COLORS}
+                  onNavigate={navigateToProduct}
+                  onAddToCart={handleColorCardAddToCart}
+                />
+              </div>
 
-          <EditorialStrip />
+              <EditorialStrip />
 
-          <ProductColorSection
-            id={product2.slug}
-            product={product2}
-            sectionTitle="MOI VERSA TOP"
-            sectionSubtitle="Effortlessly versatile. A silhouette that moves with you, in every shade of summer."
-            colors={VERSA_COLORS}
-            onNavigate={navigateToProduct}
-            onAddToCart={handleColorCardAddToCart}
-            dark
-          />
+              <ProductColorSection
+                id={product2.slug}
+                product={product2}
+                sectionTitle="MOI VERSA TOP"
+                sectionSubtitle="Effortlessly versatile. A silhouette that moves with you, in every shade of summer."
+                colors={VERSA_COLORS}
+                onNavigate={navigateToProduct}
+                onAddToCart={handleColorCardAddToCart}
+                dark
+              />
 
-          <Suspense fallback={null}>
-            <TikTokSocialProof />
-          </Suspense>
+              <Suspense fallback={null}>
+                <TikTokSocialProof />
+              </Suspense>
 
-        </main>
-      ) : page === "accessories" ? (
-        <div>
-          <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
-            <AccessoriesPage onLookView={setLookProduct} />
-            <Footer onNavigate={(p) => navigateTo(p as PageType)} />
-          </Suspense>
-        </div>
-      ) : page === "ambassador" ? (
-        <div>
-          <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
-            <AmbassadorPage />
-            <Footer onNavigate={(p) => navigateTo(p as PageType)} />
-          </Suspense>
-        </div>
-      ) : (
-        <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
-          <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home")} />
-        </Suspense>
-      )}
+            </main>
+          ) : page === "accessories" ? (
+            <div>
+              <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
+                <AccessoriesPage onLookView={setLookProduct} />
+                <Footer onNavigate={(p) => navigateTo(p as PageType)} />
+              </Suspense>
+            </div>
+          ) : page === "ambassador" ? (
+            <div>
+              <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
+                <AmbassadorPage />
+                <Footer onNavigate={(p) => navigateTo(p as PageType)} />
+              </Suspense>
+            </div>
+          ) : (
+            <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
+              <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home")} />
+            </Suspense>
+          )}
 
-      {page === "home" && (
-        <Suspense fallback={null}>
-          <Footer onNavigate={(p) => navigateTo(p as PageType)} />
-        </Suspense>
-      )}
+          {page === "home" && (
+            <Suspense fallback={null}>
+              <Footer onNavigate={(p) => navigateTo(p as PageType)} />
+            </Suspense>
+          )}
+        </motion.div>
+      </AnimatePresence>
 
       <LoadingScreen ready={page !== "home" ? !loading : heroReady && !loading} />
       <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
