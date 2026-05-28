@@ -143,12 +143,14 @@ export function ColorCard({
           }}
           style={{ touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none" }}
         >
+          {/* Skeleton — shown while next image loads after swipe */}
+          <ImageSkeleton variant="card" className="z-0" borderRadius={8} />
           <AnimatePresence initial={false} mode="sync">
             <motion.img
               key={mobileIndex}
               src={allImages[mobileIndex] ?? image}
               alt={`${productName} — ${colorName}`}
-              className="absolute inset-0 w-full h-full"
+              className="absolute inset-0 w-full h-full z-10"
               style={{ objectFit: "cover", objectPosition: "center top" }}
               loading="lazy"
               decoding="async"
