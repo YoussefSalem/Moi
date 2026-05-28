@@ -12,15 +12,15 @@ const BASE_URL = process.env.BASE_URL || "https://buy-moi.com";
 
 // Product image mapping
 const PRODUCT_IMAGES = {
-  "moi-wavvy-light-blue": "/images/light-blue-main.webp",
-  "moi-wavvy-navy": "/images/navi.webp",
-  "moi-wavvy-mint": "/images/mint.webp",
-  "moi-versa-top-white": "/images/white.webp",
-  "moi-versa-top-cashmere": "/images/cashmere.webp",
-  "moi-versa-top-beige": "/images/beige.webp",
-  "moi-versa-top-yellow": "/images/white.webp",
-  "moi-versa-top-teal": "/images/teal.webp",
-  "trio-bangles": "/images/bangles.webp",
+  "moi-wavvy-light-blue": "/images/light-blue-main.jpg",
+  "moi-wavvy-navy": "/images/navi.jpg",
+  "moi-wavvy-mint": "/images/mint.jpg",
+  "moi-versa-top-white": "/images/white.jpg",
+  "moi-versa-top-cashmere": "/images/cashmere.jpg",
+  "moi-versa-top-beige": "/images/beige.jpg",
+  "moi-versa-top-yellow": "/images/white.jpg",
+  "moi-versa-top-teal": "/images/teal.jpg",
+  "trio-bangles": "/images/bangles.jpg",
 };
 
 const PRODUCT_DATA = {
