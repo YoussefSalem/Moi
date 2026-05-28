@@ -149,10 +149,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const qty = params.quantity ?? 1;
     setLoading(true);
     try {
+      // Shopify sync — best-effort; local cart always succeeds regardless
       if (SHOPIFY_CONFIGURED && params.variantId) {
-        const c = await ensureShopifyCart();
-        const updated = await addCartLines(c.id, [{ merchandiseId: params.variantId, quantity: qty }]);
-        setShopifyCart(updated);
+        try {
+          const c = await ensureShopifyCart();
+          const updated = await addCartLines(c.id, [{ merchandiseId: params.variantId, quantity: qty }]);
+          setShopifyCart(updated);
+        } catch {
+          // Shopify failure must not block local cart; silently fall through
+        }
       }
       const key = `${params.variantId ?? params.title ?? "item"}-${params.size ?? ""}`;
       setLocalItems((prev) => {
