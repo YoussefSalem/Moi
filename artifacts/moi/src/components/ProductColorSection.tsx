@@ -123,7 +123,7 @@ export function ProductColorSection({
                   onNavigate={onNavigate}
                   onAddToCart={onAddToCart}
                   index={i}
-                  className={lastOdd ? "max-w-[calc(50%-8px)]" : undefined}
+                  className={lastOdd ? "max-w-[calc(50%-8px)] md:max-w-[360px]" : undefined}
                 />
               </div>
             );
