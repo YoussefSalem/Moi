@@ -150,7 +150,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
       price: effectivePrice,
       priceAmount: parseFloat(String(effectivePrice).replace(/[^0-9]/g, "")),
       currencyCode: "EGP",
-      image: mainImage,
+      image: galleryImages[0] ?? product.productShot,
       size: selectedSize || "One Size",
       color: product.name,
     });

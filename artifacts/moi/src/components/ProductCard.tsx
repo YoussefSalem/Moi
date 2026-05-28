@@ -320,7 +320,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
       price: effectivePrice,
       priceAmount: parseFloat(String(effectivePrice).replace(/[^0-9]/g, "")),
       currencyCode: "EGP",
-      image: mainImage,
+      image: resolvedColorImage ?? product.productShot,
       size: selectedSize,
       color: selectedColor,
     });
