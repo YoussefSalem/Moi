@@ -392,6 +392,6 @@ export function formatMoney(amount: string, currencyCode: string): string {
   for (let i = 1; i < parts.length; i++) {
     parts[i] = parts[i].padStart(3, "0");
   }
-  const formatted = parts.length ? parts.join(".") : "0";
-  return fraction > 0 ? `${formatted},${fraction.toString().padStart(2, "0")} ${currencyCode}` : `${formatted} ${currencyCode}`;
+  const formatted = parts.length ? parts.join(",") : "0";
+  return fraction > 0 ? `${formatted}.${fraction.toString().padStart(2, "0")} ${currencyCode}` : `${formatted} ${currencyCode}`;
 }
