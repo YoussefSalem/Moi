@@ -106,7 +106,7 @@ export function ProductColorSection({
             const handle = `${product.slug}-${slugify(c.name)}`;
             const isLast = i === colors.length - 1;
             const isOdd = colors.length % 2 === 1;
-            const mobileLastOdd = isLast && isOdd ? "col-span-2 justify-self-center max-w-[360px]" : "";
+            const mobileLastOdd = isLast && isOdd ? "col-span-2 justify-self-center w-[calc(50%-8px)]" : "";
 
             return (
               <ColorCard
