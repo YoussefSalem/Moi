@@ -59,9 +59,10 @@ function deriveFallbackFromHandle(handle: string): ProductConfig {
 interface ProductPageProps {
   handle: string;
   onBack: () => void;
+  onNavigate?: (handle: string) => void;
 }
 
-export function ProductPage({ handle, onBack }: ProductPageProps) {
+export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const fallback = deriveFallbackFromHandle(handle);
   const { product, loading } = useShopifyProductByHandle(handle, fallback);
   // When Shopify returns all variants for the base product (e.g. all MOI WAVVY colors),
@@ -542,8 +543,70 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                     borderRadius: 6,
                   }}
                 >
-                  {addedFeedback ? "Added to Bag ✓" : "Add to Cart"}
+                  {addedFeedback ? "Added to Bag ✓" : "Buy It Now"}
                 </motion.button>
+              )}
+
+              {/* You May Also Like — clothing recommendations */}
+              {onNavigate && (
+                <div className="mt-12 pt-10 border-t border-[rgba(30,24,20,0.08)]">
+                  <p
+                    style={{
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: 10,
+                      letterSpacing: "0.28em",
+                      textTransform: "uppercase",
+                      color: "#8a7e74",
+                      marginBottom: 20,
+                    }}
+                  >
+                    You May Also Like
+                  </p>
+                  <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+                    {(() => {
+                      const clothingRecs = [
+                        { handle: "moi-versa-top-white", name: "MOI VERSA TOP", color: "White", price: "1,399 EGP", image: IMAGES.product2.colorImages.White as string, swatch: "#f5f0e8" },
+                        { handle: "moi-versa-top-yellow", name: "MOI VERSA TOP", color: "Yellow", price: "1,399 EGP", image: IMAGES.product2.colorImages.Yellow as string, swatch: "#e8d080" },
+                        { handle: "moi-versa-top-teal", name: "MOI VERSA TOP", color: "Teal", price: "1,399 EGP", image: IMAGES.product2.colorImages.Teal as string, swatch: "#4a8a8a" },
+                        { handle: "moi-wavvy-light-blue", name: "MOI WAVVY", color: "Light Blue", price: "899 EGP", image: IMAGES.product1.colorImages["Light Blue"] as string, swatch: "#a8c8d8" },
+                        { handle: "moi-wavvy-navy", name: "MOI WAVVY", color: "Navy", price: "899 EGP", image: IMAGES.product1.colorImages.Navy as string, swatch: "#3a5a7a" },
+                        { handle: "moi-wavvy-mint", name: "MOI WAVVY", color: "Mint", price: "899 EGP", image: IMAGES.product1.colorImages.Mint as string, swatch: "#98c8a8" },
+                      ];
+                      const visible = clothingRecs.filter((r) => r.handle !== handle).slice(0, 3);
+                      return visible.map((rec) => (
+                        <button
+                          key={rec.handle}
+                          type="button"
+                          onClick={() => onNavigate(rec.handle)}
+                          className="flex-shrink-0 text-left cursor-pointer group"
+                          style={{ width: 120 }}
+                        >
+                          <div className="overflow-hidden rounded-sm mb-2" style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.04)" }}>
+                            <img
+                              src={rec.image}
+                              alt={rec.name}
+                              className="w-full h-full"
+                              style={{ objectFit: "cover", transition: "transform 0.5s ease" }}
+                              loading="lazy"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="rounded-full flex-shrink-0" style={{ width: 8, height: 8, backgroundColor: rec.swatch, border: "1px solid rgba(30,24,20,0.14)" }} />
+                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "#8a7e74" }}>
+                              {rec.color}
+                            </span>
+                          </div>
+                          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(0.82rem, 2vw, 0.94rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1.2 }}>
+                            {rec.name}
+                          </p>
+                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.1em", color: "#7a6e64", marginTop: 2 }}>
+                            {rec.price}
+                          </p>
+                        </button>
+                      ));
+                    })()}
+                  </div>
+                </div>
               )}
 
             </div>

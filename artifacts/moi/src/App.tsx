@@ -282,7 +282,7 @@ function AppContent() {
         >
           {isProductPage ? (
             <div>
-              <ProductPage handle={productHandle} onBack={() => navigateTo("home")} />
+              <ProductPage handle={productHandle} onBack={() => navigateTo("home")} onNavigate={navigateToProduct} />
               <Footer onNavigate={(p) => navigateTo(p as PageType)} />
             </div>
           ) : page === "home" ? (
