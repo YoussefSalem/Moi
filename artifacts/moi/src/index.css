@@ -331,6 +331,11 @@ section {
   100% { transform: translateX(110%); }
 }
 
+@keyframes moi-skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.85; }
+}
+
 @layer utilities {
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;

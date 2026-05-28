@@ -247,9 +247,10 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
       if (key && galleries[key]?.length) return galleries[key]!;
     }
     const filmstrip = product.filmstrip ?? [];
-    return filmstrip.length > 0
+    const raw = filmstrip.length > 0
       ? [product.productShot, ...filmstrip]
       : [resolvedColorImage ?? product.productShot];
+    return Array.from(new Set(raw));
   })();
 
   const galleryImages = colorGallery.length > 0 ? colorGallery : [resolvedColorImage ?? product.productShot];
