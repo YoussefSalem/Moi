@@ -1490,21 +1490,21 @@ export function CheckoutPage() {
                   Delivery Details
                 </p>
 
-                <div className="space-y-5">
+                <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-5">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
                       <label style={labelStyle}>First Name</label>
-                      <input type="text" value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} style={inputStyle} autoComplete="given-name" className="checkout-input" />
+                      <input type="text" name="given-name" value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} style={inputStyle} autoComplete="given-name" className="checkout-input" />
                     </div>
                     <div className="flex flex-col gap-1">
                       <label style={labelStyle}>Last Name</label>
-                      <input type="text" value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} style={inputStyle} autoComplete="family-name" className="checkout-input" />
+                      <input type="text" name="family-name" value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} style={inputStyle} autoComplete="family-name" className="checkout-input" />
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-1">
                     <label style={labelStyle}>Phone Number</label>
-                    <input type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} style={inputStyle} autoComplete="tel" placeholder="01X XXXX XXXX" className="checkout-input" />
+                    <input type="tel" name="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} style={inputStyle} autoComplete="tel" placeholder="01X XXXX XXXX" className="checkout-input" />
                   </div>
 
                   <div className="flex flex-col gap-1">
@@ -1518,12 +1518,12 @@ export function CheckoutPage() {
                         Change
                       </button>
                     </div>
-                    <input type="email" value={form.email} readOnly style={{ ...inputStyle, color: "rgba(30,24,20,0.65)" }} className="checkout-input" />
+                    <input type="email" name="email" value={form.email} readOnly style={{ ...inputStyle, color: "rgba(30,24,20,0.65)" }} className="checkout-input" />
                   </div>
 
                   <div className="flex flex-col gap-1">
                     <label style={labelStyle}>Address</label>
-                    <input type="text" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} style={inputStyle} autoComplete="street-address" className="checkout-input" />
+                    <input type="text" name="street-address" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} style={inputStyle} autoComplete="street-address" className="checkout-input" />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 items-end">
@@ -1562,35 +1562,35 @@ export function CheckoutPage() {
                     </div>
                     <div className="flex flex-col gap-1">
                       <label style={labelStyle}>Postal Code <span style={{ textTransform: "none", letterSpacing: "0.08em", opacity: 0.7, fontSize: "11px" }}>(optional)</span></label>
-                      <input type="text" value={form.postalCode} onChange={(e) => setForm((f) => ({ ...f, postalCode: e.target.value }))} style={inputStyle} autoComplete="postal-code" className="checkout-input" />
+                      <input type="text" name="postal-code" value={form.postalCode} onChange={(e) => setForm((f) => ({ ...f, postalCode: e.target.value }))} style={inputStyle} autoComplete="postal-code" className="checkout-input" />
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-1">
                     <label style={labelStyle}>City</label>
-                    <input type="text" value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} style={inputStyle} autoComplete="address-level2" className="checkout-input" />
+                    <input type="text" name="address-level2" value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} style={inputStyle} autoComplete="address-level2" className="checkout-input" />
                   </div>
-                </div>
 
-                {submitError && (
-                  <p style={{ fontSize: "13px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: "12px", letterSpacing: "0.04em" }}>{submitError}</p>
-                )}
+                  {submitError && (
+                    <p style={{ fontSize: "13px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: "12px", letterSpacing: "0.04em" }}>{submitError}</p>
+                  )}
 
-                {paymentMethod === "instapay" && (
-                  <div className="mt-5 p-4" style={{ backgroundColor: "rgba(30,24,20,0.05)", border: "1px solid rgba(30,24,20,0.14)" }}>
-                    <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, letterSpacing: "0.04em" }}>
-                      After placing your order, you'll see payment instructions and can upload your transfer screenshot directly on the site.
-                    </p>
-                  </div>
-                )}
+                  {paymentMethod === "instapay" && (
+                    <div className="mt-5 p-4" style={{ backgroundColor: "rgba(30,24,20,0.05)", border: "1px solid rgba(30,24,20,0.14)" }}>
+                      <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, letterSpacing: "0.04em" }}>
+                        After placing your order, you'll see payment instructions and can upload your transfer screenshot directly on the site.
+                      </p>
+                    </div>
+                  )}
 
-                <button
-                  onClick={handleSubmit}
-                  className="w-full mt-8 py-4 transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
-                >
-                  Place Order
-                </button>
+                  <button
+                    type="submit"
+                    className="w-full mt-8 py-4 transition-opacity hover:opacity-80"
+                    style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+                  >
+                    Place Order
+                  </button>
+                </form>
 
                 <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.58)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "14px", letterSpacing: "0.18em" }}>
                   By placing your order you agree to our terms of service.
