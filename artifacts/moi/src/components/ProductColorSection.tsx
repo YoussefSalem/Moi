@@ -37,7 +37,7 @@ export function ProductColorSection({
   const bg = dark ? "#f0ece6" : "#ffffff";
 
   return (
-    <section id={id} className="w-full py-20 md:py-28 px-6 md:px-12" style={{ backgroundColor: bg }}>
+    <section id={id} className="w-full py-32 md:py-48 px-6 md:px-16 lg:px-24" style={{ backgroundColor: bg }}>
       <div className="max-w-7xl mx-auto">
 
         {/* Section header */}
@@ -46,7 +46,7 @@ export function ProductColorSection({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col items-center text-center mb-12 md:mb-16"
+          className="flex flex-col items-center text-center mb-16 md:mb-20"
         >
           <p
             style={{
@@ -94,7 +94,7 @@ export function ProductColorSection({
 
         {/* Color cards grid — mobile: 2 columns; desktop: 3 columns */}
         <div
-          className="grid grid-cols-2 md:grid-cols-3 md:justify-items-center gap-x-4 gap-y-6 md:gap-8"
+          className="grid grid-cols-2 md:grid-cols-3 md:justify-items-center gap-x-10 gap-y-48 md:gap-x-28 md:gap-y-72"
         >
           {colors.map((c, i) => {
             const img = colorImages[c.name] ?? product.productShot;
@@ -114,7 +114,7 @@ export function ProductColorSection({
             const colStart = isLastRow ? i - lastRowStart + 2 : undefined;
 
             return (
-              <div key={handle} className={`w-full ${lastOdd ? "col-span-2 flex justify-center md:col-span-1" : ""} ${colStart ? `md:col-start-${colStart}` : ""}`}>
+              <div key={handle} className={`w-full h-full flex justify-center ${lastOdd ? "col-span-2 md:col-span-1" : ""} ${colStart ? `md:col-start-${colStart}` : ""}`}>
                 <ColorCard
                   productName={sectionTitle}
                   colorName={c.name}

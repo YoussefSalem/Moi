@@ -218,7 +218,7 @@ export function ColorCard({
       )}
 
       {/* Info */}
-      <div className="flex flex-col items-center flex-grow pt-5 md:pt-6 pb-2 px-1 md:px-0">
+      <div className="flex flex-col items-center flex-grow pt-24 md:pt-36 pb-6 md:pb-8 px-1 md:px-0 gap-y-16 md:gap-y-24">
         {/* Color name + badge */}
         <div className="flex items-center justify-center gap-2 flex-wrap md:flex-nowrap">
           <div className="flex items-center gap-2 min-w-0">
@@ -272,7 +272,7 @@ export function ColorCard({
         </div>
 
         {/* Product name + stock count */}
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-4 md:gap-6">
           <h3
             style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
