@@ -316,6 +316,7 @@ export function CheckoutPage() {
   const isApplyingRef = useRef(false); // Prevents recursive re-apply while we update cart
   const paymobTrackedRef = useRef(false); // Prevents duplicate trackPurchase when iframe fires twice
   const instapayTrackedRef = useRef(false); // Prevents duplicate trackPurchase on double-submit
+  const submittingRef = useRef(false); // Prevents double-submit of COD/card/instapay order forms
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", phone: "", email: "",
@@ -468,23 +469,30 @@ export function CheckoutPage() {
     setEmailInput("");
     setShopifyCheckoutToken(null);
     sessionStorage.removeItem("moi_instapay_order_result");
+    submittingRef.current = false;
     closeCheckout();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [clearCart, closeCheckout, markAbandonedCartRecovered]);
 
   const handleSubmit = useCallback(async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+
     const hasShopifyItems = isShopify && !!shopifyCart && shopifyCart.lines.nodes.length > 0;
     const hasLocalItems = localItems.length > 0;
     if (!hasShopifyItems && !hasLocalItems) {
       setSubmitError("Your cart appears to be empty. Please add items before checking out.");
+      submittingRef.current = false;
       return;
     }
     if (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.address.trim() || !form.city.trim() || !form.governorate.trim()) {
       setSubmitError("Please fill in all fields.");
+      submittingRef.current = false;
       return;
     }
     if (!/^\d{7,15}$/.test(form.phone.replace(/\D/g, ""))) {
       setSubmitError("Please enter a valid phone number.");
+      submittingRef.current = false;
       return;
     }
 
@@ -533,6 +541,7 @@ export function CheckoutPage() {
         if (!res.ok || !data.clientSecret || !data.publicKey) {
           setStep("form");
           setSubmitError(data.error ?? "Payment gateway unavailable. Please try again.");
+          submittingRef.current = false;
           return;
         }
 
@@ -556,6 +565,7 @@ export function CheckoutPage() {
         setStep("form");
         setSubmitError("Network error. Please check your connection and try again.");
       }
+      submittingRef.current = false;
       return;
     }
 
@@ -589,6 +599,7 @@ export function CheckoutPage() {
         if (!res.ok || !data.success) {
           setStep("form");
           setSubmitError(data.error ?? "Something went wrong. Please try again.");
+          submittingRef.current = false;
           return;
         }
 
@@ -613,6 +624,7 @@ export function CheckoutPage() {
         setStep("form");
         setSubmitError("Network error. Please check your connection and try again.");
       }
+      submittingRef.current = false;
       return;
     }
 
@@ -643,6 +655,7 @@ export function CheckoutPage() {
       if (!res.ok || !data.success) {
         setStep("form");
         setSubmitError(data.error ?? "Something went wrong. Please try again.");
+        submittingRef.current = false;
         return;
       }
 
@@ -695,6 +708,7 @@ export function CheckoutPage() {
     } catch {
       setStep("form");
       setSubmitError("Network error. Please check your connection and try again.");
+      submittingRef.current = false;
     }
   }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, clearCart, shopifyCheckoutToken, markAbandonedCartRecovered]);
 
@@ -710,6 +724,7 @@ export function CheckoutPage() {
     setGovernorateOpen(false);
     setForm({ firstName: "", lastName: "", phone: "", email: "", address: "", governorate: "", postalCode: "", city: "" });
     sessionStorage.removeItem("moi_instapay_order_result");
+    submittingRef.current = false;
     closeCheckout();
   }, [clearCart, closeCheckout]);
 
@@ -817,22 +832,26 @@ export function CheckoutPage() {
   const handleIframeFail = useCallback(() => {
     setPaymobIframeUrl(null);
     setStep("card-failed");
+    submittingRef.current = false;
   }, []);
 
   const handleCancelCardCheckout = useCallback(() => {
     setPaymobIframeUrl(null);
     setStep("form");
     setPaymentMethod("card");
+    submittingRef.current = false;
   }, []);
 
   const handleRetryCard = useCallback(() => {
     setStep("form");
     setPaymentMethod("card");
+    submittingRef.current = false;
   }, []);
 
   const handleChooseDifferent = useCallback(() => {
     setStep("form");
     setPaymentMethod("cod");
+    submittingRef.current = false;
   }, []);
 
   // When cart contents change (items added/removed) and a promo code is active,

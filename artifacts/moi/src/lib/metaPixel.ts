@@ -5,6 +5,14 @@
 
 import { getAttribution } from "./adAttribution";
 
+function hashId(str: string): string {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h).toString(36);
+}
+
 const ECOMMERCE_EVENTS = new Set([
   "InitiateCheckout",
   "Purchase",
@@ -61,8 +69,19 @@ export function trackEvent(
   if (attr.fbc) cleaned.fbc = attr.fbc;
   if (attr.fbp) cleaned.fbp = attr.fbp;
 
-  // Deduplication key: same event_id must be used on both browser + server
-  cleaned.event_id = `${eventName}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  // Deduplication key: deterministic event_id so Meta can deduplicate duplicate fires.
+  // For Purchase events, use order_id as the event_id (the single source of truth).
+  // For other events, hash the content_ids + value so the same cart fires the same ID.
+  const orderId = cleaned.order_id as string | undefined;
+  const contentIds = cleaned.content_ids as string | undefined;
+  const value = cleaned.value as number | undefined;
+  if (eventName === "Purchase" && orderId) {
+    cleaned.event_id = hashId(`purchase_${orderId}`);
+  } else if (contentIds) {
+    cleaned.event_id = hashId(`${eventName}_${contentIds}_${value ?? 0}`);
+  } else {
+    cleaned.event_id = `${eventName}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  }
 
   if (Object.keys(cleaned).length > 1) {
     fbq("track", eventName, cleaned);
