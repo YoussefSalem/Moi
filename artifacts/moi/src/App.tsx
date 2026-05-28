@@ -142,11 +142,6 @@ function AppContent() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  // Scroll to top on every page change
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-  }, [page, productHandle]);
-
   // Handle abandoned-cart recovery links (?recover-cart=TOKEN)
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -271,7 +266,10 @@ function AppContent() {
       </nav>
       <Header onNavigate={(p) => navigateTo(p as PageType)} onSearch={() => setSearchOpen(true)} dark={isDark} page={page} />
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence
+        mode="wait"
+        onExitComplete={() => window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior })}
+      >
         <motion.div
           key={isProductPage ? `product-${productHandle}` : page}
           initial={{ opacity: 0 }}
