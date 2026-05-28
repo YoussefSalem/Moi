@@ -7,6 +7,7 @@ import { useCart } from "@/context/CartContext";
 import { useCustomer } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { NotifyMeModal } from "@/components/NotifyMeModal";
+import { CinematicLightbox } from "@/components/CinematicLightbox";
 import { trackAddToCart } from "@/lib/analytics";
 
 function slugify(str: string): string {
@@ -72,6 +73,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   // SEO: update document head imperatively so meta is reliably in the <head>
   useEffect(() => {
@@ -243,9 +245,10 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
           >
             {/* ── IMAGE GALLERY ── */}
             <div className="w-full flex flex-col gap-4">
-              {/* Main image */}
+              {/* Main image — click opens lightbox zoom */}
               <div
-                className="relative w-full overflow-hidden rounded-sm"
+                className="relative w-full overflow-hidden rounded-sm cursor-pointer"
+                onClick={() => setLightboxOpen(true)}
                 onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
                 onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
                 onPointerUp={(e) => {
@@ -303,12 +306,10 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
                   </>
                 )}
 
-                {/* Index indicator */}
-                {galleryImages.length > 1 && (
-                  <div className="absolute bottom-3 right-3" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, color: "rgba(30,24,20,0.45)", letterSpacing: "0.18em" }}>
-                    {galleryIndex + 1} / {galleryImages.length}
-                  </div>
-                )}
+                {/* Zoom hint — subtle, fades on interaction */}
+                <div className="absolute bottom-3 right-3" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 8, color: "rgba(30,24,20,0.35)", letterSpacing: "0.2em", textTransform: "uppercase" }}>
+                  tap to zoom
+                </div>
               </div>
 
               {/* Thumbnails */}
@@ -531,6 +532,14 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
         variantTitle={selectedSize || "One Size"}
         onClose={() => setNotifyModalOpen(false)}
         onSubmit={subscribeToRestock}
+      />
+
+      {/* Full-screen zoom lightbox — pinch, double-tap, swipe nav */}
+      <CinematicLightbox
+        images={galleryImages}
+        initialIndex={galleryIndex}
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
       />
     </>
   );
