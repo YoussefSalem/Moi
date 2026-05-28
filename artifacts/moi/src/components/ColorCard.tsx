@@ -145,7 +145,7 @@ export function ColorCard({
           }}
           style={{ touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none" }}
         >
-          <AnimatePresence initial={false} mode="popLayout">
+          <AnimatePresence initial={false} mode="sync">
             <motion.img
               key={mobileIndex}
               src={allImages[mobileIndex] ?? image}
@@ -155,10 +155,10 @@ export function ColorCard({
               loading="lazy"
               decoding="async"
               onLoad={() => setImgLoaded(true)}
-              initial={{ x: swipeDirection * 100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: swipeDirection * -100, opacity: 0 }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
             />
           </AnimatePresence>
         </div>
