@@ -143,24 +143,26 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
       >
         {/* Collection label */}
         <motion.p
-          className="text-[9px] md:text-[10px] tracking-[0.55em] uppercase font-light mb-2"
-          style={{ color: "rgba(255,255,255,0.70)", fontFamily: "'Montserrat', sans-serif", textShadow: "0 1px 6px rgba(0,0,0,0.25)" }}
+          className="text-[9px] md:text-[10px] tracking-[0.55em] uppercase font-medium mb-2"
+          style={{ color: "rgba(255,255,255,0.82)", fontFamily: "'Montserrat', sans-serif", textShadow: "0 2px 8px rgba(0,0,0,0.45)" }}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
         >
-          Limited Drop
+          New Drop
         </motion.p>
 
         {/* Brand name */}
         <motion.h1
-          className="font-serif font-light"
+          className="font-serif"
           style={{
             color: "#fff",
             fontSize: "clamp(5.41rem, 22vw, 13.52rem)",
             letterSpacing: "0.03em",
             lineHeight: 0.88,
             fontFamily: "'Cormorant Garamond', Georgia, serif",
+            fontWeight: 500,
+            textShadow: "0 2px 12px rgba(0,0,0,0.35)",
           }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -172,24 +174,24 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
 
         {/* Headline */}
         <motion.p
-          className="mt-3 text-[13px] md:text-[15px] tracking-[0.12em] uppercase font-medium"
-          style={{ color: "rgba(255,255,255,0.82)", fontFamily: "'Montserrat', sans-serif" }}
+          className="mt-3 text-[13px] md:text-[15px] tracking-[0.12em] uppercase font-bold"
+          style={{ color: "rgba(255,255,255,0.92)", fontFamily: "'Montserrat', sans-serif", textShadow: "0 2px 8px rgba(0,0,0,0.35)" }}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: loaded ? 1 : 0, y: 0 }}
           transition={{ duration: 0.9, ease: "easeOut", delay: 0.5 }}
         >
-          Summer Collection — Limited Drop
+          Summer Collection — Exclusive Drop
         </motion.p>
 
         {/* Subheadline */}
         <motion.p
-          className="mt-2 text-[10px] md:text-[11px] tracking-[0.28em] uppercase font-light"
-          style={{ color: "rgba(255,255,255,0.55)", fontFamily: "'Montserrat', sans-serif", textShadow: "0 1px 6px rgba(0,0,0,0.35)" }}
+          className="mt-2 text-[10px] md:text-[11px] tracking-[0.28em] uppercase font-semibold"
+          style={{ color: "rgba(255,255,255,0.72)", fontFamily: "'Montserrat', sans-serif", textShadow: "0 2px 8px rgba(0,0,0,0.45)" }}
           initial={{ opacity: 0 }}
           animate={{ opacity: loaded ? 1 : 0 }}
           transition={{ duration: 1, ease: "easeOut", delay: 0.7 }}
         >
-          New pieces just launched. Limited availability.
+          New pieces just launched. Fresh arrivals.
         </motion.p>
 
         {/* CTA — subtle opacity fade only, no offset/scale transforms that fight the compositor */}
