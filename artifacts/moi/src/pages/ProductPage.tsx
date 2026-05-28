@@ -192,8 +192,8 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
   return (
     <>
       <div className="min-h-screen" style={{ backgroundColor: BG }}>
-        {/* Back button */}
-        <div className="w-full px-5 md:px-12 pt-10 md:pt-16 pb-2">
+        {/* Back button — extra top padding to clear the fixed header (h-16 + safe-area) */}
+        <div className="w-full px-5 md:px-12 pt-20 md:pt-24 pb-3">
           <button
             type="button"
             onClick={onBack}
@@ -226,7 +226,7 @@ export function ProductPage({ handle, onBack }: ProductPageProps) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-6xl mx-auto px-5 md:px-12 pt-10 md:pt-14 pb-24 flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-16 items-start"
+            className="max-w-6xl mx-auto px-5 md:px-12 pt-6 md:pt-10 pb-24 flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-16 items-start"
           >
             {/* ── IMAGE GALLERY ── */}
             <div className="w-full flex flex-col gap-4">

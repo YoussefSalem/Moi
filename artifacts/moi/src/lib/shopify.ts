@@ -380,13 +380,14 @@ export async function subscribeToNewsletter(email: string): Promise<{ success: b
 
 export function formatMoney(amount: string, currencyCode: string): string {
   const num = parseFloat(amount);
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currencyCode,
-      minimumFractionDigits: 2,
-    }).format(num);
-  } catch {
-    return `${currencyCode} ${num.toFixed(2)}`;
+  const whole = Math.floor(num);
+  const fraction = Math.round((num - whole) * 100);
+  const parts = [];
+  let remaining = whole;
+  while (remaining > 0) {
+    parts.unshift((remaining % 1000).toString().padStart(parts.length > 0 ? 3 : 0, "0"));
+    remaining = Math.floor(remaining / 1000);
   }
+  const formatted = parts.length ? parts.join(".") : "0";
+  return fraction > 0 ? `${formatted},${fraction.toString().padStart(2, "0")} ${currencyCode}` : `${formatted} ${currencyCode}`;
 }
