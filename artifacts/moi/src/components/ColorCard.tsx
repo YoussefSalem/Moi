@@ -321,7 +321,7 @@ export function ColorCard({
               onNavigate(handle);
             }
           }}
-          className="self-center mt-3 md:mt-4 border transition-all duration-300 px-6 py-3.5 md:px-14 md:py-3.5 hover:shadow-lg"
+          className="self-center mt-3 md:mt-4 border transition-all duration-300 px-10 py-3.5 md:px-14 md:py-3.5 hover:shadow-lg"
           style={{
             fontSize: "clamp(0.68rem, 2vw, 0.78rem)",
             letterSpacing: "0.28em",
