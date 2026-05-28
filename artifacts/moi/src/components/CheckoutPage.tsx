@@ -159,6 +159,14 @@ interface OrderResult {
   }>;
 }
 
+interface OrderBreakdown {
+  subtotal: number;
+  savings: number;
+  shippingCost: number;
+  freeShipping: boolean;
+  fmt: (n: number) => string;
+}
+
 const SHIPPING_EGP = 50;
 const GOVERNORATES = [
   "Cairo","Giza","Alexandria","Dakahlia","Red Sea","Beheira","Fayoum","Gharbia",
@@ -299,6 +307,7 @@ export function CheckoutPage() {
   const [promoError, setPromoError] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
+  const [breakdownSnapshot, setBreakdownSnapshot] = useState<{ subtotal: number; savings: number; shippingCost: number; freeShipping: boolean } | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
   const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
@@ -593,6 +602,7 @@ export function CheckoutPage() {
           customerName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
           customerPhone: form.phone.trim(),
         };
+        setBreakdownSnapshot({ subtotal: subtotalAmount, savings, shippingCost, freeShipping });
         setOrderResult(orderResultPayload);
         // Persist instapay state so it survives tab switches on mobile
         sessionStorage.setItem("moi_instapay_order_result", JSON.stringify(orderResultPayload));
@@ -635,6 +645,7 @@ export function CheckoutPage() {
         return;
       }
 
+      setBreakdownSnapshot({ subtotal: subtotalAmount, savings, shippingCost, freeShipping });
       setOrderResult({
         orderNumber: data.orderNumber ?? "",
         total: data.total ?? fmt(totalAmount),
@@ -1141,11 +1152,12 @@ export function CheckoutPage() {
               </p>
             </div>
           ) : step === "cod-confirm" ? (
-            <CODConfirmation orderResult={orderResult!} onDone={handleSuccessDone} items={successItems} />
+            <CODConfirmation orderResult={orderResult!} onDone={handleSuccessDone} items={successItems} breakdown={{ ...(breakdownSnapshot ?? { subtotal: subtotalAmount, savings, shippingCost, freeShipping }), fmt }} />
           ) : step === "instapay-confirm" ? (
             <InstapayConfirmation
               orderResult={orderResult!}
               onDone={handleSuccessDone}
+              breakdown={{ ...(breakdownSnapshot ?? { subtotal: subtotalAmount, savings, shippingCost, freeShipping }), fmt }}
               onProofSubmitted={(orderNumber, shopifyOrderId, total) => {
                 // Guard: double-click or rapid re-submit can fire this callback twice
                 if (instapayTrackedRef.current) return;
@@ -1591,7 +1603,7 @@ export function CheckoutPage() {
   );
 }
 
-function CODConfirmation({ orderResult, onDone, items }: { orderResult: OrderResult; onDone: () => void; items: NonNullable<OrderResult["items"]> }) {
+function CODConfirmation({ orderResult, onDone, items, breakdown }: { orderResult: OrderResult; onDone: () => void; items: NonNullable<OrderResult["items"]>; breakdown: OrderBreakdown }) {
   return (
     <OrderSuccessScreen
       orderResult={orderResult}
@@ -1602,6 +1614,7 @@ function CODConfirmation({ orderResult, onDone, items }: { orderResult: OrderRes
       detail={`Our team will contact you shortly to arrange delivery. Total due on arrival: ${orderResult.total} EGP`}
       note="A WhatsApp confirmation has been sent to your number."
       accentLabel="Pay on Delivery"
+      breakdown={breakdown}
     />
   );
 }
@@ -1681,11 +1694,13 @@ function InstapayConfirmation({
   onDone,
   onProofSubmitted,
   fmt,
+  breakdown,
 }: {
   orderResult: OrderResult;
   onDone: () => void;
   onProofSubmitted: (orderNumber: string | number, shopifyOrderId: number | null, total: string) => void;
   fmt: (n: number) => string;
+  breakdown: OrderBreakdown;
 }) {
   const [subStep, setSubStep] = useState<InstapaySubStep>("instructions");
   const [referenceNumber, setReferenceNumber] = useState("");
@@ -1864,6 +1879,7 @@ function InstapayConfirmation({
       <AnimatePresence mode="wait">
         {subStep === "instructions" && (
           <motion.div key="instructions" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} className="w-full flex flex-col gap-4">
+            <OrderBreakdownRows breakdown={breakdown} />
             <div style={{ border: "1px solid rgba(30,24,20,0.22)" }}>
               <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(30,24,20,0.1)", backgroundColor: "rgba(30,24,20,0.03)" }}>
                 <p style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif" }}>How to Pay via Instapay</p>
@@ -2062,6 +2078,35 @@ function InstapayConfirmation({
   );
 }
 
+function OrderBreakdownRows({ breakdown }: { breakdown: OrderBreakdown }) {
+  const { subtotal, savings, shippingCost, freeShipping, fmt } = breakdown;
+  const rowStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center" };
+  const labelStyle: React.CSSProperties = { fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" };
+  const valueStyle: React.CSSProperties = { fontSize: "12px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 };
+  return (
+    <div style={{ border: "1px solid rgba(30,24,20,0.1)", backgroundColor: "rgba(30,24,20,0.02)", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Subtotal</span>
+        <span style={valueStyle}>{fmt(subtotal)} EGP</span>
+      </div>
+      {savings > 0 && (
+        <div style={rowStyle}>
+          <span style={labelStyle}>Discount</span>
+          <span style={{ ...valueStyle, color: "#5a7a5a" }}>−{fmt(savings)} EGP</span>
+        </div>
+      )}
+      <div style={rowStyle}>
+        <span style={labelStyle}>Shipping</span>
+        {freeShipping ? (
+          <span style={{ ...valueStyle, color: "rgba(30,24,20,0.5)", fontStyle: "italic" }}>Complimentary</span>
+        ) : (
+          <span style={valueStyle}>{fmt(shippingCost)} EGP</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function OrderSuccessScreen({
   orderResult,
   onDone,
@@ -2071,6 +2116,7 @@ function OrderSuccessScreen({
   detail,
   note,
   accentLabel,
+  breakdown,
 }: {
   orderResult: OrderResult;
   onDone: () => void;
@@ -2080,6 +2126,7 @@ function OrderSuccessScreen({
   detail: string;
   note: string;
   accentLabel: string;
+  breakdown?: OrderBreakdown;
 }) {
   return (
     <motion.div
@@ -2120,6 +2167,7 @@ function OrderSuccessScreen({
       </div>
 
       <div className="w-full grid gap-3">
+        {breakdown && <OrderBreakdownRows breakdown={breakdown} />}
         <div className="flex items-center justify-between px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.12)" }}>
           <span style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>
             {accentLabel}
