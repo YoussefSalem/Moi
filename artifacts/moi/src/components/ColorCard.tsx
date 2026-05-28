@@ -90,7 +90,7 @@ export function ColorCard({
               style={{
                 objectFit: "cover",
                 objectPosition: "center top",
-                opacity: hovered && hoverImage ? 0 : 1,
+                opacity: imgLoaded ? (hovered && hoverImage ? 0 : 1) : 0,
                 transform: hovered ? "scale(1.02)" : "scale(1)",
                 transition: "opacity 500ms ease, transform 800ms cubic-bezier(0.22,1,0.36,1)",
               }}
@@ -162,7 +162,7 @@ export function ColorCard({
               decoding="async"
               onLoad={() => setImgLoaded(true)}
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              animate={{ opacity: imgLoaded ? 1 : 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.4, ease: "easeInOut" }}
             />

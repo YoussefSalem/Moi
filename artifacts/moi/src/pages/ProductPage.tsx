@@ -312,10 +312,10 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       style={{ objectFit: "contain", objectPosition: "center" }}
                       loading="eager"
                       decoding="async"
-                      initial={{ opacity: 1 }}
-                      animate={{ opacity: 1 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: imgLoaded ? 1 : 0 }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
+                      transition={{ duration: 0.4 }}
                       onLoad={() => setImgLoaded(true)}
                       onError={() => setImgLoaded(true)}
                     />
