@@ -129,7 +129,7 @@ export function LookView({ product, onClose }: LookViewProps) {
         variantId: product.variantId,
         title: product.name,
         price: product.price,
-        priceAmount: parseFloat(product.price.replace(/[^0-9.]/g, "")),
+        priceAmount: parseFloat(product.price.replace(/[^0-9]/g, "")),
         currencyCode: "EGP",
         image: product.look.model,
       });

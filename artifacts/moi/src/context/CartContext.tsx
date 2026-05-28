@@ -307,7 +307,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       variantId: item.variantId ?? `recovery-${i}`,
       title: item.title,
       price: item.price,
-      priceAmount: parseFloat(item.price.replace(/[^0-9.]/g, "")),
+      priceAmount: parseFloat(item.price.replace(/[^0-9]/g, "")),
       currencyCode: "EGP",
       image: item.imageUrl ?? null,
       color: item.variant,

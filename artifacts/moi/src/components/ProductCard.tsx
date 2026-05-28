@@ -70,7 +70,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
   useEffect(() => {
     if (!inView) return;
-    const priceNum = parseFloat(product.price.replace(/[^\d.]/g, "").replace(",", "."));
+    const priceNum = parseFloat(product.price.replace(/[^0-9]/g, ""));
     trackShopifyProductView({
       productId: product.variantId ?? "",
       productTitle: product.name,
@@ -312,13 +312,13 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
       selectedVariant?.id ?? product.variantId ?? "",
       product.name,
       1,
-      parseFloat(String(effectivePrice).replace(/[^0-9.]/g, "")) || 0,
+      parseFloat(String(effectivePrice).replace(/[^0-9]/g, "")) || 0,
     );
     await addToCart({
       variantId: selectedVariant?.id ?? product.variantId ?? "",
       title: product.name,
       price: effectivePrice,
-      priceAmount: parseFloat(String(effectivePrice).replace(/[^0-9.]/g, "")),
+      priceAmount: parseFloat(String(effectivePrice).replace(/[^0-9]/g, "")),
       currencyCode: "EGP",
       image: mainImage,
       size: selectedSize,

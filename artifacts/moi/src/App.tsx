@@ -80,7 +80,7 @@ function AppContent() {
       variantId: product.variantId ?? handle,
       title: product.name,
       price: product.price,
-      priceAmount: parseFloat(product.price.replace(/[^0-9.]/g, "")) || 0,
+      priceAmount: parseFloat(product.price.replace(/[^0-9]/g, "")) || 0,
       currencyCode: "EGP",
       image,
       size: "One Size",

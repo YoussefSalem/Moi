@@ -637,7 +637,7 @@ export function CheckoutPage() {
       });
 
       clearCart();
-      const purchaseValue = Number.isFinite(parseFloat(data.total?.replace(/[^0-9.]/g, "") ?? "NaN")) ? parseFloat(data.total!.replace(/[^0-9.]/g, "")) : (Number.isFinite(totalAmount) ? totalAmount : 0);
+      const purchaseValue = Number.isFinite(parseFloat(data.total?.replace(/[^0-9]/g, "") ?? "NaN")) ? parseFloat(data.total!.replace(/[^0-9]/g, "")) : (Number.isFinite(totalAmount) ? totalAmount : 0);
       const purchaseItems = orderLines.reduce((s, l) => s + l.quantity, 0);
       trackPurchase({
         content_ids: orderLines.map((l) => l.variantId),
