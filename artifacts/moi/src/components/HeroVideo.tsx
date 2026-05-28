@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import { IMAGES } from "@/config/images";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
 
@@ -18,18 +18,38 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
   const isMobileRef = useRef(getIsMobile());
   const [loaded, setLoaded] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   const gradEdge = HERO_GRAD_EDGE;
 
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start start", "end start"],
-  });
+  // RAF-based scroll tracking — avoid Framer Motion useScroll overhead
+  useEffect(() => {
+    let raf = 0;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      raf = requestAnimationFrame(() => {
+        const el = sectionRef.current;
+        if (!el) { ticking = false; return; }
+        const rect = el.getBoundingClientRect();
+        const progress = Math.max(0, Math.min(1, -rect.top / rect.height));
+        setScrollProgress(progress);
+        ticking = false;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
-  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
-  const mobileImageY = useTransform(scrollYProgress, [0, 1], ["0%", "8%"]);
-  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "38%"]);
-  const overlayOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
+  const imageYVal = scrollProgress * 22;
+  const mobileImageYVal = scrollProgress * 8;
+  const textYVal = scrollProgress * 38;
+  const overlayOpacityVal = Math.max(0, 1 - scrollProgress / 0.6);
 
   const handleShopNow = () => {
     const el = document.getElementById("collection");
@@ -88,12 +108,12 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
       />
 
       {/* Parallax image / video — mobile: subtle 8% parallax; desktop: full 22% */}
-      <motion.div
+      <div
         className="absolute inset-0 w-full h-[115%] -top-[7.5%]"
-        style={isMobileRef.current
-          ? { y: mobileImageY, willChange: "transform" }
-          : { y: imageY, willChange: "transform" }
-        }
+        style={{
+          willChange: "transform",
+          transform: `translateY(${isMobileRef.current ? mobileImageYVal : imageYVal}%)`,
+        }}
       >
         {!videoFailed && IMAGES.hero.videoUrl ? (
           <video
@@ -114,7 +134,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
             fetchPriority="high"
           />
         )}
-      </motion.div>
+      </div>
 
       {/* Gradient overlay — two layers for depth */}
       <div
@@ -134,11 +154,11 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
       />
 
       {/* Hero text content — mobile: opacity fade only; desktop: parallax + fade */}
-      <motion.div
+      <div
         className="absolute bottom-0 left-0 right-0 z-[3] flex flex-col items-center text-center"
         style={isMobileRef.current
-          ? { paddingBottom: "clamp(80px, 14vw, 140px)", opacity: overlayOpacity, willChange: "opacity" }
-          : { y: textY, paddingBottom: "clamp(80px, 14vw, 140px)", opacity: overlayOpacity }
+          ? { paddingBottom: "clamp(80px, 14vw, 140px)", opacity: overlayOpacityVal, willChange: "opacity" }
+          : { paddingBottom: "clamp(80px, 14vw, 140px)", transform: `translateY(${textYVal}%)`, opacity: overlayOpacityVal, willChange: "transform, opacity" }
         }
       >
         {/* Collection label */}
@@ -203,9 +223,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
           style={{
             color: "#fff",
             borderColor: "rgba(255,255,255,0.48)",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
-            backgroundColor: "rgba(255,255,255,0.07)",
+            backgroundColor: "rgba(255,255,255,0.14)",
             fontFamily: "'Montserrat', sans-serif",
             fontSize: "9px",
             letterSpacing: "0.45em",
@@ -226,7 +244,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
         >
           Delivery in Egypt: 2–4 days
         </motion.p>
-      </motion.div>
+      </div>
 
       {/* Scroll cue line */}
       <motion.div

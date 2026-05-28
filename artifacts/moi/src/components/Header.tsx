@@ -33,12 +33,10 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
         className="fixed top-0 left-0 right-0 z-50"
         style={{
           willChange: "transform",
-          backgroundColor: dark ? "rgba(30,24,20,0.08)" : scrolled ? "rgba(250, 248, 245, 0.97)" : "transparent",
-          WebkitBackdropFilter: dark || scrolled ? "blur(12px)" : "none",
-          backdropFilter: dark || scrolled ? "blur(12px)" : "none",
+          backgroundColor: dark ? "rgba(30,24,20,0.90)" : scrolled ? "rgba(250, 248, 245, 0.98)" : "transparent",
           borderBottom: dark ? "1px solid rgba(30,24,20,0.12)" : scrolled ? "1px solid rgba(180,160,140,0.18)" : "1px solid transparent",
           boxShadow: dark ? "0 2px 20px rgba(20,16,12,0.04)" : scrolled ? "0 2px 20px rgba(20,16,12,0.06)" : "none",
-          transition: "background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease",
+          transition: "background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
         }}
       >
         <div className="flex items-center justify-between px-6 md:px-12 h-16" style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "max(1.5rem, env(safe-area-inset-left))", paddingRight: "max(1.5rem, env(safe-area-inset-right))" }}>
