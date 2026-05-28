@@ -19,7 +19,6 @@ run = "pnpm --filter @workspace/moi run dev"
 
 [services.production]
 build = [ "pnpm", "--filter", "@workspace/moi", "run", "build" ]
-publicDir = "artifacts/moi/dist/public"
 run = "pnpm --filter @workspace/moi run serve:prod"
 
 [services.env]
