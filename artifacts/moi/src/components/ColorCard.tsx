@@ -218,7 +218,7 @@ export function ColorCard({
       {/* Info */}
       <div className="flex flex-col gap-2.5 pt-5 md:pt-6 pb-2 px-1 md:px-0 pr-14 md:pr-0">
         {/* Color label + swatch + urgency */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-end justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             {swatchColor && (
               <span
