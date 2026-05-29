@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link2 } from "lucide-react";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
 import { QuickPreview } from "@/components/QuickPreview";
 import { getStockCount } from "@/lib/stock";
@@ -132,7 +133,11 @@ export function ColorCard({
           {/* ── MOBILE: swipeable image + long-press quick preview ── */}
           <div
             className="md:hidden absolute inset-0"
-            onContextMenu={(e) => e.preventDefault()}
+            onContextMenu={(e) => {
+              // Only block the browser context menu if our preview already fired —
+              // otherwise let Safari show its native "Copy Image / Save Image" menu
+              if (longPressActivatedRef.current) e.preventDefault();
+            }}
             onPointerDown={(e) => {
               e.stopPropagation();
               e.currentTarget.setPointerCapture(e.pointerId);
@@ -196,7 +201,6 @@ export function ColorCard({
                 loading="lazy"
                 decoding="async"
                 draggable={false}
-                onContextMenu={(e) => e.preventDefault()}
                 onLoad={() => setImgLoaded(true)}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: imgLoaded ? 1 : 0 }}
@@ -219,6 +223,44 @@ export function ColorCard({
                 />
               )}
             </AnimatePresence>
+
+            {/* Share link — real <a> so Safari shows native "Copy Link" on long press */}
+            <a
+              href={`/products/${handle}`}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onNavigate(handle); }}
+              className="absolute z-30"
+              style={{
+                bottom: 10,
+                right: 10,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "4px 8px 4px 6px",
+                borderRadius: 20,
+                backgroundColor: "rgba(255,255,255,0.72)",
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
+                boxShadow: "0 1px 6px rgba(30,24,20,0.12)",
+                textDecoration: "none",
+                userSelect: "none",
+              }}
+              aria-label={`Copy link to ${productName} in ${colorName}`}
+            >
+              <Link2 size={10} strokeWidth={2.2} color="#5a4e44" />
+              <span
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "0.52rem",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "#5a4e44",
+                  fontWeight: 600,
+                  lineHeight: 1,
+                }}
+              >
+                Share
+              </span>
+            </a>
           </div>
         </div>
 
