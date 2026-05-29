@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
-import { X, ChevronLeft, ChevronRight, ShoppingBag, Link2 } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, ShoppingBag, Link2, Check } from "lucide-react";
 import { getStockCount } from "@/lib/stock";
 
 interface QuickPreviewProps {
@@ -34,6 +33,7 @@ export function QuickPreview({
 }: QuickPreviewProps) {
   const [imgIndex, setImgIndex] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [copied, setCopied] = useState(false);
   const stockCount = getStockCount(handle.split("-")[0] ?? "", colorName);
 
   const dragStartX = useRef<number | null>(null);
@@ -114,51 +114,6 @@ export function QuickPreview({
               aria-label="Close preview"
             >
               <X size={15} strokeWidth={2} color="#1e1814" />
-            </button>
-
-            {/* Share button — centered top, copies product link to clipboard */}
-            <button
-              type="button"
-              onClick={() => {
-                const url = `${window.location.origin}/products/${handle}`;
-                navigator.clipboard
-                  .writeText(url)
-                  .then(() => {
-                    toast.success("Link copied", {
-                      description: "Paste it anywhere to share",
-                      duration: 2000,
-                    });
-                  })
-                  .catch(() => {
-                    toast.error("Could not copy", { duration: 2000 });
-                  });
-              }}
-              className="absolute top-4 z-10 flex items-center gap-1.5"
-              style={{
-                left: "50%",
-                transform: "translateX(-50%)",
-                padding: "4px 10px 4px 6px",
-                borderRadius: 20,
-                backgroundColor: "rgba(30,24,20,0.08)",
-                border: "none",
-                cursor: "pointer",
-              }}
-              aria-label={`Copy link to ${productName} in ${colorName}`}
-            >
-              <Link2 size={11} strokeWidth={2.2} color="#1e1814" />
-              <span
-                style={{
-                  fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "0.52rem",
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "#1e1814",
-                  fontWeight: 600,
-                  lineHeight: 1,
-                }}
-              >
-                Share
-              </span>
             </button>
 
             {/* Scrollable content */}
@@ -301,6 +256,62 @@ export function QuickPreview({
                 >
                   {productName}
                 </h3>
+
+                {/* Share button — inline in product info, visible & accessible */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = `${window.location.origin}/products/${handle}`;
+                    navigator.clipboard
+                      .writeText(url)
+                      .then(() => {
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      })
+                      .catch(() => {
+                        setCopied(false);
+                      });
+                  }}
+                  className="self-start flex items-center gap-1.5"
+                  style={{
+                    padding: "5px 11px",
+                    borderRadius: 20,
+                    backgroundColor: copied ? "rgba(74, 138, 90, 0.10)" : "rgba(30,24,20,0.06)",
+                    border: copied ? "1px solid rgba(74, 138, 90, 0.28)" : "1px solid rgba(30,24,20,0.10)",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                  aria-label={copied ? "Link copied" : `Copy link to ${productName}`}
+                  onPointerDown={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.95)";
+                  }}
+                  onPointerUp={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
+                  }}
+                  onPointerCancel={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
+                  }}
+                >
+                  {copied ? (
+                    <Check size={12} strokeWidth={2.5} color="#4a8a5a" />
+                  ) : (
+                    <Link2 size={12} strokeWidth={2.2} color="#1e1814" />
+                  )}
+                  <span
+                    style={{
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: "0.62rem",
+                      letterSpacing: "0.14em",
+                      textTransform: "uppercase",
+                      color: copied ? "#4a8a5a" : "#1e1814",
+                      fontWeight: 600,
+                      lineHeight: 1,
+                      transition: "color 0.2s ease",
+                    }}
+                  >
+                    {copied ? "Copied to clipboard" : "Share"}
+                  </span>
+                </button>
 
                 {/* Price + stock */}
                 <div className="flex items-center justify-between mt-0.5">

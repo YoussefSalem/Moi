@@ -40,6 +40,7 @@ export function ColorCard({
   const [hoverImgLoaded, setHoverImgLoaded] = useState(false);
   const [mobileIndex, setMobileIndex] = useState(0);
   const [quickPreviewOpen, setQuickPreviewOpen] = useState(false);
+  const [pressed, setPressed] = useState(false);
 
   const dragStartXRef = useRef<number | null>(null);
   const dragLastXRef = useRef<number | null>(null);
@@ -138,6 +139,7 @@ export function ColorCard({
               dragStartXRef.current = e.clientX;
               dragLastXRef.current = e.clientX;
               longPressActivatedRef.current = false;
+              setPressed(true);
 
               longPressTimerRef.current = setTimeout(() => {
                 longPressActivatedRef.current = true;
@@ -152,10 +154,12 @@ export function ColorCard({
               const delta = e.clientX - (dragStartXRef.current ?? e.clientX);
               if (Math.abs(delta) > 10) {
                 cancelLongPress();
+                setPressed(false);
               }
             }}
             onPointerUp={(e) => {
               cancelLongPress();
+              setPressed(false);
               e.stopPropagation();
               if (longPressActivatedRef.current) {
                 dragStartXRef.current = null;
@@ -174,6 +178,7 @@ export function ColorCard({
             }}
             onPointerCancel={() => {
               cancelLongPress();
+              setPressed(false);
               dragStartXRef.current = null;
               dragLastXRef.current = null;
             }}
@@ -203,11 +208,24 @@ export function ColorCard({
                 draggable={false}
                 onLoad={() => setImgLoaded(true)}
                 initial={{ opacity: 0 }}
-                animate={{ opacity: imgLoaded ? 1 : 0 }}
+                animate={{
+                  opacity: imgLoaded ? 1 : 0,
+                  scale: pressed ? 0.97 : 1,
+                }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4, ease: "easeInOut" }}
               />
             </AnimatePresence>
+
+            {/* Press feedback overlay — subtle darkening when held */}
+            <motion.div
+              className="absolute inset-0 z-20 pointer-events-none"
+              animate={{
+                opacity: pressed ? 0.12 : 0,
+                backgroundColor: "#000000",
+              }}
+              transition={{ duration: 0.18 }}
+            />
           </div>
         </div>
 
