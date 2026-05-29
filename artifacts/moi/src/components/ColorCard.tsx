@@ -210,7 +210,7 @@ export function ColorCard({
                 initial={{ opacity: 0 }}
                 animate={{
                   opacity: imgLoaded ? 1 : 0,
-                  scale: pressed ? 0.97 : 1,
+                  scale: pressed ? 1.03 : 1,
                 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4, ease: "easeInOut" }}
