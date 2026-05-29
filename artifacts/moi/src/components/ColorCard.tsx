@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
-import { QuickPreview } from "@/components/QuickPreview";
 import { getStockCount } from "@/lib/stock";
 
 interface ColorCardProps {
@@ -13,7 +12,6 @@ interface ColorCardProps {
   price: string;
   handle: string;
   swatchColor?: string;
-  description?: string;
   onNavigate: (handle: string) => void;
   onAddToCart?: (handle: string, currentImage: string) => void;
   index?: number;
@@ -29,7 +27,6 @@ export function ColorCard({
   price,
   handle,
   swatchColor,
-  description,
   onNavigate,
   onAddToCart,
   index = 0,
@@ -39,12 +36,9 @@ export function ColorCard({
   const [imgLoaded, setImgLoaded] = useState(false);
   const [hoverImgLoaded, setHoverImgLoaded] = useState(false);
   const [mobileIndex, setMobileIndex] = useState(0);
-  const [quickPreviewOpen, setQuickPreviewOpen] = useState(false);
 
   const dragStartXRef = useRef<number | null>(null);
   const dragLastXRef = useRef<number | null>(null);
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressActivatedRef = useRef(false);
 
   // Full image list for mobile swipe — filter empty strings so src is never ""
   const allImages: string[] = (gallery && gallery.length > 0
@@ -56,16 +50,8 @@ export function ColorCard({
     setMobileIndex(i => (i + dir + allImages.length) % allImages.length);
   }
 
-  function cancelLongPress() {
-    if (longPressTimerRef.current !== null) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  }
-
   return (
-    <>
-      <motion.article
+    <motion.article
         initial={{ opacity: 0, y: 28 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-40px" }}
@@ -129,50 +115,20 @@ export function ColorCard({
             )}
           </div>
 
-          {/* ── MOBILE: swipeable image + long-press quick preview ── */}
+          {/* ── MOBILE: swipeable image — tap to navigate, swipe to browse ── */}
           <div
             className="md:hidden absolute inset-0"
-            onContextMenu={(e) => {
-              // Only block the browser context menu if our preview already fired —
-              // otherwise let Safari show its native "Copy Image / Save Image" menu
-              if (longPressActivatedRef.current) e.preventDefault();
+            onTouchStart={(e) => {
+              dragStartXRef.current = e.changedTouches[0].clientX;
+              dragLastXRef.current = e.changedTouches[0].clientX;
             }}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              e.currentTarget.setPointerCapture(e.pointerId);
-              dragStartXRef.current = e.clientX;
-              dragLastXRef.current = e.clientX;
-              longPressActivatedRef.current = false;
-
-              // Start long-press timer — 520ms hold
-              longPressTimerRef.current = setTimeout(() => {
-                longPressActivatedRef.current = true;
-                longPressTimerRef.current = null;
-                // Haptic feedback on supported devices
-                if (navigator.vibrate) navigator.vibrate(18);
-                setQuickPreviewOpen(true);
-              }, 520);
-            }}
-            onPointerMove={(e) => {
+            onTouchMove={(e) => {
               if (dragStartXRef.current === null) return;
-              dragLastXRef.current = e.clientX;
-              // Cancel long press if finger moved significantly
-              const delta = e.clientX - (dragStartXRef.current ?? e.clientX);
-              if (Math.abs(delta) > 10) {
-                cancelLongPress();
-              }
+              dragLastXRef.current = e.changedTouches[0].clientX;
             }}
-            onPointerUp={(e) => {
-              cancelLongPress();
-              e.stopPropagation();
-              if (longPressActivatedRef.current) {
-                // Long press already handled — skip tap/swipe
-                dragStartXRef.current = null;
-                dragLastXRef.current = null;
-                return;
-              }
+            onTouchEnd={(e) => {
               if (dragStartXRef.current === null) return;
-              const delta = (dragLastXRef.current ?? e.clientX) - dragStartXRef.current;
+              const delta = (dragLastXRef.current ?? e.changedTouches[0].clientX) - dragStartXRef.current;
               dragStartXRef.current = null;
               dragLastXRef.current = null;
               if (Math.abs(delta) > 30) {
@@ -181,12 +137,10 @@ export function ColorCard({
                 onNavigate(handle);
               }
             }}
-            onPointerCancel={() => {
-              cancelLongPress();
+            onTouchCancel={() => {
               dragStartXRef.current = null;
               dragLastXRef.current = null;
             }}
-            style={{ touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
           >
             {/* Skeleton — shown while image loads */}
             <ImageSkeleton variant="card" className="z-0" borderRadius={8} />
@@ -199,7 +153,6 @@ export function ColorCard({
                 style={{ objectFit: "cover", objectPosition: "center top" }}
                 loading="lazy"
                 decoding="async"
-                draggable={false}
                 onLoad={() => setImgLoaded(true)}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: imgLoaded ? 1 : 0 }}
@@ -207,22 +160,6 @@ export function ColorCard({
                 transition={{ duration: 0.4, ease: "easeInOut" }}
               />
             </AnimatePresence>
-
-            {/* Long-press hint ring — briefly shows on press to signal the gesture is detected */}
-            <AnimatePresence>
-              {quickPreviewOpen && (
-                <motion.div
-                  key="hint"
-                  className="absolute inset-0 z-20 pointer-events-none rounded-lg"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  style={{ border: "2px solid rgba(255,255,255,0.6)" }}
-                />
-              )}
-            </AnimatePresence>
-
           </div>
         </div>
 
@@ -392,21 +329,5 @@ export function ColorCard({
           </button>
         </div>
       </motion.article>
-
-      {/* Quick preview modal — portal, mobile only */}
-      <QuickPreview
-        isOpen={quickPreviewOpen}
-        onClose={() => setQuickPreviewOpen(false)}
-        productName={productName}
-        colorName={colorName}
-        swatchColor={swatchColor}
-        price={price}
-        gallery={allImages.length > 0 ? allImages : [image]}
-        handle={handle}
-        description={description}
-        onNavigate={onNavigate}
-        onAddToCart={onAddToCart}
-      />
-    </>
   );
 }
