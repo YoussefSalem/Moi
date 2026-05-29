@@ -38,6 +38,7 @@ export function QuickPreview({
 
   const dragStartX = useRef<number | null>(null);
   const dragLastX = useRef<number | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -49,6 +50,15 @@ export function QuickPreview({
     }
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
+
+  // If the image is already cached (complete), show it immediately —
+  // otherwise the skeleton stays visible because onLoad won't fire.
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete) {
+      setImgLoaded(true);
+    }
+  }, [isOpen, imgIndex]);
 
   function prev() {
     setImgLoaded(false);
@@ -156,6 +166,7 @@ export function QuickPreview({
                 )}
                 <img
                   key={currentImage}
+                  ref={imgRef}
                   src={currentImage}
                   alt={`${productName} — ${colorName}`}
                   className="absolute inset-0 w-full h-full"
