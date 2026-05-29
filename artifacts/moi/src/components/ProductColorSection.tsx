@@ -19,6 +19,7 @@ interface ProductColorSectionProps {
   onAddToCart?: (handle: string, currentImage: string) => void;
   id?: string;
   dark?: boolean;
+  description?: string;
 }
 
 export function ProductColorSection({
@@ -30,6 +31,7 @@ export function ProductColorSection({
   onAddToCart,
   id,
   dark = false,
+  description,
 }: ProductColorSectionProps) {
   const colorImages = (product.colorImages ?? {}) as unknown as Record<string, string>;
   const colorSwatches = (product.colorSwatches ?? {}) as unknown as Record<string, string>;
@@ -118,6 +120,7 @@ export function ProductColorSection({
                   price={product.price}
                   handle={handle}
                   swatchColor={swatch}
+                  description={description ?? (product as unknown as Record<string, string>).description}
                   onNavigate={onNavigate}
                   onAddToCart={onAddToCart}
                   index={i}
