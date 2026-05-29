@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
+import { QuickPreview } from "@/components/QuickPreview";
 import { getStockCount } from "@/lib/stock";
 
 interface ColorCardProps {
@@ -12,6 +13,7 @@ interface ColorCardProps {
   price: string;
   handle: string;
   swatchColor?: string;
+  description?: string;
   onNavigate: (handle: string) => void;
   onAddToCart?: (handle: string, currentImage: string) => void;
   index?: number;
@@ -27,6 +29,7 @@ export function ColorCard({
   price,
   handle,
   swatchColor,
+  description,
   onNavigate,
   onAddToCart,
   index = 0,
@@ -36,11 +39,13 @@ export function ColorCard({
   const [imgLoaded, setImgLoaded] = useState(false);
   const [hoverImgLoaded, setHoverImgLoaded] = useState(false);
   const [mobileIndex, setMobileIndex] = useState(0);
+  const [quickPreviewOpen, setQuickPreviewOpen] = useState(false);
 
   const dragStartXRef = useRef<number | null>(null);
   const dragLastXRef = useRef<number | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressActivatedRef = useRef(false);
 
-  // Full image list for mobile swipe — filter empty strings so src is never ""
   const allImages: string[] = (gallery && gallery.length > 0
     ? gallery
     : [image, ...(hoverImage ? [hoverImage] : [])]
@@ -50,8 +55,16 @@ export function ColorCard({
     setMobileIndex(i => (i + dir + allImages.length) % allImages.length);
   }
 
+  function cancelLongPress() {
+    if (longPressTimerRef.current !== null) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }
+
   return (
-    <motion.article
+    <>
+      <motion.article
         initial={{ opacity: 0, y: 28 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-40px" }}
@@ -115,20 +128,42 @@ export function ColorCard({
             )}
           </div>
 
-          {/* ── MOBILE: swipeable image — tap to navigate, swipe to browse ── */}
+          {/* ── MOBILE: swipe + long-press quick preview ── */}
           <div
             className="md:hidden absolute inset-0"
-            onTouchStart={(e) => {
-              dragStartXRef.current = e.changedTouches[0].clientX;
-              dragLastXRef.current = e.changedTouches[0].clientX;
+            onContextMenu={(e) => e.preventDefault()}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              e.currentTarget.setPointerCapture(e.pointerId);
+              dragStartXRef.current = e.clientX;
+              dragLastXRef.current = e.clientX;
+              longPressActivatedRef.current = false;
+
+              longPressTimerRef.current = setTimeout(() => {
+                longPressActivatedRef.current = true;
+                longPressTimerRef.current = null;
+                if (navigator.vibrate) navigator.vibrate(18);
+                setQuickPreviewOpen(true);
+              }, 520);
             }}
-            onTouchMove={(e) => {
+            onPointerMove={(e) => {
               if (dragStartXRef.current === null) return;
-              dragLastXRef.current = e.changedTouches[0].clientX;
+              dragLastXRef.current = e.clientX;
+              const delta = e.clientX - (dragStartXRef.current ?? e.clientX);
+              if (Math.abs(delta) > 10) {
+                cancelLongPress();
+              }
             }}
-            onTouchEnd={(e) => {
+            onPointerUp={(e) => {
+              cancelLongPress();
+              e.stopPropagation();
+              if (longPressActivatedRef.current) {
+                dragStartXRef.current = null;
+                dragLastXRef.current = null;
+                return;
+              }
               if (dragStartXRef.current === null) return;
-              const delta = (dragLastXRef.current ?? e.changedTouches[0].clientX) - dragStartXRef.current;
+              const delta = (dragLastXRef.current ?? e.clientX) - dragStartXRef.current;
               dragStartXRef.current = null;
               dragLastXRef.current = null;
               if (Math.abs(delta) > 30) {
@@ -137,12 +172,18 @@ export function ColorCard({
                 onNavigate(handle);
               }
             }}
-            onTouchCancel={() => {
+            onPointerCancel={() => {
+              cancelLongPress();
               dragStartXRef.current = null;
               dragLastXRef.current = null;
             }}
+            style={{
+              touchAction: "pan-y",
+              userSelect: "none",
+              WebkitUserSelect: "none",
+              WebkitTouchCallout: "none",
+            } as React.CSSProperties}
           >
-            {/* Skeleton — shown while image loads */}
             <ImageSkeleton variant="card" className="z-0" borderRadius={8} />
             <AnimatePresence initial={false} mode="sync">
               <motion.img
@@ -150,9 +191,16 @@ export function ColorCard({
                 src={allImages[mobileIndex] ?? image}
                 alt={`${productName} — ${colorName}`}
                 className="absolute inset-0 w-full h-full z-10"
-                style={{ objectFit: "cover", objectPosition: "center top" }}
+                style={{
+                  objectFit: "cover",
+                  objectPosition: "center top",
+                  WebkitTouchCallout: "none",
+                  userSelect: "none",
+                  WebkitUserSelect: "none",
+                }}
                 loading="lazy"
                 decoding="async"
+                draggable={false}
                 onLoad={() => setImgLoaded(true)}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: imgLoaded ? 1 : 0 }}
@@ -196,10 +244,8 @@ export function ColorCard({
           </div>
         )}
 
-
         {/* Info */}
         <div className="flex flex-col items-center flex-grow pt-3 md:pt-4 pb-4 md:pb-5 px-1 md:px-0 gap-y-2 md:gap-y-2.5">
-          {/* Color name + badge */}
           <div className="flex items-center justify-center gap-2 flex-wrap md:flex-nowrap">
             <div className="flex items-center gap-2 min-w-0">
               {swatchColor && (
@@ -251,7 +297,6 @@ export function ColorCard({
             )}
           </div>
 
-          {/* Product name + stock count */}
           <div className="flex flex-col items-center gap-0.5 md:flex-row md:items-center md:justify-center md:gap-6">
             <h3
               style={{
@@ -280,7 +325,6 @@ export function ColorCard({
             </span>
           </div>
 
-          {/* Price */}
           <p
             className="text-center mt-auto"
             style={{
@@ -293,7 +337,6 @@ export function ColorCard({
             {price}
           </p>
 
-          {/* CTA */}
           <button
             type="button"
             onClick={(e) => {
@@ -329,5 +372,20 @@ export function ColorCard({
           </button>
         </div>
       </motion.article>
+
+      <QuickPreview
+        isOpen={quickPreviewOpen}
+        onClose={() => setQuickPreviewOpen(false)}
+        productName={productName}
+        colorName={colorName}
+        swatchColor={swatchColor}
+        price={price}
+        gallery={allImages.length > 0 ? allImages : [image]}
+        handle={handle}
+        description={description}
+        onNavigate={onNavigate}
+        onAddToCart={onAddToCart}
+      />
+    </>
   );
 }
