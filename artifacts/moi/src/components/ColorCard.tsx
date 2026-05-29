@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link2 } from "lucide-react";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
 import { QuickPreview } from "@/components/QuickPreview";
 import { getStockCount } from "@/lib/stock";
@@ -224,43 +223,6 @@ export function ColorCard({
               )}
             </AnimatePresence>
 
-            {/* Share link — real <a> so Safari shows native "Copy Link" on long press */}
-            <a
-              href={`/products/${handle}`}
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onNavigate(handle); }}
-              className="absolute z-30"
-              style={{
-                bottom: 10,
-                right: 10,
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                padding: "4px 8px 4px 6px",
-                borderRadius: 20,
-                backgroundColor: "rgba(255,255,255,0.72)",
-                backdropFilter: "blur(6px)",
-                WebkitBackdropFilter: "blur(6px)",
-                boxShadow: "0 1px 6px rgba(30,24,20,0.12)",
-                textDecoration: "none",
-                userSelect: "none",
-              }}
-              aria-label={`Copy link to ${productName} in ${colorName}`}
-            >
-              <Link2 size={10} strokeWidth={2.2} color="#5a4e44" />
-              <span
-                style={{
-                  fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "0.52rem",
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "#5a4e44",
-                  fontWeight: 600,
-                  lineHeight: 1,
-                }}
-              >
-                Share
-              </span>
-            </a>
           </div>
         </div>
 

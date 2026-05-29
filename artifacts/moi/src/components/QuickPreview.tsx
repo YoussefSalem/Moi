@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, ShoppingBag, Link2 } from "lucide-react";
 import { getStockCount } from "@/lib/stock";
 
 interface QuickPreviewProps {
@@ -114,6 +114,36 @@ export function QuickPreview({
             >
               <X size={15} strokeWidth={2} color="#1e1814" />
             </button>
+
+            {/* Share link — real <a> so Safari shows native "Copy Link" on long press */}
+            <a
+              href={`/products/${handle}`}
+              className="absolute top-4 left-4 z-10 flex items-center gap-1.5"
+              style={{
+                padding: "4px 9px 4px 6px",
+                borderRadius: 20,
+                backgroundColor: "rgba(30,24,20,0.08)",
+                textDecoration: "none",
+                userSelect: "none",
+                cursor: "default",
+              }}
+              aria-label={`Copy link to ${productName} in ${colorName}`}
+            >
+              <Link2 size={11} strokeWidth={2.2} color="#1e1814" />
+              <span
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "0.52rem",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "#1e1814",
+                  fontWeight: 600,
+                  lineHeight: 1,
+                }}
+              >
+                Share
+              </span>
+            </a>
 
             {/* Scrollable content */}
             <div className="overflow-y-auto flex-1 pb-6">
