@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { X, ChevronLeft, ChevronRight, ShoppingBag, Link2 } from "lucide-react";
 import { getStockCount } from "@/lib/stock";
 
@@ -115,17 +116,32 @@ export function QuickPreview({
               <X size={15} strokeWidth={2} color="#1e1814" />
             </button>
 
-            {/* Share link — real <a> so Safari shows native "Copy Link" on long press */}
-            <a
-              href={`/products/${handle}`}
-              className="absolute top-4 left-4 z-10 flex items-center gap-1.5"
+            {/* Share button — centered top, copies product link to clipboard */}
+            <button
+              type="button"
+              onClick={() => {
+                const url = `${window.location.origin}/products/${handle}`;
+                navigator.clipboard
+                  .writeText(url)
+                  .then(() => {
+                    toast.success("Link copied", {
+                      description: "Paste it anywhere to share",
+                      duration: 2000,
+                    });
+                  })
+                  .catch(() => {
+                    toast.error("Could not copy", { duration: 2000 });
+                  });
+              }}
+              className="absolute top-4 z-10 flex items-center gap-1.5"
               style={{
-                padding: "4px 9px 4px 6px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                padding: "4px 10px 4px 6px",
                 borderRadius: 20,
                 backgroundColor: "rgba(30,24,20,0.08)",
-                textDecoration: "none",
-                userSelect: "none",
-                cursor: "default",
+                border: "none",
+                cursor: "pointer",
               }}
               aria-label={`Copy link to ${productName} in ${colorName}`}
             >
@@ -143,7 +159,7 @@ export function QuickPreview({
               >
                 Share
               </span>
-            </a>
+            </button>
 
             {/* Scrollable content */}
             <div className="overflow-y-auto flex-1 pb-6">
