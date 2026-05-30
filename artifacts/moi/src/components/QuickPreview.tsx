@@ -346,33 +346,18 @@ export function QuickPreview({
                         {compareAtPrice}
                       </span>
                     )}
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        style={{
-                          fontFamily: "'Montserrat', sans-serif",
-                          fontSize: "0.9rem",
-                          letterSpacing: "0.12em",
-                          color: compareAtPrice ? "#c83232" : "#5a4e44",
-                          fontWeight: 500,
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        {price}
-                      </span>
-                      {compareAtPrice && (
-                        <span
-                          style={{
-                            fontFamily: "'Montserrat', sans-serif",
-                            fontSize: "10px",
-                            fontWeight: 500,
-                            letterSpacing: "0.1em",
-                            color: "#c83232",
-                          }}
-                        >
-                          Sale
-                        </span>
-                      )}
-                    </div>
+                    <span
+                      style={{
+                        fontFamily: "'Montserrat', sans-serif",
+                        fontSize: "0.9rem",
+                        letterSpacing: "0.12em",
+                        color: compareAtPrice ? "#c83232" : "#5a4e44",
+                        fontWeight: 500,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {price}
+                    </span>
                   </div>
                   {stockCount !== null && (
                     <span

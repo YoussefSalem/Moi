@@ -965,26 +965,24 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   >
                     {effectivePrice}
                   </span>
-                  {effectiveCompareAtPrice && (
-                    <span
-                      style={{
-                        fontFamily: "'Montserrat', sans-serif",
-                        fontSize: "11px",
-                        fontWeight: 500,
-                        letterSpacing: "0.14em",
-                        color: "#c83232",
-                      }}
-                    >
-                      {(() => {
-                        const p = parseEGP(effectivePrice);
-                        const c = parseEGP(effectiveCompareAtPrice);
-                        if (p && c && c > p) {
-                          return `Save ${Math.round((1 - p / c) * 100)}%`;
-                        }
-                        return "Sale";
-                      })()}
-                    </span>
-                  )}
+                  {(() => {
+                    const p = parseEGP(effectivePrice);
+                    const c = parseEGP(effectiveCompareAtPrice ?? "");
+                    if (!p || !c || c <= p) return null;
+                    return (
+                      <span
+                        style={{
+                          fontFamily: "'Montserrat', sans-serif",
+                          fontSize: "11px",
+                          fontWeight: 500,
+                          letterSpacing: "0.14em",
+                          color: "#c83232",
+                        }}
+                      >
+                        {`Save ${Math.round((1 - p / c) * 100)}%`}
+                      </span>
+                    );
+                  })()}
                 </div>
               </motion.div>
 

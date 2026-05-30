@@ -485,10 +485,8 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       {(() => {
                         const p = parseEGP(String(effectivePrice));
                         const c = parseEGP(String(effectiveCompareAtPrice));
-                        if (p && c && c > p) {
-                          return `Save ${Math.round((1 - p / c) * 100)}%`;
-                        }
-                        return "Sale";
+                        if (!p || !c || c <= p) return null;
+                        return `Save ${Math.round((1 - p / c) * 100)}%`;
                       })()}
                     </span>
                   )}

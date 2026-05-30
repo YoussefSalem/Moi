@@ -363,32 +363,17 @@ export function ColorCard({
                 {compareAtPrice}
               </span>
             )}
-            <div className="flex items-center gap-1.5">
-              <span
-                style={{
-                  fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "clamp(0.81rem, 2.2vw, 0.88rem)",
-                  letterSpacing: "0.14em",
-                  color: compareAtPrice ? "#c83232" : "#7a6e64",
-                  lineHeight: 1.2,
-                }}
-              >
-                {price}
-              </span>
-              {compareAtPrice && (
-                <span
-                  style={{
-                    fontFamily: "'Montserrat', sans-serif",
-                    fontSize: "10px",
-                    fontWeight: 500,
-                    letterSpacing: "0.1em",
-                    color: "#c83232",
-                  }}
-                >
-                  Sale
-                </span>
-              )}
-            </div>
+            <span
+              style={{
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: "clamp(0.81rem, 2.2vw, 0.88rem)",
+                letterSpacing: "0.14em",
+                color: compareAtPrice ? "#c83232" : "#7a6e64",
+                lineHeight: 1.2,
+              }}
+            >
+              {price}
+            </span>
           </div>
 
           <button
