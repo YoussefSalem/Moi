@@ -248,6 +248,13 @@ export const IMAGES = {
     shopifyTitle: "MOI VERSA TOP",
     colorLabel: "",
     description: "The signature wrap silhouette. Designed to drape beautifully, the Versa Top transitions effortlessly from day to night.",
+    descriptionBullets: [
+      "The signature wrap silhouette.",
+      "Designed to drape beautifully.",
+      "Transitions effortlessly from day to night.",
+      "Light and comfortable for all-day wear.",
+      "A polished piece that elevates every look.",
+    ],
     price: "1.399 EGP",
     outer: "Outer shell: 100% Polyester",
     lining: "Lining: 96% Polyester, 4% Elastane",
