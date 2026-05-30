@@ -300,6 +300,7 @@ export function CheckoutPage() {
 
   const [step, setStep] = useState<Step>("email");
   const [emailInput, setEmailInput] = useState("");
+  const [emailError, setEmailError] = useState("");
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
   // Promo code section is always visible (no dropdown toggle)
@@ -332,9 +333,12 @@ export function CheckoutPage() {
 
   useEffect(() => {
     if (checkoutOpen && prefilledEmail) {
-      setEmailInput(prefilledEmail);
-      setForm((f) => ({ ...f, email: prefilledEmail }));
-      setStep("form");
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRegex.test(prefilledEmail.trim())) {
+        setEmailInput(prefilledEmail);
+        setForm((f) => ({ ...f, email: prefilledEmail }));
+        setStep("form");
+      }
     }
   }, [checkoutOpen, prefilledEmail]);
 
@@ -732,6 +736,12 @@ export function CheckoutPage() {
   const handleEmailContinue = useCallback(async () => {
     const email = emailInput.trim();
     if (!email) return;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError("Please enter a valid email address (e.g. your@email.com).");
+      return;
+    }
+    setEmailError("");
     setForm((f) => ({ ...f, email }));
     setStep("form");
     const cartId = shopifyCart?.id;
@@ -1131,18 +1141,21 @@ export function CheckoutPage() {
                     inputMode="email"
                     autoComplete="email"
                     value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
+                    onChange={(e) => { setEmailInput(e.target.value); setEmailError(""); }}
                     onKeyDown={(e) => { if (e.key === "Enter" && emailInput.trim()) void handleEmailContinue(); }}
-                    style={{ ...inputStyle, fontSize: "17px", padding: "14px 0" }}
+                    style={{ ...inputStyle, fontSize: "17px", padding: "14px 0", borderBottomColor: emailError ? "#c0392b" : undefined }}
                     placeholder="your@email.com"
                     autoFocus
                     className="checkout-input"
                   />
+                  {emailError && (
+                    <p style={{ marginTop: "8px", fontSize: "12px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{emailError}</p>
+                  )}
                 </div>
                 <button
                   onClick={() => void handleEmailContinue()}
                   disabled={!emailInput.trim()}
-                  style={{
+                  style={{ 
                     width: "100%",
                     padding: "16px",
                     backgroundColor: emailInput.trim() ? "#1e1814" : "rgba(30,24,20,0.22)",

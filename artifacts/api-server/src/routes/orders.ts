@@ -68,6 +68,13 @@ function validateLines(lines: unknown[]): OrderLine[] | null {
   return lines as OrderLine[];
 }
 
+function validateEmail(email: string | undefined): string | undefined {
+  if (!email || !email.trim()) return undefined;
+  const trimmed = email.trim();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(trimmed) ? trimmed : undefined;
+}
+
 function validateCustomer(customer: unknown): CustomerInfo | null {
   const c = customer as Record<string, unknown> | undefined;
   if (
@@ -78,7 +85,9 @@ function validateCustomer(customer: unknown): CustomerInfo | null {
     !c?.governorate || typeof c.governorate !== "string" || !c.governorate.trim() ||
     !c?.city || typeof c.city !== "string" || !c.city.trim()
   ) return null;
-  return c as unknown as CustomerInfo;
+  const validated = c as unknown as CustomerInfo;
+  validated.email = validateEmail(c.email as string);
+  return validated;
 }
 
 /**
