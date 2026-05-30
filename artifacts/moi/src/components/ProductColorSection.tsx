@@ -104,6 +104,10 @@ export function ProductColorSection({
             const swatchKey = c.name.toLowerCase();
             const swatch = colorSwatches[swatchKey];
             const handle = `${product.slug}-${slugify(c.name)}`;
+            // Find the Shopify variant for this specific color
+            const variant = product.variants?.find((v) =>
+              v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === c.name)
+            );
 
             return (
               <div
@@ -117,8 +121,8 @@ export function ProductColorSection({
                   image={img}
                   hoverImage={hoverImg !== img ? hoverImg : undefined}
                   gallery={gallery.length > 0 ? gallery : undefined}
-                  price={product.price}
-                  compareAtPrice={(product as unknown as { compareAtPrice?: string }).compareAtPrice}
+                  price={variant?.price ?? product.price}
+                  compareAtPrice={variant?.compareAtPrice}
                   handle={handle}
                   swatchColor={swatch}
                   description={description ?? (product as unknown as Record<string, string>).description}
