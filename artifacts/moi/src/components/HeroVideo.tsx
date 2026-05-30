@@ -68,7 +68,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
     <section
       ref={sectionRef}
       className="relative w-full overflow-hidden"
-      style={{ height: "100svh", marginTop: "calc(-1 * var(--header-offset, 0px))" }}
+      style={{ position: "relative", height: "100svh", marginTop: "calc(-1 * var(--header-offset, 0px))" }}
     >
       {/* Skeleton shown while hero image/video is loading */}
       {!loaded && (

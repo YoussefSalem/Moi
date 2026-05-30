@@ -265,18 +265,23 @@ export function CartDrawer() {
                           className="flex gap-4"
                           style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
                         >
-                          <div
-                            className="w-20 h-24 flex-shrink-0 overflow-hidden"
-                            style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
-                          >
-                            {resolveLineImage(line, localItems) && (
-                              <img
-                                src={resolveLineImage(line, localItems)!}
-                                alt={line.merchandise.product.title}
-                                className="w-full h-full object-cover"
-                              />
-                            )}
-                          </div>
+                          {(() => {
+                            const lineImg = resolveLineImage(line, localItems);
+                            return (
+                              <div
+                                className="w-20 h-24 flex-shrink-0 overflow-hidden"
+                                style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
+                              >
+                                {lineImg && (
+                                  <img
+                                    src={lineImg}
+                                    alt={line.merchandise.product.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                )}
+                              </div>
+                            );
+                          })()}
                           <div className="flex-1 flex flex-col gap-2 min-w-0">
                             <div className="flex justify-between items-start gap-2">
                               <div>

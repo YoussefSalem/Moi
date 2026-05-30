@@ -269,7 +269,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                               Remounting on every tap creates GPU layers → mobile tab crash. */}
                           <img
                             ref={mobileHeroRef}
-                            src={displaySrc || product.look.model}
+                            src={displaySrc || product.look.model || undefined}
                             alt={product.name}
                             className="absolute inset-0 w-full h-full object-cover object-top rounded-sm"
                             style={{
@@ -363,7 +363,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                         >
                           <img
                             ref={desktopHeroRef}
-                            src={displaySrc || product.look.model}
+                            src={displaySrc || product.look.model || undefined}
                             alt={product.name}
                             className="w-full h-full object-cover object-top"
                             style={{

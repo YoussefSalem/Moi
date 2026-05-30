@@ -40,27 +40,23 @@ export function Footer({ onNavigate }: FooterProps) {
     {
       title: "Shop",
       links: [
-        { label: "New In" },
         { label: "Clothing", page: "home" },
         { label: "Accessories", page: "accessories" },
-        { label: "Sale" },
+        { label: "Ambassador", page: "ambassador" },
       ],
     },
     {
-      title: "Company",
+      title: "Policies",
       links: [
-        { label: "About Moi" },
-        { label: "Sustainability" },
-        { label: "Press" },
-        { label: "Careers" },
+        { label: "Delivery", page: "delivery" },
+        { label: "Returns", page: "return" },
+        { label: "Refunds", page: "refund" },
       ],
     },
     {
       title: "Legal",
       links: [
         { label: "Privacy Policy", page: "privacy" },
-        { label: "Terms" },
-        { label: "Cookies" },
       ],
     },
   ];
