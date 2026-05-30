@@ -210,6 +210,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
   }, [selectedColor, product.variants]);
 
   const effectivePrice = selectedVariant?.price ?? product.price;
+  const effectiveCompareAtPrice = selectedVariant?.compareAtPrice ?? (product as unknown as { compareAtPrice?: string }).compareAtPrice;
 
   const resolvedColorImage = (() => {
     if (!product.colorImages) return undefined;
@@ -304,6 +305,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
       title: product.name,
       price: effectivePrice,
       priceAmount: parseEGP(String(effectivePrice)),
+      compareAtPrice: effectiveCompareAtPrice,
       currencyCode: "EGP",
       image: resolvedColorImage ?? product.productShot,
       size: selectedSize,
@@ -932,19 +934,55 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
               )}
 
               {/* Price */}
-              <motion.p
-                variants={itemVariants}
-                className="mb-3"
-                style={{
-                  color: "#1e1814",
-                  fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "clamp(1.09rem, 3.5vw, 1.3rem)",
-                  fontWeight: 500,
-                  letterSpacing: "0.12em",
-                }}
-              >
-                {effectivePrice}
-              </motion.p>
+              <motion.div variants={itemVariants} className="mb-3 flex items-center gap-2 flex-wrap justify-center">
+                {effectiveCompareAtPrice && (
+                  <span
+                    style={{
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: "clamp(0.95rem, 2.8vw, 1.1rem)",
+                      fontWeight: 400,
+                      letterSpacing: "0.08em",
+                      color: "#8a7e74",
+                      textDecoration: "line-through",
+                      textDecorationThickness: 1,
+                      textDecorationColor: "#c83232",
+                    }}
+                  >
+                    {effectiveCompareAtPrice}
+                  </span>
+                )}
+                <span
+                  style={{
+                    color: effectiveCompareAtPrice ? "#c83232" : "#1e1814",
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: "clamp(1.09rem, 3.5vw, 1.3rem)",
+                    fontWeight: 500,
+                    letterSpacing: "0.12em",
+                  }}
+                >
+                  {effectivePrice}
+                </span>
+                {effectiveCompareAtPrice && (
+                  <span
+                    style={{
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: "11px",
+                      fontWeight: 500,
+                      letterSpacing: "0.14em",
+                      color: "#c83232",
+                    }}
+                  >
+                    {(() => {
+                      const p = parseEGP(effectivePrice);
+                      const c = parseEGP(effectiveCompareAtPrice);
+                      if (p && c && c > p) {
+                        return `Save ${Math.round((1 - p / c) * 100)}%`;
+                      }
+                      return "Sale";
+                    })()}
+                  </span>
+                )}
+              </motion.div>
 
               {/* Scarcity count */}
               {!isOutOfStock && (

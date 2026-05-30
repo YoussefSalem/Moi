@@ -31,6 +31,7 @@ export interface LocalCartItem {
   title: string;
   price: string;
   priceAmount: number;
+  compareAtPrice?: string;
   currencyCode: string;
   image: string | null;
   size?: string;
@@ -52,6 +53,7 @@ export interface AddToCartParams {
   title?: string;
   price?: string;
   priceAmount?: number;
+  compareAtPrice?: string;
   currencyCode?: string;
   image?: string | null;
   size?: string;
@@ -186,6 +188,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             title: params.title ?? "Item",
             price: params.price ?? "",
             priceAmount: params.priceAmount ?? 0,
+            compareAtPrice: params.compareAtPrice,
             currencyCode: params.currencyCode ?? "EGP",
             image: params.image ?? null,
             size: params.size,

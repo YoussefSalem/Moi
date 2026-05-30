@@ -16,6 +16,7 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
     availableForSale: v.availableForSale,
     inventoryQuantity: undefined,
     price: formatMoney(v.price.amount, v.price.currencyCode),
+    compareAtPrice: v.compareAtPrice ? formatMoney(v.compareAtPrice.amount, v.compareAtPrice.currencyCode) : undefined,
     selectedOptions: v.selectedOptions,
   }));
 

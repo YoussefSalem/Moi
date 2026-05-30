@@ -11,6 +11,7 @@ interface QuickPreviewProps {
   colorName: string;
   swatchColor?: string;
   price: string;
+  compareAtPrice?: string;
   gallery: string[];
   handle: string;
   description?: string;
@@ -25,6 +26,7 @@ export function QuickPreview({
   colorName,
   swatchColor,
   price,
+  compareAtPrice,
   gallery,
   handle,
   description,
@@ -326,17 +328,48 @@ export function QuickPreview({
 
                 {/* Price + stock */}
                 <div className="flex items-center justify-between mt-0.5">
-                  <span
-                    style={{
-                      fontFamily: "'Montserrat', sans-serif",
-                      fontSize: "0.9rem",
-                      letterSpacing: "0.12em",
-                      color: "#5a4e44",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {price}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {compareAtPrice && (
+                      <span
+                        style={{
+                          fontFamily: "'Montserrat', sans-serif",
+                          fontSize: "0.78rem",
+                          letterSpacing: "0.08em",
+                          color: "#8a7e74",
+                          fontWeight: 400,
+                          textDecoration: "line-through",
+                          textDecorationThickness: 1,
+                          textDecorationColor: "#c83232",
+                        }}
+                      >
+                        {compareAtPrice}
+                      </span>
+                    )}
+                    <span
+                      style={{
+                        fontFamily: "'Montserrat', sans-serif",
+                        fontSize: "0.9rem",
+                        letterSpacing: "0.12em",
+                        color: compareAtPrice ? "#c83232" : "#5a4e44",
+                        fontWeight: 500,
+                      }}
+                    >
+                      {price}
+                    </span>
+                    {compareAtPrice && (
+                      <span
+                        style={{
+                          fontFamily: "'Montserrat', sans-serif",
+                          fontSize: "10px",
+                          fontWeight: 500,
+                          letterSpacing: "0.1em",
+                          color: "#c83232",
+                        }}
+                      >
+                        Sale
+                      </span>
+                    )}
+                  </div>
                   {stockCount !== null && (
                     <span
                       style={{

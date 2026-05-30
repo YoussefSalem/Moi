@@ -51,6 +51,7 @@ export interface ShopifyProductVariant {
   availableForSale: boolean;
   selectedOptions: { name: string; value: string }[];
   price: { amount: string; currencyCode: string };
+  compareAtPrice: { amount: string; currencyCode: string } | null;
 }
 
 export interface ShopifyProductOptionValue {
@@ -87,6 +88,7 @@ export interface ShopifyCartLine {
     selectedOptions: { name: string; value: string }[];
     product: { title: string; handle: string; featuredImage: ShopifyImage | null };
     price: { amount: string; currencyCode: string };
+    compareAtPrice: { amount: string; currencyCode: string } | null;
   };
 }
 
@@ -125,6 +127,7 @@ const PRODUCT_FRAGMENT = `
         id title availableForSale
         selectedOptions { name value }
         price { amount currencyCode }
+        compareAtPrice { amount currencyCode }
       }
     }
   }
@@ -147,6 +150,7 @@ const CART_FRAGMENT = `
             image { url altText }
             selectedOptions { name value }
             price { amount currencyCode }
+            compareAtPrice { amount currencyCode }
             product { title handle featuredImage { url altText } }
           }
         }

@@ -118,6 +118,7 @@ export function ProductColorSection({
                   hoverImage={hoverImg !== img ? hoverImg : undefined}
                   gallery={gallery.length > 0 ? gallery : undefined}
                   price={product.price}
+                  compareAtPrice={(product as unknown as { compareAtPrice?: string }).compareAtPrice}
                   handle={handle}
                   swatchColor={swatch}
                   description={description ?? (product as unknown as Record<string, string>).description}

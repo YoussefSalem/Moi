@@ -39,7 +39,7 @@ function deriveFallbackFromHandle(handle: string): ProductConfig {
   const mainImage: string = colorImagesMap[colorName] ?? matched.productShot;
   const gallery: string[] = (colorGalleriesMap[colorName] as string[] | undefined) ?? [mainImage];
 
-  const allVariants = (matched as unknown as { variants?: Array<{ id: string; availableForSale: boolean; selectedOptions: Array<{ name: string; value: string }>; price?: string }> }).variants;
+  const allVariants = (matched as unknown as { variants?: Array<{ id: string; availableForSale: boolean; selectedOptions: Array<{ name: string; value: string }>; price?: string; compareAtPrice?: string }> }).variants;
   const filteredVariants = allVariants?.filter((v) =>
     v.selectedOptions.some(
       (o) => o.name.toLowerCase() === "color" && slugify(o.value) === colorSlug,
@@ -164,6 +164,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
 
   const isOutOfStock = selectedVariant ? !selectedVariant.availableForSale : false;
   const effectivePrice = selectedVariant?.price ?? product.price;
+  const effectiveCompareAtPrice = selectedVariant?.compareAtPrice ?? (product as unknown as { compareAtPrice?: string }).compareAtPrice;
 
   const handleAddToCart = async () => {
     if (isOutOfStock) return;
@@ -178,6 +179,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       title: product.name,
       price: effectivePrice,
       priceAmount: parseEGP(String(effectivePrice)),
+      compareAtPrice: effectiveCompareAtPrice,
       currencyCode: "EGP",
       image: galleryImages[0] ?? product.productShot,
       size: selectedSize || "One Size",
@@ -202,6 +204,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       title: product.name,
       price: effectivePrice,
       priceAmount: parseEGP(String(effectivePrice)),
+      compareAtPrice: effectiveCompareAtPrice,
       currencyCode: "EGP",
       image: galleryImages[0] ?? product.productShot,
       size: selectedSize || "One Size",
@@ -438,18 +441,55 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               )}
 
               {/* Price */}
-              <p
-                style={{
-                  fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "clamp(1.04rem, 3vw, 1.2rem)",
-                  fontWeight: 500,
-                  letterSpacing: "0.12em",
-                  color: "#1e1814",
-                  marginBottom: 20,
-                }}
-              >
-                {effectivePrice}
-              </p>
+              <div className="flex items-center gap-2 flex-wrap" style={{ marginBottom: 20 }}>
+                {effectiveCompareAtPrice && (
+                  <span
+                    style={{
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: "clamp(0.94rem, 2.6vw, 1.08rem)",
+                      fontWeight: 400,
+                      letterSpacing: "0.08em",
+                      color: "#8a7e74",
+                      textDecoration: "line-through",
+                      textDecorationThickness: 1,
+                      textDecorationColor: "#c83232",
+                    }}
+                  >
+                    {effectiveCompareAtPrice}
+                  </span>
+                )}
+                <p
+                  style={{
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: "clamp(1.04rem, 3vw, 1.2rem)",
+                    fontWeight: 500,
+                    letterSpacing: "0.12em",
+                    color: effectiveCompareAtPrice ? "#c83232" : "#1e1814",
+                  }}
+                >
+                  {effectivePrice}
+                </p>
+                {effectiveCompareAtPrice && (
+                  <span
+                    style={{
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: "11px",
+                      fontWeight: 500,
+                      letterSpacing: "0.14em",
+                      color: "#c83232",
+                    }}
+                  >
+                    {(() => {
+                      const p = parseEGP(String(effectivePrice));
+                      const c = parseEGP(String(effectiveCompareAtPrice));
+                      if (p && c && c > p) {
+                        return `Save ${Math.round((1 - p / c) * 100)}%`;
+                      }
+                      return "Sale";
+                    })()}
+                  </span>
+                )}
+              </div>
 
               {/* Divider */}
               <div className="w-10 mb-6" style={{ height: 1, backgroundColor: "rgba(180,160,140,0.4)" }} />

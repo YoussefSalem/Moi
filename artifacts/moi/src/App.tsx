@@ -107,8 +107,9 @@ function AppContent() {
     cart.addToCart({
       variantId,
       title: product.name,
-      price: product.price,
-      priceAmount: parseEGP(product.price) || 0,
+      price: variant?.price ?? product.price,
+      priceAmount: parseEGP(variant?.price ?? product.price) || 0,
+      compareAtPrice: variant?.compareAtPrice,
       currencyCode: "EGP",
       image,
       size: "One Size",

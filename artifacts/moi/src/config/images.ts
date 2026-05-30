@@ -328,6 +328,7 @@ export interface VariantOption {
   availableForSale: boolean;
   inventoryQuantity?: number;
   price: string;
+  compareAtPrice?: string;
   selectedOptions: readonly { name: string; value: string }[];
 }
 

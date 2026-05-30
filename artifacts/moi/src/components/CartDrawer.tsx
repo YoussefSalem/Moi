@@ -7,6 +7,7 @@ import { IMAGES } from "@/config/images";
 import { trackInitiateCheckout } from "@/lib/metaPixel";
 import { trackTikTokInitiateCheckout } from "@/lib/tiktokPixel";
 import { trackCheckoutStep, trackCartAbandonment } from "@/lib/analytics";
+import { formatMoney } from "@/lib/shopify";
 import type { ShopifyCartLine } from "@/lib/shopify";
 import type { LocalCartItem } from "@/context/CartContext";
 
@@ -326,12 +327,25 @@ export function CartDrawer() {
                                   <Plus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                               </div>
-                              <p
-                                className="text-[12px] font-semibold tracking-wide"
-                                style={{ color: "#17120f" }}
-                              >
-                                {formatShopifyLinePrice(line)}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                {line.merchandise.compareAtPrice && (
+                                  <span
+                                    className="text-[11px] font-medium"
+                                    style={{ color: "#8a7e74", textDecoration: "line-through", textDecorationThickness: 1, textDecorationColor: "#c83232" }}
+                                  >
+                                    {formatMoney(
+                                      String(parseFloat(line.merchandise.compareAtPrice.amount) * line.quantity),
+                                      line.merchandise.compareAtPrice.currencyCode,
+                                    )}
+                                  </span>
+                                )}
+                                <p
+                                  className="text-[12px] font-semibold tracking-wide"
+                                  style={{ color: line.merchandise.compareAtPrice ? "#c83232" : "#17120f" }}
+                                >
+                                  {formatShopifyLinePrice(line)}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </motion.li>
@@ -409,12 +423,22 @@ export function CartDrawer() {
                                   <Plus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                               </div>
-                              <p
-                                className="text-[12px] font-semibold tracking-wide"
-                                style={{ color: "#17120f" }}
-                              >
-                                {item.price}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                {item.compareAtPrice && (
+                                  <span
+                                    className="text-[11px] font-medium"
+                                    style={{ color: "#8a7e74", textDecoration: "line-through", textDecorationThickness: 1, textDecorationColor: "#c83232" }}
+                                  >
+                                    {item.compareAtPrice}
+                                  </span>
+                                )}
+                                <p
+                                  className="text-[12px] font-semibold tracking-wide"
+                                  style={{ color: item.compareAtPrice ? "#c83232" : "#17120f" }}
+                                >
+                                  {item.price}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </motion.li>

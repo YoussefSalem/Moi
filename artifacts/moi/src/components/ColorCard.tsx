@@ -11,6 +11,7 @@ interface ColorCardProps {
   hoverImage?: string;
   gallery?: string[];
   price: string;
+  compareAtPrice?: string;
   handle: string;
   swatchColor?: string;
   description?: string;
@@ -27,6 +28,7 @@ export function ColorCard({
   hoverImage,
   gallery,
   price,
+  compareAtPrice,
   handle,
   swatchColor,
   description,
@@ -343,17 +345,47 @@ export function ColorCard({
             </span>
           </div>
 
-          <p
-            className="text-center mt-auto"
-            style={{
-              fontFamily: "'Montserrat', sans-serif",
-              fontSize: "clamp(0.81rem, 2.2vw, 0.88rem)",
-              letterSpacing: "0.14em",
-              color: "#7a6e64",
-            }}
-          >
-            {price}
-          </p>
+          <div className="text-center mt-auto flex items-center gap-1.5 justify-center flex-wrap">
+            {compareAtPrice && (
+              <span
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "clamp(0.72rem, 2vw, 0.78rem)",
+                  fontWeight: 400,
+                  letterSpacing: "0.08em",
+                  color: "#8a7e74",
+                  textDecoration: "line-through",
+                  textDecorationThickness: 1,
+                  textDecorationColor: "#c83232",
+                }}
+              >
+                {compareAtPrice}
+              </span>
+            )}
+            <span
+              style={{
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: "clamp(0.81rem, 2.2vw, 0.88rem)",
+                letterSpacing: "0.14em",
+                color: compareAtPrice ? "#c83232" : "#7a6e64",
+              }}
+            >
+              {price}
+            </span>
+            {compareAtPrice && (
+              <span
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "10px",
+                  fontWeight: 500,
+                  letterSpacing: "0.1em",
+                  color: "#c83232",
+                }}
+              >
+                Sale
+              </span>
+            )}
+          </div>
 
           <button
             type="button"
@@ -398,6 +430,7 @@ export function ColorCard({
         colorName={colorName}
         swatchColor={swatchColor}
         price={price}
+        compareAtPrice={compareAtPrice}
         gallery={allImages.length > 0 ? allImages : [image]}
         handle={handle}
         description={description}
