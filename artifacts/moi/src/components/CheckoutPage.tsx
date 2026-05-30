@@ -4,7 +4,7 @@ import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag 
 import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED, cartBuyerIdentityUpdate } from "@/lib/shopify";
 import { IMAGES } from "@/config/images";
-import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
+import { trackPurchase } from "@/lib/metaPixel";
 import { parseEGP } from "@/lib/price";
 import { trackTikTokPurchase } from "@/lib/tiktokPixel";
 import { trackShopifyPurchase } from "@/lib/shopifyAnalytics";

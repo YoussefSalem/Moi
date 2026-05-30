@@ -11,6 +11,7 @@ import { NotifyMeModal } from "@/components/NotifyMeModal";
 import { CinematicLightbox } from "@/components/CinematicLightbox";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
 import { trackAddToCart } from "@/lib/analytics";
+import { trackViewContent } from "@/lib/metaPixel";
 import { getStockCount } from "@/lib/stock";
 
 function slugify(str: string): string {
@@ -107,6 +108,19 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, [handle]);
   useEffect(() => { setGalleryIndex(0); setImgLoaded(false); }, [handle]);
+
+  // Meta Pixel ViewContent — fires once per product page load
+  useEffect(() => {
+    const priceNum = parseEGP(product.price ?? "");
+    const variantId = product.variantId ?? product.variants?.[0]?.id;
+    trackViewContent({
+      content_name: product.name,
+      content_type: "product",
+      content_ids: variantId ? [variantId] : undefined,
+      currency: "EGP",
+      value: Number.isFinite(priceNum) && priceNum > 0 ? priceNum : undefined,
+    });
+  }, [handle]);
 
   const sizeOption = product.variants
     ? (() => {
