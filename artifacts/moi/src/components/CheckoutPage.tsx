@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED, cartBuyerIdentityUpdate } from "@/lib/shopify";
 import { IMAGES } from "@/config/images";
@@ -302,7 +302,8 @@ export function CheckoutPage() {
   const [emailInput, setEmailInput] = useState("");
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
-  const [promoOpen, setPromoOpen] = useState(false);
+  // Promo code section is always visible (no dropdown toggle)
+  // const [promoOpen, setPromoOpen] = useState(false);
   const [promoInput, setPromoInput] = useState("");
   const [promoApplied, setPromoApplied] = useState<{ code: string } | null>(null);
   const [promoError, setPromoError] = useState("");
@@ -1392,64 +1393,45 @@ export function CheckoutPage() {
 
                 {SHOPIFY_CONFIGURED && (
                   <div className="mt-6">
-                    <button
-                      onClick={() => setPromoOpen((o) => !o)}
-                      className="flex items-center gap-2 transition-opacity hover:opacity-60"
-                    >
-                      <span style={{ fontSize: "14px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.88)", fontFamily: "'Montserrat', sans-serif" }}>
-                        Promo / Gift Card
-                      </span>
-                      {promoOpen ? <ChevronUp size={12} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.72)" }} /> : <ChevronDown size={12} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.72)" }} />}
-                    </button>
-
-                    <AnimatePresence>
-                      {promoOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          style={{ overflow: "hidden" }}
-                        >
-                          <div className="mt-3">
-                            {promoApplied ? (
-                              <div className="flex items-center justify-between py-2 px-3" style={{ backgroundColor: "rgba(90,122,90,0.08)", border: "1px solid rgba(90,122,90,0.2)" }}>
-                                <div className="flex items-center gap-2">
-                                  <Check size={12} strokeWidth={2} style={{ color: "#5a7a5a" }} />
-                                  <span style={{ fontSize: "14px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>{promoApplied.code}</span>
-                                </div>
-                                <button onClick={handleRemovePromo} style={{ fontSize: "14px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}>
-                                  Remove
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex gap-2">
-                                <input
-                                  type="text"
-                                  placeholder="Enter code"
-                                  value={promoInput}
-                                  onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); }}
-                                  onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
-                                  style={{ ...inputStyle, flex: 1 }}
-                                  className="checkout-input"
-                                />
-                                <button
-                                  onClick={handleApplyPromo}
-                                  disabled={promoLoading || !promoInput.trim()}
-                                  className="transition-opacity hover:opacity-70 disabled:opacity-40"
-                                  style={{ fontSize: "14px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, padding: "0 12px", borderBottom: "1px solid rgba(30,24,20,0.18)" }}
-                                >
-                                  {promoLoading ? "…" : "Apply"}
-                                </button>
-                              </div>
-                            )}
-                            {promoError && (
-                              <p style={{ fontSize: "14px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: 6, letterSpacing: "0.04em" }}>{promoError}</p>
-                            )}
+                    <p style={{ fontSize: "14px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.88)", fontFamily: "'Montserrat', sans-serif", marginBottom: "10px" }}>
+                      Promo / Gift Card
+                    </p>
+                    <div className="mt-3">
+                      {promoApplied ? (
+                        <div className="flex items-center justify-between py-2 px-3" style={{ backgroundColor: "rgba(90,122,90,0.08)", border: "1px solid rgba(90,122,90,0.2)" }}>
+                          <div className="flex items-center gap-2">
+                            <Check size={12} strokeWidth={2} style={{ color: "#5a7a5a" }} />
+                            <span style={{ fontSize: "14px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>{promoApplied.code}</span>
                           </div>
-                        </motion.div>
+                          <button onClick={handleRemovePromo} style={{ fontSize: "14px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}>
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Enter code"
+                            value={promoInput}
+                            onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); }}
+                            onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
+                            style={{ ...inputStyle, flex: 1 }}
+                            className="checkout-input"
+                          />
+                          <button
+                            onClick={handleApplyPromo}
+                            disabled={promoLoading || !promoInput.trim()}
+                            className="transition-opacity hover:opacity-70 disabled:opacity-40"
+                            style={{ fontSize: "14px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, padding: "0 12px", borderBottom: "1px solid rgba(30,24,20,0.18)" }}
+                          >
+                            {promoLoading ? "…" : "Apply"}
+                          </button>
+                        </div>
                       )}
-                    </AnimatePresence>
+                      {promoError && (
+                        <p style={{ fontSize: "14px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: 6, letterSpacing: "0.04em" }}>{promoError}</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
