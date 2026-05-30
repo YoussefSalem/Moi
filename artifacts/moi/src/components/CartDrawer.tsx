@@ -488,8 +488,8 @@ export function CartDrawer() {
                     Free shipping on orders over 2,000 EGP
                   </p>
                 </div>
-                {/* Conversion Banner — FIRST50 */}
-                <DiscountBanner />
+                {/* Conversion Banner — FIRST50 (disabled — uncomment to re-enable) */}
+                {/* <DiscountBanner /> */}
                 <button
                   type="button"
                   onClick={() => {
