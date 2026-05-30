@@ -345,7 +345,7 @@ export function ColorCard({
             </span>
           </div>
 
-          <div className="text-center mt-auto flex items-center gap-1.5 justify-center flex-wrap">
+          <div className="text-center mt-auto flex flex-col items-center" style={{ gap: 2 }}>
             {compareAtPrice && (
               <span
                 style={{
@@ -357,34 +357,38 @@ export function ColorCard({
                   textDecoration: "line-through",
                   textDecorationThickness: 1,
                   textDecorationColor: "#c83232",
+                  lineHeight: 1.2,
                 }}
               >
                 {compareAtPrice}
               </span>
             )}
-            <span
-              style={{
-                fontFamily: "'Montserrat', sans-serif",
-                fontSize: "clamp(0.81rem, 2.2vw, 0.88rem)",
-                letterSpacing: "0.14em",
-                color: compareAtPrice ? "#c83232" : "#7a6e64",
-              }}
-            >
-              {price}
-            </span>
-            {compareAtPrice && (
+            <div className="flex items-center gap-1.5">
               <span
                 style={{
                   fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "10px",
-                  fontWeight: 500,
-                  letterSpacing: "0.1em",
-                  color: "#c83232",
+                  fontSize: "clamp(0.81rem, 2.2vw, 0.88rem)",
+                  letterSpacing: "0.14em",
+                  color: compareAtPrice ? "#c83232" : "#7a6e64",
+                  lineHeight: 1.2,
                 }}
               >
-                Sale
+                {price}
               </span>
-            )}
+              {compareAtPrice && (
+                <span
+                  style={{
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: "10px",
+                    fontWeight: 500,
+                    letterSpacing: "0.1em",
+                    color: "#c83232",
+                  }}
+                >
+                  Sale
+                </span>
+              )}
+            </div>
           </div>
 
           <button

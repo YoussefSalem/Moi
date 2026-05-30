@@ -441,7 +441,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               )}
 
               {/* Price */}
-              <div className="flex items-center gap-2 flex-wrap" style={{ marginBottom: 20 }}>
+              <div className="flex flex-col" style={{ marginBottom: 20, gap: 2 }}>
                 {effectiveCompareAtPrice && (
                   <span
                     style={{
@@ -453,42 +453,46 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       textDecoration: "line-through",
                       textDecorationThickness: 1,
                       textDecorationColor: "#c83232",
+                      lineHeight: 1.2,
                     }}
                   >
                     {effectiveCompareAtPrice}
                   </span>
                 )}
-                <p
-                  style={{
-                    fontFamily: "'Montserrat', sans-serif",
-                    fontSize: "clamp(1.04rem, 3vw, 1.2rem)",
-                    fontWeight: 500,
-                    letterSpacing: "0.12em",
-                    color: effectiveCompareAtPrice ? "#c83232" : "#1e1814",
-                  }}
-                >
-                  {effectivePrice}
-                </p>
-                {effectiveCompareAtPrice && (
-                  <span
+                <div className="flex items-center gap-2">
+                  <p
                     style={{
                       fontFamily: "'Montserrat', sans-serif",
-                      fontSize: "11px",
+                      fontSize: "clamp(1.04rem, 3vw, 1.2rem)",
                       fontWeight: 500,
-                      letterSpacing: "0.14em",
-                      color: "#c83232",
+                      letterSpacing: "0.12em",
+                      color: effectiveCompareAtPrice ? "#c83232" : "#1e1814",
+                      lineHeight: 1.2,
                     }}
                   >
-                    {(() => {
-                      const p = parseEGP(String(effectivePrice));
-                      const c = parseEGP(String(effectiveCompareAtPrice));
-                      if (p && c && c > p) {
-                        return `Save ${Math.round((1 - p / c) * 100)}%`;
-                      }
-                      return "Sale";
-                    })()}
-                  </span>
-                )}
+                    {effectivePrice}
+                  </p>
+                  {effectiveCompareAtPrice && (
+                    <span
+                      style={{
+                        fontFamily: "'Montserrat', sans-serif",
+                        fontSize: "11px",
+                        fontWeight: 500,
+                        letterSpacing: "0.14em",
+                        color: "#c83232",
+                      }}
+                    >
+                      {(() => {
+                        const p = parseEGP(String(effectivePrice));
+                        const c = parseEGP(String(effectiveCompareAtPrice));
+                        if (p && c && c > p) {
+                          return `Save ${Math.round((1 - p / c) * 100)}%`;
+                        }
+                        return "Sale";
+                      })()}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Divider */}

@@ -934,7 +934,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
               )}
 
               {/* Price */}
-              <motion.div variants={itemVariants} className="mb-3 flex items-center gap-2 flex-wrap justify-center">
+              <motion.div variants={itemVariants} className="mb-3 flex flex-col items-center" style={{ gap: 2 }}>
                 {effectiveCompareAtPrice && (
                   <span
                     style={{
@@ -946,42 +946,46 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                       textDecoration: "line-through",
                       textDecorationThickness: 1,
                       textDecorationColor: "#c83232",
+                      lineHeight: 1.2,
                     }}
                   >
                     {effectiveCompareAtPrice}
                   </span>
                 )}
-                <span
-                  style={{
-                    color: effectiveCompareAtPrice ? "#c83232" : "#1e1814",
-                    fontFamily: "'Montserrat', sans-serif",
-                    fontSize: "clamp(1.09rem, 3.5vw, 1.3rem)",
-                    fontWeight: 500,
-                    letterSpacing: "0.12em",
-                  }}
-                >
-                  {effectivePrice}
-                </span>
-                {effectiveCompareAtPrice && (
+                <div className="flex items-center gap-2">
                   <span
                     style={{
+                      color: effectiveCompareAtPrice ? "#c83232" : "#1e1814",
                       fontFamily: "'Montserrat', sans-serif",
-                      fontSize: "11px",
+                      fontSize: "clamp(1.09rem, 3.5vw, 1.3rem)",
                       fontWeight: 500,
-                      letterSpacing: "0.14em",
-                      color: "#c83232",
+                      letterSpacing: "0.12em",
+                      lineHeight: 1.2,
                     }}
                   >
-                    {(() => {
-                      const p = parseEGP(effectivePrice);
-                      const c = parseEGP(effectiveCompareAtPrice);
-                      if (p && c && c > p) {
-                        return `Save ${Math.round((1 - p / c) * 100)}%`;
-                      }
-                      return "Sale";
-                    })()}
+                    {effectivePrice}
                   </span>
-                )}
+                  {effectiveCompareAtPrice && (
+                    <span
+                      style={{
+                        fontFamily: "'Montserrat', sans-serif",
+                        fontSize: "11px",
+                        fontWeight: 500,
+                        letterSpacing: "0.14em",
+                        color: "#c83232",
+                      }}
+                    >
+                      {(() => {
+                        const p = parseEGP(effectivePrice);
+                        const c = parseEGP(effectiveCompareAtPrice);
+                        if (p && c && c > p) {
+                          return `Save ${Math.round((1 - p / c) * 100)}%`;
+                        }
+                        return "Sale";
+                      })()}
+                    </span>
+                  )}
+                </div>
               </motion.div>
 
               {/* Scarcity count */}

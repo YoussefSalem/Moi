@@ -327,7 +327,7 @@ export function CartDrawer() {
                                   <Plus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                               </div>
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex flex-col items-end" style={{ gap: 2 }}>
                                 {line.merchandise.compareAtPrice && (
                                   <span
                                     className="text-[11px] font-medium"
@@ -423,7 +423,7 @@ export function CartDrawer() {
                                   <Plus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                                 </button>
                               </div>
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex flex-col items-end gap-0.5">
                                 {item.compareAtPrice && (
                                   <span
                                     className="text-[11px] font-medium"
