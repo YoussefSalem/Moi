@@ -748,14 +748,25 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 </motion.button>
               )}
 
-              {/* Description */}
-              <motion.p
-                variants={itemVariants}
-                className="text-sm leading-relaxed font-light max-w-xs md:max-w-sm"
-                style={{ color: "#6a5e56", marginBottom: 8 }}
-              >
-                {product.description}
-              </motion.p>
+              {/* Description — bullets if available, otherwise plain text */}
+              {"descriptionBullets" in (product as unknown as Record<string, unknown>) && (product as unknown as { descriptionBullets?: string[] }).descriptionBullets?.length ? (
+                <motion.ul variants={itemVariants} className="text-sm leading-relaxed font-light max-w-xs md:max-w-sm space-y-1.5 mb-2">
+                  {(product as unknown as { descriptionBullets: string[] }).descriptionBullets.map((bullet, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="flex-shrink-0 mt-1.5 rounded-full" style={{ width: 5, height: 5, backgroundColor: "rgba(30,24,20,0.18)", border: "1px solid rgba(30,24,20,0.2)" }} />
+                      <span style={{ color: "#6a5e56" }}>{bullet}</span>
+                    </li>
+                  ))}
+                </motion.ul>
+              ) : (
+                <motion.p
+                  variants={itemVariants}
+                  className="text-sm leading-relaxed font-light max-w-xs md:max-w-sm"
+                  style={{ color: "#6a5e56", marginBottom: 8 }}
+                >
+                  {product.description}
+                </motion.p>
+              )}
 
               {/* Divider */}
               <motion.div

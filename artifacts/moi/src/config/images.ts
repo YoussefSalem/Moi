@@ -180,6 +180,13 @@ export const IMAGES = {
     shopifyTitle: "MOI WAVVY",
     colorLabel: "",
     description: "The ultimate throw-and-go. Effortless design, Wavy is light, breathable, and made for drifting.",
+    descriptionBullets: [
+      "The ultimate throw-and-go piece.",
+      "Effortless design makes it easy to wear.",
+      "Wavy is light for all-day comfort.",
+      "Breathable fabric keeps you cool.",
+      "Made for drifting with ease.",
+    ],
     price: "899 EGP",
     outer: "Outer shell: 100% Polyester",
     lining: "",
@@ -331,6 +338,7 @@ export interface ProductConfig {
   readonly name: string;
   readonly colorLabel: string;
   readonly description: string;
+  readonly descriptionBullets?: readonly string[];
   readonly price: string;
   readonly outer: string;
   readonly lining: string;

@@ -454,13 +454,37 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               {/* Divider */}
               <div className="w-10 mb-6" style={{ height: 1, backgroundColor: "rgba(180,160,140,0.4)" }} />
 
-              {/* Description */}
-              <p
-                className="leading-relaxed font-light mb-8"
-                style={{ color: "#6a5e56", fontSize: "clamp(0.85rem, 2.2vw, 0.94rem)", maxWidth: 400 }}
-              >
-                {product.description}
-              </p>
+              {/* Description — bullets if available, otherwise plain text */}
+              {"descriptionBullets" in (product as unknown as Record<string, unknown>) && (product as unknown as { descriptionBullets?: string[] }).descriptionBullets?.length ? (
+                <ul className="mb-8 space-y-2" style={{ maxWidth: 400 }}>
+                  {(product as unknown as { descriptionBullets: string[] }).descriptionBullets.map((bullet, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <span
+                        className="flex-shrink-0 mt-2 rounded-full"
+                        style={{
+                          width: 6,
+                          height: 6,
+                          backgroundColor: "rgba(30,24,20,0.18)",
+                          border: "1px solid rgba(30,24,20,0.2)",
+                        }}
+                      />
+                      <span
+                        className="leading-relaxed font-light"
+                        style={{ color: "#6a5e56", fontSize: "clamp(0.85rem, 2.2vw, 0.94rem)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                      >
+                        {bullet}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p
+                  className="leading-relaxed font-light mb-8"
+                  style={{ color: "#6a5e56", fontSize: "clamp(0.85rem, 2.2vw, 0.94rem)", maxWidth: 400 }}
+                >
+                  {product.description}
+                </p>
+              )}
 
               {/* Size selector */}
               {displaySizes.length > 1 && (
