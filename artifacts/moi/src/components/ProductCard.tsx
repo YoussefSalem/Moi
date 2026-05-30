@@ -20,6 +20,7 @@ import {
   trackRepeatedView,
 } from "@/lib/analytics";
 import { trackViewContent } from "@/lib/metaPixel";
+import { trackTikTokViewContent } from "@/lib/tiktokPixel";
 import { getStockCount } from "@/lib/stock";
 
 function slugify(str: string): string {
@@ -61,7 +62,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
       price: Number.isFinite(priceNum) ? priceNum : undefined,
       currencyCode: "EGP",
     });
-    // Internal analytics + Meta Pixel ViewContent (fires once per product per session)
+    // Internal analytics + Meta Pixel + TikTok Pixel ViewContent (fires once per product per session)
     if (!viewTrackedRef.current) {
       viewTrackedRef.current = true;
       trackProductView(product.variantId ?? "", product.name, Number.isFinite(priceNum) ? priceNum : undefined);
@@ -69,6 +70,13 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
         content_name: product.name,
         content_type: "product",
         content_ids: product.variantId ? [product.variantId] : undefined,
+        currency: "EGP",
+        value: Number.isFinite(priceNum) && priceNum > 0 ? priceNum : undefined,
+      });
+      trackTikTokViewContent({
+        content_name: product.name,
+        content_type: "product",
+        content_id: product.variantId,
         currency: "EGP",
         value: Number.isFinite(priceNum) && priceNum > 0 ? priceNum : undefined,
       });

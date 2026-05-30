@@ -35,32 +35,32 @@ export function Footer({ onNavigate }: FooterProps) {
 
   const quickLinks: Array<{
     title: string;
-    links: Array<{ label: string; href: string }>;
+    links: Array<{ label: string; page?: "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" }>;
   }> = [
     {
       title: "Shop",
       links: [
-        { label: "New In", href: "/new-in" },
-        { label: "Clothing", href: "/clothing" },
-        { label: "Accessories", href: "/accessories" },
-        { label: "Sale", href: "/sale" },
+        { label: "New In" },
+        { label: "Clothing", page: "home" },
+        { label: "Accessories", page: "accessories" },
+        { label: "Sale" },
       ],
     },
     {
       title: "Company",
       links: [
-        { label: "About Moi", href: "/about" },
-        { label: "Sustainability", href: "/sustainability" },
-        { label: "Press", href: "/press" },
-        { label: "Careers", href: "/careers" },
+        { label: "About Moi" },
+        { label: "Sustainability" },
+        { label: "Press" },
+        { label: "Careers" },
       ],
     },
     {
       title: "Legal",
       links: [
-        { label: "Privacy Policy", href: "/privacy" },
-        { label: "Terms", href: "/terms" },
-        { label: "Cookies", href: "/cookies" },
+        { label: "Privacy Policy", page: "privacy" },
+        { label: "Terms" },
+        { label: "Cookies" },
       ],
     },
   ];
