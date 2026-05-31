@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, ShoppingBag, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
+import { useCustomer } from "@/context/CustomerContext";
 import { IMAGES } from "@/config/images";
 import { trackInitiateCheckout } from "@/lib/metaPixel";
 import { trackTikTokInitiateCheckout } from "@/lib/tiktokPixel";
@@ -151,7 +152,9 @@ export function CartDrawer() {
     loading,
     isShopify,
     applyDiscount,
+    prefilledEmail,
   } = useCart();
+  const { customer } = useCustomer();
 
   const hasItems = (isShopify && (shopifyCart?.lines.nodes.length ?? 0) > 0) || localItems.length > 0;
 
@@ -510,6 +513,12 @@ export function CartDrawer() {
                       currency: "EGP",
                       value: Number.isFinite(totalVal) && totalVal > 0 ? totalVal : undefined,
                       num_items: numItems,
+                      user: {
+                        email: customer?.email || prefilledEmail || undefined,
+                        phone: customer?.phone || undefined,
+                        first_name: customer?.firstName || undefined,
+                        last_name: customer?.lastName || undefined,
+                      },
                     });
                     trackTikTokInitiateCheckout({
                       content_id: ids?.[0],

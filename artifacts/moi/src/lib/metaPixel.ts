@@ -29,14 +29,24 @@ const ECOMMERCE_EVENTS = new Set([
   "CompleteRegistration",
 ]);
 
+export interface CapiUserData {
+  email?: string;
+  phone?: string;
+  first_name?: string;
+  last_name?: string;
+}
+
 /**
  * Send a server-side CAPI event. Fire-and-forget — never throws.
  * Only fires for e-commerce events; skips when the API is unreachable.
+ * PII (email, phone, name) is sent plaintext over HTTPS to our own server,
+ * which SHA-256 hashes it before forwarding to Meta.
  */
 function sendCapiEvent(
   eventName: string,
   eventId: string,
   params: Record<string, string | number | boolean>,
+  userData?: CapiUserData,
 ): void {
   if (typeof window === "undefined") return;
   if (!ECOMMERCE_EVENTS.has(eventName)) return;
@@ -60,6 +70,11 @@ function sendCapiEvent(
   if (params.fbp) body.fbp = params.fbp;
   if (params.order_id) body.order_id = params.order_id;
 
+  if (userData?.email) body.email = userData.email;
+  if (userData?.phone) body.phone = userData.phone;
+  if (userData?.first_name) body.first_name = userData.first_name;
+  if (userData?.last_name) body.last_name = userData.last_name;
+
   fetch("/api/capi/event", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -71,7 +86,8 @@ function sendCapiEvent(
 
 export function trackEvent(
   eventName: string,
-  params?: Record<string, string | number | boolean | undefined>
+  params?: Record<string, string | number | boolean | undefined>,
+  userData?: CapiUserData,
 ): void {
   if (typeof window === "undefined") return;
   const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq;
@@ -137,7 +153,7 @@ export function trackEvent(
   fbq("track", eventName, Object.keys(cleaned).length > 0 ? cleaned : {}, { eventID: eventId });
 
   // 2. Server-side CAPI (same event_id → Meta deduplicates)
-  sendCapiEvent(eventName, eventId, cleaned);
+  sendCapiEvent(eventName, eventId, cleaned, userData);
 }
 
 /** E-commerce helpers */
@@ -180,6 +196,7 @@ export function trackInitiateCheckout(params: {
   currency?: string;
   value?: number;
   num_items?: number;
+  user?: CapiUserData;
 }): void {
   trackEvent("InitiateCheckout", {
     content_type: "product",
@@ -187,7 +204,7 @@ export function trackInitiateCheckout(params: {
     currency: params.currency ?? "EGP",
     value: params.value,
     num_items: params.num_items ?? 1,
-  });
+  }, params.user);
 }
 
 export function trackPurchase(params: {

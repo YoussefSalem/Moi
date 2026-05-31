@@ -1,5 +1,13 @@
 import { Router } from "express";
+import { createHash } from "crypto";
 import { logger } from "../lib/logger";
+
+/** SHA-256 hash a string after normalising it (lowercase + trim). Returns empty string if input is empty. */
+function sha256(value: string): string {
+  const normalised = value.toLowerCase().trim();
+  if (!normalised) return "";
+  return createHash("sha256").update(normalised).digest("hex");
+}
 
 const router = Router();
 
@@ -45,6 +53,10 @@ router.post("/capi/event", async (req, res) => {
     fbc,
     fbp,
     order_id,
+    email,
+    phone,
+    first_name,
+    last_name,
   } = req.body as {
     event_name?: string;
     event_id?: string;
@@ -57,6 +69,10 @@ router.post("/capi/event", async (req, res) => {
     fbc?: string;
     fbp?: string;
     order_id?: string;
+    email?: string;
+    phone?: string;
+    first_name?: string;
+    last_name?: string;
   };
 
   if (!event_name || !event_id) {
@@ -75,6 +91,17 @@ router.post("/capi/event", async (req, res) => {
   if (userAgent) userData.client_user_agent = userAgent;
   if (fbc) userData.fbc = fbc;
   if (fbp) userData.fbp = fbp;
+
+  // PII — hashed with SHA-256 as required by Meta
+  if (email) { const h = sha256(email); if (h) userData.em = h; }
+  if (phone) {
+    // Normalise phone: strip all non-digits, keep leading +
+    const digits = phone.replace(/[^\d]/g, "");
+    const h = sha256(digits);
+    if (h) userData.ph = h;
+  }
+  if (first_name) { const h = sha256(first_name); if (h) userData.fn = h; }
+  if (last_name) { const h = sha256(last_name); if (h) userData.ln = h; }
 
   const customData: Record<string, unknown> = {
     currency: (currency ?? "EGP").toUpperCase().slice(0, 3),
