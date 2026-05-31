@@ -41,8 +41,8 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
 
   const iconColor = dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff";
   const navLinks = [
-    { label: "Versa Top", href: "#moi-versa-top", scrollTo: "moi-versa-top" },
-    { label: "Wavy Top", href: "#moi-wavvy", scrollTo: "moi-wavvy" },
+    { label: "Versa Top", href: "/versa-top", scrollTo: "moi-versa-top" },
+    { label: "Wavy Top", href: "/wavy-top", scrollTo: "moi-wavvy" },
     { label: "Accessories", href: "/accessories", scrollTo: "accessories" },
     { label: "Become an Ambassador", href: "/ambassador", scrollTo: "ambassador" },
   ];
