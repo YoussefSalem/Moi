@@ -95,6 +95,7 @@
     if (location.hostname === 'buy-moi.com' || location.hostname === 'www.buy-moi.com') {
       fbq('set', 'autoConfig', false, '2281707575977889');
       fbq('set', 'disableAutoInitialization', true, '2281707575977889');
+      fbq('dataProcessingOptions', []);
       fbq('init', '2281707575977889');
       fbq('track', 'PageView');
     }

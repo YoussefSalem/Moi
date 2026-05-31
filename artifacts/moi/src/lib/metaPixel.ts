@@ -70,24 +70,23 @@ export function trackEvent(
   if (attr.fbp) cleaned.fbp = attr.fbp;
 
   // Deduplication key: deterministic event_id so Meta can deduplicate duplicate fires.
+  // IMPORTANT: eventID must go in the 4th argument {eventID: ...}, NOT inside the params
+  // object. Placing it in params means Meta ignores it for deduplication entirely.
   // For Purchase events, use order_id as the event_id (the single source of truth).
   // For other events, hash the content_ids + value so the same cart fires the same ID.
   const orderId = cleaned.order_id as string | undefined;
   const contentIds = cleaned.content_ids as string | undefined;
   const value = cleaned.value as number | undefined;
+  let eventId: string;
   if (eventName === "Purchase" && orderId) {
-    cleaned.event_id = hashId(`purchase_${orderId}`);
+    eventId = hashId(`purchase_${orderId}`);
   } else if (contentIds) {
-    cleaned.event_id = hashId(`${eventName}_${contentIds}_${value ?? 0}`);
+    eventId = hashId(`${eventName}_${contentIds}_${value ?? 0}`);
   } else {
-    cleaned.event_id = `${eventName}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    eventId = `${eventName}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   }
 
-  if (Object.keys(cleaned).length > 1) {
-    fbq("track", eventName, cleaned);
-  } else {
-    fbq("track", eventName, { event_id: cleaned.event_id });
-  }
+  fbq("track", eventName, Object.keys(cleaned).length > 0 ? cleaned : {}, { eventID: eventId });
 }
 
 /** E-commerce helpers */
