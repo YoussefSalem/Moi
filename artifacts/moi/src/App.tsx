@@ -47,7 +47,12 @@ const VALID_PRODUCTS: Record<string, string[] | null> = {
   "trio-bangles": null,
 };
 
-function parsePath(): { page: PageType; productHandle: string } {
+const SECTION_PATH_MAP: Record<string, string> = {
+  "/versa-top": "moi-versa-top",
+  "/wavy-top": "moi-wavvy",
+};
+
+function parsePath(): { page: PageType; productHandle: string; section?: string } {
   if (typeof window === "undefined") return { page: "home", productHandle: "" };
   const pathname = window.location.pathname;
   if (pathname.startsWith("/products/")) {
@@ -65,6 +70,8 @@ function parsePath(): { page: PageType; productHandle: string } {
   if (pathname === "/checkout") return { page: "checkout", productHandle: "" };
   if (pathname === "/accessories") return { page: "accessories", productHandle: "" };
   if (pathname === "/ambassador") return { page: "ambassador", productHandle: "" };
+  const sectionId = SECTION_PATH_MAP[pathname];
+  if (sectionId) return { page: "home", productHandle: "", section: sectionId };
   const slug = pathname.slice(1) as PageType;
   if (POLICY_PAGES.includes(slug)) return { page: slug, productHandle: "" };
   return { page: "home", productHandle: "" };
@@ -120,6 +127,7 @@ function AppContent() {
 
   const [page, setPage] = useState<PageType>(() => parsePath().page);
   const [productHandle, setProductHandle] = useState<string>(() => parsePath().productHandle);
+  const [scrollTarget, setScrollTarget] = useState<string>(() => parsePath().section ?? "");
 
   function navigateToProduct(handle: string) {
     setPage("product");
@@ -127,10 +135,15 @@ function AppContent() {
     window.history.pushState(null, "", `/products/${handle}`);
   }
 
-  function navigateTo(p: PageType) {
+  function navigateTo(p: PageType, hash?: string) {
     setPage(p);
     setProductHandle("");
-    window.history.pushState(null, "", p === "home" ? "/" : `/${p}`);
+    setScrollTarget(hash ?? "");
+    if (p === "home" && hash) {
+      window.history.pushState(null, "", `/`);
+    } else {
+      window.history.pushState(null, "", p === "home" ? "/" : `/${p}`);
+    }
   }
 
   // Handle browser back/forward
@@ -139,6 +152,7 @@ function AppContent() {
       const parsed = parsePath();
       setPage(parsed.page);
       setProductHandle(parsed.productHandle);
+      setScrollTarget(parsed.section ?? "");
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -238,6 +252,15 @@ function AppContent() {
     }
   }, [page, loading, product1.slug, product2.slug]);
 
+  useEffect(() => {
+    if (page === "home" && scrollTarget) {
+      const el = document.getElementById(scrollTarget);
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+      }
+    }
+  }, [page, scrollTarget]);
+
   // Shopify Analytics: page_viewed fires on mount and on every in-app navigation
   useEffect(() => {
     captureAttribution();
@@ -266,7 +289,7 @@ function AppContent() {
           {isProductPage && <li><span>{productHandle}</span></li>}
         </ol>
       </nav>
-      <Header onNavigate={(p) => navigateTo(p as PageType)} onSearch={() => setSearchOpen(true)} dark={isDark} page={page} />
+      <Header onNavigate={(p, hash) => navigateTo(p as PageType, hash)} onSearch={() => setSearchOpen(true)} dark={isDark} page={page} />
 
       <AnimatePresence
         mode="wait"
@@ -285,7 +308,7 @@ function AppContent() {
           {isProductPage ? (
             <div>
               <ProductPage handle={productHandle} onBack={() => navigateTo("home")} onNavigate={navigateToProduct} />
-              <Footer onNavigate={(p) => navigateTo(p as PageType)} />
+              <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
             </div>
           ) : page === "home" ? (
             <main>
@@ -347,14 +370,14 @@ function AppContent() {
             <div>
               <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
                 <AccessoriesPage onLookView={setLookProduct} />
-                <Footer onNavigate={(p) => navigateTo(p as PageType)} />
+                <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
               </Suspense>
             </div>
           ) : page === "ambassador" ? (
             <div>
               <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
                 <AmbassadorPage />
-                <Footer onNavigate={(p) => navigateTo(p as PageType)} />
+                <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
               </Suspense>
             </div>
           ) : page === "notfound" ? (
@@ -371,7 +394,7 @@ function AppContent() {
 
           {page === "home" && (
             <Suspense fallback={null}>
-              <Footer onNavigate={(p) => navigateTo(p as PageType)} />
+              <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
             </Suspense>
           )}
         </motion.div>

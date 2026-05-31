@@ -4,7 +4,7 @@ import { ChevronDown, Instagram } from "lucide-react";
 import { NewsletterSection } from "@/components/NewsletterSection";
 
 interface FooterProps {
-  onNavigate?: (page: "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery") => void;
+  onNavigate?: (page: "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery", hash?: string) => void;
 }
 
 export function Footer({ onNavigate }: FooterProps) {
@@ -33,38 +33,30 @@ export function Footer({ onNavigate }: FooterProps) {
     },
   ];
 
-  const quickLinks: Array<{
-    title: string;
-    links: Array<{ label: string; page?: "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" }>;
-  }> = [
-    {
-      title: "Shop",
-      links: [
-        { label: "Clothing", page: "home" },
-        { label: "Accessories", page: "accessories" },
-        { label: "Ambassador", page: "ambassador" },
-      ],
-    },
-    {
-      title: "Policies",
-      links: [
-        { label: "Delivery", page: "delivery" },
-        { label: "Returns", page: "return" },
-        { label: "Refunds", page: "refund" },
-      ],
-    },
-    {
-      title: "Legal",
-      links: [
-        { label: "Privacy Policy", page: "privacy" },
-      ],
-    },
-  ];
-
   return (
     <>
       <footer className="w-full px-6 md:px-12 py-10 md:py-14" style={{ backgroundColor: "#28211d" }}>
         <div className="max-w-6xl mx-auto">
+          {/* Quick links — replace old Clothing with Versa Top / Wavy Top */}
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 mb-6">
+            {[
+              { label: "Versa Top", page: "home" as const, hash: "moi-versa-top" },
+              { label: "Wavy Top", page: "home" as const, hash: "moi-wavvy" },
+              { label: "Accessories", page: "accessories" as const },
+              { label: "Ambassador", page: "ambassador" as const },
+            ].map((link) => (
+              <button
+                key={link.label}
+                type="button"
+                onClick={() => onNavigate?.(link.page, link.hash)}
+                className="text-[10px] tracking-[0.25em] uppercase text-white/45 hover:text-white/80 transition-colors duration-300"
+                style={{ fontFamily: "'Montserrat', sans-serif" }}
+              >
+                {link.label}
+              </button>
+            ))}
+          </div>
+
           {/* Social links */}
           <div className="flex items-center justify-center gap-6 mb-8">
             <a

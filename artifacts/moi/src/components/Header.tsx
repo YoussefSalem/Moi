@@ -5,7 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { useCustomer } from "@/context/CustomerContext";
 
 interface HeaderProps {
-  onNavigate?: (page: "home" | "accessories" | "ambassador") => void;
+  onNavigate?: (page: "home" | "accessories" | "ambassador", hash?: string) => void;
   onSearch?: () => void;
   dark?: boolean;
   page?: string;
@@ -40,7 +40,12 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
   }, [inAppBrowser]);
 
   const iconColor = dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff";
-  const navLinks = ["Clothing", "Accessories", "Become an Ambassador"];
+  const navLinks = [
+    { label: "Versa Top", href: "#moi-versa-top", scrollTo: "moi-versa-top" },
+    { label: "Wavy Top", href: "#moi-wavvy", scrollTo: "moi-wavvy" },
+    { label: "Accessories", href: "/accessories", scrollTo: "accessories" },
+    { label: "Become an Ambassador", href: "/ambassador", scrollTo: "ambassador" },
+  ];
   const displayName = customer?.firstName ?? customer?.email?.split("@")[0] ?? null;
   const extraTop = inAppBrowser ? 44 : 0;
 
@@ -171,23 +176,26 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
                 <ul className="space-y-8">
                   {navLinks.map((link, i) => (
                     <motion.li
-                      key={link}
+                      key={link.label}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 + i * 0.07 }}
                     >
                       <a
-                        href={link === "Accessories" ? "/accessories" : link === "Become an Ambassador" ? "/ambassador" : "/"}
+                        href={link.href}
                         className="block text-2xl font-light tracking-wide hover:opacity-50 transition-opacity"
                         style={{ color: "#1e1814", letterSpacing: "0.08em" }}
                         onClick={(e) => {
-                          const dest = link === "Accessories" ? "accessories" : link === "Become an Ambassador" ? "ambassador" : "home";
                           e.preventDefault();
                           setMenuOpen(false);
-                          onNavigate?.(dest);
+                          if (link.scrollTo === "moi-versa-top" || link.scrollTo === "moi-wavvy") {
+                            onNavigate?.("home", link.scrollTo);
+                          } else {
+                            onNavigate?.(link.scrollTo as "home" | "accessories" | "ambassador");
+                          }
                         }}
                       >
-                        {link}
+                        {link.label}
                       </a>
                     </motion.li>
                   ))}
