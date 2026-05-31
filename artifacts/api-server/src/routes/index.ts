@@ -18,6 +18,7 @@ import analyticsProxyRouter from "./analyticsProxy";
 import analyticsRouter from "./analytics";
 import checkoutsRouter from "./checkouts";
 import abandonedCartsRouter from "./abandonedCarts";
+import metaCapiRouter from "./metaCapi";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(analyticsProxyRouter);
 router.use(analyticsRouter);
 router.use(checkoutsRouter);
 router.use(abandonedCartsRouter);
+router.use(metaCapiRouter);
 
 export default router;

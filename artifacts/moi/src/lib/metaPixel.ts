@@ -1,11 +1,18 @@
 /**
  * Meta Pixel tracking utility for Moi e-commerce events.
  * Safe to call even before fbq loads — queue handles it.
+ *
+ * Each `trackEvent` call fires TWO signals in parallel:
+ *   1. Browser pixel (fbq)        — client-side, used for attribution / retargeting
+ *   2. Conversions API (CAPI)     — server-side relay via /api/capi/event
+ *
+ * Both carry the same deterministic `event_id` so Meta deduplicates them as
+ * a single event, eliminating the cs_est double-fire in Events Manager.
  */
 
 import { getAttribution } from "./adAttribution";
 
-function hashId(str: string): string {
+export function hashId(str: string): string {
   let h = 0;
   for (let i = 0; i < str.length; i++) {
     h = ((h << 5) - h + str.charCodeAt(i)) | 0;
@@ -21,6 +28,46 @@ const ECOMMERCE_EVENTS = new Set([
   "AddPaymentInfo",
   "CompleteRegistration",
 ]);
+
+/**
+ * Send a server-side CAPI event. Fire-and-forget — never throws.
+ * Only fires for e-commerce events; skips when the API is unreachable.
+ */
+function sendCapiEvent(
+  eventName: string,
+  eventId: string,
+  params: Record<string, string | number | boolean>,
+): void {
+  if (typeof window === "undefined") return;
+  if (!ECOMMERCE_EVENTS.has(eventName)) return;
+
+  const contentIdsRaw = params.content_ids as string | undefined;
+  const contentIds = contentIdsRaw
+    ? contentIdsRaw.split(",").map((s) => s.trim()).filter(Boolean)
+    : undefined;
+
+  const body: Record<string, unknown> = {
+    event_name: eventName,
+    event_id: eventId,
+    event_source_url: window.location.href,
+    content_type: params.content_type ?? "product",
+    currency: params.currency ?? "EGP",
+  };
+  if (contentIds?.length) body.content_ids = contentIds;
+  if (params.value) body.value = params.value;
+  if (params.num_items) body.num_items = params.num_items;
+  if (params.fbc) body.fbc = params.fbc;
+  if (params.fbp) body.fbp = params.fbp;
+  if (params.order_id) body.order_id = params.order_id;
+
+  fetch("/api/capi/event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).catch(() => {
+    // Silently ignore network errors — CAPI is a best-effort enhancement
+  });
+}
 
 export function trackEvent(
   eventName: string,
@@ -86,7 +133,11 @@ export function trackEvent(
     eventId = `${eventName}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   }
 
+  // 1. Browser pixel
   fbq("track", eventName, Object.keys(cleaned).length > 0 ? cleaned : {}, { eventID: eventId });
+
+  // 2. Server-side CAPI (same event_id → Meta deduplicates)
+  sendCapiEvent(eventName, eventId, cleaned);
 }
 
 /** E-commerce helpers */
