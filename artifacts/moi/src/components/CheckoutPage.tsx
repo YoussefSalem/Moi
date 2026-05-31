@@ -4,7 +4,6 @@ import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag 
 import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED, cartBuyerIdentityUpdate } from "@/lib/shopify";
 import { IMAGES } from "@/config/images";
-import { trackPurchase } from "@/lib/metaPixel";
 import { parseEGP } from "@/lib/price";
 import { trackTikTokPurchase } from "@/lib/tiktokPixel";
 import { trackShopifyPurchase } from "@/lib/shopifyAnalytics";
@@ -706,13 +705,6 @@ export function CheckoutPage() {
       const purchaseItems = orderLines.reduce((s, l) => s + l.quantity, 0);
       if (!codTrackedRef.current) {
         codTrackedRef.current = true;
-        trackPurchase({
-          content_ids: orderLines.map((l) => l.variantId),
-          currency: "EGP",
-          value: purchaseValue,
-          num_items: purchaseItems,
-          order_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
-        });
         import("@/lib/analytics").then(({ trackPurchaseWithTime: trackInternalPurchase }) => {
           trackInternalPurchase(String(data.orderNumber ?? data.shopifyOrderId ?? ""), purchaseValue, "cod");
         });
@@ -848,13 +840,6 @@ export function CheckoutPage() {
     const totalVal = isShopify && shopifyCart && shopifyCart.cost?.totalAmount?.amount
       ? parseFloat(shopifyCart.cost.totalAmount.amount)
       : (Number.isFinite(totalAmount) ? totalAmount : 0);
-    trackPurchase({
-      content_ids: orderLines.map((l) => l.variantId),
-      currency: "EGP",
-      value: totalVal,
-      num_items: orderLines.reduce((s, l) => s + l.quantity, 0),
-      order_id: txnId ?? "",
-    });
     import("@/lib/analytics").then(({ trackPurchaseWithTime: trackInternalPurchase }) => {
       trackInternalPurchase(txnId ?? "", totalVal, "card");
     });
@@ -1241,13 +1226,6 @@ export function CheckoutPage() {
                   ? parseFloat(shopifyCart.cost.totalAmount.amount)
                   : (Number.isFinite(totalAmount) ? totalAmount : 0);
                 const proofItems = proofOrderLines.reduce((s, l) => s + l.quantity, 0);
-                trackPurchase({
-                  content_ids: proofOrderLines.map((l) => l.variantId),
-                  currency: "EGP",
-                  value: proofTotal,
-                  num_items: proofItems,
-                  order_id: String(orderNumber),
-                });
                 import("@/lib/analytics").then(({ trackPurchaseWithTime: trackInternalPurchase }) => {
                   trackInternalPurchase(String(orderNumber), proofTotal, "instapay");
                 });
