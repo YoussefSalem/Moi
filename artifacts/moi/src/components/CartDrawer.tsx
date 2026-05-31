@@ -499,7 +499,10 @@ export function CartDrawer() {
                     const totalVal = isShopify && shopifyCart
                       ? shopifyCart.cost?.totalAmount?.amount
                         ? parseFloat(shopifyCart.cost.totalAmount.amount)
-                        : 0
+                        : shopifyCart.lines.nodes.reduce((s, l) => {
+                            const p = parseFloat(l.merchandise.price.amount ?? "0");
+                            return s + (Number.isFinite(p) ? p * l.quantity : 0);
+                          }, 0)
                       : localItems.reduce((s, i) => s + (i.priceAmount ?? 0) * i.quantity, 0);
                     const numItems = isShopify && shopifyCart ? shopifyCart.lines.nodes.length : localItems.length;
                     trackInitiateCheckout({
