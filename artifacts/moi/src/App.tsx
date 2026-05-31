@@ -38,7 +38,7 @@ const NotFoundPage = lazy(() => import("@/components/NotFoundPage").then(m => ({
 
 const IS_ADMIN = window.location.pathname.startsWith("/admin");
 
-type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product" | "notfound";
+type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product" | "notfound" | "checkout";
 const POLICY_PAGES: PageType[] = ["privacy", "refund", "return", "delivery"];
 
 const VALID_PRODUCTS: Record<string, string[] | null> = {
@@ -62,6 +62,7 @@ function parsePath(): { page: PageType; productHandle: string } {
     if (!colorSlug || validColors.includes(colorSlug)) return { page: "product", productHandle: handle };
     return { page: "notfound", productHandle: handle };
   }
+  if (pathname === "/checkout") return { page: "checkout", productHandle: "" };
   if (pathname === "/accessories") return { page: "accessories", productHandle: "" };
   if (pathname === "/ambassador") return { page: "ambassador", productHandle: "" };
   const slug = pathname.slice(1) as PageType;
@@ -360,6 +361,8 @@ function AppContent() {
             <Suspense fallback={<div style={{ minHeight: "100vh", background: "#faf8f5" }} />}>
               <NotFoundPage onNavigateHome={() => navigateTo("home")} />
             </Suspense>
+          ) : page === "checkout" ? (
+            <div style={{ minHeight: "100vh", background: "#efe6da" }} />
           ) : (
             <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
               <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home")} />

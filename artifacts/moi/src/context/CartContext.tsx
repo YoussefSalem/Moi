@@ -123,11 +123,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [prefilledEmail, setPrefilledEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const initRef = useRef(false);
+  const checkoutInitRef = useRef(false);
 
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
     setLocalItems(loadLocalCart());
+    // Auto-open checkout on initial load if URL is /checkout
+    if (typeof window !== "undefined" && window.location.pathname === "/checkout" && !checkoutInitRef.current) {
+      checkoutInitRef.current = true;
+      setCheckoutOpen(true);
+    }
     if (SHOPIFY_CONFIGURED) {
       const savedId = localStorage.getItem(CART_ID_KEY);
       if (savedId) {
@@ -424,6 +430,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const openCheckout = useCallback((email?: string) => {
     if (email) setPrefilledEmail(email);
     setCartOpen(false);
+    if (typeof window !== "undefined" && window.location.pathname !== "/checkout") {
+      window.history.pushState({ checkout: true }, "", "/checkout");
+    }
     setCheckoutOpen(true);
     // Fire checkout_started to Shopify Analytics, alongside existing Meta & TikTok pixels
     const checkoutTotal = shopifyCart
@@ -499,7 +508,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       },
       closeCart: () => setCartOpen(false),
       openCheckout,
-      closeCheckout: () => { setCheckoutOpen(false); setPrefilledEmail(null); },
+      closeCheckout: () => {
+        if (typeof window !== "undefined" && window.location.pathname === "/checkout") {
+          window.history.back();
+        } else {
+          setCheckoutOpen(false);
+          setPrefilledEmail(null);
+        }
+      },
       prefilledEmail,
       addToCart,
       removeItem,

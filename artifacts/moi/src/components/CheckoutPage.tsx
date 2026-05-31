@@ -331,6 +331,24 @@ export function CheckoutPage() {
   const prevStepRef = useRef<Step | null>(null);
   const stepEnterTimeRef = useRef<number>(Date.now());
 
+  // Auto-close checkout when user presses browser back button (popstate)
+  useEffect(() => {
+    if (!checkoutOpen) return;
+    function onPopState() {
+      if (window.location.pathname !== "/checkout") {
+        setStep("email");
+        setEmailInput("");
+        setOrderResult(null);
+        setPaymobIframeUrl(null);
+        setPaymentMethod("cod");
+        setSubmitError("");
+        closeCheckout();
+      }
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [checkoutOpen, closeCheckout]);
+
   useEffect(() => {
     if (checkoutOpen && prefilledEmail) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
