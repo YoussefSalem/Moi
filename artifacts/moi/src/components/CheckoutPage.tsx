@@ -318,6 +318,7 @@ export function CheckoutPage() {
   const isApplyingRef = useRef(false); // Prevents recursive re-apply while we update cart
   const paymobTrackedRef = useRef(false); // Prevents duplicate trackPurchase when iframe fires twice
   const instapayTrackedRef = useRef(false); // Prevents duplicate trackPurchase on double-submit
+  const codTrackedRef = useRef(false); // Prevents duplicate trackPurchase if COD submit fires twice
   const submittingRef = useRef(false); // Prevents double-submit of COD/card/instapay order forms
 
   const [form, setForm] = useState({
@@ -490,8 +491,17 @@ export function CheckoutPage() {
     clearCart();
     setStep("email");
     setEmailInput("");
+    setOrderResult(null);
+    setPaymobIframeUrl(null);
     setShopifyCheckoutToken(null);
+    setPromoApplied(null);
+    setPromoInput("");
+    setGovernorateOpen(false);
+    setForm({ firstName: "", lastName: "", phone: "", email: "", address: "", governorate: "", postalCode: "", city: "" });
     sessionStorage.removeItem("moi_instapay_order_result");
+    paymobTrackedRef.current = false;
+    instapayTrackedRef.current = false;
+    codTrackedRef.current = false;
     submittingRef.current = false;
     closeCheckout();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -694,37 +704,40 @@ export function CheckoutPage() {
       clearCart();
       const purchaseValue = data.total ? parseEGP(data.total) || (Number.isFinite(totalAmount) ? totalAmount : 0) : (Number.isFinite(totalAmount) ? totalAmount : 0);
       const purchaseItems = orderLines.reduce((s, l) => s + l.quantity, 0);
-      trackPurchase({
-        content_ids: orderLines.map((l) => l.variantId),
-        currency: "EGP",
-        value: purchaseValue,
-        num_items: purchaseItems,
-        order_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
-      });
-      import("@/lib/analytics").then(({ trackPurchaseWithTime: trackInternalPurchase }) => {
-        trackInternalPurchase(String(data.orderNumber ?? data.shopifyOrderId ?? ""), purchaseValue, "cod");
-      });
-      trackTikTokPurchase({
-        content_id: orderLines[0]?.variantId,
-        currency: "EGP",
-        value: purchaseValue,
-        quantity: purchaseItems,
-        order_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
-      });
-      trackShopifyPurchase({
-        orderId: String(data.shopifyOrderId ?? data.orderNumber ?? ""),
-        orderNumber: data.orderNumber,
-        totalPrice: purchaseValue,
-        currencyCode: "EGP",
-        lineItems: orderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
-      });
-      if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
-        (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "purchase", {
-          transaction_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
-          value: purchaseValue,
+      if (!codTrackedRef.current) {
+        codTrackedRef.current = true;
+        trackPurchase({
+          content_ids: orderLines.map((l) => l.variantId),
           currency: "EGP",
-          items: orderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })),
+          value: purchaseValue,
+          num_items: purchaseItems,
+          order_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
         });
+        import("@/lib/analytics").then(({ trackPurchaseWithTime: trackInternalPurchase }) => {
+          trackInternalPurchase(String(data.orderNumber ?? data.shopifyOrderId ?? ""), purchaseValue, "cod");
+        });
+        trackTikTokPurchase({
+          content_id: orderLines[0]?.variantId,
+          currency: "EGP",
+          value: purchaseValue,
+          quantity: purchaseItems,
+          order_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
+        });
+        trackShopifyPurchase({
+          orderId: String(data.shopifyOrderId ?? data.orderNumber ?? ""),
+          orderNumber: data.orderNumber,
+          totalPrice: purchaseValue,
+          currencyCode: "EGP",
+          lineItems: orderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
+        });
+        if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
+          (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "purchase", {
+            transaction_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
+            value: purchaseValue,
+            currency: "EGP",
+            items: orderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })),
+          });
+        }
       }
       setStep("cod-confirm");
       markAbandonedCartRecovered();
@@ -747,6 +760,9 @@ export function CheckoutPage() {
     setGovernorateOpen(false);
     setForm({ firstName: "", lastName: "", phone: "", email: "", address: "", governorate: "", postalCode: "", city: "" });
     sessionStorage.removeItem("moi_instapay_order_result");
+    paymobTrackedRef.current = false;
+    instapayTrackedRef.current = false;
+    codTrackedRef.current = false;
     submittingRef.current = false;
     closeCheckout();
   }, [clearCart, closeCheckout]);

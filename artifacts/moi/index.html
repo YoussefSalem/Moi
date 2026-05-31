@@ -94,8 +94,9 @@
     'https://connect.facebook.net/en_US/fbevents.js');
     if (location.hostname === 'buy-moi.com' || location.hostname === 'www.buy-moi.com') {
       fbq('set', 'autoConfig', false, '2281707575977889');
-      fbq('init','2281707575977889');
-      fbq('track','PageView');
+      fbq('set', 'disableAutoInitialization', true, '2281707575977889');
+      fbq('init', '2281707575977889');
+      fbq('track', 'PageView');
     }
     </script>
     <!-- End Meta Pixel Code -->
