@@ -829,6 +829,26 @@ export function CheckoutPage() {
     // when this function is called again by the polling path (which already
     // showed the overlay via postMessage).  The paymobTrackedRef guard below
     // only prevents duplicate analytics — state updates should always run.
+    // Capture items from the current cart BEFORE clearing it so the success
+    // screen has them even after the cart is emptied.
+    const itemsSnapshot = isShopify && shopifyCart
+      ? shopifyCart.lines.nodes.map((l) => ({
+          id: l.id,
+          title: l.merchandise.product.title,
+          variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
+          quantity: l.quantity,
+          image: resolveLineImage(l, localItems),
+          price: formatShopifyLinePrice(l),
+        }))
+      : localItems.map((i) => ({
+          id: i.id,
+          title: i.title,
+          variantTitle: null,
+          quantity: i.quantity,
+          image: i.image ?? null,
+          price: i.price,
+        }));
+
     setOrderResult((prev) => {
       if (!prev) return prev;
       return {
@@ -836,6 +856,7 @@ export function CheckoutPage() {
         paymobTxnId: txnId ?? prev.paymobTxnId,
         shopifyOrderId: shopifyOrderId ?? prev.shopifyOrderId,
         shopifyOrderNumber: shopifyOrderNumber ?? prev.shopifyOrderNumber,
+        items: itemsSnapshot,
       };
     });
 
