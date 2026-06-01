@@ -1117,7 +1117,7 @@ export function CheckoutPage() {
                 </div>
 
                 {/* Paymob iframe — responsive height: taller on mobile, clipped tighter on desktop to hide logo */}
-                <div className="max-h-[720px] md:max-h-[640px]" style={{ width: "100%", overflow: "hidden" }}>
+                <div className="max-h-[720px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden" }}>
                   <PaymobIframe
                     url={paymobIframeUrl}
                     onSuccess={handleIframeSuccess}
