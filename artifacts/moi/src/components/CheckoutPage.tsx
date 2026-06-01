@@ -313,6 +313,9 @@ export function CheckoutPage() {
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
   const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
+  const [paymentTimerActive, setPaymentTimerActive] = useState(false);
+  const [paymentTimerKey, setPaymentTimerKey] = useState(0);
+  const [sessionRefreshed, setSessionRefreshed] = useState(false);
   const [shopifyCheckoutToken, setShopifyCheckoutToken] = useState<string | null>(null);
   const isApplyingRef = useRef(false); // Prevents recursive re-apply while we update cart
   const paymobTrackedRef = useRef(false); // Prevents duplicate trackPurchase when iframe fires twice
@@ -824,6 +827,7 @@ export function CheckoutPage() {
     if (paymobTrackedRef.current) return;
     paymobTrackedRef.current = true;
 
+    setPaymentTimerActive(false);
     setPaymobIframeUrl(null);
     if (txnId) {
       setOrderResult((prev) => (prev ? { ...prev, paymobTxnId: txnId } : prev));
@@ -857,6 +861,7 @@ export function CheckoutPage() {
   }, [clearCart, markAbandonedCartRecovered, isShopify, shopifyCart, localItems, totalAmount]);
 
   const handleIframeFail = useCallback(() => {
+    setPaymentTimerActive(false);
     setPaymobIframeUrl(null);
     setStep("card-failed");
     submittingRef.current = false;
@@ -881,6 +886,71 @@ export function CheckoutPage() {
     submittingRef.current = false;
   }, []);
 
+  const handleRefreshPaymobSession = useCallback(async () => {
+    setPaymentTimerActive(false);
+    setSessionRefreshed(false);
+    setPaymobIframeUrl(null);
+    setStep("loading");
+
+    const orderLines = isShopify && shopifyCart
+      ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
+      : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
+
+    const customerPayload = {
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      email: form.email.trim() || undefined,
+      phone: form.phone.trim(),
+      address: form.address.trim(),
+      governorate: form.governorate.trim(),
+      postalCode: form.postalCode.trim() || undefined,
+      city: form.city.trim(),
+    };
+
+    try {
+      const res = await fetch("/api/orders/paymob-init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lines: orderLines,
+          customer: customerPayload,
+          cartId: shopifyCart?.id ?? null,
+          discountCode: promoApplied?.code ?? null,
+          attribution: buildOrderAttribution(),
+          checkoutToken: shopifyCheckoutToken ?? null,
+        }),
+      });
+
+      const data = await res.json() as {
+        iframeUrl?: string;
+        intentId?: string;
+        total?: string;
+        error?: string;
+      };
+
+      if (!res.ok || !data.iframeUrl) {
+        setStep("form");
+        setSubmitError(data.error ?? "Unable to refresh payment. Please try again.");
+        return;
+      }
+
+      const resolvedTotal = data.total ?? fmt(totalAmount);
+      setOrderResult({ orderNumber: "", total: resolvedTotal, intentId: data.intentId });
+      if (data.intentId) {
+        sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
+        sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
+      }
+      paymobTrackedRef.current = false;
+      setPaymentTimerKey((k) => k + 1);
+      setSessionRefreshed(true);
+      setPaymobIframeUrl(data.iframeUrl);
+      setStep("form");
+    } catch {
+      setStep("form");
+      setSubmitError("Network error. Please check your connection and try again.");
+    }
+  }, [isShopify, shopifyCart, localItems, form, promoApplied, shopifyCheckoutToken, totalAmount, fmt]);
+
   // When cart contents change (items added/removed) and a promo code is active,
   // silently re-apply it so Shopify recalculates the discount on the new subtotal.
   // The isApplyingRef guard prevents this from firing during the explicit
@@ -902,6 +972,22 @@ export function CheckoutPage() {
       .catch(() => setPromoApplied(null))
       .finally(() => { isApplyingRef.current = false; });
   }, [shopifyCart?.lines.nodes.map((l) => `${l.id}:${l.quantity}`).join(",")]);
+
+  // Activate / deactivate the payment session timer based on whether the iframe is showing.
+  useEffect(() => {
+    if (paymobIframeUrl) {
+      setPaymentTimerActive(true);
+    } else {
+      setPaymentTimerActive(false);
+    }
+  }, [paymobIframeUrl]);
+
+  // Auto-clear "Session Refreshed" banner after 6 seconds.
+  useEffect(() => {
+    if (!sessionRefreshed) return;
+    const t = setTimeout(() => setSessionRefreshed(false), 6000);
+    return () => clearTimeout(t);
+  }, [sessionRefreshed]);
 
   // On mount: restore state if the user was redirected back from Paymob's 3DS page.
   // /api/paymob-return writes moi_paymob_result + sibling keys before redirecting to /.
@@ -1095,6 +1181,37 @@ export function CheckoutPage() {
 
               {/* Right: card payment panel */}
               <div className="flex flex-col">
+                {/* Session Refreshed banner */}
+                {sessionRefreshed && (
+                  <div style={{
+                    display: "flex", alignItems: "flex-start", gap: "10px",
+                    backgroundColor: "rgba(74,124,89,0.08)",
+                    border: "1px solid rgba(74,124,89,0.28)",
+                    borderRadius: "8px", padding: "12px 14px", marginBottom: "18px",
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: "1px" }}>
+                      <circle cx="8" cy="8" r="7.25" stroke="#4a7c59" strokeWidth="1.5"/>
+                      <path d="M5 8.5l2 2 4-4" stroke="#4a7c59" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <div>
+                      <p style={{ fontSize: "13px", fontWeight: 600, color: "#2f6644", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", marginBottom: "2px" }}>
+                        Session Refreshed
+                      </p>
+                      <p style={{ fontSize: "11px", color: "rgba(47,102,68,0.82)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.5 }}>
+                        Your payment session was refreshed. Please enter your details to continue.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment session countdown timer */}
+                <PaymentSessionTimer
+                  key={paymentTimerKey}
+                  active={paymentTimerActive}
+                  onExpire={handleRefreshPaymobSession}
+                  onTryAgain={handleRefreshPaymobSession}
+                />
+
                 {/* Card header */}
                 <div className="mb-5">
                   <div className="flex items-center gap-3 mb-4">
@@ -2607,6 +2724,132 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
             Processing
           </p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Payment Session Countdown Timer ──────────────────────────────────────────
+
+interface PaymentSessionTimerProps {
+  active: boolean;
+  onExpire: () => void;
+  onTryAgain: () => void;
+}
+
+function PaymentSessionTimer({ active, onExpire, onTryAgain }: PaymentSessionTimerProps) {
+  const TOTAL = 180;
+  const [remaining, setRemaining] = useState(TOTAL);
+  const onExpireRef = useRef(onExpire);
+  onExpireRef.current = onExpire;
+
+  useEffect(() => {
+    setRemaining(TOTAL);
+    if (!active) return;
+    const id = setInterval(() => {
+      setRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(id);
+          onExpireRef.current();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [active]);
+
+  const minutes = Math.floor(remaining / 60);
+  const seconds = remaining % 60;
+  const R = 20;
+  const circumference = 2 * Math.PI * R;
+  const dashOffset = circumference * (1 - remaining / TOTAL);
+  const arcColor = remaining > 90 ? "#4a7c59" : remaining > 45 ? "#c48c30" : "#c0392b";
+  const isUrgent = remaining <= 45;
+
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "14px",
+      padding: "13px 15px",
+      backgroundColor: isUrgent ? "rgba(192,57,43,0.04)" : "rgba(30,24,20,0.025)",
+      border: `1px solid ${isUrgent ? "rgba(192,57,43,0.18)" : "rgba(30,24,20,0.09)"}`,
+      borderRadius: "10px",
+      marginBottom: "20px",
+      transition: "background-color 1s ease, border-color 1s ease",
+    }}>
+      {/* Circular countdown */}
+      <svg width="50" height="50" viewBox="0 0 50 50" style={{ flexShrink: 0 }}>
+        <circle cx="25" cy="25" r={R} fill="none" stroke="rgba(30,24,20,0.09)" strokeWidth="3" />
+        <circle
+          cx="25" cy="25" r={R}
+          fill="none"
+          stroke={arcColor}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+          transform="rotate(-90 25 25)"
+          style={{ transition: "stroke-dashoffset 0.95s linear, stroke 1.2s ease" }}
+        />
+        <text
+          x="25" y="26"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          style={{
+            fontFamily: "'Montserrat', sans-serif",
+            fontSize: "11px",
+            fontWeight: 700,
+            fill: arcColor,
+            transition: "fill 1.2s ease",
+          }}
+        >
+          {`${minutes}:${String(seconds).padStart(2, "0")}`}
+        </text>
+      </svg>
+
+      {/* Text content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{
+          fontSize: "13px",
+          fontWeight: 600,
+          color: "#1e1814",
+          fontFamily: "'Montserrat', sans-serif",
+          letterSpacing: "0.05em",
+          marginBottom: "3px",
+          lineHeight: 1.3,
+        }}>
+          Complete Your Payment
+        </p>
+        <p style={{
+          fontSize: "11px",
+          color: "rgba(30,24,20,0.54)",
+          fontFamily: "'Montserrat', sans-serif",
+          lineHeight: 1.5,
+          marginBottom: "6px",
+        }}>
+          Please enter your payment details within 3 minutes. This session will
+          automatically refresh if no activity is detected.
+        </p>
+        <button
+          onClick={onTryAgain}
+          style={{
+            background: "none",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            fontSize: "11px",
+            color: "rgba(30,24,20,0.42)",
+            fontFamily: "'Montserrat', sans-serif",
+            letterSpacing: "0.04em",
+            textDecoration: "underline",
+            textUnderlineOffset: "3px",
+            lineHeight: 1,
+          }}
+        >
+          Having trouble? Try again
+        </button>
       </div>
     </div>
   );
