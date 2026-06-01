@@ -24,7 +24,7 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
       status: paymobIntents.status,
       paymobTxnId: paymobIntents.paymobTxnId,
       shopifyOrderId: paymobIntents.shopifyOrderId,
-      shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId,
+      shopifyOrderNumber: paymobIntents.shopifyOrderNumber,
       createdAt: paymobIntents.createdAt,
     })
     .from(paymobIntents)
@@ -36,7 +36,7 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
     return;
   }
 
-  const { status, paymobTxnId, shopifyOrderId, shopifyConfirmedOrderId, createdAt } = rows[0];
+  const { status, paymobTxnId, shopifyOrderId, shopifyOrderNumber, createdAt } = rows[0];
   res.setHeader("Cache-Control", "no-store");
 
   // Fast path: already resolved by webhook or a prior direct lookup.
@@ -45,7 +45,7 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
       status,
       paymobTxnId: paymobTxnId ?? null,
       shopifyOrderId: shopifyOrderId ?? null,
-      shopifyOrderNumber: shopifyConfirmedOrderId ?? null,
+      shopifyOrderNumber: shopifyOrderNumber ?? null,
     });
     return;
   }

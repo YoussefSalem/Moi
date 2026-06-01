@@ -252,8 +252,13 @@ export async function createBostaShipment(params: {
     const data = await res.json() as {
       data?: { trackingNumber?: string; _id?: string };
     };
-    return data?.data?.trackingNumber ?? data?.data?._id ?? null;
-  } catch {
+    const trackingNumber = data?.data?.trackingNumber ?? data?.data?._id ?? null;
+    if (!trackingNumber) {
+      logger.warn({ responseBody: JSON.stringify(data) }, "createBostaShipment: no tracking number in response");
+    }
+    return trackingNumber;
+  } catch (err) {
+    logger.warn({ err }, "createBostaShipment: shipment creation failed");
     return null;
   }
 }

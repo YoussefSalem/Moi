@@ -734,14 +734,31 @@ export async function recordShopifyPaymentTransaction(params: {
   adminToken: string;
 }): Promise<void> {
   const { orderId, amount, paymobTxnId, storeDomain, adminToken } = params;
+  const headers = { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken };
+  const baseUrl = `https://${storeDomain}/admin/api/2024-04/orders/${orderId}`;
   const now = new Date().toISOString();
+
+  // Completing a draft order creates a "pending" transaction automatically.
+  // Shopify rejects kind:"sale" if any transaction already exists.
+  // Solution: if a pending transaction exists, capture it; otherwise post a sale.
+  let pendingTxnId: number | null = null;
+  const txnListRes = await fetch(`${baseUrl}/transactions.json?fields=id,kind,status`, { headers });
+  if (txnListRes.ok) {
+    const txnData = await txnListRes.json() as { transactions?: { id: number; kind: string; status: string }[] };
+    const pending = (txnData.transactions ?? []).find(
+      (t) => t.kind === "pending" && t.status === "success",
+    );
+    if (pending) pendingTxnId = pending.id;
+  }
+
   const body: Record<string, unknown> = {
-    kind: "sale",
+    kind: pendingTxnId ? "capture" : "sale",
     status: "success",
     gateway: "Paymob",
     amount,
     currency: "EGP",
     processed_at: now,
+    ...(pendingTxnId ? { parent_id: pendingTxnId } : {}),
   };
   if (paymobTxnId) {
     body.authorization = paymobTxnId;
@@ -755,19 +772,18 @@ export async function recordShopifyPaymentTransaction(params: {
       last_updated: now,
     };
   }
-  const res = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/transactions.json`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-      body: JSON.stringify({ transaction: body }),
-    },
-  );
+
+  logger.info({ orderId, kind: body.kind, pendingTxnId }, "recordShopifyPaymentTransaction: posting transaction");
+  const res = await fetch(`${baseUrl}/transactions.json`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ transaction: body }),
+  });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`recordShopifyPaymentTransaction: Shopify returned ${res.status}: ${text}`);
   }
-  logger.info({ orderId, paymobTxnId, amount }, "recordShopifyPaymentTransaction: transaction posted — order marked paid");
+  logger.info({ orderId, paymobTxnId, amount, kind: body.kind }, "recordShopifyPaymentTransaction: transaction posted — order marked paid");
 }
 
 /**
