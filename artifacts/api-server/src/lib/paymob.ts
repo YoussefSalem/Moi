@@ -11,11 +11,19 @@ export interface PaymobCustomer {
   city: string;
 }
 
+export interface PaymobItem {
+  name: string;
+  amount: number;
+  description?: string;
+  quantity: number;
+}
+
 export interface CreateIntentionParams {
   amountCents: number;
   merchantOrderId: string;
   customer: PaymobCustomer;
   redirectionUrl?: string;
+  items?: PaymobItem[];
 }
 
 export interface PaymobIntentionResult {
@@ -59,7 +67,9 @@ export async function createPaymobIntention(
       floor: "NA",
       building: "NA",
     },
-    items: [],
+    items: params.items && params.items.length > 0
+      ? params.items
+      : [{ name: "Moi Order", amount: params.amountCents, description: "Fashion order", quantity: 1 }],
   };
 
   const res = await fetch("https://accept.paymob.com/v1/intention/", {

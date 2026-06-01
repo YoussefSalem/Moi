@@ -126,6 +126,7 @@ router.post("/orders/paymob-init", async (req, res) => {
         address: customer.address,
         city: customer.city,
       },
+      items: [{ name: "Moi Order", amount: amountCents, description: `Order #${intentId.slice(0, 8)}`, quantity: 1 }],
     });
   } catch (err) {
     req.log.error({ err, intentId }, "Paymob intention creation failed");
