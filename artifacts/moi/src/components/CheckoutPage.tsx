@@ -582,6 +582,10 @@ export function CheckoutPage() {
         }
 
         const resolvedTotal = data.total ?? fmt(totalAmount);
+        // Snapshot the breakdown NOW while cart values are live.
+        // By the time the card-confirm step renders the cart has been cleared,
+        // so breakdownSnapshot is the only reliable source for subtotal/shipping.
+        setBreakdownSnapshot({ subtotal: subtotalAmount, savings, shippingCost, freeShipping });
         // Snapshot items NOW while cart is still populated.
         // By the time onSuccess fires (after 5-second overlay countdown) React
         // may have re-created handleIframeSuccess with stale closure data,
@@ -878,7 +882,10 @@ export function CheckoutPage() {
         paymobTxnId: txnId ?? prev.paymobTxnId,
         shopifyOrderId: shopifyOrderId ?? prev.shopifyOrderId,
         shopifyOrderNumber: shopifyOrderNumber ?? prev.shopifyOrderNumber,
-        items: itemsSnapshot,
+        // Only overwrite the items snapshot if we actually captured some.
+        // The paymob-init path already stores a fresh snapshot; don't clobber
+        // it with an empty array if shopifyCart is stale by the time this fires.
+        items: itemsSnapshot.length > 0 ? itemsSnapshot : (prev.items ?? []),
       };
     });
 
