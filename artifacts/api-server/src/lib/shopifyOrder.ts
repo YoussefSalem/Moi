@@ -664,7 +664,7 @@ export async function createDraftOrder(params: {
   }
 
   const completeRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?payment_pending=true&send_receipt=true&send_fulfillment_receipt=false`,
+    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?send_receipt=true&send_fulfillment_receipt=false`,
     {
       method: "PUT",
       headers: {
