@@ -996,7 +996,7 @@ export function CheckoutPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-              className="max-w-5xl mx-auto px-6 md:px-10 py-8 md:py-12 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16"
+              className="max-w-5xl mx-auto px-6 md:px-10 py-8 md:py-12 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 md:items-center"
             >
               {/* Left: compact order summary */}
               <div>
@@ -1116,13 +1116,23 @@ export function CheckoutPage() {
                   <div style={{ height: "1px", backgroundColor: "rgba(30,24,20,0.13)" }} />
                 </div>
 
-                {/* Paymob iframe */}
-                <div style={{ width: "100%", overflow: "hidden" }}>
+                {/* Paymob iframe — clipped just after "Secured by Paymob" text */}
+                <div style={{ position: "relative", width: "100%", height: 455, overflow: "hidden" }}>
                   <PaymobIframe
                     url={paymobIframeUrl}
                     onSuccess={handleIframeSuccess}
                     onFail={handleIframeFail}
                   />
+                  {/* Gradient fade: blends the clipped bottom edge into the page background */}
+                  <div style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 72,
+                    background: "linear-gradient(to bottom, transparent, #faf8f5)",
+                    pointerEvents: "none",
+                  }} />
                 </div>
 
                 {/* Security badge */}
