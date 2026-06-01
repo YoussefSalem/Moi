@@ -154,7 +154,7 @@ export function CartDrawer() {
     applyDiscount,
     prefilledEmail,
   } = useCart();
-  const { customer } = useCustomer();
+  const { customer, openAuth } = useCustomer();
 
   const hasItems = (isShopify && (shopifyCart?.lines.nodes.length ?? 0) > 0) || localItems.length > 0;
 
@@ -493,6 +493,28 @@ export function CartDrawer() {
                 </div>
                 {/* Conversion Banner — FIRST50 (disabled — uncomment to re-enable) */}
                 {/* <DiscountBanner /> */}
+                {!customer && (
+                  <div className="text-center">
+                    <p
+                      className="text-[12px] tracking-[0.08em]"
+                      style={{ color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif" }}
+                    >
+                      Have an account?{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          closeCart();
+                          openAuth();
+                        }}
+                        className="underline underline-offset-4 transition-opacity hover:opacity-70"
+                        style={{ color: "#1e1814", fontWeight: 500 }}
+                      >
+                        Log in
+                      </button>{" "}
+                      to check out faster.
+                    </p>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => {
