@@ -44,18 +44,26 @@ router.post("/webhooks/paymob", async (req, res) => {
   // Normalize payload: v1 has fields at top level; v2 (Unified Checkout) wraps them in `obj`
   const txn = extractPaymobTxn(payload);
 
-  // Only process successful, non-voided, non-refunded transactions
-  if (txn.success !== true || txn.is_voided === true || txn.is_refunded === true) {
-    req.log.info({ success: txn.success, is_voided: txn.is_voided }, "Paymob webhook: not a successful transaction, skipping");
-    return;
-  }
-
   // merchant_order_id is our internal intent UUID (set at paymob-init time)
   const orderObj = (txn.order && typeof txn.order === "object")
     ? (txn.order as Record<string, unknown>)
     : null;
   const intentId = String(txn.merchant_order_id ?? orderObj?.merchant_order_id ?? "");
   const paymobTxnId = String(txn.id ?? "");
+
+  // Mark declined/voided transactions so the frontend polling can detect them.
+  const isFailure = txn.success !== true || txn.is_voided === true || txn.is_refunded === true;
+  if (isFailure) {
+    req.log.info({ success: txn.success, is_voided: txn.is_voided, intentId, paymobTxnId }, "Paymob webhook: failed/voided transaction — marking intent declined");
+    if (intentId && paymobTxnId) {
+      await db
+        .update(paymobIntents)
+        .set({ status: "declined", paymobTxnId })
+        .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "pending")))
+        .catch((err: unknown) => req.log.error({ err, intentId }, "Paymob webhook: failed to mark intent declined"));
+    }
+    return;
+  }
   const amountCents = txn.amount_cents as number | undefined;
   const amount = amountCents ? (amountCents / 100).toFixed(2) : "0";
 

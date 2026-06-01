@@ -1121,6 +1121,7 @@ export function CheckoutPage() {
                   <div className="max-h-[715px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
                     <PaymobIframe
                       url={paymobIframeUrl}
+                      intentId={orderResult?.intentId}
                       onSuccess={handleIframeSuccess}
                       onFail={handleIframeFail}
                     />
@@ -2253,27 +2254,75 @@ function OrderSuccessScreen({
 
 interface PaymobIframeProps {
   url: string;
+  intentId?: string | null;
   onSuccess: (txnId?: string) => void;
   onFail: () => void;
   iframeStyle?: React.CSSProperties;
 }
 
-function PaymobIframe({ url, onSuccess, onFail, iframeStyle }: PaymobIframeProps) {
+function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobIframeProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
   const loadCountRef = useRef(0);
-  const [showOverlay, setShowOverlay] = useState(false);
+  const resolvedRef = useRef(false);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const handleIframeLoad = useCallback(() => {
-    loadCountRef.current += 1;
-    // First load = initial form. Second load = Paymob navigated away after PAY —
-    // immediately cover the iframe so the user never sees raw JSON.
-    if (loadCountRef.current >= 2) {
-      setShowOverlay(true);
+  // Shows the overlay synchronously via DOM ref — no React re-render latency.
+  const showOverlay = useCallback(() => {
+    if (overlayRef.current) {
+      overlayRef.current.style.display = "flex";
     }
   }, []);
 
+  const stopPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  }, []);
+
+  const handleIframeLoad = useCallback(() => {
+    loadCountRef.current += 1;
+    if (loadCountRef.current >= 2) {
+      // Paymob navigated to a result page — cover immediately.
+      showOverlay();
+    }
+  }, [showOverlay]);
+
+  // Poll /api/orders/paymob-status/:intentId every 2 seconds.
+  // Paymob's legacy v1 iframe renders its result JSON inline without navigating,
+  // so onLoad never fires a 2nd time. The webhook marks the intent as
+  // "declined" / "completed" / "failed" — polling picks that up within ~2s.
+  useEffect(() => {
+    if (!intentId) return;
+
+    const poll = async () => {
+      if (resolvedRef.current) return;
+      try {
+        const res = await fetch(`/api/orders/paymob-status/${intentId}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as { status: string; paymobTxnId: string | null };
+        if (data.status === "completed") {
+          resolvedRef.current = true;
+          stopPolling();
+          onSuccess(data.paymobTxnId ?? undefined);
+        } else if (data.status === "declined" || data.status === "failed") {
+          resolvedRef.current = true;
+          stopPolling();
+          showOverlay();
+          setTimeout(onFail, 300);
+        }
+        // "pending" / "processing" — keep polling
+      } catch {
+        // Network error — keep polling
+      }
+    };
+
+    pollIntervalRef.current = setInterval(() => { void poll(); }, 2000);
+    return () => stopPolling();
+  }, [intentId, onSuccess, onFail, showOverlay, stopPolling]);
+
   useEffect(() => {
     const ownOrigin = window.location.origin;
-    // Paymob Unified Checkout posts completion messages from their domain
     const paymobOrigin = "https://accept.paymob.com";
 
     function handleMessage(event: MessageEvent) {
@@ -2284,41 +2333,49 @@ function PaymobIframe({ url, onSuccess, onFail, iframeStyle }: PaymobIframeProps
       const data = event.data as Record<string, unknown> | null;
       if (!data || typeof data !== "object") return;
 
-      // Our relay page format — sent when the return page is loaded inside the iframe
-      // (inline 3DS flow) or when sessionStorage is written after a full-page redirect.
+      // Our relay page format
       if (isOwn && data["type"] === "PAYMOB_RESULT") {
+        resolvedRef.current = true;
+        stopPolling();
         const txnId = String(data["transactionId"] ?? "");
         if (data["success"]) {
           onSuccess(txnId || undefined);
         } else {
-          onFail();
+          showOverlay();
+          setTimeout(onFail, 300);
         }
         return;
       }
 
-      // Paymob Unified Checkout inline postMessage — no redirectionUrl needed.
-      // Paymob sends { success: boolean, id?: number|string, ... } from their origin.
-      // IMPORTANT: Paymob also sends status/loading messages with success:false and no id.
-      // Only treat as a final payment result when a transaction id is present.
-      if (isPaymob && typeof data["success"] === "boolean") {
+      // Paymob inline postMessage — legacy v1 sends success as a string ("true"/"false"),
+      // Unified Checkout sends a boolean. Accept both.
+      if (isPaymob && ("success" in data)) {
+        const rawSuccess = data["success"];
+        const isSuccess = rawSuccess === true || rawSuccess === "true";
+        const isFail = rawSuccess === false || rawSuccess === "false";
         const txnId = String(data["id"] ?? data["txn_id"] ?? data["transactionId"] ?? "");
         const hasTxnId = txnId !== "" && txnId !== "0" && txnId !== "undefined";
-        if (data["success"] && hasTxnId) {
+        if (isSuccess && hasTxnId) {
+          resolvedRef.current = true;
+          stopPolling();
           onSuccess(txnId);
-        } else if (data["success"] && !hasTxnId) {
-          // Success without id — still treat as success, id may arrive separately
+        } else if (isSuccess && !hasTxnId) {
+          resolvedRef.current = true;
+          stopPolling();
           onSuccess(undefined);
-        } else if (!data["success"] && hasTxnId) {
-          // Only fire onFail when Paymob confirms a real declined transaction
-          onFail();
+        } else if (isFail && hasTxnId) {
+          resolvedRef.current = true;
+          stopPolling();
+          showOverlay();
+          setTimeout(onFail, 300);
         }
-        // success:false with no txnId = loading/status event — ignore
+        // fail with no txnId = loading/status event — ignore
       }
     }
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [onSuccess, onFail]);
+  }, [onSuccess, onFail, showOverlay, stopPolling]);
 
   return (
     <div style={{ position: "relative", width: "100%" }}>
@@ -2336,37 +2393,39 @@ function PaymobIframe({ url, onSuccess, onFail, iframeStyle }: PaymobIframeProps
           ...iframeStyle,
         }}
       />
-      {showOverlay && (
-        <div style={{
+      {/* Overlay is always in the DOM but hidden — shown via ref for zero re-render latency */}
+      <div
+        ref={overlayRef}
+        style={{
+          display: "none",
           position: "absolute",
           inset: 0,
           background: "#faf8f5",
-          display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           gap: 16,
           zIndex: 20,
+        }}
+      >
+        <div style={{
+          width: 28,
+          height: 28,
+          border: "2px solid rgba(30,24,20,0.15)",
+          borderTopColor: "#1e1814",
+          borderRadius: "50%",
+          animation: "moi-spin 0.8s linear infinite",
+        }} />
+        <p style={{
+          fontSize: "11px",
+          letterSpacing: "0.28em",
+          textTransform: "uppercase",
+          color: "rgba(30,24,20,0.5)",
+          fontFamily: "'Montserrat', sans-serif",
         }}>
-          <div style={{
-            width: 28,
-            height: 28,
-            border: "2px solid rgba(30,24,20,0.15)",
-            borderTopColor: "#1e1814",
-            borderRadius: "50%",
-            animation: "moi-spin 0.8s linear infinite",
-          }} />
-          <p style={{
-            fontSize: "11px",
-            letterSpacing: "0.28em",
-            textTransform: "uppercase",
-            color: "rgba(30,24,20,0.5)",
-            fontFamily: "'Montserrat', sans-serif",
-          }}>
-            Processing
-          </p>
-        </div>
-      )}
+          Processing
+        </p>
+      </div>
     </div>
   );
 }
