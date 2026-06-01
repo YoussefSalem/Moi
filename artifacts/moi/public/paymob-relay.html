@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Processing…</title>
+  <title>Payment</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -19,35 +19,78 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
+      padding: 32px 24px;
+    }
+    .icon-circle {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icon-success { background: rgba(52, 95, 67, 0.1); }
+    .icon-fail    { background: rgba(180, 60, 40, 0.08); }
+    h2 {
+      font-size: 13px;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: #1e1814;
+      font-weight: 600;
+    }
+    p.sub {
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      color: rgba(30,24,20,0.5);
+      line-height: 1.6;
     }
     .spinner {
-      width: 32px;
-      height: 32px;
+      width: 30px;
+      height: 30px;
       border: 2px solid rgba(30,24,20,0.15);
       border-top-color: #1e1814;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    p {
-      font-size: 12px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: rgba(30,24,20,0.55);
-    }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="wrap" id="content">
     <div class="spinner"></div>
-    <p>Processing</p>
+    <p class="sub">Processing</p>
   </div>
   <script>
     (function () {
       var params = new URLSearchParams(window.location.search);
       var success = params.get('success') === 'true';
       var txnId = params.get('id') || params.get('txn_id') || '';
+
+      var content = document.getElementById('content');
+      if (content) {
+        if (success) {
+          content.innerHTML =
+            '<div class="icon-circle icon-success">' +
+              '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2f6644" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+                '<polyline points="20 6 9 17 4 12"/>' +
+              '</svg>' +
+            '</div>' +
+            '<h2>Payment Successful</h2>';
+        } else {
+          content.innerHTML =
+            '<div class="icon-circle icon-fail">' +
+              '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b43c28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                '<circle cx="12" cy="12" r="10"/>' +
+                '<line x1="15" y1="9" x2="9" y2="15"/>' +
+                '<line x1="9" y1="9" x2="15" y2="15"/>' +
+              '</svg>' +
+            '</div>' +
+            '<h2>Payment Failed</h2>' +
+            '<p class="sub">Your payment could not be processed.<br>Please try again.</p>';
+        }
+      }
+
       var msg = { type: 'PAYMOB_RESULT', success: success, transactionId: txnId };
       var sent = false;
       try {
@@ -61,12 +104,15 @@
           if (window.opener) {
             window.opener.postMessage(msg, '*');
             sent = true;
-            setTimeout(function () { window.close(); }, 800);
+            setTimeout(function () { window.close(); }, 1200);
           }
         } catch (e) {}
       }
       if (!sent) {
-        window.location.replace('/');
+        try {
+          sessionStorage.setItem('moi_paymob_result', JSON.stringify({ success: success, transactionId: txnId }));
+        } catch (_) {}
+        setTimeout(function () { window.location.replace('/'); }, 1000);
       }
     })();
   </script>

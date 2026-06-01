@@ -2285,6 +2285,7 @@ interface PaymobIframeProps {
 
 function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobIframeProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const overlayInnerRef = useRef<HTMLDivElement>(null);
   const loadCountRef = useRef(0);
   const resolvedRef = useRef(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -2297,6 +2298,35 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       overlayRef.current.style.display = "flex";
     }
   }, []);
+
+  // Shows a clean "Payment Successful" overlay then calls onSuccess after a brief delay.
+  const showOverlaySuccess = useCallback((txnId?: string) => {
+    if (overlayInnerRef.current) {
+      overlayInnerRef.current.innerHTML =
+        '<div style="width:52px;height:52px;border-radius:50%;background:rgba(52,95,67,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:4px;flex-shrink:0">' +
+          '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2f6644" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+        '</div>' +
+        '<p style="font-size:13px;letter-spacing:0.32em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:600">Payment Successful</p>';
+    }
+    showOverlay();
+    setTimeout(() => onSuccess(txnId), 500);
+  }, [showOverlay, onSuccess]);
+
+  // Shows a clean "Payment Failed" overlay then calls onFail after a brief delay.
+  const showOverlayFail = useCallback(() => {
+    if (overlayInnerRef.current) {
+      overlayInnerRef.current.innerHTML =
+        '<div style="width:52px;height:52px;border-radius:50%;background:rgba(180,60,40,0.08);display:flex;align-items:center;justify-content:center;margin-bottom:4px;flex-shrink:0">' +
+          '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b43c28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>' +
+          '</svg>' +
+        '</div>' +
+        '<p style="font-size:13px;letter-spacing:0.32em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:600">Payment Failed</p>' +
+        '<p style="font-size:12px;color:rgba(30,24,20,0.5);font-family:\'Montserrat\',sans-serif;letter-spacing:0.05em;text-align:center;max-width:260px;line-height:1.6">Your payment could not be processed.<br>Please try again.</p>';
+    }
+    showOverlay();
+    setTimeout(onFail, 500);
+  }, [showOverlay, onFail]);
 
   const stopPolling = useCallback(() => {
     if (pollIntervalRef.current) {
@@ -2325,7 +2355,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       if (resolvedRef.current) return;
       if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
       blurDebounceRef.current = setTimeout(() => {
-        if (!resolvedRef.current) showOverlay();
+        if (!resolvedRef.current) showOverlayFail();
       }, 60_000);
     };
 
@@ -2344,7 +2374,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       window.removeEventListener("focus", handleFocus);
       if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
     };
-  }, [showOverlay]);
+  }, [showOverlayFail]);
 
   // Poll /api/orders/paymob-status/:intentId every 500 ms.
   // Paymob's legacy v1 iframe renders its result JSON inline (document.write) without
@@ -2364,8 +2394,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
         resolvedRef.current = true;
         stopPolling();
         if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
-        showOverlay();
-        setTimeout(onFail, 300);
+        showOverlayFail();
         return;
       }
       try {
@@ -2376,13 +2405,12 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           resolvedRef.current = true;
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
-          onSuccess(data.paymobTxnId ?? undefined);
+          showOverlaySuccess(data.paymobTxnId ?? undefined);
         } else if (data.status === "declined" || data.status === "failed") {
           resolvedRef.current = true;
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
-          showOverlay();
-          setTimeout(onFail, 300);
+          showOverlayFail();
         }
         // "pending" / "processing" — keep polling
       } catch {
@@ -2392,7 +2420,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
 
     pollIntervalRef.current = setInterval(() => { void poll(); }, 200);
     return () => stopPolling();
-  }, [intentId, onSuccess, onFail, showOverlay, stopPolling]);
+  }, [intentId, showOverlaySuccess, showOverlayFail, stopPolling]);
 
   useEffect(() => {
     const ownOrigin = window.location.origin;
@@ -2406,16 +2434,17 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       const data = event.data as Record<string, unknown> | null;
       if (!data || typeof data !== "object") return;
 
-      // Our relay page format
+      // Our relay page format — relay page already shows clean success/fail UI inside
+      // the iframe; we immediately cover the iframe with our own overlay so no raw data
+      // from any previous Paymob-rendered page can remain visible.
       if (isOwn && data["type"] === "PAYMOB_RESULT") {
         resolvedRef.current = true;
         stopPolling();
         const txnId = String(data["transactionId"] ?? "");
         if (data["success"]) {
-          onSuccess(txnId || undefined);
+          showOverlaySuccess(txnId || undefined);
         } else {
-          showOverlay();
-          setTimeout(onFail, 300);
+          showOverlayFail();
         }
         return;
       }
@@ -2431,16 +2460,15 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
         if (isSuccess && hasTxnId) {
           resolvedRef.current = true;
           stopPolling();
-          onSuccess(txnId);
+          showOverlaySuccess(txnId);
         } else if (isSuccess && !hasTxnId) {
           resolvedRef.current = true;
           stopPolling();
-          onSuccess(undefined);
+          showOverlaySuccess(undefined);
         } else if (isFail && hasTxnId) {
           resolvedRef.current = true;
           stopPolling();
-          showOverlay();
-          setTimeout(onFail, 300);
+          showOverlayFail();
         }
         // fail with no txnId = loading/status event — ignore
       }
@@ -2448,7 +2476,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [onSuccess, onFail, showOverlay, stopPolling]);
+  }, [showOverlaySuccess, showOverlayFail, stopPolling]);
 
   return (
     <div style={{ position: "relative", width: "100%" }}>
@@ -2466,7 +2494,9 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           ...iframeStyle,
         }}
       />
-      {/* Overlay is always in the DOM but hidden — shown via ref for zero re-render latency */}
+      {/* Overlay is always in the DOM but hidden — shown via ref for zero re-render latency.
+          Inner content starts as a spinner ("Processing") and is replaced dynamically with
+          success or failure messaging so no raw Paymob data is ever visible to the user. */}
       <div
         ref={overlayRef}
         style={{
@@ -2477,27 +2507,37 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: 16,
           zIndex: 20,
         }}
       >
-        <div style={{
-          width: 28,
-          height: 28,
-          border: "2px solid rgba(30,24,20,0.15)",
-          borderTopColor: "#1e1814",
-          borderRadius: "50%",
-          animation: "moi-spin 0.8s linear infinite",
-        }} />
-        <p style={{
-          fontSize: "11px",
-          letterSpacing: "0.28em",
-          textTransform: "uppercase",
-          color: "rgba(30,24,20,0.5)",
-          fontFamily: "'Montserrat', sans-serif",
-        }}>
-          Processing
-        </p>
+        <div
+          ref={overlayInnerRef}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 14,
+            padding: "0 24px",
+          }}
+        >
+          <div style={{
+            width: 28,
+            height: 28,
+            border: "2px solid rgba(30,24,20,0.15)",
+            borderTopColor: "#1e1814",
+            borderRadius: "50%",
+            animation: "moi-spin 0.8s linear infinite",
+          }} />
+          <p style={{
+            fontSize: "11px",
+            letterSpacing: "0.28em",
+            textTransform: "uppercase",
+            color: "rgba(30,24,20,0.5)",
+            fontFamily: "'Montserrat', sans-serif",
+          }}>
+            Processing
+          </p>
+        </div>
       </div>
     </div>
   );
