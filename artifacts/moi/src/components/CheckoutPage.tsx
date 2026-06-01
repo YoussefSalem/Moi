@@ -1119,6 +1119,29 @@ export function CheckoutPage() {
                 {/* Iframe container with rounded corners — clean blend into the page */}
                 <div style={{ borderRadius: "16px", overflow: "hidden" }}>
                   <div className="max-h-[715px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
+                    {/* Close button to dismiss iframe and show clean error state */}
+                    <button
+                      onClick={handleIframeFail}
+                      aria-label="Close payment form"
+                      style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        zIndex: 10,
+                        width: 32,
+                        height: 32,
+                        borderRadius: "50%",
+                        backgroundColor: "rgba(250,248,245,0.9)",
+                        border: "1px solid rgba(30,24,20,0.12)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        backdropFilter: "blur(4px)",
+                      }}
+                    >
+                      <X size={16} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                    </button>
                     <PaymobIframe
                       url={paymobIframeUrl}
                       onSuccess={handleIframeSuccess}
@@ -1666,38 +1689,38 @@ function CardFailed({
       animate={{ opacity: 1, y: 0 }}
       className="max-w-lg mx-auto px-8 py-16 text-center flex flex-col items-center gap-6"
     >
-      <div style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: "rgba(192,57,43,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <X size={22} strokeWidth={1.5} style={{ color: "#c0392b" }} />
+      <div style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: "rgba(192,57,43,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <X size={20} strokeWidth={1.5} style={{ color: "#c0392b" }} />
       </div>
       <div>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "37px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
-          Payment Failed.
+        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "32px", fontWeight: 600, color: "#1e1814", marginBottom: "10px" }}>
+          Payment Declined
         </h1>
-        <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.06em" }}>
-          No charge was made. You can try again or choose another method.
+        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.62)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.04em", lineHeight: 1.5 }}>
+          No charge was made. Please try again or use a different method.
         </p>
       </div>
       <div className="flex flex-col gap-3 w-full">
         <button
           onClick={onRetry}
           className="w-full py-4 transition-opacity hover:opacity-80"
-          style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+          style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.28em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
         >
-          Try Again with Card
+          Try Again
         </button>
         <button
           onClick={onChooseDifferent}
           className="w-full py-3 transition-opacity hover:opacity-80"
-          style={{ backgroundColor: "transparent", border: "1.5px solid #1e1814", color: "#1e1814", fontSize: "14px", letterSpacing: "0.22em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}
+          style={{ backgroundColor: "transparent", border: "1.5px solid #1e1814", color: "#1e1814", fontSize: "13px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}
         >
-          Choose Different Method
+          Different Method
         </button>
         <button
           onClick={onDone}
           className="w-full py-3 transition-opacity hover:opacity-60"
-          style={{ fontSize: "14px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", border: "1px solid rgba(30,24,20,0.18)" }}
+          style={{ fontSize: "13px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.62)", fontFamily: "'Montserrat', sans-serif", border: "1px solid rgba(30,24,20,0.14)" }}
         >
-          Cancel Order
+          Cancel
         </button>
       </div>
     </motion.div>
