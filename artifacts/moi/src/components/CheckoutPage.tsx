@@ -1537,7 +1537,12 @@ export function CheckoutPage() {
               fmt={fmt}
             />
           ) : step === "card-confirm" ? (
-            <CardConfirmation orderResult={orderResult!} onDone={handleSuccessDone} items={successItems} />
+            <CardConfirmation
+              orderResult={orderResult!}
+              onDone={handleSuccessDone}
+              items={successItems}
+              breakdown={{ ...(breakdownSnapshot ?? { subtotal: subtotalAmount, savings, shippingCost, freeShipping }), fmt }}
+            />
           ) : step === "card-failed" ? (
             <CardFailed
               orderResult={orderResult!}
@@ -1909,18 +1914,101 @@ function CODConfirmation({ orderResult, onDone, items, breakdown }: { orderResul
   );
 }
 
-function CardConfirmation({ orderResult, onDone, items }: { orderResult: OrderResult; onDone: () => void; items: NonNullable<OrderResult["items"]> }) {
+function CardConfirmation({
+  orderResult,
+  onDone,
+  items,
+  breakdown,
+}: {
+  orderResult: OrderResult;
+  onDone: () => void;
+  items: NonNullable<OrderResult["items"]>;
+  breakdown: OrderBreakdown;
+}) {
   return (
-    <OrderSuccessScreen
-      orderResult={orderResult}
-      onDone={onDone}
-      items={items}
-      title="Order Placed"
-      subtitle="Payment Confirmed"
-      detail="Your payment has been confirmed and your order is now being prepared."
-      note="You'll receive a WhatsApp message with your order details and tracking update shortly."
-      accentLabel="Paid"
-    />
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-lg mx-auto px-6 py-12 flex flex-col items-center gap-6"
+    >
+      <div style={{ width: 52, height: 52, borderRadius: "50%", backgroundColor: "rgba(30,24,20,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Check size={24} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+      </div>
+
+      <div style={{ textAlign: "center" }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "33px", fontWeight: 700, color: "#1e1814", marginBottom: "6px" }}>
+          Order Confirmed.
+        </h1>
+        <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
+          {orderResult.shopifyOrderNumber
+            ? <>Your payment has been received for order <strong style={{ color: "#1e1814" }}>#{orderResult.shopifyOrderNumber}</strong>. Your order is now being prepared.</>
+            : "Your payment has been received and your order is now being prepared."}
+        </p>
+      </div>
+
+      {orderResult.shopifyOrderNumber ? (
+        <div style={{ padding: "14px 24px", border: "1px solid rgba(30,24,20,0.22)", width: "100%", textAlign: "center" }}>
+          <p style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>
+            Order Number
+          </p>
+          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "29px", color: "#1e1814", fontWeight: 700 }}>
+            #{orderResult.shopifyOrderNumber}
+          </p>
+        </div>
+      ) : (
+        <div style={{ padding: "14px 24px", border: "1px solid rgba(30,24,20,0.1)", width: "100%", textAlign: "center", opacity: 0.55 }}>
+          <p style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>
+            Confirming order…
+          </p>
+        </div>
+      )}
+
+      <div className="w-full">
+        <OrderBreakdownRows breakdown={breakdown} />
+      </div>
+
+      {items.length > 0 && (
+        <div className="w-full flex flex-col gap-3">
+          {items.map((item) => (
+            <div key={item.id ?? `${item.title}-${item.quantity}`} className="flex items-center gap-3 px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.08)", backgroundColor: "rgba(30,24,20,0.02)" }}>
+              <div className="w-12 h-14 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
+                {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {item.title}
+                </p>
+                {item.variantTitle && (
+                  <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>
+                    {item.variantTitle}
+                  </p>
+                )}
+              </div>
+              <div className="text-right flex-shrink-0">
+                <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>Qty {item.quantity}</p>
+                {item.price && (
+                  <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.price}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ padding: "14px 18px", backgroundColor: "rgba(30,24,20,0.04)", border: "1px solid rgba(30,24,20,0.12)", width: "100%", textAlign: "center" }}>
+        <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", lineHeight: 1.7 }}>
+          You'll receive a WhatsApp message with your order details and tracking update shortly.
+        </p>
+      </div>
+
+      <button
+        onClick={onDone}
+        className="mt-2 transition-opacity hover:opacity-60"
+        style={{ fontSize: "14px", letterSpacing: "0.28em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", padding: "12px 32px", border: "1px solid rgba(30,24,20,0.18)" }}
+      >
+        Continue Shopping
+      </button>
+    </motion.div>
   );
 }
 
