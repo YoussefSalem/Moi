@@ -2490,6 +2490,8 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
         const txnId = String(data["transactionId"] ?? "");
         if (data["success"]) {
           showOverlaySuccess(txnId || undefined);
+        } else if (data["pending"]) {
+          showOverlayPending();
         } else {
           showOverlayFail();
         }
@@ -2542,7 +2544,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [showOverlay, showOverlaySuccess, showOverlayFail, stopPolling]);
+  }, [showOverlay, showOverlaySuccess, showOverlayPending, showOverlayFail, stopPolling]);
 
   return (
     <div style={{ position: "relative", width: "100%" }}>
