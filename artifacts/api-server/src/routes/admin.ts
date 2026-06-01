@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db } from "@workspace/db";
 import { instapayProofs, abandonedCarts, paymobIntents } from "@workspace/db/schema";
-import { eq, desc, and, gte, lte, count, isNull } from "drizzle-orm";
+import { eq, desc, and, gte, lte, count, isNull, inArray } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
 import {
   addShopifyOrderNote,
@@ -405,13 +405,15 @@ router.post("/admin/instapay-proofs/:id/reject", async (req, res) => {
 // Card order dispatch (Paymob card payments — admin approves Bosta shipment)
 // ---------------------------------------------------------------------------
 
-// GET /admin/card-orders — list all completed Paymob intents with dispatch status
+// GET /admin/card-orders — list all Paymob intents that have payment activity
+// (completed, processing, failed, declined) — pending intents that never
+// progressed are excluded to avoid clutter.
 router.get("/admin/card-orders", async (req, res) => {
   try {
     const rows = await db
       .select()
       .from(paymobIntents)
-      .where(eq(paymobIntents.status, "completed"))
+      .where(inArray(paymobIntents.status, ["completed", "processing", "failed", "declined"]))
       .orderBy(desc(paymobIntents.createdAt));
 
     const result = rows.map((r) => {
@@ -427,6 +429,7 @@ router.get("/admin/card-orders", async (req, res) => {
       return {
         id: r.id,
         intentId: r.intentId,
+        status: r.status,
         shopifyOrderId: r.shopifyOrderId,
         shopifyConfirmedOrderId: r.shopifyConfirmedOrderId,
         paymobTxnId: r.paymobTxnId,

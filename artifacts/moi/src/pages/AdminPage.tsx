@@ -522,6 +522,7 @@ function ProofGallery({
 interface CardOrder {
   id: number;
   intentId: string;
+  status: "completed" | "processing" | "failed" | "declined";
   shopifyOrderId: number | null;
   shopifyConfirmedOrderId: number | null;
   paymobTxnId: string | null;
@@ -592,13 +593,13 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
   }
 
   const filtered = orders.filter((o) => {
-    if (filterStatus === "pending-approval") return !o.adminApproved;
+    if (filterStatus === "pending-approval") return o.status === "completed" && !o.adminApproved;
     if (filterStatus === "pending-dispatch") return o.adminApproved && !o.bostaDispatched;
     if (filterStatus === "dispatched") return o.bostaDispatched;
     return true;
   });
 
-  const pendingApprovalCount = orders.filter((o) => !o.adminApproved).length;
+  const pendingApprovalCount = orders.filter((o) => o.status === "completed" && !o.adminApproved).length;
   const pendingDispatchCount = orders.filter((o) => o.adminApproved && !o.bostaDispatched).length;
 
   const fmtDate = (d: string | null) => d
@@ -614,6 +615,9 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
   const statusBadge = (order: CardOrder) => {
     if (order.bostaDispatched) return { label: "Dispatched", bg: "rgba(60,120,60,0.12)", color: "#2d6e2d" };
     if (order.adminApproved) return { label: "Ready to Dispatch", bg: "rgba(60,100,180,0.10)", color: "#2d4e9e" };
+    if (order.status === "declined") return { label: "Payment Declined", bg: "rgba(180,60,60,0.10)", color: "#8a1010" };
+    if (order.status === "failed") return { label: "Processing Failed", bg: "rgba(180,60,60,0.10)", color: "#8a1010" };
+    if (order.status === "processing") return { label: "Processing…", bg: "rgba(100,140,60,0.10)", color: "#4a6a10" };
     return { label: "Pending Approval", bg: "rgba(180,140,40,0.12)", color: "#8a6a10" };
   };
 

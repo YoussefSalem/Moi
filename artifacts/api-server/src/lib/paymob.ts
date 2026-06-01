@@ -221,13 +221,45 @@ export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Pro
     const orders = body.results ?? [];
     logger.info({ merchantOrderId, orderCount: orders.length }, "queryPaymobByMerchantOrderId: orders found");
     if (orders.length === 0) return null;
-    // Find the latest non-pending (i.e. resolved) transaction across all matching orders.
+
+    // Paymob's paginated orders list API does NOT embed transactions — the
+    // `transactions` array is always empty in the list response. We must
+    // separately query each order's transactions via the transactions endpoint.
     for (const order of orders) {
-      const txns = order.transactions ?? [];
-      logger.info({ orderId: order.id, txnCount: txns.length }, "queryPaymobByMerchantOrderId: checking order transactions");
+      const inlineCount = (order.transactions ?? []).length;
+      logger.info({ orderId: order.id, inlineTxnCount: inlineCount }, "queryPaymobByMerchantOrderId: checking order (will fetch transactions separately)");
+
+      // Fetch transactions for this order using the acceptance/transactions endpoint.
+      // Try same 3 auth strategies.
+      const txnUrl = `https://accept.paymob.com/api/acceptance/transactions?order_id=${order.id}`;
+      const txnAttempts: Array<() => Promise<Response>> = [
+        () => fetch(txnUrl, { headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } }),
+        () => fetch(`${txnUrl}&auth_token=${encodeURIComponent(token)}`, { headers: { "Content-Type": "application/json" } }),
+        ...(config.secretKey ? [() => fetch(txnUrl, { headers: { "Authorization": `Bearer ${config.secretKey}`, "Content-Type": "application/json" } })] : []),
+      ];
+
+      let txnRes: Response | null = null;
+      for (const attempt of txnAttempts) {
+        const r = await attempt();
+        if (r.ok) { txnRes = r; break; }
+        const text = await r.text().catch(() => "");
+        logger.warn({ status: r.status, text, orderId: order.id }, "queryPaymobByMerchantOrderId: txn fetch attempt failed, trying next auth strategy");
+      }
+
+      if (!txnRes) {
+        logger.warn({ orderId: order.id }, "queryPaymobByMerchantOrderId: all auth strategies failed for transactions endpoint");
+        continue;
+      }
+
+      const txnBody = await txnRes.json() as {
+        results?: Array<{ id: number; success: boolean; pending: boolean; amount_cents?: number }>;
+      };
+      const txns = txnBody.results ?? [];
+      logger.info({ orderId: order.id, txnCount: txns.length }, "queryPaymobByMerchantOrderId: transactions fetched");
+
       const resolved = txns.find((t) => !t.pending);
       if (resolved) {
-        logger.info({ txnId: resolved.id, success: resolved.success }, "queryPaymobByMerchantOrderId: resolved transaction found");
+        logger.info({ txnId: resolved.id, success: resolved.success, orderId: order.id }, "queryPaymobByMerchantOrderId: resolved transaction found");
         return {
           success: resolved.success,
           txnId: String(resolved.id),

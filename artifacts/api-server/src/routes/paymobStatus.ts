@@ -51,7 +51,9 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
   // 1 s delay so the lookup fires quickly if polling continues after the postMessage.
   // The frontend also calls /paymob-sync directly on success, so this is a fallback.
   const DIRECT_LOOKUP_DELAY_MS = 1_000;
-  const DIRECT_LOOKUP_RATE_MS = 5_000;
+  // Increased to 15 s — each check now makes 2 Paymob API calls (order search +
+  // transaction list), so we keep this conservative to avoid rate-limiting.
+  const DIRECT_LOOKUP_RATE_MS = 15_000;
 
   if (ageMs > DIRECT_LOOKUP_DELAY_MS) {
     const lastLookup = _lastDirectLookup.get(intentId) ?? 0;
