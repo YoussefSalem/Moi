@@ -2421,18 +2421,35 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
     }
   }, []);
 
-  // Shows a clean "Payment Successful" overlay then calls onSuccess after a brief delay.
+  // Shows a clean "Payment Successful" overlay with a 5-second countdown then calls onSuccess.
   const showOverlaySuccess = useCallback((txnId?: string) => {
     if (overlayInnerRef.current) {
       overlayInnerRef.current.innerHTML =
-        '<div style="width:56px;height:56px;border-radius:50%;background:rgba(47,102,68,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:12px;flex-shrink:0">' +
+        '<div style="width:56px;height:56px;border-radius:50%;background:rgba(47,102,68,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex-shrink:0">' +
           '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2f6644" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
         '</div>' +
         '<p style="font-size:13px;letter-spacing:0.3em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:600;margin-bottom:10px">Payment Successful</p>' +
-        '<p style="font-size:12px;color:rgba(30,24,20,0.55);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:280px;line-height:1.75">Your payment has been received successfully.<br>We\'ve sent your order for processing and will<br>keep you updated on the next steps.</p>';
+        '<p style="font-size:12px;color:rgba(30,24,20,0.55);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:280px;line-height:1.75;margin-bottom:20px">Your payment has been received successfully.<br>We\'ve sent your order for processing and will<br>keep you updated on the next steps.</p>' +
+        '<button id="pay-overlay-cta" style="background:#1e1814;color:#faf8f5;border:none;padding:13px 28px;font-family:\'Montserrat\',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.24em;text-transform:uppercase;cursor:pointer;margin-bottom:12px;width:100%;max-width:280px">Proceed to Order Information</button>' +
+        '<p id="pay-overlay-cd" style="font-size:11px;color:rgba(30,24,20,0.38);font-family:\'Montserrat\',sans-serif;letter-spacing:0.08em">Proceeding in 5s\u2026</p>';
+
+      const inner = overlayInnerRef.current;
+      const state: { tickId: ReturnType<typeof setInterval> | null } = { tickId: null };
+      const proceed = () => {
+        if (state.tickId) clearInterval(state.tickId);
+        onSuccess(txnId);
+      };
+      const btnEl = inner.querySelector<HTMLElement>('#pay-overlay-cta');
+      if (btnEl) btnEl.addEventListener('click', proceed);
+      let secs = 5;
+      state.tickId = setInterval(() => {
+        secs -= 1;
+        const cdEl = inner.querySelector<HTMLElement>('#pay-overlay-cd');
+        if (cdEl) cdEl.textContent = secs > 0 ? `Proceeding in ${secs}s\u2026` : 'Opening your order\u2026';
+        if (secs <= 0) proceed();
+      }, 1000);
     }
     showOverlay();
-    setTimeout(() => onSuccess(txnId), 500);
   }, [showOverlay, onSuccess]);
 
   // Shows a clean "Payment Pending" overlay — payment received but awaiting final confirmation.

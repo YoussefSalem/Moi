@@ -110,7 +110,7 @@
       background: rgba(30,24,20,0.3);
       width: 100%;
       transform-origin: left;
-      animation: drain 7s linear forwards;
+      animation: drain 5s linear forwards;
     }
     @keyframes drain { to { transform: scaleX(0); } }
 
@@ -224,15 +224,20 @@
         sessionStorage.setItem('moi_paymob_result', JSON.stringify(msg));
       } catch (_) {}
 
-      // Reveal the brand wordmark and CTA
+      // Reveal the brand wordmark
       var brand = document.getElementById('brand');
       if (brand) brand.style.display = 'block';
 
-      // Add "Continue Shopping" button
+      // Button label and destination are outcome-specific
+      var ctaLabel = success
+        ? 'Proceed to Order Information'
+        : 'Continue Shopping';
+      var ctaDest = '/';
+
       var cta = document.createElement('a');
-      cta.href = '/';
+      cta.href = ctaDest;
       cta.className = 'cta';
-      cta.textContent = 'Continue Shopping';
+      cta.textContent = ctaLabel;
       cta.style.display = 'inline-block';
       document.body.appendChild(cta);
 
@@ -242,7 +247,8 @@
       cdWrap.style.display = 'block';
       var cdText = document.createElement('span');
       cdText.id = 'cd-text';
-      cdText.textContent = 'Redirecting in 7s\u2026';
+      var initialLabel = success ? 'Proceeding to your order in 5s\u2026' : 'Redirecting in 5s\u2026';
+      cdText.textContent = initialLabel;
       cdWrap.appendChild(cdText);
       var bar = document.createElement('div');
       bar.className = 'progress-bar';
@@ -252,15 +258,17 @@
       cdWrap.appendChild(bar);
       document.body.appendChild(cdWrap);
 
-      // Countdown tick
-      var secs = 7;
+      // Countdown tick (5 seconds)
+      var secs = 5;
       var tick = setInterval(function () {
         secs--;
         var el = document.getElementById('cd-text');
-        if (el) el.textContent = 'Redirecting in ' + secs + 's\u2026';
-        if (secs <= 0) {
+        if (secs > 0) {
+          if (el) el.textContent = (success ? 'Proceeding to your order in ' : 'Redirecting in ') + secs + 's\u2026';
+        } else {
+          if (el) el.textContent = success ? 'Opening your order\u2026' : 'Redirecting\u2026';
           clearInterval(tick);
-          window.location.replace('/');
+          window.location.replace(ctaDest);
         }
       }, 1000);
     }
