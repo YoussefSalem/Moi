@@ -25,6 +25,7 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
   }
 
   const { status, paymobTxnId } = rows[0];
+  res.setHeader("Cache-Control", "no-store");
   res.json({ status, paymobTxnId: paymobTxnId ?? null });
 });
 

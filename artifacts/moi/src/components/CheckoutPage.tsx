@@ -1138,11 +1138,34 @@ export function CheckoutPage() {
                 </div>
 
                 {/* Security badge */}
-                <div className="mt-4 flex items-center justify-center gap-2">
-                  <CreditCard size={12} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.38)", flexShrink: 0 }} />
-                  <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.42)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.06em" }}>
-                    Secured by Paymob · 256-bit SSL
-                  </p>
+                <div className="mt-4 flex flex-col items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <CreditCard size={12} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.38)", flexShrink: 0 }} />
+                    <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.42)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.06em" }}>
+                      Secured by Paymob · 256-bit SSL
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (paymobIframeUrl) {
+                        window.open(paymobIframeUrl, "_blank", "width=520,height=720");
+                      }
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      fontSize: "11px",
+                      color: "rgba(30,24,20,0.38)",
+                      fontFamily: "'Montserrat', sans-serif",
+                      letterSpacing: "0.06em",
+                      textDecoration: "underline",
+                      textUnderlineOffset: "3px",
+                    }}
+                  >
+                    Payment stuck? Open in new window
+                  </button>
                 </div>
               </div>
             </motion.div>
@@ -2336,7 +2359,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
 
     const poll = async () => {
       if (resolvedRef.current) return;
-      if (Date.now() - pollStartRef.current > 15 * 60 * 1000) {
+      if (Date.now() - pollStartRef.current > 3 * 60 * 1000) {
         resolvedRef.current = true;
         stopPolling();
         if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
@@ -2345,7 +2368,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
         return;
       }
       try {
-        const res = await fetch(`/api/orders/paymob-status/${intentId}`);
+        const res = await fetch(`/api/orders/paymob-status/${intentId}`, { cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as { status: string; paymobTxnId: string | null };
         if (data.status === "completed") {

@@ -48,13 +48,25 @@
       var params = new URLSearchParams(window.location.search);
       var success = params.get('success') === 'true';
       var txnId = params.get('id') || params.get('txn_id') || '';
+      var msg = { type: 'PAYMOB_RESULT', success: success, transactionId: txnId };
+      var sent = false;
       try {
-        window.parent.postMessage(
-          { type: 'PAYMOB_RESULT', success: success, transactionId: txnId },
-          '*'
-        );
-      } catch (e) {
-        // parent may be gone — ignore
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(msg, '*');
+          sent = true;
+        }
+      } catch (e) {}
+      if (!sent) {
+        try {
+          if (window.opener) {
+            window.opener.postMessage(msg, '*');
+            sent = true;
+            setTimeout(function () { window.close(); }, 800);
+          }
+        } catch (e) {}
+      }
+      if (!sent) {
+        window.location.replace('/');
       }
     })();
   </script>
