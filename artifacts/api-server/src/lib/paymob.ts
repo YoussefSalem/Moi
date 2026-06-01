@@ -16,6 +16,7 @@ export interface CreatePaymentKeyParams {
   merchantOrderId: string;
   customer: PaymobCustomer;
   callbackUrl?: string;
+  redirectionUrl?: string;
 }
 
 export interface PaymobPaymentKeyResult {
@@ -121,6 +122,9 @@ export async function createPaymobPaymentKey(
   };
   if (params.callbackUrl) {
     pkBody["callback_url"] = params.callbackUrl;
+  }
+  if (params.redirectionUrl) {
+    pkBody["redirection_url"] = params.redirectionUrl;
   }
 
   const pkRes = await fetch("https://accept.paymob.com/api/acceptance/payment_keys", {

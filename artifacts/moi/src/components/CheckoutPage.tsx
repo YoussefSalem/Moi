@@ -1119,29 +1119,6 @@ export function CheckoutPage() {
                 {/* Iframe container with rounded corners — clean blend into the page */}
                 <div style={{ borderRadius: "16px", overflow: "hidden" }}>
                   <div className="max-h-[715px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
-                    {/* Close button to dismiss iframe and show clean error state */}
-                    <button
-                      onClick={handleIframeFail}
-                      aria-label="Close payment form"
-                      style={{
-                        position: "absolute",
-                        top: 8,
-                        right: 8,
-                        zIndex: 10,
-                        width: 32,
-                        height: 32,
-                        borderRadius: "50%",
-                        backgroundColor: "rgba(250,248,245,0.9)",
-                        border: "1px solid rgba(30,24,20,0.12)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        backdropFilter: "blur(4px)",
-                      }}
-                    >
-                      <X size={16} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-                    </button>
                     <PaymobIframe
                       url={paymobIframeUrl}
                       onSuccess={handleIframeSuccess}

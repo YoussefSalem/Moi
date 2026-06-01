@@ -113,9 +113,10 @@ router.post("/orders/paymob-init", async (req, res) => {
 
   req.log.info({ intentId, amountCents, total }, "Paymob intent saved — creating legacy payment key");
 
-  // Build callback URL for 3DS redirect from the first configured domain
+  // Build callback and redirection URLs from the first configured domain
   const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
   const callbackUrl = domain ? `https://${domain}/api/paymob-return` : undefined;
+  const redirectionUrl = domain ? `https://${domain}/paymob-relay.html` : undefined;
 
   let result: { iframeUrl: string };
   try {
@@ -131,6 +132,7 @@ router.post("/orders/paymob-init", async (req, res) => {
         city: customer.city,
       },
       callbackUrl,
+      redirectionUrl,
     });
   } catch (err) {
     req.log.error({ err, intentId }, "Paymob payment key creation failed");
