@@ -360,16 +360,11 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
     lineItems = (orderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
   }
 
-  // Completed order defaults to "pending" — mark it paid so Bosta doesn't treat as COD
+  // Completed order defaults to "pending" — mark it paid so Bosta doesn't treat as COD.
+  // NOTE: PUT /orders/{id}.json with financial_status is silently ignored by Shopify.
+  // The only way to change financial_status is to POST a transaction with kind:"sale".
   try {
-    await fetch(
-      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-        body: JSON.stringify({ order: { financial_status: "paid" } }),
-      },
-    );
+    await recordShopifyPaymentTransaction({ orderId, amount: total, storeDomain, adminToken });
   } catch { /* ignore */ }
 
   // Re-apply referring_site / landing_site (Shopify strips them during completion)
@@ -686,6 +681,51 @@ export async function createDraftOrder(params: {
 }
 
 /**
+ * Record a Paymob payment transaction on a Shopify order so the order's
+ * financial_status becomes "paid".
+ *
+ * IMPORTANT: Shopify's REST API does NOT allow setting financial_status via
+ * PUT /orders/{id}.json — that field is read-only and computed from
+ * transactions.  The only supported way to mark an order as paid is to POST
+ * a transaction with kind:"sale" and status:"success".
+ *
+ * Without this step the order stays "pending" and Bosta (and Shopify) treat
+ * it as Cash on Delivery.
+ */
+export async function recordShopifyPaymentTransaction(params: {
+  orderId: number;
+  amount: string;   // total order amount as a string (e.g. "949.00")
+  paymobTxnId?: string;
+  storeDomain: string;
+  adminToken: string;
+}): Promise<void> {
+  const { orderId, amount, paymobTxnId, storeDomain, adminToken } = params;
+  const body: Record<string, unknown> = {
+    kind: "sale",
+    status: "success",
+    gateway: "paymob",
+    amount,
+    currency: "EGP",
+  };
+  if (paymobTxnId) {
+    body.authorization = paymobTxnId;
+    body.receipt = paymobTxnId;
+  }
+  const res = await fetch(
+    `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/transactions.json`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+      body: JSON.stringify({ transaction: body }),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    logger.warn({ orderId, paymobTxnId, status: res.status, body: text }, "recordShopifyPaymentTransaction: failed to post transaction");
+  }
+}
+
+/**
  * Create a Shopify order for COD or Card payments.
  *
  * NOTE: We used to POST directly to /orders.json with discount_codes, but
@@ -694,6 +734,11 @@ export async function createDraftOrder(params: {
  * discounted price, Shopify showed full price). We now create a draft order
  * with applied_discount (which correctly reduces the total) and complete it
  * immediately. Discount usage is tracked ourselves via recordDiscountCodeUse().
+ *
+ * For card orders, after completion we POST a transaction (kind:sale) so that
+ * Shopify computes financial_status as "paid". PUT /orders/{id}.json with
+ * financial_status is silently ignored by Shopify — transactions are the only
+ * supported mechanism.
  */
 export async function createShopifyDirectOrder(params: {
   lines: OrderLine[];
@@ -704,6 +749,8 @@ export async function createShopifyDirectOrder(params: {
   extraTags?: string;
   attribution?: OrderAttribution;
   financialStatus?: "pending" | "paid";
+  /** Paymob transaction ID — used as the transaction receipt so Shopify shows it */
+  paymobTxnId?: string;
 }): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string; shippingAmount?: string }> {
   const result = await createDraftOrder({
     lines: params.lines,
@@ -716,22 +763,25 @@ export async function createShopifyDirectOrder(params: {
     attribution: params.attribution,
   });
 
-  // Draft completion creates orders with financial_status "pending" by default.
-  // For already-paid card orders, update it to "paid".
+  // Mark the order as paid by posting a payment transaction.
+  // financial_status is a computed field in Shopify — PUT /orders/{id}.json
+  // cannot change it. The only correct mechanism is POST transactions.json
+  // with kind:"sale" and status:"success".
   if (params.paymentMethod === "card" && params.financialStatus === "paid") {
     const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
     const adminToken = await getShopifyAdminToken();
     if (storeDomain && adminToken) {
       try {
-        await fetch(
-          `https://${storeDomain}/admin/api/2024-04/orders/${result.orderId}.json`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-            body: JSON.stringify({ order: { financial_status: "paid" } }),
-          },
-        );
-      } catch { /* ignore */ }
+        await recordShopifyPaymentTransaction({
+          orderId: result.orderId,
+          amount: result.total,
+          paymobTxnId: params.paymobTxnId,
+          storeDomain,
+          adminToken,
+        });
+      } catch (err) {
+        logger.warn({ err, orderId: result.orderId }, "createShopifyDirectOrder: payment transaction failed — order will stay pending");
+      }
     }
   }
 

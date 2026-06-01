@@ -91,6 +91,7 @@ export async function processPaymobSuccess(params: {
       extraTags: `paymob-card-paid,paymob-card-order,paymob-txn-${paymobTxnId}`,
       attribution,
       financialStatus: "paid",
+      paymobTxnId,
     });
     shopifyOrderId = result.orderId;
     shopifyOrderNumber = result.orderNumber;
