@@ -546,9 +546,7 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "completed" | "processing" | "failed" | "declined">("all");
-  const [fixingPayment, setFixingPayment] = useState<number | null>(null);
-  const [fixMsg, setFixMsg] = useState<{ id: number; msg: string; ok: boolean } | null>(null);
+  const [filterStatus, setFilterStatus] = useState<"all" | "paid" | "unpaid">("all");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -567,50 +565,16 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
 
   useEffect(() => { void load(); }, [load]);
 
-  async function handleFixPayment(t: Transaction) {
-    setFixingPayment(t.id);
-    setFixMsg(null);
-    try {
-      const res = await fetch(`/api/admin/fix-payment-transaction/${t.id}`, {
-        method: "POST",
-        headers: apiHeaders(token),
-      });
-      const data = await res.json() as { ok?: boolean; error?: string };
-      if (res.ok && data.ok) {
-        setFixMsg({ id: t.id, msg: "Payment transaction posted to Shopify — order should now show Paid.", ok: true });
-      } else {
-        setFixMsg({ id: t.id, msg: data.error ?? `Failed (${res.status})`, ok: false });
-      }
-    } catch {
-      setFixMsg({ id: t.id, msg: "Network error", ok: false });
-    } finally {
-      setFixingPayment(null);
-    }
-  }
-
-  const filtered = txns.filter((t) => filterStatus === "all" || t.status === filterStatus);
-  const completedCount = txns.filter((t) => t.status === "completed").length;
+  const filtered = txns.filter((t) => {
+    if (filterStatus === "paid") return t.status === "completed";
+    if (filterStatus === "unpaid") return t.status !== "completed";
+    return true;
+  });
+  const paidCount = txns.filter((t) => t.status === "completed").length;
 
   const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-GB", {
     day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
-
-  function shortOrigin(origin: string): string {
-    if (origin === "—") return "—";
-    try {
-      const url = new URL(origin.startsWith("http") ? origin : `https://${origin}`);
-      return url.hostname.replace(/^www\./, "");
-    } catch {
-      return origin.length > 22 ? `${origin.slice(0, 22)}…` : origin;
-    }
-  }
-
-  const statusColors: Record<string, { bg: string; text: string }> = {
-    completed: { bg: "rgba(60,120,60,0.12)", text: "#2d6e2d" },
-    processing: { bg: "rgba(100,140,60,0.10)", text: "#4a6a10" },
-    failed: { bg: "rgba(192,57,43,0.10)", text: "#8a1010" },
-    declined: { bg: "rgba(192,57,43,0.10)", text: "#8a1010" },
-  };
 
   return (
     <div>
@@ -620,7 +584,7 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
             Paymob Transactions
           </p>
           <span style={{ ...mono, fontSize: "12px", color: "rgba(30,24,20,0.5)" }}>
-            {completedCount} completed
+            {paidCount} paid
           </span>
         </div>
         <button onClick={() => void load()} style={{ display: "flex", alignItems: "center", gap: 6, ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)" }}>
@@ -629,13 +593,13 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
       </div>
 
       <div className="flex gap-2 mb-5 flex-wrap">
-        {(["all", "completed", "processing", "failed", "declined"] as const).map((s) => (
+        {([["all", "All"], ["paid", "Paid"], ["unpaid", "Not Paid"]] as const).map(([s, label]) => (
           <button
             key={s}
             onClick={() => setFilterStatus(s)}
             style={{ ...btn, backgroundColor: filterStatus === s ? "#1e1814" : "transparent", color: filterStatus === s ? "#fff" : "rgba(30,24,20,0.6)", border: "1px solid rgba(30,24,20,0.18)", padding: "6px 12px" }}
           >
-            {s}
+            {label}
           </button>
         ))}
       </div>
@@ -649,19 +613,18 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
 
       {!loading && filtered.length > 0 && (
         <div style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          <table style={{ minWidth: 1200, borderCollapse: "collapse", width: "100%" }}>
+          <table style={{ minWidth: 800, borderCollapse: "collapse", width: "100%" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", backgroundColor: "#faf8f5" }}>
-                {["Transaction ID", "Customer", "Date", "Amount", "Status", "Shopify #", "Bosta", "Actions"].map((h) => (
+                {["Transaction ID", "Customer", "Amount", "Status", "Shopify #"].map((h) => (
                   <th key={h} style={{ ...mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, textAlign: "left", padding: "10px 14px", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((t, i) => {
-                const sc = statusColors[t.status] ?? { bg: "rgba(30,24,20,0.1)", text: "rgba(30,24,20,0.7)" };
+                const isPaid = t.status === "completed";
                 const isLast = i === filtered.length - 1;
-                const fm = fixMsg?.id === t.id ? fixMsg : null;
                 return (
                   <tr key={t.id} style={{ borderBottom: isLast ? "none" : "1px solid rgba(30,24,20,0.05)" }}>
                     <td style={{ ...mono, fontSize: 12, color: "#1e1814", padding: "12px 14px", whiteSpace: "nowrap", fontWeight: 600 }}>
@@ -675,8 +638,8 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
                     </td>
                     <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 700, padding: "12px 14px", whiteSpace: "nowrap" }}>{t.amount}&nbsp;EGP</td>
                     <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
-                      <span style={{ ...mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px", backgroundColor: sc.bg, color: sc.text }}>
-                        {t.status}
+                      <span style={{ ...mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px", backgroundColor: isPaid ? "rgba(45,110,45,0.12)" : "rgba(180,60,40,0.1)", color: isPaid ? "#2d6e2d" : "#b43c28" }}>
+                        {isPaid ? "PAID" : "NOT PAID"}
                       </span>
                     </td>
                     <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 700, padding: "12px 14px", whiteSpace: "nowrap" }}>
@@ -694,36 +657,6 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
                           t.shopifyOrderNumber ? `#${t.shopifyOrderNumber}` : <span style={{ fontSize: 10, color: "rgba(30,24,20,0.4)" }}>ID {String(t.shopifyOrderId)}</span>
                         )
                       ) : "—"}
-                    </td>
-                    <td style={{ ...mono, fontSize: 11, padding: "12px 14px", whiteSpace: "nowrap" }}>
-                      {t.bostaDispatched ? (
-                        <div>
-                          <div style={{ color: "#2d6e2d", fontWeight: 600 }}>✓ Dispatched</div>
-                          {t.bostaTrackingNumber && (
-                            <div style={{ color: "rgba(30,24,20,0.5)", fontSize: 10, marginTop: 2 }}>{t.bostaTrackingNumber}</div>
-                          )}
-                        </div>
-                      ) : (
-                        <span style={{ color: "rgba(30,24,20,0.35)" }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
-                      {t.status === "completed" && t.shopifyOrderId && (
-                        <div>
-                          <button
-                            onClick={() => void handleFixPayment(t)}
-                            disabled={fixingPayment === t.id}
-                            style={{ ...btn, backgroundColor: "#1e1814", color: "#fff", padding: "5px 10px", fontSize: 10, opacity: fixingPayment === t.id ? 0.6 : 1, cursor: fixingPayment === t.id ? "default" : "pointer" }}
-                          >
-                            {fixingPayment === t.id ? "Posting…" : "Record Payment"}
-                          </button>
-                          {fm && (
-                            <div style={{ marginTop: 4, fontSize: 10, fontFamily: "'Montserrat', sans-serif", color: fm.ok ? "#2d6e2d" : "#c0392b", maxWidth: 180, whiteSpace: "normal" }}>
-                              {fm.msg}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </td>
                   </tr>
                 );
