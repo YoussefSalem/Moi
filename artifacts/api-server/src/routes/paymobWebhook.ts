@@ -1,15 +1,9 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { verifyPaymobHmac, extractPaymobTxn } from "../lib/paymob";
-import {
-  sendWhatsApp,
-  completeShopifyCheckout,
-} from "../lib/integrations";
-import { createDraftOrder, recordDiscountCodeUse, type OrderLine, type CustomerInfo, type ShopifyLineItem, type OrderAttribution } from "../lib/shopifyOrder";
-import { sendEmail, buildOrderConfirmationEmail } from "../lib/email";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
-import { parseEGP } from "@workspace/utils";
+import { processPaymobSuccess } from "../lib/processPaymobSuccess";
 
 const router: IRouter = Router();
 
@@ -64,130 +58,22 @@ router.post("/webhooks/paymob", async (req, res) => {
     }
     return;
   }
+
   const amountCents = txn.amount_cents as number | undefined;
-  const amount = amountCents ? (amountCents / 100).toFixed(2) : "0";
 
   if (!intentId || !paymobTxnId) {
     req.log.error({ merchant_order_id: intentId, id: txn.id }, "Paymob webhook: missing intent or transaction ID");
     return;
   }
 
+  req.log.info({ intentId, paymobTxnId }, "Paymob webhook: processing successful payment");
+
   try {
-    // Atomically claim the intent: only proceed if status is still "pending"
-    const claimed = await db
-      .update(paymobIntents)
-      .set({ status: "processing", paymobTxnId })
-      .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "pending")))
-      .returning({
-        intentId: paymobIntents.intentId,
-        lines: paymobIntents.lines,
-        customer: paymobIntents.customer,
-        cartId: paymobIntents.cartId,
-        discountCode: paymobIntents.discountCode,
-        total: paymobIntents.total,
-        attribution: paymobIntents.attribution,
-        checkoutToken: paymobIntents.checkoutToken,
-      });
-
-    if (claimed.length === 0) {
-      req.log.info({ intentId, paymobTxnId }, "Paymob webhook: intent already claimed or not found, skipping (idempotent)");
-      return;
-    }
-
-    const intent = claimed[0];
-    const customer = intent.customer as CustomerInfo;
-    const lines = intent.lines as OrderLine[];
-    const attr = intent.attribution as Record<string, unknown> | null;
-    const attribution: OrderAttribution | undefined = attr ? {
-      ...(typeof attr.sourceName === "string" ? { sourceName: attr.sourceName } : {}),
-      ...(typeof attr.referringSite === "string" ? { referringSite: attr.referringSite } : {}),
-      ...(typeof attr.landingSite === "string" ? { landingSite: attr.landingSite } : {}),
-      ...(typeof attr.fbclid === "string" ? { fbclid: attr.fbclid } : {}),
-      ...(typeof attr.gclid === "string" ? { gclid: attr.gclid } : {}),
-      ...(typeof attr.ttclid === "string" ? { ttclid: attr.ttclid } : {}),
-      ...(attr.utm && typeof attr.utm === "object" ? { utm: Object.fromEntries(Object.entries(attr.utm as Record<string, unknown>).filter(([, v]) => typeof v === "string")) as Record<string, string> } : {}),
-    } : undefined;
-
-    req.log.info({ intentId, paymobTxnId, amount, hasAttribution: !!attribution }, "Paymob webhook: creating Shopify draft order");
-
-    // Create a Shopify draft order — not completed yet, stays as draft for admin review
-    let shopifyDraftId: number;
-    let shopifyLineItems: ShopifyLineItem[] = [];
-    let shopifyDiscountAmount: number | undefined;
-    let shopifyDiscountCode: string | undefined;
-    try {
-      const result = await createDraftOrder({
-        lines,
-        customer,
-        paymentMethod: "card",
-        cartId: intent.cartId ?? undefined,
-        discountCode: intent.discountCode ?? undefined,
-        extraTags: `paymob-card-paid,paymob-card-draft,paymob-txn-${paymobTxnId}`,
-        attribution,
-        complete: false,
-      });
-      shopifyDraftId = result.draftOrderId ?? result.orderId;
-      shopifyLineItems = result.lineItems;
-      shopifyDiscountAmount = result.discountAmount;
-      shopifyDiscountCode = result.discountCode;
-    } catch (err) {
-      req.log.error({ err, intentId }, "Paymob webhook: Shopify draft order creation failed — marking intent failed");
-      await db
-        .update(paymobIntents)
-        .set({ status: "failed" })
-        .where(eq(paymobIntents.intentId, intentId));
-      return;
-    }
-
-    // Mark intent as completed; store the draft order ID
-    await db
-      .update(paymobIntents)
-      .set({ status: "completed", shopifyOrderId: shopifyDraftId })
-      .where(eq(paymobIntents.intentId, intentId));
-
-    req.log.info({ intentId, shopifyDraftId, paymobTxnId }, "Paymob webhook: Shopify draft order created — awaiting admin review");
-
-    // Mark the Shopify abandoned checkout as complete (fire-and-forget)
-    if (intent.checkoutToken) {
-      void completeShopifyCheckout(intent.checkoutToken);
-    }
-
-    // Record discount code use so Shopify's usage_limit is enforced across API orders
-    if (intent.discountCode && shopifyDiscountAmount) {
-      void recordDiscountCodeUse(intent.discountCode, shopifyDraftId, shopifyDraftId, "card");
-    }
-
-    // Send branded payment-received email to customer (fire-and-forget)
-    if (customer.email) {
-      const shippingPrice = parseEGP(amount) >= 2000 ? "0.00" : "50.00";
-      const { html, text } = buildOrderConfirmationEmail({
-        orderNumber: shopifyDraftId,
-        customerName: customer.firstName,
-        total: amount,
-        paymentMethod: "Credit/Debit Card (Paymob)",
-        address: customer.address,
-        governorate: customer.governorate,
-        city: customer.city,
-        lineItems: shopifyLineItems,
-        discountAmount: shopifyDiscountAmount ? shopifyDiscountAmount.toFixed(2) : undefined,
-        discountCode: shopifyDiscountCode || undefined,
-        shippingAmount: shippingPrice,
-      });
-      void sendEmail({ to: customer.email, subject: `Your Moi payment is confirmed — order being processed`, html, text })
-        .then(() => req.log.info({ email: customer.email, shopifyDraftId }, "Payment confirmation email sent"))
-        .catch((err) => req.log.warn({ err, email: customer.email }, "Payment confirmation email failed"));
-    }
-
-    // WhatsApp to customer using intent's stored customer data
-    const phone = customer.phone ?? "";
-    if (phone) {
-      void sendWhatsApp(
-        phone,
-        `✅ Payment confirmed for your Moi order!\n\nTotal: ${amount} EGP\nPayment: Credit/Debit Card\n\nYour order is being reviewed and prepared. You'll receive a tracking update soon. Thank you for shopping with Moi. 🖤`,
-      );
-    }
-
-    req.log.info({ shopifyDraftId, paymobTxnId, amount }, "Paymob webhook: draft order fully processed — awaiting admin dispatch");
+    await processPaymobSuccess({
+      intentId,
+      paymobTxnId,
+      amountCents: typeof amountCents === "number" ? amountCents : 0,
+    });
   } catch (err) {
     req.log.error({ err, intentId, paymobTxnId }, "Paymob webhook processing error");
     // Prevent the intent from getting stuck in 'processing' — mark it failed so

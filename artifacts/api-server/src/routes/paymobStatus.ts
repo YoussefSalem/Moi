@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
 import { queryPaymobByMerchantOrderId } from "../lib/paymob";
+import { processPaymobSuccess } from "../lib/processPaymobSuccess";
 
 const router: IRouter = Router();
 
@@ -36,7 +37,7 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
   const { status, paymobTxnId, createdAt } = rows[0];
   res.setHeader("Cache-Control", "no-store");
 
-  // Fast path: already resolved by webhook.
+  // Fast path: already resolved by webhook or a prior direct lookup.
   if (status !== "pending") {
     res.json({ status, paymobTxnId: paymobTxnId ?? null });
     return;
@@ -55,20 +56,37 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
     if (Date.now() - lastLookup > DIRECT_LOOKUP_RATE_MS) {
       _lastDirectLookup.set(intentId, Date.now());
       const result = await queryPaymobByMerchantOrderId(intentId).catch(() => null);
+
       if (result !== null) {
-        const newStatus = result.success ? "completed" : "declined";
-        req.log.info(
-          { intentId, newStatus, txnId: result.txnId },
-          "paymob-status: direct lookup resolved intent (webhook fallback)",
-        );
-        await db
-          .update(paymobIntents)
-          .set({ status: newStatus, paymobTxnId: result.txnId })
-          .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "pending")))
-          .catch((err: unknown) =>
-            req.log.error({ err, intentId }, "paymob-status: failed to update intent via direct lookup"),
+        if (result.success) {
+          req.log.info(
+            { intentId, txnId: result.txnId, amountCents: result.amountCents },
+            "paymob-status: direct lookup found successful payment — processing order",
           );
-        res.json({ status: newStatus, paymobTxnId: result.txnId });
+          // Process the successful payment: creates Shopify draft order, sends
+          // confirmation email + WhatsApp, marks intent completed. Idempotent.
+          void processPaymobSuccess({
+            intentId,
+            paymobTxnId: result.txnId,
+            amountCents: result.amountCents,
+          }).catch((err: unknown) =>
+            req.log.error({ err, intentId }, "paymob-status: processPaymobSuccess error"),
+          );
+          res.json({ status: "completed", paymobTxnId: result.txnId });
+        } else {
+          req.log.info(
+            { intentId, txnId: result.txnId },
+            "paymob-status: direct lookup found declined payment",
+          );
+          await db
+            .update(paymobIntents)
+            .set({ status: "declined", paymobTxnId: result.txnId })
+            .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "pending")))
+            .catch((err: unknown) =>
+              req.log.error({ err, intentId }, "paymob-status: failed to mark intent declined"),
+            );
+          res.json({ status: "declined", paymobTxnId: result.txnId });
+        }
         return;
       }
     }

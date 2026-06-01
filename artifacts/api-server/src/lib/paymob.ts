@@ -178,6 +178,7 @@ async function getPaymobAuthToken(apiKey: string): Promise<string> {
 export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Promise<{
   success: boolean;
   txnId: string;
+  amountCents: number;
 } | null> {
   const config = getPaymobConfig();
   if (!config.apiKey) return null;
@@ -192,7 +193,8 @@ export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Pro
     const body = await res.json() as {
       results?: Array<{
         id: number;
-        transactions?: Array<{ id: number; success: boolean; pending: boolean }>;
+        amount_cents?: number;
+        transactions?: Array<{ id: number; success: boolean; pending: boolean; amount_cents?: number }>;
       }>;
     };
     const orders = body.results ?? [];
@@ -202,7 +204,11 @@ export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Pro
       const txns = order.transactions ?? [];
       const resolved = txns.find((t) => !t.pending);
       if (resolved) {
-        return { success: resolved.success, txnId: String(resolved.id) };
+        return {
+          success: resolved.success,
+          txnId: String(resolved.id),
+          amountCents: resolved.amount_cents ?? order.amount_cents ?? 0,
+        };
       }
     }
     return null;
