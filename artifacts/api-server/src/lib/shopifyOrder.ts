@@ -427,6 +427,12 @@ export async function createDraftOrder(params: {
   complete?: boolean;
   /** Marketing attribution to pass to Shopify for channel/sales source reporting */
   attribution?: OrderAttribution;
+  /** Paymob transaction details — attached as note_attributes for traceability */
+  paymobDetails?: {
+    txnId: string;
+    amountCents: number;
+    intentId?: string;
+  };
 }): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; draftOrderId?: number; discountAmount?: number; discountCode?: string; shippingAmount?: string }> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
@@ -445,11 +451,25 @@ export async function createDraftOrder(params: {
       : "instapay,moi-checkout";
   const tags = params.extraTags ? `${baseTags},${params.extraTags}` : baseTags;
 
+  const pd = params.paymobDetails;
+  const pdDate = pd ? new Date().toISOString() : "";
+
   const noteText =
     params.paymentMethod === "cod"
       ? "Cash on Delivery"
+      : params.paymentMethod === "card" && pd
+      ? [
+          `Credit/Debit Card (Paymob)`,
+          `Transaction ID: ${pd.txnId}`,
+          `Amount: ${(pd.amountCents / 100).toFixed(2)} EGP`,
+          `Transaction Type: Payment`,
+          `Payment Source: Paymob Application`,
+          `Status: Successful`,
+          `Date: ${pdDate}`,
+          ...(pd.intentId ? [`Reference: ${pd.intentId}`] : []),
+        ].join("\n")
       : params.paymentMethod === "card"
-      ? "Credit/Debit Card"
+      ? "Credit/Debit Card (Paymob)"
       : "Instapay Transfer";
 
   // Determine shipping based on cart total: free over 2,000 EGP
@@ -550,6 +570,18 @@ export async function createDraftOrder(params: {
       ...(cartDiscountAmount > 0.01 ? [
         { name: "__discount_amount", value: cartDiscountAmount.toFixed(2) },
         { name: "__discount_code", value: cartDiscountCode || "Discount" },
+      ] : []),
+      // Paymob transaction traceability fields — mirrors what Paymob shows in their dashboard
+      ...(pd ? [
+        { name: "Transaction ID", value: pd.txnId },
+        { name: "Payment Method", value: "Credit/Debit Card" },
+        { name: "Amount", value: `${(pd.amountCents / 100).toFixed(2)} EGP` },
+        { name: "Transaction Type", value: "Payment" },
+        { name: "Payment Source", value: "Paymob Application" },
+        { name: "Other References", value: pd.intentId ?? "" },
+        { name: "Status", value: "Successful" },
+        { name: "Date Created", value: pdDate },
+        { name: "Last Updated", value: pdDate },
       ] : []),
     ],
     ...(cartDiscountAmount > 0.01 ? {
@@ -691,26 +723,37 @@ export async function createDraftOrder(params: {
  *
  * Without this step the order stays "pending" and Bosta (and Shopify) treat
  * it as Cash on Delivery.
+ *
+ * Throws on failure so callers can retry.
  */
 export async function recordShopifyPaymentTransaction(params: {
   orderId: number;
   amount: string;   // total order amount as a string (e.g. "949.00")
-  paymobTxnId?: string;
+  paymobTxnId?: string | null;
   storeDomain: string;
   adminToken: string;
 }): Promise<void> {
   const { orderId, amount, paymobTxnId, storeDomain, adminToken } = params;
+  const now = new Date().toISOString();
   const body: Record<string, unknown> = {
     kind: "sale",
     status: "success",
-    gateway: "paymob",
+    gateway: "Paymob",
     amount,
     currency: "EGP",
+    processed_at: now,
   };
   if (paymobTxnId) {
     body.authorization = paymobTxnId;
-    // Shopify expects `receipt` to be an object (hash), not a string
-    body.receipt = { paymob_txn_id: paymobTxnId };
+    body.receipt = {
+      paymob_txn_id: paymobTxnId,
+      payment_method: "Credit/Debit Card",
+      transaction_type: "Payment",
+      payment_source: "Paymob Application",
+      status: "Successful",
+      date_created: now,
+      last_updated: now,
+    };
   }
   const res = await fetch(
     `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/transactions.json`,
@@ -722,8 +765,9 @@ export async function recordShopifyPaymentTransaction(params: {
   );
   if (!res.ok) {
     const text = await res.text();
-    logger.warn({ orderId, paymobTxnId, status: res.status, body: text }, "recordShopifyPaymentTransaction: failed to post transaction");
+    throw new Error(`recordShopifyPaymentTransaction: Shopify returned ${res.status}: ${text}`);
   }
+  logger.info({ orderId, paymobTxnId, amount }, "recordShopifyPaymentTransaction: transaction posted — order marked paid");
 }
 
 /**
@@ -750,8 +794,10 @@ export async function createShopifyDirectOrder(params: {
   extraTags?: string;
   attribution?: OrderAttribution;
   financialStatus?: "pending" | "paid";
-  /** Paymob transaction ID — used as the transaction receipt so Shopify shows it */
+  /** Paymob transaction ID — used as the transaction receipt and for note traceability */
   paymobTxnId?: string;
+  /** Full Paymob transaction details — stored in order note_attributes for reconciliation */
+  paymobDetails?: { txnId: string; amountCents: number; intentId?: string };
 }): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string; shippingAmount?: string }> {
   const result = await createDraftOrder({
     lines: params.lines,
@@ -762,26 +808,41 @@ export async function createShopifyDirectOrder(params: {
     extraTags: params.extraTags,
     complete: true,
     attribution: params.attribution,
+    paymobDetails: params.paymobDetails,
   });
 
   // Mark the order as paid by posting a payment transaction.
   // financial_status is a computed field in Shopify — PUT /orders/{id}.json
   // cannot change it. The only correct mechanism is POST transactions.json
   // with kind:"sale" and status:"success".
+  // Retries once after 3 s if the first attempt fails.
   if (params.paymentMethod === "card" && params.financialStatus === "paid") {
     const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
     const adminToken = await getShopifyAdminToken();
     if (storeDomain && adminToken) {
-      try {
-        await recordShopifyPaymentTransaction({
-          orderId: result.orderId,
-          amount: result.total,
-          paymobTxnId: params.paymobTxnId,
-          storeDomain,
-          adminToken,
-        });
-      } catch (err) {
-        logger.warn({ err, orderId: result.orderId }, "createShopifyDirectOrder: payment transaction failed — order will stay pending");
+      let lastErr: unknown;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          await recordShopifyPaymentTransaction({
+            orderId: result.orderId,
+            amount: result.total,
+            paymobTxnId: params.paymobTxnId,
+            storeDomain,
+            adminToken,
+          });
+          lastErr = undefined;
+          break; // success — exit retry loop
+        } catch (err) {
+          lastErr = err;
+          logger.warn({ err, orderId: result.orderId, attempt }, "createShopifyDirectOrder: payment transaction attempt failed");
+          if (attempt < 2) {
+            await new Promise((r) => setTimeout(r, 3000));
+          }
+        }
+      }
+      if (lastErr) {
+        // Both attempts failed — log loudly so it surfaces for manual fix via admin panel
+        logger.error({ err: lastErr, orderId: result.orderId, paymobTxnId: params.paymobTxnId }, "createShopifyDirectOrder: payment transaction failed after 2 attempts — order will remain Payment Pending; use admin Record Payment button");
       }
     }
   }

@@ -623,12 +623,18 @@ router.get("/admin/transactions", async (req, res) => {
       .where(inArray(paymobIntents.status, ["completed", "processing", "failed", "declined"]))
       .orderBy(desc(paymobIntents.createdAt));
 
+    const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN ?? null;
+
     const result = rows.map((r) => {
       const customer = r.customer as { firstName?: string; lastName?: string; phone?: string; email?: string };
       const attr = r.attribution as { sourceName?: string; referringSite?: string; landingSite?: string; utm?: Record<string, string> } | null;
 
       const allTimestamps = [r.bostaDispatchedAt, r.adminApprovedAt].filter((t): t is Date => !!t);
       const lastUpdated = allTimestamps.sort((a, b) => b.getTime() - a.getTime())[0] ?? r.createdAt;
+
+      const shopifyOrderUrl = (storeDomain && r.shopifyOrderId)
+        ? `https://${storeDomain}/admin/orders/${r.shopifyOrderId}`
+        : null;
 
       return {
         id: r.id,
@@ -642,6 +648,7 @@ router.get("/admin/transactions", async (req, res) => {
         status: r.status,
         shopifyOrderNumber: r.shopifyOrderNumber ?? null,
         shopifyOrderId: r.shopifyOrderId ?? null,
+        shopifyOrderUrl,
         transactionType: r.status === "completed" ? "Sale" : r.status === "processing" ? "Pending" : "—",
         lastUpdated,
         customerName: [customer.firstName, customer.lastName].filter(Boolean).join(" ") || null,

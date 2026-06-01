@@ -531,6 +531,7 @@ interface Transaction {
   status: string;
   shopifyOrderNumber: number | null;
   shopifyOrderId: number | null;
+  shopifyOrderUrl: string | null;
   transactionType: string;
   lastUpdated: string;
   customerName: string | null;
@@ -679,11 +680,20 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
                       </span>
                     </td>
                     <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 700, padding: "12px 14px", whiteSpace: "nowrap" }}>
-                      {t.shopifyOrderNumber
-                        ? `#${t.shopifyOrderNumber}`
-                        : t.shopifyOrderId
-                          ? <span style={{ fontSize: 10, color: "rgba(30,24,20,0.4)" }}>ID {String(t.shopifyOrderId)}</span>
-                          : "—"}
+                      {t.shopifyOrderNumber || t.shopifyOrderId ? (
+                        t.shopifyOrderUrl ? (
+                          <a
+                            href={t.shopifyOrderUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: "#1e1814", textDecoration: "underline", textDecorationColor: "rgba(30,24,20,0.3)" }}
+                          >
+                            {t.shopifyOrderNumber ? `#${t.shopifyOrderNumber}` : `ID ${String(t.shopifyOrderId)}`}
+                          </a>
+                        ) : (
+                          t.shopifyOrderNumber ? `#${t.shopifyOrderNumber}` : <span style={{ fontSize: 10, color: "rgba(30,24,20,0.4)" }}>ID {String(t.shopifyOrderId)}</span>
+                        )
+                      ) : "—"}
                     </td>
                     <td style={{ ...mono, fontSize: 11, padding: "12px 14px", whiteSpace: "nowrap" }}>
                       {t.bostaDispatched ? (
