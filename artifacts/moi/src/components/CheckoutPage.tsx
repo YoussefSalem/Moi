@@ -322,6 +322,8 @@ export function CheckoutPage() {
   const instapayTrackedRef = useRef(false); // Prevents duplicate trackPurchase on double-submit
   const codTrackedRef = useRef(false); // Prevents duplicate trackPurchase if COD submit fires twice
   const submittingRef = useRef(false); // Prevents double-submit of COD/card/instapay order forms
+  // Holds the latest handleRefreshPaymobSession so callbacks defined before it can call it.
+  const refreshSessionRef = useRef<() => void>(() => {});
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", phone: "", email: "",
@@ -863,8 +865,11 @@ export function CheckoutPage() {
   const handleIframeFail = useCallback(() => {
     setPaymentTimerActive(false);
     setPaymobIframeUrl(null);
-    setStep("card-failed");
     submittingRef.current = false;
+    // Auto-refresh the payment session so the user lands back on the card form.
+    // (Form state is still intact for in-app failures — unlike 3DS redirect failures
+    // which go directly to card-failed via the mount effect and handleRetryCard.)
+    refreshSessionRef.current();
   }, []);
 
   const handleCancelCardCheckout = useCallback(() => {
@@ -950,6 +955,12 @@ export function CheckoutPage() {
       setSubmitError("Network error. Please check your connection and try again.");
     }
   }, [isShopify, shopifyCart, localItems, form, promoApplied, shopifyCheckoutToken, totalAmount, fmt]);
+
+  // Keep refreshSessionRef pointing at the latest handleRefreshPaymobSession so
+  // callbacks defined earlier in the component can call it without an ordering issue.
+  useEffect(() => {
+    refreshSessionRef.current = () => { void handleRefreshPaymobSession(); };
+  }, [handleRefreshPaymobSession]);
 
   // When cart contents change (items added/removed) and a promo code is active,
   // silently re-apply it so Shopify recalculates the discount on the new subtotal.
@@ -2468,20 +2479,38 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
     setTimeout(onSuccess, 500);
   }, [showOverlay, onSuccess]);
 
-  // Shows a clean "Payment Failed" overlay then calls onFail after a brief delay.
+  // Shows a "Payment Failed – Please try again" overlay with a 3-second countdown,
+  // then auto-triggers onFail which refreshes the payment session.
   const showOverlayFail = useCallback(() => {
     if (overlayInnerRef.current) {
       overlayInnerRef.current.innerHTML =
-        '<div style="width:56px;height:56px;border-radius:50%;background:rgba(180,60,40,0.08);display:flex;align-items:center;justify-content:center;margin-bottom:12px;flex-shrink:0">' +
-          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b43c28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<div style="width:56px;height:56px;border-radius:50%;background:rgba(192,57,43,0.08);display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex-shrink:0">' +
+          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
             '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>' +
           '</svg>' +
         '</div>' +
-        '<p style="font-size:13px;letter-spacing:0.3em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:600;margin-bottom:10px">Payment Failed</p>' +
-        '<p style="font-size:12px;color:rgba(30,24,20,0.55);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:280px;line-height:1.75">Unfortunately, your payment could not be processed.<br>Please try again or use a different<br>payment method.</p>';
+        '<p style="font-size:13px;letter-spacing:0.3em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:600;margin-bottom:8px">Payment Failed</p>' +
+        '<p style="font-size:12px;color:rgba(30,24,20,0.55);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:280px;line-height:1.75;margin-bottom:20px">No charge was made. Please check your card details<br>and try again.</p>' +
+        '<button id="fail-overlay-cta" style="background:#1e1814;color:#faf8f5;border:none;padding:13px 28px;font-family:\'Montserrat\',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.24em;text-transform:uppercase;cursor:pointer;margin-bottom:12px;width:100%;max-width:280px">Retry Now</button>' +
+        '<p id="fail-overlay-cd" style="font-size:11px;color:rgba(30,24,20,0.38);font-family:\'Montserrat\',sans-serif;letter-spacing:0.08em">Retrying in 3s\u2026</p>';
+
+      const inner = overlayInnerRef.current;
+      const state: { tickId: ReturnType<typeof setInterval> | null } = { tickId: null };
+      const proceed = () => {
+        if (state.tickId) clearInterval(state.tickId);
+        onFail();
+      };
+      const btnEl = inner.querySelector<HTMLElement>('#fail-overlay-cta');
+      if (btnEl) btnEl.addEventListener('click', proceed);
+      let secs = 3;
+      state.tickId = setInterval(() => {
+        secs -= 1;
+        const cdEl = inner.querySelector<HTMLElement>('#fail-overlay-cd');
+        if (cdEl) cdEl.textContent = secs > 0 ? `Retrying in ${secs}s\u2026` : 'Refreshing your session\u2026';
+        if (secs <= 0) proceed();
+      }, 1000);
     }
     showOverlay();
-    setTimeout(onFail, 500);
   }, [showOverlay, onFail]);
 
   const stopPolling = useCallback(() => {
