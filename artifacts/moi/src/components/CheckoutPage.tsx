@@ -1117,12 +1117,11 @@ export function CheckoutPage() {
                 </div>
 
                 {/* Paymob iframe */}
-                <div className="flex-1" style={{ minHeight: "520px" }}>
+                <div style={{ width: "100%", overflow: "hidden" }}>
                   <PaymobIframe
                     url={paymobIframeUrl}
                     onSuccess={handleIframeSuccess}
                     onFail={handleIframeFail}
-                    iframeStyle={{ height: "580px" }}
                   />
                 </div>
 
@@ -2298,31 +2297,19 @@ function PaymobIframe({ url, onSuccess, onFail, iframeStyle }: PaymobIframeProps
     return () => window.removeEventListener("message", handleMessage);
   }, [onSuccess, onFail]);
 
-  const BG = "#faf8f5";
-  const gradientEdge: React.CSSProperties = {
-    position: "absolute",
-    zIndex: 2,
-    pointerEvents: "none",
-  };
-
   return (
-    <div style={{ position: "relative" }}>
-      <div style={{ ...gradientEdge, top: 0, left: 0, right: 0, height: 52, background: `linear-gradient(to bottom, ${BG}, transparent)` }} />
-      <div style={{ ...gradientEdge, bottom: 0, left: 0, right: 0, height: 64, background: `linear-gradient(to top, ${BG}, transparent)` }} />
-      <div style={{ ...gradientEdge, top: 0, left: 0, bottom: 0, width: 40, background: `linear-gradient(to right, ${BG}, transparent)` }} />
-      <div style={{ ...gradientEdge, top: 0, right: 0, bottom: 0, width: 40, background: `linear-gradient(to left, ${BG}, transparent)` }} />
-      <iframe
-        src={url}
-        title="Secure Card Payment"
-        allow="payment"
-        style={{
-          width: "100%",
-          height: 900,
-          border: "none",
-          display: "block",
-          ...iframeStyle,
-        }}
-      />
-    </div>
+    <iframe
+      src={url}
+      title="Secure Card Payment"
+      allow="payment"
+      scrolling="no"
+      style={{
+        width: "100%",
+        height: 760,
+        border: "none",
+        display: "block",
+        ...iframeStyle,
+      }}
+    />
   );
 }
