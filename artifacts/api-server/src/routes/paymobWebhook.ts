@@ -2,13 +2,10 @@ import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { verifyPaymobHmac, extractPaymobTxn } from "../lib/paymob";
 import {
-  getShopifyAdminToken,
-  addShopifyOrderNote,
-  tagShopifyOrder,
   sendWhatsApp,
   completeShopifyCheckout,
 } from "../lib/integrations";
-import { createShopifyDirectOrder, recordDiscountCodeUse, type OrderLine, type CustomerInfo, type ShopifyLineItem, type OrderAttribution } from "../lib/shopifyOrder";
+import { createDraftOrder, recordDiscountCodeUse, type OrderLine, type CustomerInfo, type ShopifyLineItem, type OrderAttribution } from "../lib/shopifyOrder";
 import { sendEmail, buildOrderConfirmationEmail } from "../lib/email";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
@@ -103,32 +100,30 @@ router.post("/webhooks/paymob", async (req, res) => {
       ...(attr.utm && typeof attr.utm === "object" ? { utm: Object.fromEntries(Object.entries(attr.utm as Record<string, unknown>).filter(([, v]) => typeof v === "string")) as Record<string, string> } : {}),
     } : undefined;
 
-    req.log.info({ intentId, paymobTxnId, amount, hasAttribution: !!attribution }, "Paymob webhook: creating Shopify order");
+    req.log.info({ intentId, paymobTxnId, amount, hasAttribution: !!attribution }, "Paymob webhook: creating Shopify draft order");
 
-    // Create Shopify order from stored intent data
-    let shopifyOrderId: number;
-    let shopifyOrderNumber: number;
+    // Create a Shopify draft order — not completed yet, stays as draft for admin review
+    let shopifyDraftId: number;
     let shopifyLineItems: ShopifyLineItem[] = [];
     let shopifyDiscountAmount: number | undefined;
     let shopifyDiscountCode: string | undefined;
     try {
-      const result = await createShopifyDirectOrder({
+      const result = await createDraftOrder({
         lines,
         customer,
         paymentMethod: "card",
         cartId: intent.cartId ?? undefined,
         discountCode: intent.discountCode ?? undefined,
-        extraTags: `paymob-card-paid,paymob-txn-${paymobTxnId}`,
+        extraTags: `paymob-card-paid,paymob-card-draft,paymob-txn-${paymobTxnId}`,
         attribution,
-        financialStatus: "paid",
+        complete: false,
       });
-      shopifyOrderId = result.orderId;
-      shopifyOrderNumber = result.orderNumber;
+      shopifyDraftId = result.draftOrderId ?? result.orderId;
       shopifyLineItems = result.lineItems;
       shopifyDiscountAmount = result.discountAmount;
       shopifyDiscountCode = result.discountCode;
     } catch (err) {
-      req.log.error({ err, intentId }, "Paymob webhook: Shopify order creation failed — marking intent failed");
+      req.log.error({ err, intentId }, "Paymob webhook: Shopify draft order creation failed — marking intent failed");
       await db
         .update(paymobIntents)
         .set({ status: "failed" })
@@ -136,13 +131,13 @@ router.post("/webhooks/paymob", async (req, res) => {
       return;
     }
 
-    // Mark intent as completed
+    // Mark intent as completed; store the draft order ID
     await db
       .update(paymobIntents)
-      .set({ status: "completed", shopifyOrderId })
+      .set({ status: "completed", shopifyOrderId: shopifyDraftId })
       .where(eq(paymobIntents.intentId, intentId));
 
-    req.log.info({ intentId, shopifyOrderId, shopifyOrderNumber, paymobTxnId }, "Paymob webhook: Shopify order created");
+    req.log.info({ intentId, shopifyDraftId, paymobTxnId }, "Paymob webhook: Shopify draft order created — awaiting admin review");
 
     // Mark the Shopify abandoned checkout as complete (fire-and-forget)
     if (intent.checkoutToken) {
@@ -151,14 +146,14 @@ router.post("/webhooks/paymob", async (req, res) => {
 
     // Record discount code use so Shopify's usage_limit is enforced across API orders
     if (intent.discountCode && shopifyDiscountAmount) {
-      void recordDiscountCodeUse(intent.discountCode, shopifyOrderId, shopifyOrderNumber, "card");
+      void recordDiscountCodeUse(intent.discountCode, shopifyDraftId, shopifyDraftId, "card");
     }
 
-    // Send branded order confirmation email to customer (fire-and-forget)
+    // Send branded payment-received email to customer (fire-and-forget)
     if (customer.email) {
       const shippingPrice = parseEGP(amount) >= 2000 ? "0.00" : "50.00";
       const { html, text } = buildOrderConfirmationEmail({
-        orderNumber: shopifyOrderNumber,
+        orderNumber: shopifyDraftId,
         customerName: customer.firstName,
         total: amount,
         paymentMethod: "Credit/Debit Card (Paymob)",
@@ -170,41 +165,21 @@ router.post("/webhooks/paymob", async (req, res) => {
         discountCode: shopifyDiscountCode || undefined,
         shippingAmount: shippingPrice,
       });
-      void sendEmail({ to: customer.email, subject: `Your Moi order #${shopifyOrderNumber} is confirmed`, html, text })
-        .then(() => req.log.info({ email: customer.email, shopifyOrderNumber }, "Order confirmation email sent"))
-        .catch((err) => req.log.warn({ err, email: customer.email }, "Order confirmation email failed"));
+      void sendEmail({ to: customer.email, subject: `Your Moi payment is confirmed — order being processed`, html, text })
+        .then(() => req.log.info({ email: customer.email, shopifyDraftId }, "Payment confirmation email sent"))
+        .catch((err) => req.log.warn({ err, email: customer.email }, "Payment confirmation email failed"));
     }
-
-    const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-    const adminToken = await getShopifyAdminToken();
-    const orderRef = `#${shopifyOrderNumber}`;
-
-    // Record Shopify capture transaction
-    if (storeDomain && adminToken) {
-      await fetch(
-        `https://${storeDomain}/admin/api/2024-04/orders/${shopifyOrderId}/transactions.json`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-          body: JSON.stringify({ transaction: { kind: "capture", gateway: "Paymob", amount } }),
-        },
-      ).catch((err) => req.log.error({ err }, "Shopify transaction record failed"));
-    }
-
-    void addShopifyOrderNote(shopifyOrderId, `Paymob transaction: ${paymobTxnId}`);
 
     // WhatsApp to customer using intent's stored customer data
     const phone = customer.phone ?? "";
     if (phone) {
       void sendWhatsApp(
         phone,
-        `✅ Payment confirmed for Moi order ${orderRef}!\n\nTotal: ${amount} EGP\nPayment: Credit/Debit Card\n\nYour order is being prepared. You'll receive a tracking update soon. Thank you for shopping with Moi. 🖤`,
+        `✅ Payment confirmed for your Moi order!\n\nTotal: ${amount} EGP\nPayment: Credit/Debit Card\n\nYour order is being reviewed and prepared. You'll receive a tracking update soon. Thank you for shopping with Moi. 🖤`,
       );
     }
 
-    // Bosta shipment is NOT created automatically for card orders.
-    // Admin must dispatch via the admin panel (POST /api/admin/card-orders/:id/dispatch).
-    req.log.info({ shopifyOrderId, shopifyOrderNumber, paymobTxnId, amount }, "Paymob webhook: order fully processed — awaiting admin dispatch to Bosta");
+    req.log.info({ shopifyDraftId, paymobTxnId, amount }, "Paymob webhook: draft order fully processed — awaiting admin dispatch");
   } catch (err) {
     req.log.error({ err, intentId, paymobTxnId }, "Paymob webhook processing error");
     // Prevent the intent from getting stuck in 'processing' — mark it failed so
