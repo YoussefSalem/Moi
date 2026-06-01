@@ -824,16 +824,27 @@ export function CheckoutPage() {
     }
   }, [emailInput, shopifyCart, isShopify, localItems, totalAmount, fmt]);
 
-  const handleIframeSuccess = useCallback((txnId?: string) => {
+  const handleIframeSuccess = useCallback((txnId?: string, shopifyOrderId?: number | null, shopifyOrderNumber?: number | null) => {
+    // Update orderResult immediately so Shopify data reaches the state even
+    // when this function is called again by the polling path (which already
+    // showed the overlay via postMessage).  The paymobTrackedRef guard below
+    // only prevents duplicate analytics — state updates should always run.
+    setOrderResult((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        paymobTxnId: txnId ?? prev.paymobTxnId,
+        shopifyOrderId: shopifyOrderId ?? prev.shopifyOrderId,
+        shopifyOrderNumber: shopifyOrderNumber ?? prev.shopifyOrderNumber,
+      };
+    });
+
     // Guard: Paymob iframe can fire onSuccess twice (inline message + 3DS relay page)
     if (paymobTrackedRef.current) return;
     paymobTrackedRef.current = true;
 
     setPaymentTimerActive(false);
     setPaymobIframeUrl(null);
-    if (txnId) {
-      setOrderResult((prev) => (prev ? { ...prev, paymobTxnId: txnId } : prev));
-    }
     setStep("card-confirm");
     clearCart();
     markAbandonedCartRecovered();
@@ -843,18 +854,19 @@ export function CheckoutPage() {
     const totalVal = isShopify && shopifyCart && shopifyCart.cost?.totalAmount?.amount
       ? parseFloat(shopifyCart.cost.totalAmount.amount)
       : (Number.isFinite(totalAmount) ? totalAmount : 0);
+    const effectiveOrderId = String(shopifyOrderNumber ?? shopifyOrderId ?? txnId ?? "");
     import("@/lib/analytics").then(({ trackPurchaseWithTime: trackInternalPurchase }) => {
-      trackInternalPurchase(txnId ?? "", totalVal, "card");
+      trackInternalPurchase(effectiveOrderId, totalVal, "card");
     });
     trackShopifyPurchase({
-      orderId: txnId ?? "",
+      orderId: effectiveOrderId,
       totalPrice: totalVal,
       currencyCode: "EGP",
       lineItems: orderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
     });
     if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
       (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "purchase", {
-        transaction_id: txnId ?? "",
+        transaction_id: effectiveOrderId,
         value: totalVal,
         currency: "EGP",
         items: orderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })),
@@ -2386,7 +2398,12 @@ function OrderSuccessScreen({
           Items Purchased
         </p>
         <div className="flex flex-col gap-3">
-          {orderResult.paymobTxnId ? null : null}
+          {orderResult.shopifyOrderNumber ? (
+        <div className="flex items-center justify-between gap-4">
+          <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>Order #</span>
+          <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{orderResult.shopifyOrderNumber}</span>
+        </div>
+      ) : null}
           <div className="flex items-center justify-between gap-4">
             <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>Order Summary</span>
           </div>
@@ -2418,7 +2435,7 @@ function OrderSuccessScreen({
 interface PaymobIframeProps {
   url: string;
   intentId?: string | null;
-  onSuccess: (txnId?: string) => void;
+  onSuccess: (txnId?: string, shopifyOrderId?: number | null, shopifyOrderNumber?: number | null) => void;
   onFail: () => void;
   iframeStyle?: React.CSSProperties;
 }
@@ -2449,7 +2466,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   }, []);
 
   // Shows a clean "Payment Successful" overlay with a 5-second countdown then calls onSuccess.
-  const showOverlaySuccess = useCallback((txnId?: string) => {
+  const showOverlaySuccess = useCallback((txnId?: string, shopifyOrderId?: number | null, shopifyOrderNumber?: number | null) => {
     if (overlayInnerRef.current) {
       overlayInnerRef.current.innerHTML =
         '<div style="width:72px;height:72px;border-radius:50%;background:rgba(47,102,68,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:18px;flex-shrink:0">' +
@@ -2464,7 +2481,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       const state: { tickId: ReturnType<typeof setInterval> | null } = { tickId: null };
       const proceed = () => {
         if (state.tickId) clearInterval(state.tickId);
-        onSuccess(txnId);
+        onSuccess(txnId, shopifyOrderId, shopifyOrderNumber);
       };
       const btnEl = inner.querySelector<HTMLElement>('#pay-overlay-cta');
       if (btnEl) btnEl.addEventListener('click', proceed);
@@ -2611,13 +2628,18 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       try {
         const res = await fetch(`/api/orders/paymob-status/${intentId}`, { cache: "no-store" });
         if (!res.ok) return;
-        const data = (await res.json()) as { status: string; paymobTxnId: string | null };
+        const data = (await res.json()) as {
+          status: string;
+          paymobTxnId: string | null;
+          shopifyOrderId?: number | null;
+          shopifyOrderNumber?: number | null;
+        };
         if (data.status === "completed") {
           threeDsActiveRef.current = false;
           resolvedRef.current = true;
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
-          showOverlaySuccess(data.paymobTxnId ?? undefined);
+          showOverlaySuccess(data.paymobTxnId ?? undefined, data.shopifyOrderId ?? null, data.shopifyOrderNumber ?? null);
         } else if (data.status === "processing") {
           // Paymob payment claimed — draft creation in progress. Show the pending
           // overlay but keep polling until "completed" so the success screen only
@@ -2690,7 +2712,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
           syncPaymobOrder(txnId || undefined);
-          showOverlaySuccess(txnId || undefined);
+          showOverlaySuccess(txnId || undefined, undefined, undefined);
         } else if (data["pending"]) {
           // Payment still pending (waiting on bank confirmation). Show the overlay
           // but keep polling — do NOT mark as resolved yet.
@@ -2719,14 +2741,14 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
           syncPaymobOrder(txnId);
-          showOverlaySuccess(txnId);
+          showOverlaySuccess(txnId, undefined, undefined);
         } else if (isSuccess && !hasTxnId) {
           threeDsActiveRef.current = false;
           resolvedRef.current = true;
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
           syncPaymobOrder(undefined);
-          showOverlaySuccess(undefined);
+          showOverlaySuccess(undefined, undefined, undefined);
         } else if (isFail) {
           const isPending = data["pending"] === true || data["pending"] === "true";
           if (hasTxnId && !isPending) {

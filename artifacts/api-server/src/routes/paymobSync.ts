@@ -79,14 +79,18 @@ router.post("/orders/paymob-sync", async (req, res) => {
         { intentId, txnId: verified.txnId, amountCents: verified.amountCents },
         "paymob-sync: verified via txnId — processing order",
       );
-      void processPaymobSuccess({
+      // Trigger order creation; then read the intent to get the Shopify order details
+      await processPaymobSuccess({
         intentId,
         paymobTxnId: verified.txnId,
         amountCents: verified.amountCents,
       }).catch((err: unknown) =>
         req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error"),
       );
-      res.json({ status: "completed", paymobTxnId: verified.txnId });
+      const updatedRows = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId })
+        .from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
+      const updated = updatedRows[0];
+      res.json({ status: "completed", paymobTxnId: verified.txnId, shopifyOrderId: updated?.shopifyOrderId ?? null, shopifyOrderNumber: updated?.shopifyConfirmedOrderId ?? null });
       return;
     }
     req.log.info({ intentId, clientTxnId }, "paymob-sync: txnId verify returned null — falling through to order query");
@@ -120,7 +124,11 @@ router.post("/orders/paymob-sync", async (req, res) => {
     }).catch((err: unknown) =>
       req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error"),
     );
-    res.json({ status: "completed", paymobTxnId: result.txnId });
+    // After triggering processPaymobSuccess, read the intent to get the Shopify order details
+    const updatedRows = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId })
+      .from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
+    const updated = updatedRows[0];
+    res.json({ status: "completed", paymobTxnId: result.txnId, shopifyOrderId: updated?.shopifyOrderId ?? null, shopifyOrderNumber: updated?.shopifyConfirmedOrderId ?? null });
     return;
   }
 
@@ -140,7 +148,11 @@ router.post("/orders/paymob-sync", async (req, res) => {
     }).catch((err: unknown) =>
       req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error (fallback)"),
     );
-    res.json({ status: "completed", paymobTxnId: clientTxnId });
+    // After triggering processPaymobSuccess, read the intent to get the Shopify order details
+    const updatedRows = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId })
+      .from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
+    const updated = updatedRows[0];
+    res.json({ status: "completed", paymobTxnId: clientTxnId, shopifyOrderId: updated?.shopifyOrderId ?? null, shopifyOrderNumber: updated?.shopifyConfirmedOrderId ?? null });
     return;
   }
 

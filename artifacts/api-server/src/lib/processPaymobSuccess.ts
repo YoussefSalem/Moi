@@ -7,7 +7,7 @@ import {
   completeShopifyCheckout,
 } from "./integrations";
 import {
-  createDraftOrder,
+  createShopifyDirectOrder,
   recordDiscountCodeUse,
   type OrderLine,
   type CustomerInfo,
@@ -73,30 +73,32 @@ export async function processPaymobSuccess(params: {
       : {}),
   } : undefined;
 
-  logger.info({ intentId, paymobTxnId, amount, hasAttribution: !!attribution }, "processPaymobSuccess: creating Shopify draft order");
+  logger.info({ intentId, paymobTxnId, amount, hasAttribution: !!attribution }, "processPaymobSuccess: creating Shopify order");
 
-  let shopifyDraftId: number;
+  let shopifyOrderId: number;
+  let shopifyOrderNumber: number;
   let shopifyLineItems: ShopifyLineItem[] = [];
   let shopifyDiscountAmount: number | undefined;
   let shopifyDiscountCode: string | undefined;
 
   try {
-    const result = await createDraftOrder({
+    const result = await createShopifyDirectOrder({
       lines,
       customer,
       paymentMethod: "card",
       cartId: intent.cartId ?? undefined,
       discountCode: intent.discountCode ?? undefined,
-      extraTags: `paymob-card-paid,paymob-card-draft,paymob-txn-${paymobTxnId}`,
+      extraTags: `paymob-card-paid,paymob-card-order,paymob-txn-${paymobTxnId}`,
       attribution,
-      complete: false,
+      financialStatus: "paid",
     });
-    shopifyDraftId = result.draftOrderId ?? result.orderId;
+    shopifyOrderId = result.orderId;
+    shopifyOrderNumber = result.orderNumber;
     shopifyLineItems = result.lineItems;
     shopifyDiscountAmount = result.discountAmount;
     shopifyDiscountCode = result.discountCode;
   } catch (err) {
-    logger.error({ err, intentId }, "processPaymobSuccess: Shopify draft order creation failed — marking intent failed");
+    logger.error({ err, intentId }, "processPaymobSuccess: Shopify order creation failed — marking intent failed");
     await db
       .update(paymobIntents)
       .set({ status: "failed" })
@@ -104,13 +106,19 @@ export async function processPaymobSuccess(params: {
     return { alreadyClaimed: false };
   }
 
-  // Mark completed; store the Shopify draft order ID
+  // Mark completed and auto-approved — no manual admin review needed for card orders
   await db
     .update(paymobIntents)
-    .set({ status: "completed", shopifyOrderId: shopifyDraftId })
+    .set({
+      status: "completed",
+      shopifyOrderId: shopifyOrderId,
+      shopifyConfirmedOrderId: shopifyOrderId,
+      adminApproved: true,
+      adminApprovedAt: new Date(),
+    })
     .where(eq(paymobIntents.intentId, intentId));
 
-  logger.info({ intentId, shopifyDraftId, paymobTxnId }, "processPaymobSuccess: Shopify draft order created — awaiting admin review");
+  logger.info({ intentId, shopifyOrderId, shopifyOrderNumber, paymobTxnId }, "processPaymobSuccess: Shopify order created and auto-approved");
 
   // Fire-and-forget side effects
   if (intent.checkoutToken) {
@@ -118,13 +126,13 @@ export async function processPaymobSuccess(params: {
   }
 
   if (intent.discountCode && shopifyDiscountAmount) {
-    void recordDiscountCodeUse(intent.discountCode, shopifyDraftId, shopifyDraftId, "card");
+    void recordDiscountCodeUse(intent.discountCode, shopifyOrderId, shopifyOrderId, "card");
   }
 
   if (customer.email) {
     const shippingPrice = parseEGP(amount) >= 2000 ? "0.00" : "50.00";
     const { html, text } = buildOrderConfirmationEmail({
-      orderNumber: shopifyDraftId,
+      orderNumber: shopifyOrderNumber,
       customerName: customer.firstName,
       total: amount,
       paymentMethod: "Credit/Debit Card (Paymob)",
@@ -138,11 +146,11 @@ export async function processPaymobSuccess(params: {
     });
     void sendEmail({
       to: customer.email,
-      subject: `Your Moi payment is confirmed — order being processed`,
+      subject: `Your Moi payment is confirmed — order #${shopifyOrderNumber}`,
       html,
       text,
     })
-      .then(() => logger.info({ email: customer.email, shopifyDraftId }, "processPaymobSuccess: confirmation email sent"))
+      .then(() => logger.info({ email: customer.email, shopifyOrderId }, "processPaymobSuccess: confirmation email sent"))
       .catch((err) => logger.warn({ err, email: customer.email }, "processPaymobSuccess: confirmation email failed"));
   }
 
@@ -151,7 +159,7 @@ export async function processPaymobSuccess(params: {
   if (adminEmail) {
     const shippingForAdmin = parseEGP(amount) >= 2000 ? "0.00" : "50.00";
     const { html: adminHtml, text: adminText } = buildAdminPaymentNotificationEmail({
-      draftOrderId: shopifyDraftId,
+      draftOrderId: shopifyOrderId,
       paymobTxnId,
       amount,
       customer,
@@ -162,11 +170,11 @@ export async function processPaymobSuccess(params: {
     });
     void sendEmail({
       to: adminEmail,
-      subject: `🟢 Card Payment — Draft Order #${shopifyDraftId} — ${parseEGP(amount).toFixed(2)} EGP`,
+      subject: `🟢 Card Payment — Order #${shopifyOrderNumber} — ${parseEGP(amount).toFixed(2)} EGP`,
       html: adminHtml,
       text: adminText,
     })
-      .then(() => logger.info({ adminEmail, shopifyDraftId }, "processPaymobSuccess: admin notification sent"))
+      .then(() => logger.info({ adminEmail, shopifyOrderId }, "processPaymobSuccess: admin notification sent"))
       .catch((err) => logger.warn({ err, adminEmail }, "processPaymobSuccess: admin notification failed"));
   }
 
@@ -174,10 +182,16 @@ export async function processPaymobSuccess(params: {
   if (phone) {
     void sendWhatsApp(
       phone,
-      `✅ Payment confirmed for your Moi order!\n\nTotal: ${amount} EGP\nPayment: Credit/Debit Card\n\nYour order is being reviewed and prepared. You'll receive a tracking update soon. Thank you for shopping with Moi. 🖤`,
+      `✅ Payment confirmed for your Moi order!
+
+Order #${shopifyOrderNumber}
+Total: ${amount} EGP
+Payment: Credit/Debit Card
+
+Your order is being prepared and will be dispatched soon. Thank you for shopping with Moi. 🖤`,
     );
   }
 
-  logger.info({ shopifyDraftId, paymobTxnId, amount }, "processPaymobSuccess: draft order fully processed — awaiting admin dispatch");
+  logger.info({ shopifyOrderId, shopifyOrderNumber, paymobTxnId, amount }, "processPaymobSuccess: order fully processed and auto-approved");
   return { alreadyClaimed: false };
 }

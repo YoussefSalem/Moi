@@ -464,10 +464,14 @@ router.post("/admin/card-orders/:id/approve", async (req, res) => {
   const intent = rows[0];
   if (!intent) { res.status(404).json({ error: "Order not found" }); return; }
   if (intent.status !== "completed") { res.status(409).json({ error: "Order not in completed state" }); return; }
-  if (intent.adminApproved) { res.status(409).json({ error: "Order already approved" }); return; }
-  if (!intent.shopifyOrderId) { res.status(409).json({ error: "No Shopify draft order linked — payment may still be processing" }); return; }
+  if (intent.adminApproved) {
+    // Already auto-approved — return the existing order details
+    res.status(200).json({ ok: true, orderId: intent.shopifyConfirmedOrderId, orderNumber: intent.shopifyConfirmedOrderId, alreadyApproved: true });
+    return;
+  }
+  if (!intent.shopifyOrderId) { res.status(409).json({ error: "No Shopify order linked — payment may still be processing" }); return; }
 
-  req.log.info({ id, draftOrderId: intent.shopifyOrderId }, "card-orders approve: completing Shopify draft order");
+  req.log.info({ id, orderId: intent.shopifyOrderId }, "card-orders approve: completing Shopify order");
 
   const result = await completeShopifyDraftOrder(intent.shopifyOrderId).catch((err: unknown) => {
     req.log.error({ err, id }, "card-orders approve: completeShopifyDraftOrder threw");
@@ -475,7 +479,7 @@ router.post("/admin/card-orders/:id/approve", async (req, res) => {
   });
 
   if (!result) {
-    res.status(502).json({ error: "Failed to complete Shopify draft order — check Shopify credentials and draft order status" });
+    res.status(502).json({ error: "Failed to complete Shopify order — check Shopify credentials and order status" });
     return;
   }
 
@@ -488,7 +492,7 @@ router.post("/admin/card-orders/:id/approve", async (req, res) => {
     })
     .where(eq(paymobIntents.id, id));
 
-  req.log.info({ id, draftOrderId: intent.shopifyOrderId, confirmedOrderId: result.orderId, orderNumber: result.orderNumber }, "card-orders approve: draft completed → confirmed Shopify order");
+  req.log.info({ id, orderId: intent.shopifyOrderId, confirmedOrderId: result.orderId, orderNumber: result.orderNumber }, "card-orders approve: order completed");
   res.status(200).json({ ok: true, orderId: result.orderId, orderNumber: result.orderNumber, total: result.total });
 });
 

@@ -23,6 +23,8 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
     .select({
       status: paymobIntents.status,
       paymobTxnId: paymobIntents.paymobTxnId,
+      shopifyOrderId: paymobIntents.shopifyOrderId,
+      shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId,
       createdAt: paymobIntents.createdAt,
     })
     .from(paymobIntents)
@@ -34,12 +36,17 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
     return;
   }
 
-  const { status, paymobTxnId, createdAt } = rows[0];
+  const { status, paymobTxnId, shopifyOrderId, shopifyConfirmedOrderId, createdAt } = rows[0];
   res.setHeader("Cache-Control", "no-store");
 
   // Fast path: already resolved by webhook or a prior direct lookup.
   if (status !== "pending") {
-    res.json({ status, paymobTxnId: paymobTxnId ?? null });
+    res.json({
+      status,
+      paymobTxnId: paymobTxnId ?? null,
+      shopifyOrderId: shopifyOrderId ?? null,
+      shopifyOrderNumber: shopifyConfirmedOrderId ?? null,
+    });
     return;
   }
 
@@ -67,16 +74,31 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
             { intentId, txnId: result.txnId, amountCents: result.amountCents },
             "paymob-status: direct lookup found successful payment — processing order",
           );
-          // Process the successful payment: creates Shopify draft order, sends
+          // Process the successful payment: creates Shopify order, sends
           // confirmation email + WhatsApp, marks intent completed. Idempotent.
-          void processPaymobSuccess({
+          await processPaymobSuccess({
             intentId,
             paymobTxnId: result.txnId,
             amountCents: result.amountCents,
           }).catch((err: unknown) =>
             req.log.error({ err, intentId }, "paymob-status: processPaymobSuccess error"),
           );
-          res.json({ status: "completed", paymobTxnId: result.txnId });
+          // Fetch updated order details to return to the client
+          const updatedRows = await db
+            .select({
+              shopifyOrderId: paymobIntents.shopifyOrderId,
+              shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId,
+            })
+            .from(paymobIntents)
+            .where(eq(paymobIntents.intentId, intentId))
+            .limit(1);
+          const updated = updatedRows[0];
+          res.json({
+            status: "completed",
+            paymobTxnId: result.txnId,
+            shopifyOrderId: updated?.shopifyOrderId ?? null,
+            shopifyOrderNumber: updated?.shopifyConfirmedOrderId ?? null,
+          });
         } else {
           req.log.info(
             { intentId, txnId: result.txnId },

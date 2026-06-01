@@ -873,7 +873,7 @@ export function buildAdminPaymentNotificationEmail(params: {
       <p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:9px;letter-spacing:0.4em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Payment Details</p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8e3dc;">
         <tr>
-          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:12px;color:#9a8e82;border-bottom:1px solid #e8e3dc;width:40%;">Draft Order</td>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:12px;color:#9a8e82;border-bottom:1px solid #e8e3dc;width:40%;">Order</td>
           <td style="padding:10px 14px;font-family:'Courier New',monospace;font-size:13px;color:#1a1714;font-weight:700;border-bottom:1px solid #e8e3dc;">#${draftOrderId}${adminUrl ? `&nbsp;&nbsp;<a href="${adminUrl}" style="color:#1a6ad4;font-size:11px;font-family:Arial,sans-serif;font-weight:400;">View in Shopify →</a>` : ""}</td>
         </tr>
         <tr>
@@ -971,7 +971,7 @@ export function buildAdminPaymentNotificationEmail(params: {
   const text = [
     `ADMIN NOTIFICATION — CARD PAYMENT CONFIRMED`,
     ``,
-    `Draft Order:  #${draftOrderId}`,
+    `Order:  #${draftOrderId}`,
     `Admin Dashboard: ${dashboardUrl}`,
     adminUrl ? `Shopify Admin: ${adminUrl}` : "",
     `Paymob TXN:   ${paymobTxnId}`,
