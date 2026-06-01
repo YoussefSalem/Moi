@@ -2308,26 +2308,43 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   const showOverlaySuccess = useCallback((txnId?: string) => {
     if (overlayInnerRef.current) {
       overlayInnerRef.current.innerHTML =
-        '<div style="width:52px;height:52px;border-radius:50%;background:rgba(52,95,67,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:4px;flex-shrink:0">' +
-          '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2f6644" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+        '<div style="width:56px;height:56px;border-radius:50%;background:rgba(47,102,68,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:12px;flex-shrink:0">' +
+          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2f6644" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
         '</div>' +
-        '<p style="font-size:13px;letter-spacing:0.32em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:600">Payment Successful</p>';
+        '<p style="font-size:13px;letter-spacing:0.3em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:600;margin-bottom:10px">Payment Successful</p>' +
+        '<p style="font-size:12px;color:rgba(30,24,20,0.55);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:280px;line-height:1.75">Your payment has been received successfully.<br>We\'ve sent your order for processing and will<br>keep you updated on the next steps.</p>';
     }
     showOverlay();
     setTimeout(() => onSuccess(txnId), 500);
+  }, [showOverlay, onSuccess]);
+
+  // Shows a clean "Payment Pending" overlay — payment received but awaiting final confirmation.
+  const showOverlayPending = useCallback(() => {
+    if (overlayInnerRef.current) {
+      overlayInnerRef.current.innerHTML =
+        '<div style="width:56px;height:56px;border-radius:50%;background:rgba(160,120,40,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:12px;flex-shrink:0">' +
+          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#a07828" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' +
+          '</svg>' +
+        '</div>' +
+        '<p style="font-size:13px;letter-spacing:0.3em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:600;margin-bottom:10px">Payment Pending</p>' +
+        '<p style="font-size:12px;color:rgba(30,24,20,0.55);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:280px;line-height:1.75">Your payment is currently being verified.<br>This may take a few moments. We\'ll update<br>your order status as soon as confirmation is received.</p>';
+    }
+    showOverlay();
+    setTimeout(onSuccess, 500);
   }, [showOverlay, onSuccess]);
 
   // Shows a clean "Payment Failed" overlay then calls onFail after a brief delay.
   const showOverlayFail = useCallback(() => {
     if (overlayInnerRef.current) {
       overlayInnerRef.current.innerHTML =
-        '<div style="width:52px;height:52px;border-radius:50%;background:rgba(180,60,40,0.08);display:flex;align-items:center;justify-content:center;margin-bottom:4px;flex-shrink:0">' +
-          '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b43c28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<div style="width:56px;height:56px;border-radius:50%;background:rgba(180,60,40,0.08);display:flex;align-items:center;justify-content:center;margin-bottom:12px;flex-shrink:0">' +
+          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b43c28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
             '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>' +
           '</svg>' +
         '</div>' +
-        '<p style="font-size:13px;letter-spacing:0.32em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:600">Payment Failed</p>' +
-        '<p style="font-size:12px;color:rgba(30,24,20,0.5);font-family:\'Montserrat\',sans-serif;letter-spacing:0.05em;text-align:center;max-width:260px;line-height:1.6">Your payment could not be processed.<br>Please try again.</p>';
+        '<p style="font-size:13px;letter-spacing:0.3em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:600;margin-bottom:10px">Payment Failed</p>' +
+        '<p style="font-size:12px;color:rgba(30,24,20,0.55);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:280px;line-height:1.75">Unfortunately, your payment could not be processed.<br>Please try again or use a different<br>payment method.</p>';
     }
     showOverlay();
     setTimeout(onFail, 500);
@@ -2416,13 +2433,19 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
           showOverlaySuccess(data.paymobTxnId ?? undefined);
+        } else if (data.status === "processing") {
+          // Payment confirmed by Paymob; draft order created and awaiting admin dispatch.
+          resolvedRef.current = true;
+          stopPolling();
+          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
+          showOverlayPending();
         } else if (data.status === "declined" || data.status === "failed") {
           resolvedRef.current = true;
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
           showOverlayFail();
         }
-        // "pending" / "processing" — keep polling
+        // "pending" — keep polling until resolved
       } catch {
         // Network error — keep polling
       }
@@ -2430,7 +2453,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
 
     pollIntervalRef.current = setInterval(() => { void poll(); }, 200);
     return () => stopPolling();
-  }, [intentId, showOverlaySuccess, showOverlayFail, stopPolling]);
+  }, [intentId, showOverlaySuccess, showOverlayPending, showOverlayFail, stopPolling]);
 
   useEffect(() => {
     const ownOrigin = window.location.origin;
