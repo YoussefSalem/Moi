@@ -1468,7 +1468,7 @@ export function CheckoutPage() {
                   Payment Method
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-8">
-                  {(["cod", "instapay"] as PaymentMethod[]).map((m) => (
+                  {(["cod", "instapay", "card"] as PaymentMethod[]).map((m) => (
                     <button
                       key={m}
                       onClick={() => setPaymentMethod(m)}
@@ -1480,35 +1480,16 @@ export function CheckoutPage() {
                       }}
                     >
                       <div style={{ fontSize: "17px", marginBottom: "5px" }}>
-                        {m === "cod" ? "🚚" : "📱"}
+                        {m === "cod" ? "🚚" : m === "instapay" ? "📱" : "💳"}
                       </div>
                       <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
-                        {m === "cod" ? "Cash on Delivery" : "InstaPay"}
+                        {m === "cod" ? "Cash on Delivery" : m === "instapay" ? "InstaPay" : "Credit / Debit Card"}
                       </p>
                       <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", marginTop: "3px", lineHeight: 1.4 }}>
-                        {m === "cod" ? "Pay on arrival" : "Bank transfer"}
+                        {m === "cod" ? "Pay on arrival" : m === "instapay" ? "Bank transfer" : "Visa · Mastercard"}
                       </p>
                     </button>
                   ))}
-                  <div
-                    className="text-left"
-                    style={{
-                      padding: "14px 12px",
-                      border: "1px dashed rgba(30,24,20,0.2)",
-                      backgroundColor: "transparent",
-                      opacity: 0.55,
-                    }}
-                  >
-                    <div style={{ fontSize: "17px", marginBottom: "5px", filter: "grayscale(1)" }}>
-                      💳
-                    </div>
-                    <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
-                      Card
-                    </p>
-                    <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.45)", fontFamily: "'Cormorant Garamond', Georgia, serif", fontStyle: "italic", fontWeight: 500, marginTop: "4px", lineHeight: 1.4 }}>
-                      coming soon
-                    </p>
-                  </div>
                 </div>
 
                 {/* Delivery form */}
