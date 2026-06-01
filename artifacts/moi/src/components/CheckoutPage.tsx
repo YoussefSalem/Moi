@@ -2259,6 +2259,18 @@ interface PaymobIframeProps {
 }
 
 function PaymobIframe({ url, onSuccess, onFail, iframeStyle }: PaymobIframeProps) {
+  const loadCountRef = useRef(0);
+  const [showOverlay, setShowOverlay] = useState(false);
+
+  const handleIframeLoad = useCallback(() => {
+    loadCountRef.current += 1;
+    // First load = initial form. Second load = Paymob navigated away after PAY —
+    // immediately cover the iframe so the user never sees raw JSON.
+    if (loadCountRef.current >= 2) {
+      setShowOverlay(true);
+    }
+  }, []);
+
   useEffect(() => {
     const ownOrigin = window.location.origin;
     // Paymob Unified Checkout posts completion messages from their domain
@@ -2309,18 +2321,52 @@ function PaymobIframe({ url, onSuccess, onFail, iframeStyle }: PaymobIframeProps
   }, [onSuccess, onFail]);
 
   return (
-    <iframe
-      src={url}
-      title="Secure Card Payment"
-      allow="payment"
-      scrolling="no"
-      style={{
-        width: "100%",
-        height: 760,
-        border: "none",
-        display: "block",
-        ...iframeStyle,
-      }}
-    />
+    <div style={{ position: "relative", width: "100%" }}>
+      <iframe
+        src={url}
+        title="Secure Card Payment"
+        allow="payment"
+        scrolling="no"
+        onLoad={handleIframeLoad}
+        style={{
+          width: "100%",
+          height: 760,
+          border: "none",
+          display: "block",
+          ...iframeStyle,
+        }}
+      />
+      {showOverlay && (
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          background: "#faf8f5",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 16,
+          zIndex: 20,
+        }}>
+          <div style={{
+            width: 28,
+            height: 28,
+            border: "2px solid rgba(30,24,20,0.15)",
+            borderTopColor: "#1e1814",
+            borderRadius: "50%",
+            animation: "moi-spin 0.8s linear infinite",
+          }} />
+          <p style={{
+            fontSize: "11px",
+            letterSpacing: "0.28em",
+            textTransform: "uppercase",
+            color: "rgba(30,24,20,0.5)",
+            fontFamily: "'Montserrat', sans-serif",
+          }}>
+            Processing
+          </p>
+        </div>
+      )}
+    </div>
   );
 }

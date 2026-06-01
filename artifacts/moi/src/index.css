@@ -310,6 +310,10 @@ section {
   to { transform: rotate(360deg); }
 }
 
+@keyframes moi-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Hero image crossfade when active thumbnail changes */
 @keyframes lookImgFade {
   from { opacity: 0; }
