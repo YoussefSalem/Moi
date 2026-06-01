@@ -2288,6 +2288,10 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   const overlayInnerRef = useRef<HTMLDivElement>(null);
   const loadCountRef = useRef(0);
   const resolvedRef = useRef(false);
+  // Set to true when we show a *temporary* processing overlay to cover Paymob's
+  // intermediate-state JSON (e.g. "Pending 3DS Authorization"). handleIframeLoad
+  // clears the overlay on the very next page load so the 3DS page is visible.
+  const tempOverlayRef = useRef(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const blurDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollStartRef = useRef<number>(Date.now());
@@ -2337,11 +2341,16 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
 
   const handleIframeLoad = useCallback(() => {
     loadCountRef.current += 1;
-    if (loadCountRef.current >= 2) {
-      // Paymob navigated to a result page via full page load — cover immediately.
-      showOverlay();
+    // If a temporary overlay was shown to cover an intermediate-state JSON
+    // (e.g. "Pending 3DS Authorization"), remove it now so the next page
+    // (typically the bank's 3DS authentication page) is visible to the user.
+    if (tempOverlayRef.current) {
+      tempOverlayRef.current = false;
+      if (!resolvedRef.current && overlayRef.current) {
+        overlayRef.current.style.display = "none";
+      }
     }
-  }, [showOverlay]);
+  }, []);
 
   // window.blur fires when the user clicks INTO the iframe (focus leaves parent window).
   // window.focus fires when focus returns to the parent.
@@ -2480,22 +2489,30 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           stopPolling();
           showOverlaySuccess(undefined);
         } else if (isFail) {
-          // Show the overlay for any completed failure: either we have a transaction ID,
-          // or pending=false confirms the attempt is definitively done (not still loading).
-          const isCompleted = hasTxnId || data["pending"] === false || data["pending"] === "false";
-          if (isCompleted) {
+          const isPending = data["pending"] === true || data["pending"] === "true";
+          if (hasTxnId && !isPending) {
+            // Completed failure (e.g. card declined, invalid credentials) — cover permanently.
             resolvedRef.current = true;
             stopPolling();
             showOverlayFail();
+          } else if (isPending) {
+            // Intermediate state (e.g. "Pending 3DS Authorization"). Show a processing
+            // overlay to hide the raw JSON, but mark it as temporary so handleIframeLoad
+            // removes it on the very next page load (the bank's 3DS page) so the user
+            // can actually complete authentication.
+            if (!resolvedRef.current) {
+              tempOverlayRef.current = true;
+              showOverlay();
+            }
           }
-          // pending=true with no txnId = form loading/status event — ignore
+          // isPending=unknown with no txnId = form loading event — ignore
         }
       }
     }
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [showOverlaySuccess, showOverlayFail, stopPolling]);
+  }, [showOverlay, showOverlaySuccess, showOverlayFail, stopPolling]);
 
   return (
     <div style={{ position: "relative", width: "100%" }}>
