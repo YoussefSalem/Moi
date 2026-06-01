@@ -523,6 +523,7 @@ interface CardOrder {
   id: number;
   intentId: string;
   shopifyOrderId: number | null;
+  shopifyConfirmedOrderId: number | null;
   paymobTxnId: string | null;
   total: string;
   customerName: string | null;
@@ -530,6 +531,8 @@ interface CardOrder {
   customerEmail: string | null;
   address: string | null;
   city: string | null;
+  adminApproved: boolean;
+  adminApprovedAt: string | null;
   bostaDispatched: boolean;
   bostaTrackingNumber: string | null;
   bostaDispatchedAt: string | null;
@@ -541,7 +544,7 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
-  const [filterDispatched, setFilterDispatched] = useState<"all" | "pending" | "dispatched">("pending");
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending-approval" | "pending-dispatch" | "dispatched">("pending-approval");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -560,6 +563,20 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
 
   useEffect(() => { void load(); }, [load]);
 
+  async function approve(id: number) {
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/admin/card-orders/${id}/approve`, { method: "POST", headers: apiHeaders(token) });
+      const data = await res.json() as { ok?: boolean; orderId?: number; orderNumber?: number; error?: string };
+      if (!res.ok || data.error) {
+        alert(`Approve failed: ${data.error ?? "Unknown error"}`);
+        return;
+      }
+      alert(`✅ Order Approved\nShopify Order #${data.orderNumber ?? data.orderId ?? "—"} confirmed.`);
+      await load();
+    } finally { setActionLoading(null); }
+  }
+
   async function dispatch(id: number) {
     setActionLoading(id);
     try {
@@ -575,16 +592,30 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
   }
 
   const filtered = orders.filter((o) => {
-    if (filterDispatched === "pending") return !o.bostaDispatched;
-    if (filterDispatched === "dispatched") return o.bostaDispatched;
+    if (filterStatus === "pending-approval") return !o.adminApproved;
+    if (filterStatus === "pending-dispatch") return o.adminApproved && !o.bostaDispatched;
+    if (filterStatus === "dispatched") return o.bostaDispatched;
     return true;
   });
 
-  const pendingCount = orders.filter((o) => !o.bostaDispatched).length;
+  const pendingApprovalCount = orders.filter((o) => !o.adminApproved).length;
+  const pendingDispatchCount = orders.filter((o) => o.adminApproved && !o.bostaDispatched).length;
 
   const fmtDate = (d: string | null) => d
     ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
     : "—";
+
+  const orderLabel = (order: CardOrder) => {
+    if (order.shopifyConfirmedOrderId) return `Shopify #${order.shopifyConfirmedOrderId}`;
+    if (order.shopifyOrderId) return `Draft #${order.shopifyOrderId}`;
+    return `Txn ${order.paymobTxnId ?? order.intentId}`;
+  };
+
+  const statusBadge = (order: CardOrder) => {
+    if (order.bostaDispatched) return { label: "Dispatched", bg: "rgba(60,120,60,0.12)", color: "#2d6e2d" };
+    if (order.adminApproved) return { label: "Ready to Dispatch", bg: "rgba(60,100,180,0.10)", color: "#2d4e9e" };
+    return { label: "Pending Approval", bg: "rgba(180,140,40,0.12)", color: "#8a6a10" };
+  };
 
   return (
     <div>
@@ -593,9 +624,9 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
           <p style={{ fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700 }}>
             Card Orders
           </p>
-          {pendingCount > 0 && (
+          {pendingApprovalCount > 0 && (
             <span style={{ backgroundColor: "#c0392b", color: "#fff", fontSize: "11px", fontWeight: 700, fontFamily: "'Montserrat', sans-serif", padding: "2px 7px", borderRadius: 99 }}>
-              {pendingCount}
+              {pendingApprovalCount}
             </span>
           )}
         </div>
@@ -606,19 +637,24 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
 
       <div style={{ backgroundColor: "rgba(60,100,140,0.07)", border: "1px solid rgba(60,100,140,0.2)", padding: "12px 16px", marginBottom: 22 }}>
         <p style={{ ...mono, fontSize: 12, color: "#2d5a7e", lineHeight: 1.6 }}>
-          Card payments are confirmed automatically by Paymob. Click <strong>Dispatch</strong> to create the Bosta shipment and mark the order for fulfillment.
+          Card payments create a Shopify <strong>draft</strong> order. Click <strong>Approve</strong> to confirm the payment and convert it to a real order, then <strong>Dispatch</strong> to create a Bosta shipment.
         </p>
       </div>
 
       {/* Filter */}
-      <div className="flex gap-2 mb-5">
-        {(["pending", "all", "dispatched"] as const).map((f) => (
+      <div className="flex gap-2 mb-5 flex-wrap">
+        {([
+          { key: "pending-approval", label: `Pending Approval${pendingApprovalCount > 0 ? ` (${pendingApprovalCount})` : ""}` },
+          { key: "pending-dispatch", label: `Ready to Dispatch${pendingDispatchCount > 0 ? ` (${pendingDispatchCount})` : ""}` },
+          { key: "dispatched", label: "Dispatched" },
+          { key: "all", label: "All" },
+        ] as const).map(({ key, label }) => (
           <button
-            key={f}
-            onClick={() => setFilterDispatched(f)}
-            style={{ ...btn, backgroundColor: filterDispatched === f ? "#1e1814" : "transparent", color: filterDispatched === f ? "#fff" : "rgba(30,24,20,0.6)", border: "1px solid rgba(30,24,20,0.18)", padding: "6px 12px" }}
+            key={key}
+            onClick={() => setFilterStatus(key)}
+            style={{ ...btn, backgroundColor: filterStatus === key ? "#1e1814" : "transparent", color: filterStatus === key ? "#fff" : "rgba(30,24,20,0.6)", border: "1px solid rgba(30,24,20,0.18)", padding: "6px 12px" }}
           >
-            {f === "pending" ? "Pending Dispatch" : f === "dispatched" ? "Dispatched" : "All"}
+            {label}
           </button>
         ))}
       </div>
@@ -628,53 +664,75 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
 
       {!loading && filtered.length === 0 && (
         <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}>
-          No {filterDispatched === "pending" ? "pending" : filterDispatched === "dispatched" ? "dispatched" : ""} card orders.
+          No {filterStatus === "pending-approval" ? "orders pending approval" : filterStatus === "pending-dispatch" ? "orders ready to dispatch" : filterStatus === "dispatched" ? "dispatched orders" : "card orders"}.
         </p>
       )}
 
       <div className="flex flex-col gap-3">
-        {filtered.map((order) => (
-          <div key={order.id} style={{ border: "1px solid rgba(30,24,20,0.16)", backgroundColor: "#fff" }}>
-            <div className="flex items-center justify-between p-4" style={{ gap: 12 }}>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "19px", fontWeight: 700, color: "#1e1814" }}>
-                    {order.shopifyOrderId ? `Shopify #${order.shopifyOrderId}` : `Txn ${order.paymobTxnId ?? order.intentId}`}
-                  </span>
-                  <span style={{
-                    ...mono, fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px",
-                    backgroundColor: order.bostaDispatched ? "rgba(60,120,60,0.12)" : "rgba(180,140,40,0.12)",
-                    color: order.bostaDispatched ? "#2d6e2d" : "#8a6a10",
-                  }}>
-                    {order.bostaDispatched ? "Dispatched" : "Pending Dispatch"}
-                  </span>
-                </div>
-                <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", marginTop: 4 }}>
-                  {order.customerName ?? "—"} · {order.customerPhone ?? "—"} · <strong>{order.total} EGP</strong>
-                </p>
-                <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", marginTop: 2, letterSpacing: "0.04em" }}>
-                  {order.address ?? "—"}{order.city ? `, ${order.city}` : ""} · {fmtDate(order.createdAt)}
-                </p>
-                {order.bostaDispatched && order.bostaTrackingNumber && (
-                  <p style={{ fontSize: "11px", color: "#2d6e2d", fontFamily: "'Montserrat', sans-serif", marginTop: 3, fontWeight: 700 }}>
-                    Bosta: {order.bostaTrackingNumber} · Dispatched {fmtDate(order.bostaDispatchedAt)}
+        {filtered.map((order) => {
+          const badge = statusBadge(order);
+          const isActing = actionLoading === order.id;
+          return (
+            <div key={order.id} style={{ border: "1px solid rgba(30,24,20,0.16)", backgroundColor: "#fff" }}>
+              <div className="flex items-center justify-between p-4" style={{ gap: 12 }}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "19px", fontWeight: 700, color: "#1e1814" }}>
+                      {orderLabel(order)}
+                    </span>
+                    <span style={{
+                      ...mono, fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px",
+                      backgroundColor: badge.bg, color: badge.color,
+                    }}>
+                      {badge.label}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", marginTop: 4 }}>
+                    {order.customerName ?? "—"} · {order.customerPhone ?? "—"} · <strong>{order.total} EGP</strong>
                   </p>
-                )}
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {!order.bostaDispatched && (
-                  <button
-                    onClick={() => void dispatch(order.id)}
-                    disabled={actionLoading === order.id}
-                    style={{ ...btn, backgroundColor: "#1e1814", color: "#fff", display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", opacity: actionLoading === order.id ? 0.6 : 1 }}
-                  >
-                    {actionLoading === order.id ? "Dispatching…" : "Dispatch to Bosta"}
-                  </button>
-                )}
+                  <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", marginTop: 2, letterSpacing: "0.04em" }}>
+                    {order.address ?? "—"}{order.city ? `, ${order.city}` : ""} · {fmtDate(order.createdAt)}
+                  </p>
+                  {order.paymobTxnId && (
+                    <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.4)", fontFamily: "'Montserrat', sans-serif", marginTop: 2, letterSpacing: "0.04em" }}>
+                      Paymob Txn: {order.paymobTxnId}
+                    </p>
+                  )}
+                  {order.adminApproved && order.adminApprovedAt && (
+                    <p style={{ fontSize: "11px", color: "#2d4e9e", fontFamily: "'Montserrat', sans-serif", marginTop: 3 }}>
+                      Approved {fmtDate(order.adminApprovedAt)}
+                    </p>
+                  )}
+                  {order.bostaDispatched && order.bostaTrackingNumber && (
+                    <p style={{ fontSize: "11px", color: "#2d6e2d", fontFamily: "'Montserrat', sans-serif", marginTop: 3, fontWeight: 700 }}>
+                      Bosta: {order.bostaTrackingNumber} · Dispatched {fmtDate(order.bostaDispatchedAt)}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {!order.adminApproved && (
+                    <button
+                      onClick={() => void approve(order.id)}
+                      disabled={isActing}
+                      style={{ ...btn, backgroundColor: "#1a5c3a", color: "#fff", display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", opacity: isActing ? 0.6 : 1 }}
+                    >
+                      {isActing ? "Approving…" : "Approve Order"}
+                    </button>
+                  )}
+                  {order.adminApproved && !order.bostaDispatched && (
+                    <button
+                      onClick={() => void dispatch(order.id)}
+                      disabled={isActing}
+                      style={{ ...btn, backgroundColor: "#1e1814", color: "#fff", display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", opacity: isActing ? 0.6 : 1 }}
+                    >
+                      {isActing ? "Dispatching…" : "Dispatch to Bosta"}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

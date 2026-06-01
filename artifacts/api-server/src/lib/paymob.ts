@@ -174,6 +174,9 @@ async function getPaymobAuthToken(apiKey: string): Promise<string> {
  * identified by our internal merchantOrderId. Used as a fallback when the
  * server-to-server webhook has not arrived (e.g. network issues or config
  * mismatch). Returns null if no completed transaction is found or on any error.
+ *
+ * Tries Bearer token auth (newer Paymob API style) first; falls back to the
+ * legacy auth_token query-parameter style if the Bearer approach fails.
  */
 export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Promise<{
   success: boolean;
@@ -184,14 +187,30 @@ export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Pro
   if (!config.apiKey) return null;
   try {
     const token = await getPaymobAuthToken(config.apiKey);
-    // Query Paymob orders filtered by our merchant_order_id.
-    const url = `https://accept.paymob.com/api/ecommerce/orders?merchant_order_id=${encodeURIComponent(merchantOrderId)}&auth_token=${encodeURIComponent(token)}`;
-    const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      logger.warn({ status: res.status, text, merchantOrderId }, "queryPaymobByMerchantOrderId: non-OK response");
+    const url = `https://accept.paymob.com/api/ecommerce/orders?merchant_order_id=${encodeURIComponent(merchantOrderId)}`;
+
+    // Attempt 1: Bearer auth in Authorization header (newer Paymob API).
+    // Attempt 2: auth_token as query param (legacy).
+    // Attempt 3: Bearer using secret key directly (Paymob Intentions API style).
+    const attempts: Array<() => Promise<Response>> = [
+      () => fetch(url, { headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } }),
+      () => fetch(`${url}&auth_token=${encodeURIComponent(token)}`, { headers: { "Content-Type": "application/json" } }),
+      ...(config.secretKey ? [() => fetch(url, { headers: { "Authorization": `Bearer ${config.secretKey}`, "Content-Type": "application/json" } })] : []),
+    ];
+
+    let res: Response | null = null;
+    for (const attempt of attempts) {
+      const r = await attempt();
+      if (r.ok) { res = r; break; }
+      const text = await r.text().catch(() => "");
+      logger.warn({ status: r.status, text, merchantOrderId }, "queryPaymobByMerchantOrderId: attempt failed, trying next auth strategy");
+    }
+
+    if (!res) {
+      logger.warn({ merchantOrderId }, "queryPaymobByMerchantOrderId: all auth strategies failed");
       return null;
     }
+
     const body = await res.json() as {
       results?: Array<{
         id: number;
@@ -220,6 +239,79 @@ export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Pro
     return null;
   } catch (err) {
     logger.warn({ err, merchantOrderId }, "queryPaymobByMerchantOrderId: unexpected error");
+    return null;
+  }
+}
+
+/**
+ * Fetches a specific Paymob transaction by its numeric ID and verifies it
+ * belongs to the given merchantOrderId. Used by paymob-sync as an alternative
+ * to the order-level query when the client provides a txnId from the relay page.
+ *
+ * Returns null on any error or if the transaction does not match.
+ */
+export async function verifyPaymobTransactionById(txnId: string, expectedMerchantOrderId: string): Promise<{
+  success: boolean;
+  txnId: string;
+  amountCents: number;
+} | null> {
+  const config = getPaymobConfig();
+  if (!config.apiKey) return null;
+  const numericId = parseInt(txnId, 10);
+  if (isNaN(numericId) || numericId <= 0) return null;
+  try {
+    const token = await getPaymobAuthToken(config.apiKey);
+    const url = `https://accept.paymob.com/api/acceptance/transactions/${numericId}`;
+
+    const attempts: Array<() => Promise<Response>> = [
+      () => fetch(url, { headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } }),
+      () => fetch(`${url}?auth_token=${encodeURIComponent(token)}`, { headers: { "Content-Type": "application/json" } }),
+      ...(config.secretKey ? [() => fetch(url, { headers: { "Authorization": `Bearer ${config.secretKey}`, "Content-Type": "application/json" } })] : []),
+    ];
+
+    let res: Response | null = null;
+    for (const attempt of attempts) {
+      const r = await attempt();
+      if (r.ok) { res = r; break; }
+      const text = await r.text().catch(() => "");
+      logger.warn({ status: r.status, text, txnId }, "verifyPaymobTransactionById: attempt failed, trying next auth strategy");
+    }
+
+    if (!res) {
+      logger.warn({ txnId, expectedMerchantOrderId }, "verifyPaymobTransactionById: all auth strategies failed");
+      return null;
+    }
+
+    const txn = await res.json() as {
+      id?: number;
+      success?: boolean;
+      pending?: boolean;
+      amount_cents?: number;
+      order?: { merchant_order_id?: string; amount_cents?: number };
+    };
+
+    // Verify this transaction belongs to our intent
+    const actualMerchantOrderId = txn.order?.merchant_order_id;
+    if (actualMerchantOrderId !== expectedMerchantOrderId) {
+      logger.warn(
+        { txnId, expectedMerchantOrderId, actualMerchantOrderId },
+        "verifyPaymobTransactionById: merchant_order_id mismatch — rejecting",
+      );
+      return null;
+    }
+
+    if (txn.pending) {
+      logger.info({ txnId, expectedMerchantOrderId }, "verifyPaymobTransactionById: transaction still pending");
+      return null;
+    }
+
+    return {
+      success: txn.success === true,
+      txnId: String(txn.id ?? numericId),
+      amountCents: txn.amount_cents ?? txn.order?.amount_cents ?? 0,
+    };
+  } catch (err) {
+    logger.warn({ err, txnId, expectedMerchantOrderId }, "verifyPaymobTransactionById: unexpected error");
     return null;
   }
 }

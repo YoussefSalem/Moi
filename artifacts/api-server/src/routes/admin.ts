@@ -428,6 +428,7 @@ router.get("/admin/card-orders", async (req, res) => {
         id: r.id,
         intentId: r.intentId,
         shopifyOrderId: r.shopifyOrderId,
+        shopifyConfirmedOrderId: r.shopifyConfirmedOrderId,
         paymobTxnId: r.paymobTxnId,
         total: r.total,
         customerName: [customer.firstName, customer.lastName].filter(Boolean).join(" ") || null,
@@ -435,6 +436,8 @@ router.get("/admin/card-orders", async (req, res) => {
         customerEmail: customer.email ?? null,
         address: customer.address ?? null,
         city: customer.city ?? null,
+        adminApproved: r.adminApproved,
+        adminApprovedAt: r.adminApprovedAt,
         bostaDispatched: r.bostaDispatched,
         bostaTrackingNumber: r.bostaTrackingNumber,
         bostaDispatchedAt: r.bostaDispatchedAt,
@@ -449,6 +452,43 @@ router.get("/admin/card-orders", async (req, res) => {
   }
 });
 
+// POST /admin/card-orders/:id/approve — convert Shopify draft order to a confirmed order
+router.post("/admin/card-orders/:id/approve", async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const rows = await db.select().from(paymobIntents).where(eq(paymobIntents.id, id)).limit(1);
+  const intent = rows[0];
+  if (!intent) { res.status(404).json({ error: "Order not found" }); return; }
+  if (intent.status !== "completed") { res.status(409).json({ error: "Order not in completed state" }); return; }
+  if (intent.adminApproved) { res.status(409).json({ error: "Order already approved" }); return; }
+  if (!intent.shopifyOrderId) { res.status(409).json({ error: "No Shopify draft order linked — payment may still be processing" }); return; }
+
+  req.log.info({ id, draftOrderId: intent.shopifyOrderId }, "card-orders approve: completing Shopify draft order");
+
+  const result = await completeShopifyDraftOrder(intent.shopifyOrderId).catch((err: unknown) => {
+    req.log.error({ err, id }, "card-orders approve: completeShopifyDraftOrder threw");
+    return null;
+  });
+
+  if (!result) {
+    res.status(502).json({ error: "Failed to complete Shopify draft order — check Shopify credentials and draft order status" });
+    return;
+  }
+
+  await db
+    .update(paymobIntents)
+    .set({
+      adminApproved: true,
+      adminApprovedAt: new Date(),
+      shopifyConfirmedOrderId: result.orderId,
+    })
+    .where(eq(paymobIntents.id, id));
+
+  req.log.info({ id, draftOrderId: intent.shopifyOrderId, confirmedOrderId: result.orderId, orderNumber: result.orderNumber }, "card-orders approve: draft completed → confirmed Shopify order");
+  res.status(200).json({ ok: true, orderId: result.orderId, orderNumber: result.orderNumber, total: result.total });
+});
+
 // POST /admin/card-orders/:id/dispatch — create Bosta shipment and mark dispatched
 router.post("/admin/card-orders/:id/dispatch", async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
@@ -458,8 +498,12 @@ router.post("/admin/card-orders/:id/dispatch", async (req, res) => {
   const intent = rows[0];
   if (!intent) { res.status(404).json({ error: "Order not found" }); return; }
   if (intent.status !== "completed") { res.status(409).json({ error: "Order not completed" }); return; }
+  if (!intent.adminApproved) { res.status(409).json({ error: "Order must be approved before dispatch — click Approve first to confirm the Shopify order" }); return; }
   if (intent.bostaDispatched) { res.status(409).json({ error: "Already dispatched" }); return; }
-  if (!intent.shopifyOrderId) { res.status(409).json({ error: "No Shopify order linked" }); return; }
+
+  // Use the confirmed real order ID for Shopify operations; fall back to draft ID
+  const shopifyOrderId = intent.shopifyConfirmedOrderId ?? intent.shopifyOrderId;
+  if (!shopifyOrderId) { res.status(409).json({ error: "No Shopify order linked" }); return; }
 
   const customer = intent.customer as {
     firstName?: string;
@@ -477,13 +521,13 @@ router.post("/admin/card-orders/:id/dispatch", async (req, res) => {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
 
-  // Fetch shipping address from Shopify for the most accurate city/address
+  // Fetch shipping address from the confirmed Shopify order
   let address = customer.address;
   let city = customer.city ?? "Cairo";
   if (storeDomain && adminToken) {
     try {
       const orderRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/orders/${intent.shopifyOrderId}.json?fields=shipping_address`,
+        `https://${storeDomain}/admin/api/2024-04/orders/${shopifyOrderId}.json?fields=shipping_address`,
         { headers: { "X-Shopify-Access-Token": adminToken } },
       );
       if (orderRes.ok) {
@@ -523,14 +567,14 @@ router.post("/admin/card-orders/:id/dispatch", async (req, res) => {
       .where(eq(paymobIntents.id, id));
 
     // Tag Shopify order + add note + create fulfillment (fire-and-forget)
-    void addShopifyOrderNote(intent.shopifyOrderId, `Bosta tracking: ${trackingNumber}\nPayment: Paymob Card (admin dispatched)`);
-    void tagShopifyOrder(intent.shopifyOrderId, `bosta-${trackingNumber}`);
-    const fulfillmentId = await createShopifyFulfillment(intent.shopifyOrderId, trackingNumber);
+    void addShopifyOrderNote(shopifyOrderId, `Bosta tracking: ${trackingNumber}\nPayment: Paymob Card (admin dispatched)`);
+    void tagShopifyOrder(shopifyOrderId, `bosta-${trackingNumber}`);
+    const fulfillmentId = await createShopifyFulfillment(shopifyOrderId, trackingNumber);
     if (fulfillmentId) {
-      void addShopifyFulfillmentEvent(intent.shopifyOrderId, fulfillmentId, "in_transit");
+      void addShopifyFulfillmentEvent(shopifyOrderId, fulfillmentId, "in_transit");
     }
 
-    req.log.info({ id, trackingNumber, shopifyOrderId: intent.shopifyOrderId }, "card-orders: Bosta shipment dispatched");
+    req.log.info({ id, trackingNumber, shopifyOrderId }, "card-orders: Bosta shipment dispatched");
     res.status(200).json({ ok: true, trackingNumber });
   } catch (err) {
     req.log.error({ err }, "card-orders dispatch: Bosta shipment creation failed");

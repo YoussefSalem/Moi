@@ -2463,7 +2463,8 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
     showOverlay();
   }, [showOverlay, onSuccess]);
 
-  // Shows a clean "Payment Pending" overlay — payment received but awaiting final confirmation.
+  // Shows a "Payment Pending" overlay — payment received but awaiting final server confirmation.
+  // Does NOT auto-call onSuccess; the caller must decide when/whether to proceed.
   const showOverlayPending = useCallback(() => {
     if (overlayInnerRef.current) {
       overlayInnerRef.current.innerHTML =
@@ -2476,8 +2477,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
         '<p style="font-size:12px;color:rgba(30,24,20,0.55);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:280px;line-height:1.75">Your payment is currently being verified.<br>This may take a few moments. We\'ll update<br>your order status as soon as confirmation is received.</p>';
     }
     showOverlay();
-    setTimeout(onSuccess, 500);
-  }, [showOverlay, onSuccess]);
+  }, [showOverlay]);
 
   // Shows a "Payment Failed – Please try again" overlay with a 3-second countdown,
   // then auto-triggers onFail which refreshes the payment session.
@@ -2597,10 +2597,9 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
           showOverlaySuccess(data.paymobTxnId ?? undefined);
         } else if (data.status === "processing") {
-          // Payment confirmed by Paymob; draft order created and awaiting admin dispatch.
-          resolvedRef.current = true;
-          stopPolling();
-          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
+          // Paymob payment claimed — draft creation in progress. Show the pending
+          // overlay but keep polling until "completed" so the success screen only
+          // fires once the Shopify draft order is confirmed.
           showOverlayPending();
         } else if (data.status === "declined" || data.status === "failed") {
           resolvedRef.current = true;
@@ -2608,7 +2607,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
           showOverlayFail();
         }
-        // "pending" — keep polling until resolved
+        // "pending" or "processing" — keep polling until resolved
       } catch {
         // Network error — keep polling
       }
@@ -2649,25 +2648,33 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       // from any previous Paymob-rendered page can remain visible.
       // Helper: fire paymob-sync so the server creates the Shopify draft order
       // immediately, even if the webhook hasn't arrived yet.  Fire-and-forget.
-      const syncPaymobOrder = () => {
+      // paymobTxnId is passed so the server can verify the transaction directly
+      // by ID rather than having to search by merchant_order_id.
+      const syncPaymobOrder = (paymobTxnId?: string) => {
         if (!intentId) return;
         void fetch("/api/orders/paymob-sync", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ intentId }),
+          body: JSON.stringify({ intentId, ...(paymobTxnId ? { paymobTxnId } : {}) }),
         }).catch(() => {});
       };
 
       if (isOwn && data["type"] === "PAYMOB_RESULT") {
-        resolvedRef.current = true;
-        stopPolling();
         const txnId = String(data["transactionId"] ?? "");
         if (data["success"]) {
-          syncPaymobOrder();
+          resolvedRef.current = true;
+          stopPolling();
+          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
+          syncPaymobOrder(txnId || undefined);
           showOverlaySuccess(txnId || undefined);
         } else if (data["pending"]) {
+          // Payment still pending (waiting on bank confirmation). Show the overlay
+          // but keep polling — do NOT mark as resolved yet.
           showOverlayPending();
         } else {
+          resolvedRef.current = true;
+          stopPolling();
+          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
           showOverlayFail();
         }
         return;
@@ -2684,12 +2691,14 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
         if (isSuccess && hasTxnId) {
           resolvedRef.current = true;
           stopPolling();
-          syncPaymobOrder();
+          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
+          syncPaymobOrder(txnId);
           showOverlaySuccess(txnId);
         } else if (isSuccess && !hasTxnId) {
           resolvedRef.current = true;
           stopPolling();
-          syncPaymobOrder();
+          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
+          syncPaymobOrder(undefined);
           showOverlaySuccess(undefined);
         } else if (isFail) {
           const isPending = data["pending"] === true || data["pending"] === "true";

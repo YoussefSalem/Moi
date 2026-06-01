@@ -12,12 +12,19 @@ export const paymobIntents = pgTable("paymob_intents", {
   amountCents: integer("amount_cents").notNull(),
   total: text("total").notNull(),
   status: text("status").notNull().default("pending"),
+  /** Shopify draft order ID set by processPaymobSuccess — awaits admin approval */
   shopifyOrderId: bigint("shopify_order_id", { mode: "number" }),
+  /** Shopify confirmed (real) order ID — set after admin approves the draft */
+  shopifyConfirmedOrderId: bigint("shopify_confirmed_order_id", { mode: "number" }),
   paymobTxnId: text("paymob_txn_id"),
   /** Marketing attribution captured from the session (UTM, fbclid, gclid, ttclid) */
   attribution: jsonb("attribution"),
   /** Shopify abandoned-checkout token from /api/checkouts/register — completed when order succeeds */
   checkoutToken: text("checkout_token"),
+  /** Whether admin has approved this card order (converted draft → confirmed Shopify order) */
+  adminApproved: boolean("admin_approved").notNull().default(false),
+  /** Timestamp when admin approved the order */
+  adminApprovedAt: timestamp("admin_approved_at"),
   /** Whether a Bosta shipment has been created for this order (set by admin dispatch) */
   bostaDispatched: boolean("bosta_dispatched").notNull().default(false),
   /** Bosta tracking number once dispatched */
