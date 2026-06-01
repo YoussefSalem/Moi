@@ -1116,11 +1116,9 @@ export function CheckoutPage() {
                   <div style={{ height: "1px", backgroundColor: "rgba(30,24,20,0.13)" }} />
                 </div>
 
-                {/* Transition zone above iframe */}
-                <div style={{ height: 40, background: "linear-gradient(to bottom, #faf8f5, rgba(255,255,255,0.5))" }} />
-                {/* Iframe container with rounded corners */}
-                <div style={{ borderRadius: "20px", overflow: "hidden" }}>
-                  <div className="max-h-[720px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden" }}>
+                {/* Iframe container with rounded corners — clean blend into the page */}
+                <div style={{ borderRadius: "16px", overflow: "hidden" }}>
+                  <div className="max-h-[660px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden" }}>
                     <PaymobIframe
                       url={paymobIframeUrl}
                       onSuccess={handleIframeSuccess}
@@ -1128,8 +1126,6 @@ export function CheckoutPage() {
                     />
                   </div>
                 </div>
-                {/* Transition zone below iframe */}
-                <div style={{ height: 40, background: "linear-gradient(to bottom, rgba(255,255,255,0.5), #faf8f5)" }} />
 
                 {/* Security badge */}
                 <div className="mt-4 flex items-center justify-center gap-2">
