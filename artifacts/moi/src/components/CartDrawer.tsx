@@ -248,6 +248,26 @@ export function CartDrawer() {
                   >
                     Your bag is empty
                   </p>
+                  {!customer && (
+                    <p
+                      className="text-[12px] tracking-[0.08em]"
+                      style={{ color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif" }}
+                    >
+                      Have an account?{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          closeCart();
+                          openAuth();
+                        }}
+                        className="underline underline-offset-4 transition-opacity hover:opacity-70"
+                        style={{ color: "#1e1814", fontWeight: 500 }}
+                      >
+                        Log in
+                      </button>{" "}
+                      to check out faster.
+                    </p>
+                  )}
                   <button
                     onClick={closeCart}
                     className="mt-2 text-[10px] tracking-[0.28em] uppercase font-medium px-8 py-3 transition-opacity hover:opacity-60"
@@ -493,28 +513,6 @@ export function CartDrawer() {
                 </div>
                 {/* Conversion Banner — FIRST50 (disabled — uncomment to re-enable) */}
                 {/* <DiscountBanner /> */}
-                {!customer && (
-                  <div className="text-center">
-                    <p
-                      className="text-[12px] tracking-[0.08em]"
-                      style={{ color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif" }}
-                    >
-                      Have an account?{" "}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          closeCart();
-                          openAuth();
-                        }}
-                        className="underline underline-offset-4 transition-opacity hover:opacity-70"
-                        style={{ color: "#1e1814", fontWeight: 500 }}
-                      >
-                        Log in
-                      </button>{" "}
-                      to check out faster.
-                    </p>
-                  </div>
-                )}
                 <button
                   type="button"
                   onClick={() => {
