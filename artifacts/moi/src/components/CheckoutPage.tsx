@@ -2265,6 +2265,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   const loadCountRef = useRef(0);
   const resolvedRef = useRef(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const blurDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Shows the overlay synchronously via DOM ref — no React re-render latency.
   const showOverlay = useCallback(() => {
@@ -2283,15 +2284,49 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   const handleIframeLoad = useCallback(() => {
     loadCountRef.current += 1;
     if (loadCountRef.current >= 2) {
-      // Paymob navigated to a result page — cover immediately.
+      // Paymob navigated to a result page via full page load — cover immediately.
       showOverlay();
     }
   }, [showOverlay]);
 
-  // Poll /api/orders/paymob-status/:intentId every 2 seconds.
-  // Paymob's legacy v1 iframe renders its result JSON inline without navigating,
-  // so onLoad never fires a 2nd time. The webhook marks the intent as
-  // "declined" / "completed" / "failed" — polling picks that up within ~2s.
+  // window.blur fires when the user clicks INTO the iframe (focus leaves parent window).
+  // window.focus fires when focus returns to the parent.
+  // Strategy: each time focus enters the iframe, reset a 12-second debounce timer.
+  // If the user hasn't returned to the parent window for 12 s (i.e. they clicked PAY
+  // and the form went away), show the overlay. This catches Paymob's inline
+  // document.write() result which fires no onLoad or webhook for validation failures.
+  useEffect(() => {
+    const handleBlur = () => {
+      if (resolvedRef.current) return;
+      if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
+      blurDebounceRef.current = setTimeout(() => {
+        if (!resolvedRef.current) showOverlay();
+      }, 12_000);
+    };
+
+    const handleFocus = () => {
+      // User clicked back into the parent page — cancel the debounce.
+      if (blurDebounceRef.current) {
+        clearTimeout(blurDebounceRef.current);
+        blurDebounceRef.current = null;
+      }
+    };
+
+    window.addEventListener("blur", handleBlur);
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("focus", handleFocus);
+      if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
+    };
+  }, [showOverlay]);
+
+  // Poll /api/orders/paymob-status/:intentId every 500 ms.
+  // Paymob's legacy v1 iframe renders its result JSON inline (document.write) without
+  // navigating, so onLoad never fires a 2nd time. The webhook marks the intent as
+  // "declined" / "completed" / "failed" — polling picks that up within ~500 ms.
+  // For bank-declined cards the webhook fires server-to-server BEFORE the browser
+  // renders the iframe result, so the overlay can appear before any JSON is visible.
   useEffect(() => {
     if (!intentId) return;
 
@@ -2304,10 +2339,12 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
         if (data.status === "completed") {
           resolvedRef.current = true;
           stopPolling();
+          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
           onSuccess(data.paymobTxnId ?? undefined);
         } else if (data.status === "declined" || data.status === "failed") {
           resolvedRef.current = true;
           stopPolling();
+          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
           showOverlay();
           setTimeout(onFail, 300);
         }
@@ -2317,7 +2354,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       }
     };
 
-    pollIntervalRef.current = setInterval(() => { void poll(); }, 2000);
+    pollIntervalRef.current = setInterval(() => { void poll(); }, 500);
     return () => stopPolling();
   }, [intentId, onSuccess, onFail, showOverlay, stopPolling]);
 
