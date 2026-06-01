@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { logger } from "./logger";
 import { parseEGP } from "@workspace/utils";
+import { getSiteUrl } from "./siteUrl";
 
 let _resend: Resend | null = null;
 
@@ -811,6 +812,7 @@ export function buildAdminPaymentNotificationEmail(params: {
   const adminUrl = storeDomain
     ? `https://${storeDomain}/admin/draft_orders/${draftOrderId}`
     : "";
+  const dashboardUrl = `${getSiteUrl()}/admin`;
   const now = new Date().toLocaleString("en-EG", { timeZone: "Africa/Cairo", dateStyle: "medium", timeStyle: "short" });
 
   const itemRows = lineItems && lineItems.length > 0
@@ -932,10 +934,19 @@ export function buildAdminPaymentNotificationEmail(params: {
       </table>
     </td></tr>
 
-    ${adminUrl ? `<!-- CTA -->
+    <!-- CTA -->
     <tr><td style="padding:28px 40px 0;text-align:center;">
-      <a href="${adminUrl}" style="display:inline-block;background:#1a1714;color:#ffffff;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;padding:14px 32px;text-decoration:none;">Open Draft Order in Shopify</a>
-    </td></tr>` : ""}
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+        <tr>
+          <td style="padding:0 6px 0 0;">
+            <a href="${dashboardUrl}" style="display:inline-block;background:#1a5c3a;color:#ffffff;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;padding:14px 28px;text-decoration:none;">Go to Admin Dashboard</a>
+          </td>
+          ${adminUrl ? `<td style="padding:0 0 0 6px;">
+            <a href="${adminUrl}" style="display:inline-block;background:transparent;color:#1a1714;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;padding:13px 28px;text-decoration:none;border:1px solid #1a1714;">View in Shopify</a>
+          </td>` : ""}
+        </tr>
+      </table>
+    </td></tr>
 
     <!-- Footer -->
     <tr><td style="padding:28px 40px 24px;border-top:1px solid #e8e3dc;margin-top:28px;">
@@ -960,7 +971,9 @@ export function buildAdminPaymentNotificationEmail(params: {
   const text = [
     `ADMIN NOTIFICATION — CARD PAYMENT CONFIRMED`,
     ``,
-    `Draft Order:  #${draftOrderId}${adminUrl ? `\nShopify Admin: ${adminUrl}` : ""}`,
+    `Draft Order:  #${draftOrderId}`,
+    `Admin Dashboard: ${dashboardUrl}`,
+    adminUrl ? `Shopify Admin: ${adminUrl}` : "",
     `Paymob TXN:   ${paymobTxnId}`,
     `Amount Paid:  ${parseEGP(amount).toFixed(2)} EGP`,
     `Date (Cairo): ${now}`,
