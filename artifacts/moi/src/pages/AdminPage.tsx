@@ -28,6 +28,7 @@ interface PaymobConfigMask {
   publicKey: string;
   integrationId: string;
   hmacSecret: string;
+  iframeId: string;
 }
 
 const mono: React.CSSProperties = {
@@ -693,6 +694,7 @@ function SettingsTab({ token, onAuth }: { token: string; onAuth?: (t: string | n
     { key: "publicKey", label: "Paymob Public Key", placeholder: "Enter to update", sensitive: true },
     { key: "integrationId", label: "Integration ID (Card)", placeholder: "Numeric ID, e.g. 123456", hint: "Must be the numeric Integration ID from your Paymob dashboard (Integrations → Online Card → ID column). Not the API key." },
     { key: "hmacSecret", label: "HMAC Secret", placeholder: "Enter to update", sensitive: true },
+    { key: "iframeId", label: "Iframe ID", placeholder: "e.g. 1041673", hint: "The numeric Iframe ID from your Paymob dashboard (Iframes section). Used for the legacy card payment form." },
   ];
 
   useEffect(() => {

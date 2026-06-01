@@ -901,7 +901,7 @@ router.get("/admin/paymob-config", (_req, res) => {
 // POST /admin/paymob-config
 router.post("/admin/paymob-config", (req, res) => {
   const patch = req.body as Partial<PaymobConfig>;
-  const allowed: (keyof PaymobConfig)[] = ["apiKey", "secretKey", "publicKey", "integrationId", "hmacSecret"];
+  const allowed: (keyof PaymobConfig)[] = ["apiKey", "secretKey", "publicKey", "integrationId", "hmacSecret", "iframeId"];
   const filtered: Partial<PaymobConfig> = {};
   for (const key of allowed) {
     if (typeof patch[key] === "string" && (patch[key] as string).trim()) {

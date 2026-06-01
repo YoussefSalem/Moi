@@ -563,14 +563,13 @@ export function CheckoutPage() {
         });
 
         const data = await res.json() as {
-          clientSecret?: string;
-          publicKey?: string;
+          iframeUrl?: string;
           intentId?: string;
           total?: string;
           error?: string;
         };
 
-        if (!res.ok || !data.clientSecret || !data.publicKey) {
+        if (!res.ok || !data.iframeUrl) {
           setStep("form");
           setSubmitError(data.error ?? "Payment gateway unavailable. Please try again.");
           submittingRef.current = false;
@@ -589,9 +588,7 @@ export function CheckoutPage() {
           sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
         }
         paymobTrackedRef.current = false; // Reset guard for new card payment session
-        setPaymobIframeUrl(
-          `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(data.publicKey)}&clientSecret=${encodeURIComponent(data.clientSecret)}`
-        );
+        setPaymobIframeUrl(data.iframeUrl);
         setStep("form"); // Return to form step — iframe renders inline on the same page
       } catch {
         setStep("form");

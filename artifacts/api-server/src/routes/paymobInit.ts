@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
-import { createPaymobIntention } from "../lib/paymob";
+import { createPaymobPaymentKey } from "../lib/paymob";
 import { fetchStorefrontCart, type OrderLine, type CustomerInfo, type OrderAttribution } from "../lib/shopifyOrder";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
@@ -111,11 +111,15 @@ router.post("/orders/paymob-init", async (req, res) => {
     checkoutToken,
   });
 
-  req.log.info({ intentId, amountCents, total }, "Paymob intent saved — creating Paymob intention");
+  req.log.info({ intentId, amountCents, total }, "Paymob intent saved — creating legacy payment key");
 
-  let intention: { clientSecret: string; publicKey: string };
+  // Build callback URL for 3DS redirect from the first configured domain
+  const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
+  const callbackUrl = domain ? `https://${domain}/api/paymob-return` : undefined;
+
+  let result: { iframeUrl: string };
   try {
-    intention = await createPaymobIntention({
+    result = await createPaymobPaymentKey({
       amountCents,
       merchantOrderId: intentId,
       customer: {
@@ -126,19 +130,18 @@ router.post("/orders/paymob-init", async (req, res) => {
         address: customer.address,
         city: customer.city,
       },
-      items: [{ name: "Moi Order", amount: amountCents, description: `Order #${intentId.slice(0, 8)}`, quantity: 1 }],
+      callbackUrl,
     });
   } catch (err) {
-    req.log.error({ err, intentId }, "Paymob intention creation failed");
+    req.log.error({ err, intentId }, "Paymob payment key creation failed");
     res.status(500).json({ error: "Payment gateway unavailable. Please try again." });
     return;
   }
 
-  req.log.info({ intentId }, "Paymob intention created successfully");
+  req.log.info({ intentId }, "Paymob legacy payment key created successfully");
 
   res.status(200).json({
-    clientSecret: intention.clientSecret,
-    publicKey: intention.publicKey,
+    iframeUrl: result.iframeUrl,
     intentId,
     total,
   });
