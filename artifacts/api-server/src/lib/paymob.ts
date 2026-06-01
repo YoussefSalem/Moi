@@ -185,11 +185,13 @@ export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Pro
   try {
     const token = await getPaymobAuthToken(config.apiKey);
     // Query Paymob orders filtered by our merchant_order_id.
-    const res = await fetch(
-      `https://accept.paymob.com/api/ecommerce/orders?merchant_order_id=${encodeURIComponent(merchantOrderId)}&auth_token=${encodeURIComponent(token)}`,
-      { headers: { "Content-Type": "application/json" } },
-    );
-    if (!res.ok) return null;
+    const url = `https://accept.paymob.com/api/ecommerce/orders?merchant_order_id=${encodeURIComponent(merchantOrderId)}&auth_token=${encodeURIComponent(token)}`;
+    const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      logger.warn({ status: res.status, text, merchantOrderId }, "queryPaymobByMerchantOrderId: non-OK response");
+      return null;
+    }
     const body = await res.json() as {
       results?: Array<{
         id: number;
@@ -198,12 +200,15 @@ export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Pro
       }>;
     };
     const orders = body.results ?? [];
+    logger.info({ merchantOrderId, orderCount: orders.length }, "queryPaymobByMerchantOrderId: orders found");
     if (orders.length === 0) return null;
     // Find the latest non-pending (i.e. resolved) transaction across all matching orders.
     for (const order of orders) {
       const txns = order.transactions ?? [];
+      logger.info({ orderId: order.id, txnCount: txns.length }, "queryPaymobByMerchantOrderId: checking order transactions");
       const resolved = txns.find((t) => !t.pending);
       if (resolved) {
+        logger.info({ txnId: resolved.id, success: resolved.success }, "queryPaymobByMerchantOrderId: resolved transaction found");
         return {
           success: resolved.success,
           txnId: String(resolved.id),
@@ -211,8 +216,10 @@ export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Pro
         };
       }
     }
+    logger.info({ merchantOrderId }, "queryPaymobByMerchantOrderId: no resolved transaction yet");
     return null;
-  } catch {
+  } catch (err) {
+    logger.warn({ err, merchantOrderId }, "queryPaymobByMerchantOrderId: unexpected error");
     return null;
   }
 }

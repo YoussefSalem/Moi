@@ -2721,7 +2721,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [showOverlay, showOverlaySuccess, showOverlayPending, showOverlayFail, stopPolling]);
+  }, [intentId, showOverlay, showOverlaySuccess, showOverlayPending, showOverlayFail, stopPolling]);
 
   return (
     <div style={{ position: "relative", width: "100%" }}>
