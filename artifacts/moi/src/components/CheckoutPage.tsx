@@ -2430,6 +2430,10 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   // intermediate-state JSON (e.g. "Pending 3DS Authorization"). handleIframeLoad
   // clears the overlay on the very next page load so the 3DS page is visible.
   const tempOverlayRef = useRef(false);
+  // Set to true once the 3DS redirect fires so the polling timeout does not
+  // prematurely unmount the iframe or show the "Payment Failed" screen while
+  // the user is completing their 3DS challenge.
+  const threeDsActiveRef = useRef(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const blurDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollStartRef = useRef<number>(Date.now());
@@ -2532,11 +2536,12 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   const handleIframeLoad = useCallback(() => {
     loadCountRef.current += 1;
     // If a temporary overlay was shown to cover an intermediate-state JSON
-    // (e.g. "Pending 3DS Authorization"), remove it now so the next page
-    // (typically the bank's 3DS authentication page) is visible to the user.
+    // (e.g. "Pending 3DS Authorization"), remove it unconditionally on the
+    // next page load so the 3DS authentication page is always visible —
+    // even if a stale polling timeout had briefly set resolvedRef.current.
     if (tempOverlayRef.current) {
       tempOverlayRef.current = false;
-      if (!resolvedRef.current && overlayRef.current) {
+      if (overlayRef.current) {
         overlayRef.current.style.display = "none";
       }
     }
@@ -2552,9 +2557,10 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   useEffect(() => {
     const handleBlur = () => {
       if (resolvedRef.current) return;
+      if (threeDsActiveRef.current) return; // 3DS in progress — don't debounce
       if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
       blurDebounceRef.current = setTimeout(() => {
-        if (!resolvedRef.current) showOverlayFail();
+        if (!resolvedRef.current && !threeDsActiveRef.current) showOverlayFail();
       }, 60_000);
     };
 
@@ -2589,7 +2595,10 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
 
     const poll = async () => {
       if (resolvedRef.current) return;
-      if (Date.now() - pollStartRef.current > 3 * 60 * 1000) {
+      // Hard ceiling: 15 minutes of inactivity with no 3DS in flight.
+      // We skip the timeout while 3DS is active so users who take longer
+      // to complete their OTP challenge are not prematurely cut off.
+      if (!threeDsActiveRef.current && Date.now() - pollStartRef.current > 15 * 60 * 1000) {
         resolvedRef.current = true;
         stopPolling();
         if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
@@ -2601,6 +2610,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
         if (!res.ok) return;
         const data = (await res.json()) as { status: string; paymobTxnId: string | null };
         if (data.status === "completed") {
+          threeDsActiveRef.current = false;
           resolvedRef.current = true;
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
@@ -2611,6 +2621,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           // fires once the Shopify draft order is confirmed.
           showOverlayPending();
         } else if (data.status === "declined" || data.status === "failed") {
+          threeDsActiveRef.current = false;
           resolvedRef.current = true;
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
@@ -2671,6 +2682,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       if (isOwn && data["type"] === "PAYMOB_RESULT") {
         const txnId = String(data["transactionId"] ?? "");
         if (data["success"]) {
+          threeDsActiveRef.current = false;
           resolvedRef.current = true;
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
@@ -2681,6 +2693,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           // but keep polling — do NOT mark as resolved yet.
           showOverlayPending();
         } else {
+          threeDsActiveRef.current = false;
           resolvedRef.current = true;
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
@@ -2698,12 +2711,14 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
         const txnId = String(data["id"] ?? data["txn_id"] ?? data["transactionId"] ?? "");
         const hasTxnId = txnId !== "" && txnId !== "0" && txnId !== "undefined";
         if (isSuccess && hasTxnId) {
+          threeDsActiveRef.current = false;
           resolvedRef.current = true;
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
           syncPaymobOrder(txnId);
           showOverlaySuccess(txnId);
         } else if (isSuccess && !hasTxnId) {
+          threeDsActiveRef.current = false;
           resolvedRef.current = true;
           stopPolling();
           if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
@@ -2713,6 +2728,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           const isPending = data["pending"] === true || data["pending"] === "true";
           if (hasTxnId && !isPending) {
             // Completed failure (e.g. card declined, invalid credentials) — cover permanently.
+            threeDsActiveRef.current = false;
             resolvedRef.current = true;
             stopPolling();
             showOverlayFail();
@@ -2720,10 +2736,18 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
             // Intermediate state (e.g. "Pending 3DS Authorization").
             // When Paymob sends use_redirection:true / bypass_step_six:true, it renders
             // the JSON and WAITS for the parent to redirect the iframe — it won't navigate
-            // on its own. We must: (1) cover the JSON immediately, (2) do the redirect.
+            // on its own. We must: (1) mark 3DS active so the polling timeout is suspended,
+            // (2) cover the JSON immediately, (3) do the redirect.
             // handleIframeLoad will clear the temp overlay when the 3DS page loads so
             // the user can complete authentication.
-            if (!resolvedRef.current) {
+            // Guard against duplicate isPending messages (Paymob can send more than once).
+            // Use threeDsActiveRef rather than resolvedRef so that even if the polling
+            // timeout prematurely set resolvedRef=true, we still handle 3DS correctly.
+            if (!threeDsActiveRef.current) {
+              // Mark 3DS as active — suppresses polling timeout and blur debounce.
+              threeDsActiveRef.current = true;
+              // Undo any timeout-induced resolution so handleIframeLoad can clear overlay.
+              resolvedRef.current = false;
               // Cancel any pending blur-debounce timer — 3DS is underway, not a failure.
               if (blurDebounceRef.current) { clearTimeout(blurDebounceRef.current); blurDebounceRef.current = null; }
               tempOverlayRef.current = true;
