@@ -149,6 +149,68 @@ export async function createPaymobPaymentKey(
   return { iframeUrl };
 }
 
+// In-process auth token cache — avoids re-authenticating on every status poll.
+let _cachedAuthToken: { token: string; expiresAt: number } | null = null;
+
+async function getPaymobAuthToken(apiKey: string): Promise<string> {
+  if (_cachedAuthToken && Date.now() < _cachedAuthToken.expiresAt) {
+    return _cachedAuthToken.token;
+  }
+  const res = await fetch("https://accept.paymob.com/api/auth/tokens", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ api_key: apiKey }),
+  });
+  if (!res.ok) throw new Error(`Paymob auth failed: ${res.status}`);
+  const data = await res.json() as { token?: string };
+  if (!data.token) throw new Error("Paymob auth: no token returned");
+  // Paymob auth tokens are valid for 1 hour; cache for 50 minutes.
+  _cachedAuthToken = { token: data.token, expiresAt: Date.now() + 50 * 60 * 1000 };
+  return data.token;
+}
+
+/**
+ * Directly queries Paymob for the latest completed transaction on an order
+ * identified by our internal merchantOrderId. Used as a fallback when the
+ * server-to-server webhook has not arrived (e.g. network issues or config
+ * mismatch). Returns null if no completed transaction is found or on any error.
+ */
+export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Promise<{
+  success: boolean;
+  txnId: string;
+} | null> {
+  const config = getPaymobConfig();
+  if (!config.apiKey) return null;
+  try {
+    const token = await getPaymobAuthToken(config.apiKey);
+    // Query Paymob orders filtered by our merchant_order_id.
+    const res = await fetch(
+      `https://accept.paymob.com/api/ecommerce/orders?merchant_order_id=${encodeURIComponent(merchantOrderId)}&auth_token=${encodeURIComponent(token)}`,
+      { headers: { "Content-Type": "application/json" } },
+    );
+    if (!res.ok) return null;
+    const body = await res.json() as {
+      results?: Array<{
+        id: number;
+        transactions?: Array<{ id: number; success: boolean; pending: boolean }>;
+      }>;
+    };
+    const orders = body.results ?? [];
+    if (orders.length === 0) return null;
+    // Find the latest non-pending (i.e. resolved) transaction across all matching orders.
+    for (const order of orders) {
+      const txns = order.transactions ?? [];
+      const resolved = txns.find((t) => !t.pending);
+      if (resolved) {
+        return { success: resolved.success, txnId: String(resolved.id) };
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Verifies a Paymob HMAC-SHA512 webhook signature.
  *

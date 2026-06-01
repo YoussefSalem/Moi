@@ -1,0 +1,2 @@
+- [Paymob postMessage format](paymob-postmessage.md) — Paymob legacy v1 iframe sends postMessage as a JSON *string*, not an object; must parse both.
+- [Paymob webhook unreliable in dev](paymob-webhook-fallback.md) — server-to-server webhook never arrives in dev; paymob-status now polls Paymob API directly as fallback after 8s pending.

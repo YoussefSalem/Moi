@@ -1,7 +1,8 @@
 {
   "apiKey": "ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2TVRFMk1UZzVNeXdpYm1GdFpTSTZJakUzTnpnek1qazFNRGd1TURnMU1qTTNJbjAuSjdXSnNkd2s1Z205dEd4U2J2S3pyRThxTEJ5SVAwNV80empab0pwcGw3VHZRWkJTLVBJTi1pUFFyalktbXBGM2dhWFVYYXJvanh0c3NaWXpDTVROWGc=",
-  "secretKey": "egy_sk_live_2e543e24d65e4b48666d0e4aaa5fb0848192c4da3f06f6756f9535a6299aad49",
-  "integrationId": "5693943",
+  "secretKey": "egy_sk_test_dc479d41269d75a95be78d553e70381498035d15d024a2dbb3d301d24bcd8dbb",
+  "integrationId": "5658307",
   "hmacSecret": "81AAB539BDCCAFEFBB43DC5EBE9246E2",
-  "iframeId": "1041673"
+  "iframeId": "1041673",
+  "publicKey": "egy_pk_test_g3H0nyr7orhUIjGAVX6zE5WpPt3RlzFA"
 }

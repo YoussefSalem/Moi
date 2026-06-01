@@ -2431,8 +2431,22 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       const isPaymob = event.origin === paymobOrigin;
       if (!isOwn && !isPaymob) return;
 
-      const data = event.data as Record<string, unknown> | null;
-      if (!data || typeof data !== "object") return;
+      // Paymob legacy v1 iframe sends postMessage as a JSON *string*; Unified Checkout
+      // and our own relay page send an object. Handle both forms.
+      let data: Record<string, unknown> | null = null;
+      if (event.data && typeof event.data === "object" && !Array.isArray(event.data)) {
+        data = event.data as Record<string, unknown>;
+      } else if (typeof event.data === "string") {
+        try {
+          const parsed: unknown = JSON.parse(event.data);
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            data = parsed as Record<string, unknown>;
+          }
+        } catch {
+          return;
+        }
+      }
+      if (!data) return;
 
       // Our relay page format — relay page already shows clean success/fail UI inside
       // the iframe; we immediately cover the iframe with our own overlay so no raw data
@@ -2465,12 +2479,17 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           resolvedRef.current = true;
           stopPolling();
           showOverlaySuccess(undefined);
-        } else if (isFail && hasTxnId) {
-          resolvedRef.current = true;
-          stopPolling();
-          showOverlayFail();
+        } else if (isFail) {
+          // Show the overlay for any completed failure: either we have a transaction ID,
+          // or pending=false confirms the attempt is definitively done (not still loading).
+          const isCompleted = hasTxnId || data["pending"] === false || data["pending"] === "false";
+          if (isCompleted) {
+            resolvedRef.current = true;
+            stopPolling();
+            showOverlayFail();
+          }
+          // pending=true with no txnId = form loading/status event — ignore
         }
-        // fail with no txnId = loading/status event — ignore
       }
     }
 
