@@ -1,4 +1,4 @@
 - [Paymob postMessage format](paymob-postmessage.md) — string JSON not object; 3DS pending vs final; tempOverlayRef pattern; never use loadCount>=2 for overlay.
 - [Paymob webhook unreliable in dev](paymob-webhook-fallback.md) — server-to-server webhook never arrives in dev; paymob-status now polls Paymob API directly as fallback after 8s pending.
 - [Paymob API auth 401 fix](paymob-api-auth.md) — orders/transactions endpoints return 401 with auth_token query param; must try Bearer header first, then query param, then secret key Bearer.
-- [Card order approval flow](card-order-approval.md) — draft orders require admin Approve step before Dispatch; new columns adminApproved/adminApprovedAt/shopifyConfirmedOrderId on paymobIntents.
+- [Card payments auto-approved](card-payments-auto-approved.md) — card payments create real Shopify orders immediately (no draft, no admin approval); shopifyOrderNumber now persisted to paymobIntents; admin panel has Transactions tab with Record Payment button for retroactive Shopify payment fixes.

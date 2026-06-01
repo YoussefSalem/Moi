@@ -17,7 +17,7 @@ import { getMaskedConfig, savePaymobConfig, type PaymobConfig } from "../lib/pay
 import { listDiscountCodeUses } from "@workspace/db";
 import { sendEmail, buildAbandonedCartEmail, buildInstapayConfirmedEmail, buildInstapayRejectedEmail } from "../lib/email";
 import { getSiteUrl } from "../lib/siteUrl";
-import { completeShopifyDraftOrder } from "../lib/shopifyOrder";
+import { completeShopifyDraftOrder, recordShopifyPaymentTransaction } from "../lib/shopifyOrder";
 import { parseEGP } from "@workspace/utils";
 
 const router: IRouter = Router();
@@ -606,6 +606,89 @@ router.post("/admin/card-orders/:id/dispatch", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "card-orders dispatch: Bosta shipment creation failed");
     res.status(500).json({ error: "Failed to create Bosta shipment" });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Transactions — read-only Paymob intent tracking view
+// ---------------------------------------------------------------------------
+
+// GET /admin/transactions — returns all Paymob intents with payment activity
+// for the admin transactions view (replaces the old card-orders tab UI).
+router.get("/admin/transactions", async (req, res) => {
+  try {
+    const rows = await db
+      .select()
+      .from(paymobIntents)
+      .where(inArray(paymobIntents.status, ["completed", "processing", "failed", "declined"]))
+      .orderBy(desc(paymobIntents.createdAt));
+
+    const result = rows.map((r) => {
+      const customer = r.customer as { firstName?: string; lastName?: string; phone?: string; email?: string };
+      const attr = r.attribution as { sourceName?: string; referringSite?: string; landingSite?: string; utm?: Record<string, string> } | null;
+
+      const allTimestamps = [r.bostaDispatchedAt, r.adminApprovedAt].filter((t): t is Date => !!t);
+      const lastUpdated = allTimestamps.sort((a, b) => b.getTime() - a.getTime())[0] ?? r.createdAt;
+
+      return {
+        id: r.id,
+        transactionId: r.paymobTxnId ?? r.intentId,
+        paymobTxnId: r.paymobTxnId,
+        dateCreated: r.createdAt,
+        amount: r.total,
+        paymentType: "Card" as const,
+        paymentSource: attr?.utm?.source ?? attr?.sourceName ?? "Direct",
+        origin: attr?.referringSite ?? attr?.landingSite ?? "—",
+        status: r.status,
+        shopifyOrderNumber: r.shopifyOrderNumber ?? null,
+        shopifyOrderId: r.shopifyOrderId ?? null,
+        transactionType: r.status === "completed" ? "Sale" : r.status === "processing" ? "Pending" : "—",
+        lastUpdated,
+        customerName: [customer.firstName, customer.lastName].filter(Boolean).join(" ") || null,
+        customerEmail: customer.email ?? null,
+      };
+    });
+
+    res.status(200).json({ transactions: result });
+  } catch (err) {
+    req.log.error({ err }, "transactions: failed to fetch");
+    res.status(500).json({ error: "Failed to fetch transactions" });
+  }
+});
+
+// POST /admin/fix-payment-transaction/:id — re-post a Shopify payment transaction
+// for a completed Paymob intent. Use when a card payment succeeded in Paymob but
+// the Shopify order still shows as Payment Pending (e.g. if the first attempt failed).
+router.post("/admin/fix-payment-transaction/:id", async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const rows = await db.select().from(paymobIntents).where(eq(paymobIntents.id, id)).limit(1);
+  const intent = rows[0];
+  if (!intent) { res.status(404).json({ error: "Not found" }); return; }
+  if (intent.status !== "completed") { res.status(409).json({ error: "Intent must be in completed state" }); return; }
+  if (!intent.shopifyOrderId || !intent.paymobTxnId) {
+    res.status(409).json({ error: "Missing shopifyOrderId or paymobTxnId — cannot record transaction" });
+    return;
+  }
+
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const adminToken = await getShopifyAdminToken();
+  if (!storeDomain || !adminToken) { res.status(503).json({ error: "Shopify not configured" }); return; }
+
+  try {
+    await recordShopifyPaymentTransaction({
+      orderId: intent.shopifyOrderId,
+      amount: intent.total,
+      paymobTxnId: intent.paymobTxnId,
+      storeDomain,
+      adminToken,
+    });
+    req.log.info({ id, shopifyOrderId: intent.shopifyOrderId, paymobTxnId: intent.paymobTxnId }, "fix-payment-transaction: transaction re-posted to Shopify");
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    req.log.error({ err, id }, "fix-payment-transaction: failed");
+    res.status(500).json({ error: "Failed to post transaction to Shopify" });
   }
 });
 

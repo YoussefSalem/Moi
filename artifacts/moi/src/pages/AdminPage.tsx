@@ -519,120 +519,81 @@ function ProofGallery({
   );
 }
 
-interface CardOrder {
+interface Transaction {
   id: number;
-  intentId: string;
-  status: "completed" | "processing" | "failed" | "declined";
-  shopifyOrderId: number | null;
-  shopifyConfirmedOrderId: number | null;
+  transactionId: string;
   paymobTxnId: string | null;
-  total: string;
+  dateCreated: string;
+  amount: string;
+  paymentType: "Card";
+  paymentSource: string;
+  origin: string;
+  status: string;
+  shopifyOrderNumber: number | null;
+  shopifyOrderId: number | null;
+  transactionType: string;
+  lastUpdated: string;
   customerName: string | null;
-  customerPhone: string | null;
   customerEmail: string | null;
-  address: string | null;
-  city: string | null;
-  adminApproved: boolean;
-  adminApprovedAt: string | null;
-  bostaDispatched: boolean;
-  bostaTrackingNumber: string | null;
-  bostaDispatchedAt: string | null;
-  createdAt: string;
 }
 
-function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string | null) => void }) {
-  const [orders, setOrders] = useState<CardOrder[]>([]);
+function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string | null) => void }) {
+  const [txns, setTxns] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [actionLoading, setActionLoading] = useState<number | null>(null);
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending-approval" | "pending-dispatch" | "dispatched">("pending-approval");
+  const [filterStatus, setFilterStatus] = useState<"all" | "completed" | "processing" | "failed" | "declined">("all");
+  const [fixing, setFixing] = useState<number | null>(null);
+  const [fixResult, setFixResult] = useState<Record<number, "ok" | "err">>({});
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/card-orders", { headers: apiHeaders(token) });
+      const res = await fetch("/api/admin/transactions", { headers: apiHeaders(token) });
       if (res.status === 401 || res.status === 403) {
         sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_EXPIRY_KEY); onAuth?.(null); return;
       }
-      if (!res.ok) { setError(`Failed to load card orders. (${res.status})`); setLoading(false); return; }
-      const data = await res.json() as { orders: CardOrder[] };
-      setOrders(data.orders);
+      if (!res.ok) { setError(`Failed to load transactions. (${res.status})`); setLoading(false); return; }
+      const data = await res.json() as { transactions: Transaction[] };
+      setTxns(data.transactions);
     } catch { setError("Network error."); }
     finally { setLoading(false); }
   }, [token, onAuth]);
 
   useEffect(() => { void load(); }, [load]);
 
-  async function approve(id: number) {
-    setActionLoading(id);
+  async function fixPayment(id: number) {
+    setFixing(id);
     try {
-      const res = await fetch(`/api/admin/card-orders/${id}/approve`, { method: "POST", headers: apiHeaders(token) });
-      const data = await res.json() as { ok?: boolean; orderId?: number; orderNumber?: number; error?: string };
-      if (!res.ok || data.error) {
-        alert(`Approve failed: ${data.error ?? "Unknown error"}`);
-        return;
-      }
-      alert(`✅ Order Approved\nShopify Order #${data.orderNumber ?? data.orderId ?? "—"} confirmed.`);
-      await load();
-    } finally { setActionLoading(null); }
-  }
-
-  async function decline(id: number) {
-    if (!confirm("Decline this order? This cannot be undone.")) return;
-    setActionLoading(id);
-    try {
-      const res = await fetch(`/api/admin/card-orders/${id}/decline`, { method: "POST", headers: apiHeaders(token) });
+      const res = await fetch(`/api/admin/fix-payment-transaction/${id}`, { method: "POST", headers: apiHeaders(token) });
       const data = await res.json() as { ok?: boolean; error?: string };
-      if (!res.ok || data.error) {
-        alert(`Decline failed: ${data.error ?? "Unknown error"}`);
-        return;
-      }
-      await load();
-    } finally { setActionLoading(null); }
+      setFixResult((prev) => ({ ...prev, [id]: res.ok && data.ok ? "ok" : "err" }));
+      if (!res.ok) alert(`Record payment failed: ${data.error ?? "Unknown error"}`);
+    } finally { setFixing(null); }
   }
 
-  async function dispatch(id: number) {
-    setActionLoading(id);
-    try {
-      const res = await fetch(`/api/admin/card-orders/${id}/dispatch`, { method: "POST", headers: apiHeaders(token) });
-      const data = await res.json() as { ok?: boolean; trackingNumber?: string; error?: string };
-      if (!res.ok || data.error) {
-        alert(`Dispatch failed: ${data.error ?? "Unknown error"}`);
-        return;
-      }
-      alert(`✅ Dispatched to Bosta\nTracking: ${data.trackingNumber ?? "—"}`);
-      await load();
-    } finally { setActionLoading(null); }
-  }
+  const filtered = txns.filter((t) => filterStatus === "all" || t.status === filterStatus);
+  const completedCount = txns.filter((t) => t.status === "completed").length;
 
-  const filtered = orders.filter((o) => {
-    if (filterStatus === "pending-approval") return o.status === "completed" && !o.adminApproved;
-    if (filterStatus === "pending-dispatch") return o.adminApproved && !o.bostaDispatched;
-    if (filterStatus === "dispatched") return o.bostaDispatched;
-    return true;
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-GB", {
+    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
 
-  const pendingApprovalCount = orders.filter((o) => o.status === "completed" && !o.adminApproved).length;
-  const pendingDispatchCount = orders.filter((o) => o.adminApproved && !o.bostaDispatched).length;
+  function shortOrigin(origin: string): string {
+    if (origin === "—") return "—";
+    try {
+      const url = new URL(origin.startsWith("http") ? origin : `https://${origin}`);
+      return url.hostname.replace(/^www\./, "");
+    } catch {
+      return origin.length > 22 ? `${origin.slice(0, 22)}…` : origin;
+    }
+  }
 
-  const fmtDate = (d: string | null) => d
-    ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
-    : "—";
-
-  const orderLabel = (order: CardOrder) => {
-    if (order.shopifyConfirmedOrderId) return `Shopify #${order.shopifyConfirmedOrderId}`;
-    if (order.shopifyOrderId) return `Draft #${order.shopifyOrderId}`;
-    return `Txn ${order.paymobTxnId ?? order.intentId}`;
-  };
-
-  const statusBadge = (order: CardOrder) => {
-    if (order.bostaDispatched) return { label: "Dispatched", bg: "rgba(60,120,60,0.12)", color: "#2d6e2d" };
-    if (order.adminApproved) return { label: "Ready to Dispatch", bg: "rgba(60,100,180,0.10)", color: "#2d4e9e" };
-    if (order.status === "declined") return { label: "Payment Declined", bg: "rgba(180,60,60,0.10)", color: "#8a1010" };
-    if (order.status === "failed") return { label: "Processing Failed", bg: "rgba(180,60,60,0.10)", color: "#8a1010" };
-    if (order.status === "processing") return { label: "Processing…", bg: "rgba(100,140,60,0.10)", color: "#4a6a10" };
-    return { label: "Pending Approval", bg: "rgba(180,140,40,0.12)", color: "#8a6a10" };
+  const statusColors: Record<string, { bg: string; text: string }> = {
+    completed: { bg: "rgba(60,120,60,0.12)", text: "#2d6e2d" },
+    processing: { bg: "rgba(100,140,60,0.10)", text: "#4a6a10" },
+    failed: { bg: "rgba(192,57,43,0.10)", text: "#8a1010" },
+    declined: { bg: "rgba(192,57,43,0.10)", text: "#8a1010" },
   };
 
   return (
@@ -640,39 +601,25 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <p style={{ fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700 }}>
-            Card Orders
+            Paymob Transactions
           </p>
-          {pendingApprovalCount > 0 && (
-            <span style={{ backgroundColor: "#c0392b", color: "#fff", fontSize: "11px", fontWeight: 700, fontFamily: "'Montserrat', sans-serif", padding: "2px 7px", borderRadius: 99 }}>
-              {pendingApprovalCount}
-            </span>
-          )}
+          <span style={{ ...mono, fontSize: "12px", color: "rgba(30,24,20,0.5)" }}>
+            {completedCount} completed
+          </span>
         </div>
         <button onClick={() => void load()} style={{ display: "flex", alignItems: "center", gap: 6, ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)" }}>
           <RefreshCw size={12} strokeWidth={2} /> Refresh
         </button>
       </div>
 
-      <div style={{ backgroundColor: "rgba(60,100,140,0.07)", border: "1px solid rgba(60,100,140,0.2)", padding: "12px 16px", marginBottom: 22 }}>
-        <p style={{ ...mono, fontSize: 12, color: "#2d5a7e", lineHeight: 1.6 }}>
-          Card payments create a Shopify <strong>draft</strong> order. Click <strong>Approve</strong> to confirm the payment and convert it to a real order, then <strong>Dispatch</strong> to create a Bosta shipment.
-        </p>
-      </div>
-
-      {/* Filter */}
       <div className="flex gap-2 mb-5 flex-wrap">
-        {([
-          { key: "pending-approval", label: `Pending Approval${pendingApprovalCount > 0 ? ` (${pendingApprovalCount})` : ""}` },
-          { key: "pending-dispatch", label: `Ready to Dispatch${pendingDispatchCount > 0 ? ` (${pendingDispatchCount})` : ""}` },
-          { key: "dispatched", label: "Dispatched" },
-          { key: "all", label: "All" },
-        ] as const).map(({ key, label }) => (
+        {(["all", "completed", "processing", "failed", "declined"] as const).map((s) => (
           <button
-            key={key}
-            onClick={() => setFilterStatus(key)}
-            style={{ ...btn, backgroundColor: filterStatus === key ? "#1e1814" : "transparent", color: filterStatus === key ? "#fff" : "rgba(30,24,20,0.6)", border: "1px solid rgba(30,24,20,0.18)", padding: "6px 12px" }}
+            key={s}
+            onClick={() => setFilterStatus(s)}
+            style={{ ...btn, backgroundColor: filterStatus === s ? "#1e1814" : "transparent", color: filterStatus === s ? "#fff" : "rgba(30,24,20,0.6)", border: "1px solid rgba(30,24,20,0.18)", padding: "6px 12px" }}
           >
-            {label}
+            {s}
           </button>
         ))}
       </div>
@@ -681,86 +628,70 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
       {loading && <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Loading…</p>}
 
       {!loading && filtered.length === 0 && (
-        <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}>
-          No {filterStatus === "pending-approval" ? "orders pending approval" : filterStatus === "pending-dispatch" ? "orders ready to dispatch" : filterStatus === "dispatched" ? "dispatched orders" : "card orders"}.
-        </p>
+        <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}>No transactions found.</p>
       )}
 
-      <div className="flex flex-col gap-3">
-        {filtered.map((order) => {
-          const badge = statusBadge(order);
-          const isActing = actionLoading === order.id;
-          return (
-            <div key={order.id} style={{ border: "1px solid rgba(30,24,20,0.16)", backgroundColor: "#fff" }}>
-              <div className="flex items-center justify-between p-4" style={{ gap: 12 }}>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "19px", fontWeight: 700, color: "#1e1814" }}>
-                      {orderLabel(order)}
-                    </span>
-                    <span style={{
-                      ...mono, fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px",
-                      backgroundColor: badge.bg, color: badge.color,
-                    }}>
-                      {badge.label}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", marginTop: 4 }}>
-                    {order.customerName ?? "—"} · {order.customerPhone ?? "—"} · <strong>{order.total} EGP</strong>
-                  </p>
-                  <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", marginTop: 2, letterSpacing: "0.04em" }}>
-                    {order.address ?? "—"}{order.city ? `, ${order.city}` : ""} · {fmtDate(order.createdAt)}
-                  </p>
-                  {order.paymobTxnId && (
-                    <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.4)", fontFamily: "'Montserrat', sans-serif", marginTop: 2, letterSpacing: "0.04em" }}>
-                      Paymob Txn: {order.paymobTxnId}
-                    </p>
-                  )}
-                  {order.adminApproved && order.adminApprovedAt && (
-                    <p style={{ fontSize: "11px", color: "#2d4e9e", fontFamily: "'Montserrat', sans-serif", marginTop: 3 }}>
-                      Approved {fmtDate(order.adminApprovedAt)}
-                    </p>
-                  )}
-                  {order.bostaDispatched && order.bostaTrackingNumber && (
-                    <p style={{ fontSize: "11px", color: "#2d6e2d", fontFamily: "'Montserrat', sans-serif", marginTop: 3, fontWeight: 700 }}>
-                      Bosta: {order.bostaTrackingNumber} · Dispatched {fmtDate(order.bostaDispatchedAt)}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {order.status === "completed" && !order.adminApproved && (
-                    <>
-                      <button
-                        onClick={() => void decline(order.id)}
-                        disabled={isActing}
-                        style={{ ...btn, backgroundColor: "transparent", color: "#8a1010", border: "1px solid rgba(138,16,16,0.35)", display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", opacity: isActing ? 0.6 : 1 }}
-                      >
-                        {isActing ? "…" : "Decline"}
-                      </button>
-                      <button
-                        onClick={() => void approve(order.id)}
-                        disabled={isActing}
-                        style={{ ...btn, backgroundColor: "#1a5c3a", color: "#fff", display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", opacity: isActing ? 0.6 : 1 }}
-                      >
-                        {isActing ? "Approving…" : "Approve Order"}
-                      </button>
-                    </>
-                  )}
-                  {order.adminApproved && !order.bostaDispatched && (
-                    <button
-                      onClick={() => void dispatch(order.id)}
-                      disabled={isActing}
-                      style={{ ...btn, backgroundColor: "#1e1814", color: "#fff", display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", opacity: isActing ? 0.6 : 1 }}
-                    >
-                      {isActing ? "Dispatching…" : "Dispatch to Bosta"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {!loading && filtered.length > 0 && (
+        <div style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <table style={{ minWidth: 1100, borderCollapse: "collapse", width: "100%" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", backgroundColor: "#faf8f5" }}>
+                {["Transaction ID", "Date Created", "Amount", "Pay Type", "Source", "Origin", "Status", "Shopify #", "Txn Type", "Last Updated", ""].map((h) => (
+                  <th key={h} style={{ ...mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, textAlign: "left", padding: "10px 14px", whiteSpace: "nowrap" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((t, i) => {
+                const sc = statusColors[t.status] ?? { bg: "rgba(30,24,20,0.1)", text: "rgba(30,24,20,0.7)" };
+                const isFixing = fixing === t.id;
+                const fixOk = fixResult[t.id] === "ok";
+                return (
+                  <tr key={t.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid rgba(30,24,20,0.05)" : "none" }}>
+                    <td style={{ ...mono, fontSize: 12, color: "#1e1814", padding: "10px 14px", whiteSpace: "nowrap", fontWeight: 600 }}>
+                      {t.transactionId}
+                      {t.customerName && (
+                        <div style={{ fontSize: 10, color: "rgba(30,24,20,0.45)", fontWeight: 400, marginTop: 2 }}>{t.customerName}</div>
+                      )}
+                    </td>
+                    <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.7)", padding: "10px 14px", whiteSpace: "nowrap" }}>{fmtDate(t.dateCreated)}</td>
+                    <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 700, padding: "10px 14px", whiteSpace: "nowrap" }}>{t.amount}&nbsp;EGP</td>
+                    <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.6)", padding: "10px 14px", whiteSpace: "nowrap" }}>{t.paymentType}</td>
+                    <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.6)", padding: "10px 14px", whiteSpace: "nowrap" }}>{t.paymentSource}</td>
+                    <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px", whiteSpace: "nowrap" }} title={t.origin !== "—" ? t.origin : undefined}>{shortOrigin(t.origin)}</td>
+                    <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                      <span style={{ ...mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px", backgroundColor: sc.bg, color: sc.text }}>
+                        {t.status}
+                      </span>
+                    </td>
+                    <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 700, padding: "10px 14px", whiteSpace: "nowrap" }}>
+                      {t.shopifyOrderNumber
+                        ? `#${t.shopifyOrderNumber}`
+                        : t.shopifyOrderId
+                          ? <span style={{ fontSize: 10, color: "rgba(30,24,20,0.4)" }}>ID {String(t.shopifyOrderId)}</span>
+                          : "—"}
+                    </td>
+                    <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.6)", padding: "10px 14px", whiteSpace: "nowrap" }}>{t.transactionType}</td>
+                    <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px", whiteSpace: "nowrap" }}>{fmtDate(t.lastUpdated)}</td>
+                    <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                      {t.status === "completed" && t.paymobTxnId && (
+                        <button
+                          onClick={() => void fixPayment(t.id)}
+                          disabled={isFixing || fixOk}
+                          title="Re-post payment transaction to Shopify — use if the order shows as Payment Pending"
+                          style={{ ...btn, backgroundColor: fixOk ? "rgba(60,120,60,0.12)" : "transparent", color: fixOk ? "#2d6e2d" : "rgba(30,24,20,0.55)", border: `1px solid ${fixOk ? "rgba(60,120,60,0.3)" : "rgba(30,24,20,0.18)"}`, fontSize: 10, padding: "4px 8px", opacity: isFixing ? 0.5 : 1 }}
+                        >
+                          {isFixing ? "…" : fixOk ? "✓ Recorded" : "Record Payment"}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -1766,7 +1697,7 @@ function useAuth() {
 
 export function AdminPage() {
   const { token, setToken, logout } = useAuth();
-  const [tab, setTab] = useState<"analytics" | "proofs" | "card-orders" | "abandoned" | "discounts" | "settings">("analytics");
+  const [tab, setTab] = useState<"analytics" | "proofs" | "transactions" | "abandoned" | "discounts" | "settings">("analytics");
 
   if (!token) {
     return <PinGate onAuth={setToken} />;
@@ -1791,7 +1722,7 @@ export function AdminPage() {
 
       {/* Tabs */}
       <div style={{ borderBottom: "1px solid rgba(30,24,20,0.16)", backgroundColor: "#fff", paddingLeft: 24, overflowX: "auto", whiteSpace: "nowrap" }}>
-        {(["analytics", "proofs", "card-orders", "abandoned", "discounts", "settings"] as const).map((t) => (
+        {(["analytics", "proofs", "transactions", "abandoned", "discounts", "settings"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1806,7 +1737,7 @@ export function AdminPage() {
               borderRadius: 0,
             }}
           >
-            {t === "analytics" ? "Analytics" : t === "proofs" ? "InstaPay" : t === "card-orders" ? "Card Orders" : t === "abandoned" ? "Abandoned Carts" : t === "discounts" ? "Discounts" : "Settings"}
+            {t === "analytics" ? "Analytics" : t === "proofs" ? "InstaPay" : t === "transactions" ? "Transactions" : t === "abandoned" ? "Abandoned Carts" : t === "discounts" ? "Discounts" : "Settings"}
           </button>
         ))}
       </div>
@@ -1822,9 +1753,9 @@ export function AdminPage() {
             <motion.div key="proofs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <ProofsTab token={token} onAuth={setToken} />
             </motion.div>
-          ) : tab === "card-orders" ? (
-            <motion.div key="card-orders" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <CardOrdersTab token={token} onAuth={setToken} />
+          ) : tab === "transactions" ? (
+            <motion.div key="transactions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <TransactionsTab token={token} onAuth={setToken} />
             </motion.div>
           ) : tab === "abandoned" ? (
             <motion.div key="abandoned" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

@@ -114,6 +114,7 @@ export async function processPaymobSuccess(params: {
       status: "completed",
       shopifyOrderId: shopifyOrderId,
       shopifyConfirmedOrderId: shopifyOrderId,
+      shopifyOrderNumber: shopifyOrderNumber,
       adminApproved: true,
       adminApprovedAt: new Date(),
     })

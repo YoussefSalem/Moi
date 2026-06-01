@@ -16,6 +16,8 @@ export const paymobIntents = pgTable("paymob_intents", {
   shopifyOrderId: bigint("shopify_order_id", { mode: "number" }),
   /** Shopify confirmed (real) order ID — set after admin approves the draft */
   shopifyConfirmedOrderId: bigint("shopify_confirmed_order_id", { mode: "number" }),
+  /** Human-readable Shopify order number (e.g. 1081) — stored so it can be displayed without calling Shopify API */
+  shopifyOrderNumber: integer("shopify_order_number"),
   paymobTxnId: text("paymob_txn_id"),
   /** Marketing attribution captured from the session (UTM, fbclid, gclid, ttclid) */
   attribution: jsonb("attribution"),
