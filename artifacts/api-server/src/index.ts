@@ -50,6 +50,7 @@ app.listen(port, (err) => {
     paymobSecretKey: !!process.env["PAYMOB_SECRET_KEY"],
     paymobIntegrationId: !!process.env["PAYMOB_INTEGRATION_ID"],
     paymobHmacSecret: !!process.env["PAYMOB_HMAC_SECRET"],
+    paymobIframeId: process.env["PAYMOB_IFRAME_ID"] || "(missing)",
   }, "Paymob config resolved");
 
   // Register Shopify webhooks for automatic restock notifications
