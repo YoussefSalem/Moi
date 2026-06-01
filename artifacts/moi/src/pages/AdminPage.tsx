@@ -535,6 +535,10 @@ interface Transaction {
   lastUpdated: string;
   customerName: string | null;
   customerEmail: string | null;
+  customerPhone: string | null;
+  bostaDispatched: boolean;
+  bostaTrackingNumber: string | null;
+  bostaDispatchedAt: string | null;
 }
 
 function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string | null) => void }) {
@@ -542,6 +546,9 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "completed" | "processing" | "failed" | "declined">("all");
+  const [fixingPayment, setFixingPayment] = useState<number | null>(null);
+  const [fixMsg, setFixMsg] = useState<{ id: number; msg: string; ok: boolean } | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -558,6 +565,27 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
   }, [token, onAuth]);
 
   useEffect(() => { void load(); }, [load]);
+
+  async function handleFixPayment(t: Transaction) {
+    setFixingPayment(t.id);
+    setFixMsg(null);
+    try {
+      const res = await fetch(`/api/admin/fix-payment-transaction/${t.id}`, {
+        method: "POST",
+        headers: apiHeaders(token),
+      });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (res.ok && data.ok) {
+        setFixMsg({ id: t.id, msg: "Payment transaction posted to Shopify — order should now show Paid.", ok: true });
+      } else {
+        setFixMsg({ id: t.id, msg: data.error ?? `Failed (${res.status})`, ok: false });
+      }
+    } catch {
+      setFixMsg({ id: t.id, msg: "Network error", ok: false });
+    } finally {
+      setFixingPayment(null);
+    }
+  }
 
   const filtered = txns.filter((t) => filterStatus === "all" || t.status === filterStatus);
   const completedCount = txns.filter((t) => t.status === "completed").length;
@@ -620,10 +648,10 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
 
       {!loading && filtered.length > 0 && (
         <div style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          <table style={{ minWidth: 1100, borderCollapse: "collapse", width: "100%" }}>
+          <table style={{ minWidth: 1200, borderCollapse: "collapse", width: "100%" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", backgroundColor: "#faf8f5" }}>
-                {["Transaction ID", "Date Created", "Amount", "Pay Type", "Source", "Origin", "Status", "Shopify #", "Txn Type", "Last Updated"].map((h) => (
+                {["Transaction ID", "Customer", "Date", "Amount", "Status", "Shopify #", "Bosta", "Actions"].map((h) => (
                   <th key={h} style={{ ...mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, textAlign: "left", padding: "10px 14px", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
@@ -631,33 +659,62 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
             <tbody>
               {filtered.map((t, i) => {
                 const sc = statusColors[t.status] ?? { bg: "rgba(30,24,20,0.1)", text: "rgba(30,24,20,0.7)" };
+                const isLast = i === filtered.length - 1;
+                const fm = fixMsg?.id === t.id ? fixMsg : null;
                 return (
-                  <tr key={t.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid rgba(30,24,20,0.05)" : "none" }}>
-                    <td style={{ ...mono, fontSize: 12, color: "#1e1814", padding: "10px 14px", whiteSpace: "nowrap", fontWeight: 600 }}>
-                      {t.transactionId}
-                      {t.customerName && (
-                        <div style={{ fontSize: 10, color: "rgba(30,24,20,0.45)", fontWeight: 400, marginTop: 2 }}>{t.customerName}</div>
-                      )}
+                  <tr key={t.id} style={{ borderBottom: isLast ? "none" : "1px solid rgba(30,24,20,0.05)" }}>
+                    <td style={{ ...mono, fontSize: 12, color: "#1e1814", padding: "12px 14px", whiteSpace: "nowrap", fontWeight: 600 }}>
+                      {t.paymobTxnId ?? <span style={{ fontSize: 10, color: "rgba(30,24,20,0.35)" }}>{t.transactionId.slice(0, 16)}…</span>}
+                      <div style={{ fontSize: 10, color: "rgba(30,24,20,0.4)", fontWeight: 400, marginTop: 2 }}>{fmtDate(t.dateCreated)}</div>
                     </td>
-                    <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.7)", padding: "10px 14px", whiteSpace: "nowrap" }}>{fmtDate(t.dateCreated)}</td>
-                    <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 700, padding: "10px 14px", whiteSpace: "nowrap" }}>{t.amount}&nbsp;EGP</td>
-                    <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.6)", padding: "10px 14px", whiteSpace: "nowrap" }}>{t.paymentType}</td>
-                    <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.6)", padding: "10px 14px", whiteSpace: "nowrap" }}>{t.paymentSource}</td>
-                    <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px", whiteSpace: "nowrap" }} title={t.origin !== "—" ? t.origin : undefined}>{shortOrigin(t.origin)}</td>
-                    <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                    <td style={{ ...mono, fontSize: 11, color: "#1e1814", padding: "12px 14px" }}>
+                      {t.customerName && <div style={{ fontWeight: 600 }}>{t.customerName}</div>}
+                      {t.customerPhone && <div style={{ color: "rgba(30,24,20,0.55)", marginTop: 1 }}>{t.customerPhone}</div>}
+                      {t.customerEmail && <div style={{ color: "rgba(30,24,20,0.45)", fontSize: 10, marginTop: 1 }}>{t.customerEmail}</div>}
+                    </td>
+                    <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 700, padding: "12px 14px", whiteSpace: "nowrap" }}>{t.amount}&nbsp;EGP</td>
+                    <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
                       <span style={{ ...mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px", backgroundColor: sc.bg, color: sc.text }}>
                         {t.status}
                       </span>
                     </td>
-                    <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 700, padding: "10px 14px", whiteSpace: "nowrap" }}>
+                    <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 700, padding: "12px 14px", whiteSpace: "nowrap" }}>
                       {t.shopifyOrderNumber
                         ? `#${t.shopifyOrderNumber}`
                         : t.shopifyOrderId
                           ? <span style={{ fontSize: 10, color: "rgba(30,24,20,0.4)" }}>ID {String(t.shopifyOrderId)}</span>
                           : "—"}
                     </td>
-                    <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.6)", padding: "10px 14px", whiteSpace: "nowrap" }}>{t.transactionType}</td>
-                    <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px", whiteSpace: "nowrap" }}>{fmtDate(t.lastUpdated)}</td>
+                    <td style={{ ...mono, fontSize: 11, padding: "12px 14px", whiteSpace: "nowrap" }}>
+                      {t.bostaDispatched ? (
+                        <div>
+                          <div style={{ color: "#2d6e2d", fontWeight: 600 }}>✓ Dispatched</div>
+                          {t.bostaTrackingNumber && (
+                            <div style={{ color: "rgba(30,24,20,0.5)", fontSize: 10, marginTop: 2 }}>{t.bostaTrackingNumber}</div>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ color: "rgba(30,24,20,0.35)" }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
+                      {t.status === "completed" && t.shopifyOrderId && (
+                        <div>
+                          <button
+                            onClick={() => void handleFixPayment(t)}
+                            disabled={fixingPayment === t.id}
+                            style={{ ...btn, backgroundColor: "#1e1814", color: "#fff", padding: "5px 10px", fontSize: 10, opacity: fixingPayment === t.id ? 0.6 : 1, cursor: fixingPayment === t.id ? "default" : "pointer" }}
+                          >
+                            {fixingPayment === t.id ? "Posting…" : "Record Payment"}
+                          </button>
+                          {fm && (
+                            <div style={{ marginTop: 4, fontSize: 10, fontFamily: "'Montserrat', sans-serif", color: fm.ok ? "#2d6e2d" : "#c0392b", maxWidth: 180, whiteSpace: "normal" }}>
+                              {fm.msg}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

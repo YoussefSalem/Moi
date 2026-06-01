@@ -242,7 +242,7 @@ export async function createBostaShipment(params: {
           address: { city: resolvedCity, firstLine: params.address },
         },
         notes: `Moi Order ${params.orderReference}`,
-        cod: params.codAmount ?? 0,
+        ...(params.codAmount && params.codAmount > 0 ? { cod: params.codAmount } : {}),
       }),
     });
     if (!res.ok) {

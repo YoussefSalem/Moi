@@ -646,6 +646,10 @@ router.get("/admin/transactions", async (req, res) => {
         lastUpdated,
         customerName: [customer.firstName, customer.lastName].filter(Boolean).join(" ") || null,
         customerEmail: customer.email ?? null,
+        customerPhone: customer.phone ?? null,
+        bostaDispatched: r.bostaDispatched,
+        bostaTrackingNumber: r.bostaTrackingNumber ?? null,
+        bostaDispatchedAt: r.bostaDispatchedAt ?? null,
       };
     });
 
