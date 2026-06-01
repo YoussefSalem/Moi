@@ -714,7 +714,7 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {!order.adminApproved && (
+                  {order.status === "completed" && !order.adminApproved && (
                     <button
                       onClick={() => void approve(order.id)}
                       disabled={isActing}

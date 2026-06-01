@@ -1023,6 +1023,15 @@ export function CheckoutPage() {
           paymobTxnId: txnId,
         });
         if (result.success) {
+          const syncIntentId = intentIdRaw ?? result.merchantOrderId;
+          const txnId = result.transactionId;
+          if (syncIntentId) {
+            void fetch("/api/orders/paymob-sync", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ intentId: syncIntentId, ...(txnId ? { paymobTxnId: txnId } : {}) }),
+            }).catch(() => {});
+          }
           clearCart();
           setStep("card-confirm");
         } else {
@@ -2715,6 +2724,8 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
             // handleIframeLoad will clear the temp overlay when the 3DS page loads so
             // the user can complete authentication.
             if (!resolvedRef.current) {
+              // Cancel any pending blur-debounce timer — 3DS is underway, not a failure.
+              if (blurDebounceRef.current) { clearTimeout(blurDebounceRef.current); blurDebounceRef.current = null; }
               tempOverlayRef.current = true;
               showOverlay();
               const redirectionUrl = data["redirection_url"];
