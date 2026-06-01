@@ -592,7 +592,7 @@ export function CheckoutPage() {
         setPaymobIframeUrl(
           `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(data.publicKey)}&clientSecret=${encodeURIComponent(data.clientSecret)}`
         );
-        setStep("card-checkout");
+        // Stay on "form" step — iframe renders inline on the same page
       } catch {
         setStep("form");
         setSubmitError("Network error. Please check your connection and try again.");
@@ -957,7 +957,7 @@ export function CheckoutPage() {
 
   const isSuccessStep = step === "cod-confirm" || step === "card-confirm";
   const isConfirmStep = isSuccessStep || step === "instapay-confirm" || step === "card-failed";
-  const isCardCheckoutStep = step === "card-checkout";
+  const isCardCheckoutStep = step === "card-checkout" || (step === "form" && !!paymobIframeUrl);
   const loadingText = paymentMethod === "card" ? "Preparing payment…" : "Placing your order…";
 
   return (
@@ -993,7 +993,7 @@ export function CheckoutPage() {
             <div style={{ width: 80 }} />
           </div>
 
-          {step === "card-checkout" && paymobIframeUrl ? (
+          {(step === "card-checkout" || step === "form") && paymobIframeUrl ? (
             <motion.div
               key="card-checkout"
               initial={{ opacity: 0, y: 16 }}
