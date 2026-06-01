@@ -29,11 +29,13 @@ const DEBUG_ANALYTICS =
 // --- Debug logger ---
 function log(...args: unknown[]): void {
   if (DEBUG_ANALYTICS) {
+    // Intentionally using console in debug mode only
     // eslint-disable-next-line no-console
     console.log("[ShopifyAnalytics]", ...args);
   }
 }
 function logError(...args: unknown[]): void {
+  // Intentionally using console for critical analytics errors
   // eslint-disable-next-line no-console
   console.error("[ShopifyAnalytics]", ...args);
 }

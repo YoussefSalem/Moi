@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
 import { parseEGP } from "@/lib/price";
@@ -89,7 +89,6 @@ function AppContent() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [heroReady, setHeroReady] = useState(false);
-  const handleHeroReady = useMemo(() => () => setHeroReady(true), []);
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
   useRestockChecker();
   const cart = useCart();
@@ -181,6 +180,9 @@ function AppContent() {
       .catch(() => {
         window.history.replaceState(null, "", "/");
       });
+  // Intentionally omit deps: this effect must run once on mount only to process
+  // the ?recover-cart= token from the URL, then clear it. Adding deps would re-run
+  // and potentially re-process the (already consumed) token on every state change.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -312,7 +314,7 @@ function AppContent() {
             </div>
           ) : page === "home" ? (
             <main>
-              <HeroVideo onReady={handleHeroReady} />
+              <HeroVideo onReady={() => setHeroReady(true)} />
 
               {/* Trust bar — 3 conversion points, minimal style */}
               <div

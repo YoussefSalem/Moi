@@ -909,7 +909,7 @@ export function CheckoutPage() {
   // On mount: restore state if the user was redirected back from Paymob's 3DS page.
   // /api/paymob-return writes moi_paymob_result + sibling keys before redirecting to /.
   // Also restore InstaPay state after a tab switch on mobile.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Intentionally mount-only: sessionStorage keys are consumed once, deps would cause re-runs.
   useEffect(() => {
     // 1. Paymob restore
     const resultRaw = sessionStorage.getItem("moi_paymob_result");
