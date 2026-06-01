@@ -2315,17 +2315,18 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
 
   // window.blur fires when the user clicks INTO the iframe (focus leaves parent window).
   // window.focus fires when focus returns to the parent.
-  // Strategy: each time focus enters the iframe, reset a 12-second debounce timer.
-  // If the user hasn't returned to the parent window for 12 s (i.e. they clicked PAY
-  // and the form went away), show the overlay. This catches Paymob's inline
-  // document.write() result which fires no onLoad or webhook for validation failures.
+  // Strategy: each time focus enters the iframe, reset a 60-second debounce timer.
+  // 60s is a safe floor — most users fill a card form in 15-45 s, so the timer only
+  // fires after they have submitted and are waiting on a result. This catches Paymob's
+  // inline document.write() result which fires no onLoad or webhook for validation
+  // failures (e.g. Luhn-invalid card numbers Paymob rejects client-side).
   useEffect(() => {
     const handleBlur = () => {
       if (resolvedRef.current) return;
       if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
       blurDebounceRef.current = setTimeout(() => {
         if (!resolvedRef.current) showOverlay();
-      }, 12_000);
+      }, 60_000);
     };
 
     const handleFocus = () => {
@@ -2389,7 +2390,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       }
     };
 
-    pollIntervalRef.current = setInterval(() => { void poll(); }, 500);
+    pollIntervalRef.current = setInterval(() => { void poll(); }, 200);
     return () => stopPolling();
   }, [intentId, onSuccess, onFail, showOverlay, stopPolling]);
 
