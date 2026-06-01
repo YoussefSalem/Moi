@@ -64,32 +64,6 @@ export function NotifyMeModal({ open, productTitle, variantTitle, onClose, onSub
               className="relative w-full max-w-sm pointer-events-auto"
               style={{ backgroundColor: "#faf8f5" }}
             >
-              {/* Wavy top border */}
-              <svg
-                viewBox="0 0 420 48"
-                preserveAspectRatio="none"
-                className="absolute top-0 left-0 w-full z-[1] pointer-events-none"
-                style={{ height: 48 }}
-                aria-hidden="true"
-              >
-                {/* Double-V wave: sharp peaks and valleys */}
-                <path
-                  d="M0 48 L0 30 L52 8 L105 30 L158 8 L211 30 L264 8 L317 30 L370 8 L420 30 L420 48 Z"
-                  fill="none"
-                  stroke="rgba(30,24,20,0.14)"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                  vectorEffect="non-scaling-stroke"
-                />
-                <path
-                  d="M0 48 L0 38 L52 16 L105 38 L158 16 L211 38 L264 16 L317 38 L370 16 L420 38 L420 48 Z"
-                  fill="none"
-                  stroke="rgba(30,24,20,0.08)"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                  vectorEffect="non-scaling-stroke"
-                />
-              </svg>
               <div
                 className="flex items-center justify-between px-8 py-6"
                 style={{ borderBottom: "1px solid rgba(30,24,20,0.08)" }}
