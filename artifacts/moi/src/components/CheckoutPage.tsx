@@ -617,6 +617,11 @@ export function CheckoutPage() {
         if (data.intentId) {
           sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
           sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
+          // Save breakdown + items so the confirmation screen has correct values after redirect
+          sessionStorage.setItem("moi_paymob_breakdown", JSON.stringify({ subtotal: subtotalAmount, savings, shippingCost, freeShipping }));
+          if (cartItemsSnapshot.length > 0) {
+            sessionStorage.setItem("moi_paymob_items", JSON.stringify(cartItemsSnapshot));
+          }
         }
         paymobTrackedRef.current = false; // Reset guard for new card payment session
         setPaymobIframeUrl(data.iframeUrl);
@@ -1093,17 +1098,27 @@ export function CheckoutPage() {
       const intentIdRaw = sessionStorage.getItem("moi_paymob_intent_id");
       const orderTotalRaw = sessionStorage.getItem("moi_paymob_order_total");
 
-      ["moi_paymob_result", "moi_paymob_intent_id", "moi_paymob_order_total"].forEach((k) => sessionStorage.removeItem(k));
+      const breakdownRaw = sessionStorage.getItem("moi_paymob_breakdown");
+      const itemsRaw = sessionStorage.getItem("moi_paymob_items");
+      ["moi_paymob_result", "moi_paymob_intent_id", "moi_paymob_order_total", "moi_paymob_breakdown", "moi_paymob_items"].forEach((k) => sessionStorage.removeItem(k));
 
       try {
         const result = JSON.parse(resultRaw) as { success: boolean; transactionId?: string; merchantOrderId?: string };
         const txnId = result.transactionId || undefined;
+        const restoredItems = itemsRaw ? JSON.parse(itemsRaw) as OrderResult["items"] : undefined;
         setOrderResult({
           orderNumber: "",
           total: orderTotalRaw ?? "",
           intentId: intentIdRaw ?? result.merchantOrderId ?? undefined,
           paymobTxnId: txnId,
+          items: restoredItems,
         });
+        if (breakdownRaw) {
+          try {
+            const bd = JSON.parse(breakdownRaw) as { subtotal: number; savings: number; shippingCost: number; freeShipping: boolean };
+            setBreakdownSnapshot(bd);
+          } catch { /* ignore */ }
+        }
         if (result.success) {
           const syncIntentId = intentIdRaw ?? result.merchantOrderId;
           const txnId = result.transactionId;
