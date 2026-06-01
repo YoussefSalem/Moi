@@ -1118,7 +1118,7 @@ export function CheckoutPage() {
 
                 {/* Iframe container with rounded corners — clean blend into the page */}
                 <div style={{ borderRadius: "16px", overflow: "hidden" }}>
-                  <div className="max-h-[680px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
+                  <div className="max-h-[685px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
                     <PaymobIframe
                       url={paymobIframeUrl}
                       onSuccess={handleIframeSuccess}
