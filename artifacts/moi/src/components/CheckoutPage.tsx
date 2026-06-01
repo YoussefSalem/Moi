@@ -1118,12 +1118,21 @@ export function CheckoutPage() {
 
                 {/* Iframe container with rounded corners — clean blend into the page */}
                 <div style={{ borderRadius: "16px", overflow: "hidden" }}>
-                  <div className="max-h-[660px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden" }}>
+                  <div className="max-h-[660px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
                     <PaymobIframe
                       url={paymobIframeUrl}
                       onSuccess={handleIframeSuccess}
                       onFail={handleIframeFail}
                     />
+                    <div style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 32,
+                      background: "linear-gradient(to bottom, rgba(250,248,245,0), rgba(250,248,245,1))",
+                      pointerEvents: "none",
+                    }} />
                   </div>
                 </div>
 
