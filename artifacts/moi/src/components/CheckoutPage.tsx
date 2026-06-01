@@ -592,7 +592,7 @@ export function CheckoutPage() {
         setPaymobIframeUrl(
           `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(data.publicKey)}&clientSecret=${encodeURIComponent(data.clientSecret)}`
         );
-        // Stay on "form" step — iframe renders inline on the same page
+        setStep("form"); // Return to form step — iframe renders inline on the same page
       } catch {
         setStep("form");
         setSubmitError("Network error. Please check your connection and try again.");
