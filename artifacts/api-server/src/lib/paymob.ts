@@ -27,23 +27,22 @@ export async function createPaymobIntention(
   params: CreateIntentionParams,
 ): Promise<PaymobIntentionResult> {
   const config = getPaymobConfig();
-  if (!config.secretKey || !config.publicKey || !config.integrationId) {
+  if (!config.secretKey || !config.publicKey) {
     throw new Error("Paymob credentials are not configured");
   }
 
+  // Integration ID is optional for Paymob Unified Checkout accounts.
+  // Only include payment_methods/integration_ids if a valid numeric ID is configured.
   const integrationIdNum = parseInt(config.integrationId, 10);
-  if (!Number.isInteger(integrationIdNum) || integrationIdNum <= 0) {
-    throw new Error(
-      `Paymob Integration ID is not a valid numeric ID (got: "${config.integrationId}"). ` +
-      "Please update it in the admin dashboard to the numeric Integration ID from your Paymob account."
-    );
-  }
+  const hasIntegrationId = Number.isInteger(integrationIdNum) && integrationIdNum > 0;
 
   const body: Record<string, unknown> = {
     amount: params.amountCents,
     currency: "EGP",
-    integration_ids: [integrationIdNum],
-    payment_methods: [integrationIdNum],
+    ...(hasIntegrationId ? {
+      integration_ids: [integrationIdNum],
+      payment_methods: [integrationIdNum],
+    } : {}),
     merchant_order_id: params.merchantOrderId,
     ...(params.redirectionUrl ? { redirection_url: params.redirectionUrl } : {}),
     billing_data: {
