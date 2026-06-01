@@ -687,11 +687,11 @@ function SettingsTab({ token, onAuth }: { token: string; onAuth?: (t: string | n
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  const fields: { key: string; label: string; placeholder: string; sensitive?: boolean }[] = [
+  const fields: { key: string; label: string; placeholder: string; sensitive?: boolean; hint?: string }[] = [
     { key: "apiKey", label: "Paymob API Key", placeholder: "Enter to update", sensitive: true },
     { key: "secretKey", label: "Paymob Secret Key", placeholder: "Enter to update", sensitive: true },
     { key: "publicKey", label: "Paymob Public Key", placeholder: "Enter to update", sensitive: true },
-    { key: "integrationId", label: "Integration ID (Card)", placeholder: "Enter to update" },
+    { key: "integrationId", label: "Integration ID (Card)", placeholder: "Numeric ID, e.g. 123456", hint: "Must be the numeric Integration ID from your Paymob dashboard (Integrations → Online Card → ID column). Not the API key." },
     { key: "hmacSecret", label: "HMAC Secret", placeholder: "Enter to update", sensitive: true },
   ];
 
@@ -758,6 +758,11 @@ function SettingsTab({ token, onAuth }: { token: string; onAuth?: (t: string | n
               style={inputStyle}
               autoComplete="off"
             />
+            {f.hint && (
+              <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", marginTop: "5px", lineHeight: 1.5 }}>
+                {f.hint}
+              </p>
+            )}
           </div>
         ))}
         {error && <p style={{ fontSize: "12px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>}

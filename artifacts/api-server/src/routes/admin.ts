@@ -908,6 +908,13 @@ router.post("/admin/paymob-config", (req, res) => {
       filtered[key] = (patch[key] as string).trim();
     }
   }
+  if (filtered.integrationId !== undefined) {
+    const id = parseInt(filtered.integrationId, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "Integration ID must be a numeric ID (e.g. 123456) from your Paymob dashboard." });
+      return;
+    }
+  }
   try {
     savePaymobConfig(filtered);
     res.status(200).json(getMaskedConfig());

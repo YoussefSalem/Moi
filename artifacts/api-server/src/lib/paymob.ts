@@ -31,11 +31,19 @@ export async function createPaymobIntention(
     throw new Error("Paymob credentials are not configured");
   }
 
+  const integrationIdNum = parseInt(config.integrationId, 10);
+  if (!Number.isInteger(integrationIdNum) || integrationIdNum <= 0) {
+    throw new Error(
+      `Paymob Integration ID is not a valid numeric ID (got: "${config.integrationId}"). ` +
+      "Please update it in the admin dashboard to the numeric Integration ID from your Paymob account."
+    );
+  }
+
   const body: Record<string, unknown> = {
     amount: params.amountCents,
     currency: "EGP",
-    integration_ids: [parseInt(config.integrationId, 10)],
-    payment_methods: [parseInt(config.integrationId, 10)],
+    integration_ids: [integrationIdNum],
+    payment_methods: [integrationIdNum],
     merchant_order_id: params.merchantOrderId,
     ...(params.redirectionUrl ? { redirection_url: params.redirectionUrl } : {}),
     billing_data: {
