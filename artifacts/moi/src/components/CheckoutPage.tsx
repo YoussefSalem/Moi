@@ -1086,7 +1086,7 @@ export function CheckoutPage() {
                   </div>
                   <div className="flex justify-between items-center pt-3" style={{ borderTop: "1px solid rgba(30,24,20,0.22)" }}>
                     <span style={{ fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>Total</span>
-                    <span style={{ fontSize: "19px", color: "#1e1814", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, letterSpacing: "0.03em" }}>
+                    <span style={{ fontSize: "19px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.03em" }}>
                       {orderResult?.total ?? fmt(totalAmount)}
                     </span>
                   </div>
