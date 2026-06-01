@@ -2266,6 +2266,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   const resolvedRef = useRef(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const blurDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollStartRef = useRef<number>(Date.now());
 
   // Shows the overlay synchronously via DOM ref — no React re-render latency.
   const showOverlay = useCallback(() => {
@@ -2327,11 +2328,22 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   // "declined" / "completed" / "failed" — polling picks that up within ~500 ms.
   // For bank-declined cards the webhook fires server-to-server BEFORE the browser
   // renders the iframe result, so the overlay can appear before any JSON is visible.
+  // Hard ceiling: after 15 minutes of "pending" status (e.g. "Invalid credentials"
+  // where Paymob never fires a webhook), stop polling and trigger the failure screen.
   useEffect(() => {
     if (!intentId) return;
+    pollStartRef.current = Date.now();
 
     const poll = async () => {
       if (resolvedRef.current) return;
+      if (Date.now() - pollStartRef.current > 15 * 60 * 1000) {
+        resolvedRef.current = true;
+        stopPolling();
+        if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
+        showOverlay();
+        setTimeout(onFail, 300);
+        return;
+      }
       try {
         const res = await fetch(`/api/orders/paymob-status/${intentId}`);
         if (!res.ok) return;
