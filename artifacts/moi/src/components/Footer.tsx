@@ -37,11 +37,11 @@ export function Footer({ onNavigate }: FooterProps) {
     <>
       <footer className="w-full px-6 md:px-12 py-10 md:py-14" style={{ backgroundColor: "#28211d" }}>
         <div className="max-w-6xl mx-auto">
-          {/* Quick links — replace old Clothing with Versa Top / Wavy Top */}
+          {/* Quick links — replace old Clothing with Versa Top / Wavvy top */}
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 mb-6">
             {[
               { label: "Versa Top", page: "home" as const, hash: "moi-versa-top" },
-              { label: "Wavy Top", page: "home" as const, hash: "moi-wavvy" },
+              { label: "Wavvy top", page: "home" as const, hash: "moi-wavvy" },
               { label: "Accessories", page: "accessories" as const },
               { label: "Ambassador", page: "ambassador" as const },
             ].map((link) => (

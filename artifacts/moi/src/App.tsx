@@ -49,7 +49,7 @@ const VALID_PRODUCTS: Record<string, string[] | null> = {
 
 const SECTION_PATH_MAP: Record<string, string> = {
   "/versa-top": "moi-versa-top",
-  "/wavy-top": "moi-wavvy",
+  "/wavvy-top": "moi-wavvy",
 };
 
 function parsePath(): { page: PageType; productHandle: string; section?: string } {
