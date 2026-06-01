@@ -2647,11 +2647,23 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       // Our relay page format — relay page already shows clean success/fail UI inside
       // the iframe; we immediately cover the iframe with our own overlay so no raw data
       // from any previous Paymob-rendered page can remain visible.
+      // Helper: fire paymob-sync so the server creates the Shopify draft order
+      // immediately, even if the webhook hasn't arrived yet.  Fire-and-forget.
+      const syncPaymobOrder = () => {
+        if (!intentId) return;
+        void fetch("/api/orders/paymob-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intentId }),
+        }).catch(() => {});
+      };
+
       if (isOwn && data["type"] === "PAYMOB_RESULT") {
         resolvedRef.current = true;
         stopPolling();
         const txnId = String(data["transactionId"] ?? "");
         if (data["success"]) {
+          syncPaymobOrder();
           showOverlaySuccess(txnId || undefined);
         } else if (data["pending"]) {
           showOverlayPending();
@@ -2672,10 +2684,12 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
         if (isSuccess && hasTxnId) {
           resolvedRef.current = true;
           stopPolling();
+          syncPaymobOrder();
           showOverlaySuccess(txnId);
         } else if (isSuccess && !hasTxnId) {
           resolvedRef.current = true;
           stopPolling();
+          syncPaymobOrder();
           showOverlaySuccess(undefined);
         } else if (isFail) {
           const isPending = data["pending"] === true || data["pending"] === "true";

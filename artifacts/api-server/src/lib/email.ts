@@ -783,3 +783,203 @@ export function buildAbandonedCartEmail(params: {
 
   return { html, text };
 }
+
+// ---------------------------------------------------------------------------
+// Admin Payment Notification Email (sent to store owner on card payment)
+// ---------------------------------------------------------------------------
+
+export function buildAdminPaymentNotificationEmail(params: {
+  draftOrderId: number | string;
+  paymobTxnId: string;
+  amount: string;
+  customer: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email?: string;
+    address: string;
+    governorate: string;
+    city: string;
+  };
+  lineItems?: EmailLineItem[];
+  discountAmount?: number;
+  discountCode?: string;
+  shippingAmount?: string;
+}): { html: string; text: string } {
+  const { draftOrderId, paymobTxnId, amount, customer, lineItems, discountAmount, discountCode, shippingAmount } = params;
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN ?? "";
+  const adminUrl = storeDomain
+    ? `https://${storeDomain}/admin/draft_orders/${draftOrderId}`
+    : "";
+  const now = new Date().toLocaleString("en-EG", { timeZone: "Africa/Cairo", dateStyle: "medium", timeStyle: "short" });
+
+  const itemRows = lineItems && lineItems.length > 0
+    ? lineItems.map((item) => {
+        const variant = item.variant_title && item.variant_title !== "Default Title"
+          ? ` — ${item.variant_title}` : "";
+        return `<tr>
+          <td style="padding:8px 0;border-top:1px solid #e8e3dc;font-family:Arial,sans-serif;font-size:13px;color:#1a1714;">${item.title}${variant}</td>
+          <td style="padding:8px 0;border-top:1px solid #e8e3dc;font-family:Arial,sans-serif;font-size:13px;color:#1a1714;text-align:center;">×${item.quantity}</td>
+          <td style="padding:8px 0;border-top:1px solid #e8e3dc;font-family:Arial,sans-serif;font-size:13px;color:#1a1714;text-align:right;white-space:nowrap;">${String(item.price).replace(/\s*EGP\s*/i, "").trim()} EGP</td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="3" style="padding:8px 0;border-top:1px solid #e8e3dc;font-family:Arial,sans-serif;font-size:13px;color:#9a8e82;">(items not available)</td></tr>`;
+
+  const shippingNum = parseEGP(shippingAmount ?? "0");
+  const discountNum = discountAmount ?? 0;
+  const subtotalNum = parseEGP(amount) - shippingNum + discountNum;
+
+  const breakdownRows = [
+    `<tr><td style="padding:5px 0;font-family:Arial,sans-serif;font-size:12px;color:#5c504a;">Subtotal</td><td style="padding:5px 0;font-family:Arial,sans-serif;font-size:12px;color:#1a1714;text-align:right;">${subtotalNum.toFixed(2)} EGP</td></tr>`,
+    discountNum > 0 ? `<tr><td style="padding:5px 0;font-family:Arial,sans-serif;font-size:12px;color:#5c504a;">Discount${discountCode ? ` (${discountCode})` : ""}</td><td style="padding:5px 0;font-family:Arial,sans-serif;font-size:12px;color:#c0392b;text-align:right;">−${discountNum.toFixed(2)} EGP</td></tr>` : "",
+    `<tr><td style="padding:5px 0;font-family:Arial,sans-serif;font-size:12px;color:#5c504a;">Shipping</td><td style="padding:5px 0;font-family:Arial,sans-serif;font-size:12px;color:#1a1714;text-align:right;">${shippingNum === 0 ? "Free" : `${shippingNum.toFixed(2)} EGP`}</td></tr>`,
+    `<tr><td style="padding:10px 0 5px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#1a1714;border-top:2px solid #1a1714;">TOTAL</td><td style="padding:10px 0 5px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#1a1714;text-align:right;border-top:2px solid #1a1714;">${parseEGP(amount).toFixed(2)} EGP</td></tr>`,
+  ].join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Card Payment Confirmed — Admin</title>
+</head>
+<body style="margin:0;padding:0;background:#e8e3dc;font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e8e3dc;">
+<tr><td align="center" style="padding:32px 16px 48px;">
+  <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;">
+
+    <!-- Top accent -->
+    <tr><td style="background:#1a7a3e;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+    <!-- Header -->
+    <tr><td style="padding:28px 40px 20px;border-bottom:1px solid #e8e3dc;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:9px;letter-spacing:0.45em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Admin Notification</p>
+            <p style="margin:6px 0 0;font-family:Georgia,serif;font-size:22px;color:#1a1714;font-weight:400;">Card Payment Confirmed</p>
+          </td>
+          <td style="text-align:right;vertical-align:top;white-space:nowrap;">
+            <span style="display:inline-block;background:#1a7a3e;color:#ffffff;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;padding:5px 12px;">✓ PAID</span>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+
+    <!-- Payment Summary -->
+    <tr><td style="padding:24px 40px 0;">
+      <p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:9px;letter-spacing:0.4em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Payment Details</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8e3dc;">
+        <tr>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:12px;color:#9a8e82;border-bottom:1px solid #e8e3dc;width:40%;">Draft Order</td>
+          <td style="padding:10px 14px;font-family:'Courier New',monospace;font-size:13px;color:#1a1714;font-weight:700;border-bottom:1px solid #e8e3dc;">#${draftOrderId}${adminUrl ? `&nbsp;&nbsp;<a href="${adminUrl}" style="color:#1a6ad4;font-size:11px;font-family:Arial,sans-serif;font-weight:400;">View in Shopify →</a>` : ""}</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:12px;color:#9a8e82;border-bottom:1px solid #e8e3dc;">Paymob TXN</td>
+          <td style="padding:10px 14px;font-family:'Courier New',monospace;font-size:13px;color:#1a1714;font-weight:700;border-bottom:1px solid #e8e3dc;">${paymobTxnId}</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:12px;color:#9a8e82;border-bottom:1px solid #e8e3dc;">Amount Paid</td>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:15px;color:#1a7a3e;font-weight:700;border-bottom:1px solid #e8e3dc;">${parseEGP(amount).toFixed(2)} EGP</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:12px;color:#9a8e82;">Date (Cairo)</td>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:12px;color:#1a1714;">${now}</td>
+        </tr>
+      </table>
+    </td></tr>
+
+    <!-- Customer -->
+    <tr><td style="padding:24px 40px 0;">
+      <p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:9px;letter-spacing:0.4em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Customer</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8e3dc;">
+        <tr>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:12px;color:#9a8e82;border-bottom:1px solid #e8e3dc;width:40%;">Name</td>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:13px;color:#1a1714;font-weight:700;border-bottom:1px solid #e8e3dc;">${customer.firstName} ${customer.lastName}</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:12px;color:#9a8e82;border-bottom:1px solid #e8e3dc;">Phone</td>
+          <td style="padding:10px 14px;font-family:'Courier New',monospace;font-size:13px;color:#1a1714;border-bottom:1px solid #e8e3dc;">${customer.phone}</td>
+        </tr>
+        ${customer.email ? `<tr>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:12px;color:#9a8e82;border-bottom:1px solid #e8e3dc;">Email</td>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:13px;color:#1a1714;border-bottom:1px solid #e8e3dc;"><a href="mailto:${customer.email}" style="color:#1a6ad4;">${customer.email}</a></td>
+        </tr>` : ""}
+        <tr>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:12px;color:#9a8e82;">Address</td>
+          <td style="padding:10px 14px;font-family:Arial,sans-serif;font-size:13px;color:#1a1714;">${customer.address}, ${customer.city}, ${customer.governorate}</td>
+        </tr>
+      </table>
+    </td></tr>
+
+    <!-- Items -->
+    <tr><td style="padding:24px 40px 0;">
+      <p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:9px;letter-spacing:0.4em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Items Ordered</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <th style="padding:6px 0;font-family:Arial,sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#9a8e82;text-align:left;font-weight:700;">Product</th>
+          <th style="padding:6px 0;font-family:Arial,sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#9a8e82;text-align:center;font-weight:700;">Qty</th>
+          <th style="padding:6px 0;font-family:Arial,sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#9a8e82;text-align:right;font-weight:700;">Price</th>
+        </tr>
+        ${itemRows}
+      </table>
+    </td></tr>
+
+    <!-- Breakdown -->
+    <tr><td style="padding:16px 40px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-left:auto;max-width:240px;">
+        ${breakdownRows}
+      </table>
+    </td></tr>
+
+    ${adminUrl ? `<!-- CTA -->
+    <tr><td style="padding:28px 40px 0;text-align:center;">
+      <a href="${adminUrl}" style="display:inline-block;background:#1a1714;color:#ffffff;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;padding:14px 32px;text-decoration:none;">Open Draft Order in Shopify</a>
+    </td></tr>` : ""}
+
+    <!-- Footer -->
+    <tr><td style="padding:28px 40px 24px;border-top:1px solid #e8e3dc;margin-top:28px;">
+      <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#b0a89e;text-align:center;">This is an automated notification sent to the Moi store admin.<br />Payment method: Credit/Debit Card via Paymob</p>
+    </td></tr>
+
+    <!-- Bottom accent -->
+    <tr><td style="background:#1a1714;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+  const itemsText = lineItems && lineItems.length > 0
+    ? lineItems.map((i) => {
+        const v = i.variant_title && i.variant_title !== "Default Title" ? ` — ${i.variant_title}` : "";
+        return `  ${i.title}${v} × ${i.quantity}  (${String(i.price).replace(/\s*EGP\s*/i, "").trim()} EGP)`;
+      }).join("\n")
+    : "  (items not available)";
+
+  const text = [
+    `ADMIN NOTIFICATION — CARD PAYMENT CONFIRMED`,
+    ``,
+    `Draft Order:  #${draftOrderId}${adminUrl ? `\nShopify Admin: ${adminUrl}` : ""}`,
+    `Paymob TXN:   ${paymobTxnId}`,
+    `Amount Paid:  ${parseEGP(amount).toFixed(2)} EGP`,
+    `Date (Cairo): ${now}`,
+    ``,
+    `CUSTOMER`,
+    `Name:    ${customer.firstName} ${customer.lastName}`,
+    `Phone:   ${customer.phone}`,
+    customer.email ? `Email:   ${customer.email}` : "",
+    `Address: ${customer.address}, ${customer.city}, ${customer.governorate}`,
+    ``,
+    `ITEMS`,
+    itemsText,
+    ``,
+    `BREAKDOWN`,
+    `Subtotal:  ${subtotalNum.toFixed(2)} EGP`,
+    discountNum > 0 ? `Discount${discountCode ? ` (${discountCode})` : ""}:  −${discountNum.toFixed(2)} EGP` : "",
+    `Shipping:  ${shippingNum === 0 ? "Free" : `${shippingNum.toFixed(2)} EGP`}`,
+    `TOTAL:     ${parseEGP(amount).toFixed(2)} EGP`,
+  ].filter((l) => l !== "").join("\n");
+
+  return { html, text };
+}

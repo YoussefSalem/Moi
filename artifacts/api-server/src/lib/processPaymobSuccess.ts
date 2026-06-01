@@ -14,7 +14,7 @@ import {
   type ShopifyLineItem,
   type OrderAttribution,
 } from "./shopifyOrder";
-import { sendEmail, buildOrderConfirmationEmail } from "./email";
+import { sendEmail, buildOrderConfirmationEmail, buildAdminPaymentNotificationEmail } from "./email";
 import { logger } from "./logger";
 
 /**
@@ -144,6 +144,30 @@ export async function processPaymobSuccess(params: {
     })
       .then(() => logger.info({ email: customer.email, shopifyDraftId }, "processPaymobSuccess: confirmation email sent"))
       .catch((err) => logger.warn({ err, email: customer.email }, "processPaymobSuccess: confirmation email failed"));
+  }
+
+  // Admin notification email — sent to the store owner for every confirmed card payment
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+  if (adminEmail) {
+    const shippingForAdmin = parseEGP(amount) >= 2000 ? "0.00" : "50.00";
+    const { html: adminHtml, text: adminText } = buildAdminPaymentNotificationEmail({
+      draftOrderId: shopifyDraftId,
+      paymobTxnId,
+      amount,
+      customer,
+      lineItems: shopifyLineItems,
+      discountAmount: shopifyDiscountAmount ?? undefined,
+      discountCode: shopifyDiscountCode ?? undefined,
+      shippingAmount: shippingForAdmin,
+    });
+    void sendEmail({
+      to: adminEmail,
+      subject: `🟢 Card Payment — Draft Order #${shopifyDraftId} — ${parseEGP(amount).toFixed(2)} EGP`,
+      html: adminHtml,
+      text: adminText,
+    })
+      .then(() => logger.info({ adminEmail, shopifyDraftId }, "processPaymobSuccess: admin notification sent"))
+      .catch((err) => logger.warn({ err, adminEmail }, "processPaymobSuccess: admin notification failed"));
   }
 
   const phone = customer.phone ?? "";
