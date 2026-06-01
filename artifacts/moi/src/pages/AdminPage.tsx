@@ -542,9 +542,6 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "completed" | "processing" | "failed" | "declined">("all");
-  const [fixing, setFixing] = useState<number | null>(null);
-  const [fixResult, setFixResult] = useState<Record<number, "ok" | "err">>({});
-
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -561,16 +558,6 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
   }, [token, onAuth]);
 
   useEffect(() => { void load(); }, [load]);
-
-  async function fixPayment(id: number) {
-    setFixing(id);
-    try {
-      const res = await fetch(`/api/admin/fix-payment-transaction/${id}`, { method: "POST", headers: apiHeaders(token) });
-      const data = await res.json() as { ok?: boolean; error?: string };
-      setFixResult((prev) => ({ ...prev, [id]: res.ok && data.ok ? "ok" : "err" }));
-      if (!res.ok) alert(`Record payment failed: ${data.error ?? "Unknown error"}`);
-    } finally { setFixing(null); }
-  }
 
   const filtered = txns.filter((t) => filterStatus === "all" || t.status === filterStatus);
   const completedCount = txns.filter((t) => t.status === "completed").length;
@@ -636,7 +623,7 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
           <table style={{ minWidth: 1100, borderCollapse: "collapse", width: "100%" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", backgroundColor: "#faf8f5" }}>
-                {["Transaction ID", "Date Created", "Amount", "Pay Type", "Source", "Origin", "Status", "Shopify #", "Txn Type", "Last Updated", ""].map((h) => (
+                {["Transaction ID", "Date Created", "Amount", "Pay Type", "Source", "Origin", "Status", "Shopify #", "Txn Type", "Last Updated"].map((h) => (
                   <th key={h} style={{ ...mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, textAlign: "left", padding: "10px 14px", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
@@ -644,8 +631,6 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
             <tbody>
               {filtered.map((t, i) => {
                 const sc = statusColors[t.status] ?? { bg: "rgba(30,24,20,0.1)", text: "rgba(30,24,20,0.7)" };
-                const isFixing = fixing === t.id;
-                const fixOk = fixResult[t.id] === "ok";
                 return (
                   <tr key={t.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid rgba(30,24,20,0.05)" : "none" }}>
                     <td style={{ ...mono, fontSize: 12, color: "#1e1814", padding: "10px 14px", whiteSpace: "nowrap", fontWeight: 600 }}>
@@ -673,18 +658,6 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
                     </td>
                     <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.6)", padding: "10px 14px", whiteSpace: "nowrap" }}>{t.transactionType}</td>
                     <td style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", padding: "10px 14px", whiteSpace: "nowrap" }}>{fmtDate(t.lastUpdated)}</td>
-                    <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                      {t.status === "completed" && t.paymobTxnId && (
-                        <button
-                          onClick={() => void fixPayment(t.id)}
-                          disabled={isFixing || fixOk}
-                          title="Re-post payment transaction to Shopify — use if the order shows as Payment Pending"
-                          style={{ ...btn, backgroundColor: fixOk ? "rgba(60,120,60,0.12)" : "transparent", color: fixOk ? "#2d6e2d" : "rgba(30,24,20,0.55)", border: `1px solid ${fixOk ? "rgba(60,120,60,0.3)" : "rgba(30,24,20,0.18)"}`, fontSize: 10, padding: "4px 8px", opacity: isFixing ? 0.5 : 1 }}
-                        >
-                          {isFixing ? "…" : fixOk ? "✓ Recorded" : "Record Payment"}
-                        </button>
-                      )}
-                    </td>
                   </tr>
                 );
               })}
