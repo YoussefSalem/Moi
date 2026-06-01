@@ -578,6 +578,20 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
     } finally { setActionLoading(null); }
   }
 
+  async function decline(id: number) {
+    if (!confirm("Decline this order? This cannot be undone.")) return;
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/admin/card-orders/${id}/decline`, { method: "POST", headers: apiHeaders(token) });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (!res.ok || data.error) {
+        alert(`Decline failed: ${data.error ?? "Unknown error"}`);
+        return;
+      }
+      await load();
+    } finally { setActionLoading(null); }
+  }
+
   async function dispatch(id: number) {
     setActionLoading(id);
     try {
@@ -715,13 +729,22 @@ function CardOrdersTab({ token, onAuth }: { token: string; onAuth?: (t: string |
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {order.status === "completed" && !order.adminApproved && (
-                    <button
-                      onClick={() => void approve(order.id)}
-                      disabled={isActing}
-                      style={{ ...btn, backgroundColor: "#1a5c3a", color: "#fff", display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", opacity: isActing ? 0.6 : 1 }}
-                    >
-                      {isActing ? "Approving…" : "Approve Order"}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => void decline(order.id)}
+                        disabled={isActing}
+                        style={{ ...btn, backgroundColor: "transparent", color: "#8a1010", border: "1px solid rgba(138,16,16,0.35)", display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", opacity: isActing ? 0.6 : 1 }}
+                      >
+                        {isActing ? "…" : "Decline"}
+                      </button>
+                      <button
+                        onClick={() => void approve(order.id)}
+                        disabled={isActing}
+                        style={{ ...btn, backgroundColor: "#1a5c3a", color: "#fff", display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", opacity: isActing ? 0.6 : 1 }}
+                      >
+                        {isActing ? "Approving…" : "Approve Order"}
+                      </button>
+                    </>
                   )}
                   {order.adminApproved && !order.bostaDispatched && (
                     <button

@@ -492,6 +492,26 @@ router.post("/admin/card-orders/:id/approve", async (req, res) => {
   res.status(200).json({ ok: true, orderId: result.orderId, orderNumber: result.orderNumber, total: result.total });
 });
 
+// POST /admin/card-orders/:id/decline — admin rejects a pending-approval card order
+router.post("/admin/card-orders/:id/decline", async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const rows = await db.select().from(paymobIntents).where(eq(paymobIntents.id, id)).limit(1);
+  const intent = rows[0];
+  if (!intent) { res.status(404).json({ error: "Order not found" }); return; }
+  if (intent.adminApproved) { res.status(409).json({ error: "Order already approved — cannot decline" }); return; }
+  if (intent.status === "declined") { res.status(409).json({ error: "Order already declined" }); return; }
+
+  await db
+    .update(paymobIntents)
+    .set({ status: "declined" })
+    .where(eq(paymobIntents.id, id));
+
+  req.log.info({ id, paymobTxnId: intent.paymobTxnId }, "card-orders decline: order declined by admin");
+  res.status(200).json({ ok: true });
+});
+
 // POST /admin/card-orders/:id/dispatch — create Bosta shipment and mark dispatched
 router.post("/admin/card-orders/:id/dispatch", async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
