@@ -883,6 +883,9 @@ export function CheckoutPage() {
     setStep("form");
     setPaymentMethod("card");
     submittingRef.current = false;
+    // Re-initialize the Paymob iframe so the user can retry payment immediately
+    // without re-entering their checkout form details.
+    refreshSessionRef.current();
   }, []);
 
   const handleChooseDifferent = useCallback(() => {
@@ -1827,36 +1830,36 @@ function CardFailed({
       animate={{ opacity: 1, y: 0 }}
       className="max-w-lg mx-auto px-8 py-16 text-center flex flex-col items-center gap-6"
     >
-      <div style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: "rgba(192,57,43,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <X size={20} strokeWidth={1.5} style={{ color: "#c0392b" }} />
+      <div style={{ width: 72, height: 72, borderRadius: "50%", backgroundColor: "rgba(192,57,43,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <X size={32} strokeWidth={1.5} style={{ color: "#c0392b" }} />
       </div>
       <div>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "32px", fontWeight: 600, color: "#1e1814", marginBottom: "10px" }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "40px", fontWeight: 600, color: "#c0392b", marginBottom: "14px" }}>
           Payment Declined
         </h1>
-        <p style={{ fontSize: "13px", color: "rgba(30,24,20,0.62)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.04em", lineHeight: 1.5 }}>
+        <p style={{ fontSize: "15px", color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.04em", lineHeight: 1.6 }}>
           No charge was made. Please try again or use a different method.
         </p>
       </div>
-      <div className="flex flex-col gap-3 w-full">
+      <div className="flex flex-col gap-3 w-full" style={{ maxWidth: 380, margin: "0 auto" }}>
         <button
           onClick={onRetry}
           className="w-full py-4 transition-opacity hover:opacity-80"
-          style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "13px", letterSpacing: "0.28em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+          style={{ backgroundColor: "#c0392b", color: "#fff", fontSize: "14px", letterSpacing: "0.28em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
         >
           Try Again
         </button>
         <button
           onClick={onChooseDifferent}
           className="w-full py-3 transition-opacity hover:opacity-80"
-          style={{ backgroundColor: "transparent", border: "1.5px solid #1e1814", color: "#1e1814", fontSize: "13px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}
+          style={{ backgroundColor: "transparent", border: "1.5px solid #1e1814", color: "#1e1814", fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}
         >
           Different Method
         </button>
         <button
           onClick={onDone}
           className="w-full py-3 transition-opacity hover:opacity-60"
-          style={{ fontSize: "13px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.62)", fontFamily: "'Montserrat', sans-serif", border: "1px solid rgba(30,24,20,0.14)" }}
+          style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.62)", fontFamily: "'Montserrat', sans-serif", border: "1px solid rgba(30,24,20,0.14)" }}
         >
           Cancel
         </button>
@@ -2449,13 +2452,13 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   const showOverlaySuccess = useCallback((txnId?: string) => {
     if (overlayInnerRef.current) {
       overlayInnerRef.current.innerHTML =
-        '<div style="width:56px;height:56px;border-radius:50%;background:rgba(47,102,68,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex-shrink:0">' +
-          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2f6644" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+        '<div style="width:72px;height:72px;border-radius:50%;background:rgba(47,102,68,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:18px;flex-shrink:0">' +
+          '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2f6644" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
         '</div>' +
-        '<p style="font-size:13px;letter-spacing:0.3em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:600;margin-bottom:10px">Payment Successful</p>' +
-        '<p style="font-size:12px;color:rgba(30,24,20,0.55);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:280px;line-height:1.75;margin-bottom:20px">Your payment has been received successfully.<br>We\'ve sent your order for processing and will<br>keep you updated on the next steps.</p>' +
-        '<button id="pay-overlay-cta" style="background:#1e1814;color:#faf8f5;border:none;padding:13px 28px;font-family:\'Montserrat\',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.24em;text-transform:uppercase;cursor:pointer;margin-bottom:12px;width:100%;max-width:280px">Proceed to Order Information</button>' +
-        '<p id="pay-overlay-cd" style="font-size:11px;color:rgba(30,24,20,0.38);font-family:\'Montserrat\',sans-serif;letter-spacing:0.08em">Proceeding in 5s\u2026</p>';
+        '<p style="font-size:16px;letter-spacing:0.3em;text-transform:uppercase;color:#2f6644;font-family:\'Montserrat\',sans-serif;font-weight:700;margin-bottom:14px">Payment Successful</p>' +
+        '<p style="font-size:14px;color:rgba(30,24,20,0.6);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:320px;line-height:1.75;margin-bottom:24px">Your payment has been received successfully.<br>We\'ve sent your order for processing and will<br>keep you updated on the next steps.</p>' +
+        '<button id="pay-overlay-cta" style="background:#1e1814;color:#faf8f5;border:none;padding:14px 32px;font-family:\'Montserrat\',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;cursor:pointer;margin-bottom:14px;width:100%;max-width:320px">Proceed to Order Information</button>' +
+        '<p id="pay-overlay-cd" style="font-size:12px;color:rgba(30,24,20,0.45);font-family:\'Montserrat\',sans-serif;letter-spacing:0.08em">Proceeding in 5s\u2026</p>';
 
       const inner = overlayInnerRef.current;
       const state: { tickId: ReturnType<typeof setInterval> | null } = { tickId: null };
@@ -2481,13 +2484,13 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   const showOverlayPending = useCallback(() => {
     if (overlayInnerRef.current) {
       overlayInnerRef.current.innerHTML =
-        '<div style="width:56px;height:56px;border-radius:50%;background:rgba(160,120,40,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:12px;flex-shrink:0">' +
-          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#a07828" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<div style="width:72px;height:72px;border-radius:50%;background:rgba(160,120,40,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:18px;flex-shrink:0">' +
+          '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#a07828" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
             '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' +
           '</svg>' +
         '</div>' +
-        '<p style="font-size:13px;letter-spacing:0.3em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:600;margin-bottom:10px">Payment Pending</p>' +
-        '<p style="font-size:12px;color:rgba(30,24,20,0.55);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:280px;line-height:1.75">Your payment is currently being verified.<br>This may take a few moments. We\'ll update<br>your order status as soon as confirmation is received.</p>';
+        '<p style="font-size:16px;letter-spacing:0.3em;text-transform:uppercase;color:#a07828;font-family:\'Montserrat\',sans-serif;font-weight:700;margin-bottom:14px">Payment Pending</p>' +
+        '<p style="font-size:14px;color:rgba(30,24,20,0.6);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:320px;line-height:1.75">Your payment is currently being verified.<br>This may take a few moments. We\'ll update<br>your order status as soon as confirmation is received.</p>';
     }
     showOverlay();
   }, [showOverlay]);
@@ -2497,15 +2500,15 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   const showOverlayFail = useCallback(() => {
     if (overlayInnerRef.current) {
       overlayInnerRef.current.innerHTML =
-        '<div style="width:56px;height:56px;border-radius:50%;background:rgba(192,57,43,0.08);display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex-shrink:0">' +
-          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<div style="width:72px;height:72px;border-radius:50%;background:rgba(192,57,43,0.10);display:flex;align-items:center;justify-content:center;margin-bottom:18px;flex-shrink:0">' +
+          '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
             '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>' +
           '</svg>' +
         '</div>' +
-        '<p style="font-size:13px;letter-spacing:0.3em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:600;margin-bottom:8px">Payment Failed</p>' +
-        '<p style="font-size:12px;color:rgba(30,24,20,0.55);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:280px;line-height:1.75;margin-bottom:20px">No charge was made. Please check your card details<br>and try again.</p>' +
-        '<button id="fail-overlay-cta" style="background:#1e1814;color:#faf8f5;border:none;padding:13px 28px;font-family:\'Montserrat\',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.24em;text-transform:uppercase;cursor:pointer;margin-bottom:12px;width:100%;max-width:280px">Retry Now</button>' +
-        '<p id="fail-overlay-cd" style="font-size:11px;color:rgba(30,24,20,0.38);font-family:\'Montserrat\',sans-serif;letter-spacing:0.08em">Retrying in 3s\u2026</p>';
+        '<p style="font-size:16px;letter-spacing:0.3em;text-transform:uppercase;color:#c0392b;font-family:\'Montserrat\',sans-serif;font-weight:700;margin-bottom:12px">Payment Failed</p>' +
+        '<p style="font-size:14px;color:rgba(30,24,20,0.6);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:320px;line-height:1.75;margin-bottom:24px">No charge was made. Please check your card details<br>and try again.</p>' +
+        '<button id="fail-overlay-cta" style="background:#c0392b;color:#fff;border:none;padding:14px 32px;font-family:\'Montserrat\',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;cursor:pointer;margin-bottom:14px;width:100%;max-width:320px">Retry Now</button>' +
+        '<p id="fail-overlay-cd" style="font-size:12px;color:rgba(30,24,20,0.45);font-family:\'Montserrat\',sans-serif;letter-spacing:0.08em">Retrying in 3s\u2026</p>';
 
       const inner = overlayInnerRef.current;
       const state: { tickId: ReturnType<typeof setInterval> | null } = { tickId: null };
