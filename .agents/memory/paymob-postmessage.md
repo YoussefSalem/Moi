@@ -26,12 +26,15 @@ if (!data) return;
 
 **3DS intermediate vs final result:** Paymob sends TWO types of messages:
 
-1. **Intermediate (3DS pending)**: `pending: "true"`, `success: "false"`, has txnId, `data.message: "Pending 3DS Authorization"`. The iframe is about to redirect to the bank's 3DS page. Show a TEMPORARY overlay (covers the raw JSON), then auto-hide it on the next iframe load event so the user can complete 3DS.
+1. **Intermediate (3DS pending)**: `pending: "true"`, `success: "false"`, has txnId, `data.message: "Pending 3DS Authorization"`, `use_redirection: true`, `bypass_step_six: true`, contains `redirection_url`.
 
 2. **Final failure**: `pending: "false"`, `success: "false"`, has txnId. Show the permanent fail overlay.
 
+**CRITICAL — `use_redirection: true` / `bypass_step_six: true`:** When Paymob sets these flags it renders the JSON and **stops**. It does NOT navigate the iframe to the 3DS page automatically — the parent window must redirect `iframeRef.current.src = data.redirection_url`. If the parent never does this, the raw JSON stays visible forever. Always check for `redirection_url` in the pending postMessage and do the redirect from the parent.
+
 **NEVER** use `loadCount >= 2` to auto-show overlay — it fires on 3DS pages and blocks user authentication.
 
-**tempOverlayRef pattern:**
-- `tempOverlayRef.current = true` → `showOverlay()` when `pending: "true"` message arrives
-- In `handleIframeLoad`: if `tempOverlayRef.current`, clear it and hide the overlay
+**Correct pending flow (parent side):**
+1. Receive `pending: "true"` postMessage → `showOverlay()` + `tempOverlayRef.current = true` + `iframeRef.current.src = redirectionUrl`
+2. `handleIframeLoad` fires when 3DS bank page loads → clear `tempOverlayRef` + hide overlay → user completes authentication
+3. After authentication → relay page postMessage (`PAYMOB_RESULT`) → show permanent success/fail overlay

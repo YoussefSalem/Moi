@@ -2284,6 +2284,7 @@ interface PaymobIframeProps {
 }
 
 function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobIframeProps) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const overlayInnerRef = useRef<HTMLDivElement>(null);
   const loadCountRef = useRef(0);
@@ -2496,13 +2497,19 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
             stopPolling();
             showOverlayFail();
           } else if (isPending) {
-            // Intermediate state (e.g. "Pending 3DS Authorization"). Show a processing
-            // overlay to hide the raw JSON, but mark it as temporary so handleIframeLoad
-            // removes it on the very next page load (the bank's 3DS page) so the user
-            // can actually complete authentication.
+            // Intermediate state (e.g. "Pending 3DS Authorization").
+            // When Paymob sends use_redirection:true / bypass_step_six:true, it renders
+            // the JSON and WAITS for the parent to redirect the iframe — it won't navigate
+            // on its own. We must: (1) cover the JSON immediately, (2) do the redirect.
+            // handleIframeLoad will clear the temp overlay when the 3DS page loads so
+            // the user can complete authentication.
             if (!resolvedRef.current) {
               tempOverlayRef.current = true;
               showOverlay();
+              const redirectionUrl = data["redirection_url"];
+              if (typeof redirectionUrl === "string" && redirectionUrl && iframeRef.current) {
+                iframeRef.current.src = redirectionUrl;
+              }
             }
           }
           // isPending=unknown with no txnId = form loading event — ignore
@@ -2517,6 +2524,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   return (
     <div style={{ position: "relative", width: "100%" }}>
       <iframe
+        ref={iframeRef}
         src={url}
         title="Secure Card Payment"
         allow="payment"
