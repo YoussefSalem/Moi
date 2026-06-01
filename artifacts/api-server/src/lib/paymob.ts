@@ -87,7 +87,9 @@ export async function createPaymobIntention(
     throw new Error(`Paymob API error (${res.status}): ${text}`);
   }
 
-  const data = await res.json() as { client_secret?: string };
+  const data = await res.json() as { client_secret?: string; id?: unknown; status?: unknown; payment_methods?: unknown; extras?: unknown };
+  logger.info({ intentionId: data.id, status: data.status, paymentMethods: data.payment_methods, hasClientSecret: !!data.client_secret }, "Paymob intention response");
+
   if (!data.client_secret) {
     throw new Error("Paymob returned no client_secret");
   }
