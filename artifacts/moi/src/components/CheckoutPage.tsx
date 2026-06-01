@@ -1133,6 +1133,45 @@ export function CheckoutPage() {
     }
   }, []); // mount-only — intentionally omits deps to avoid re-running on state changes
 
+  // After the overlay countdown fires on a card payment, the postMessage path calls
+  // handleIframeSuccess with shopifyOrderNumber=undefined (polling was stopped when the
+  // message arrived). The order IS created server-side during the 5-second countdown,
+  // so we poll paymob-status here until we get the order number — up to 30 s.
+  useEffect(() => {
+    if (step !== "card-confirm") return;
+    if (orderResult?.shopifyOrderNumber) return;
+    const intentId = orderResult?.intentId;
+    if (!intentId) return;
+
+    let cancelled = false;
+    let attempts = 0;
+    const MAX = 15; // 2 s × 15 = 30 s
+
+    const run = async () => {
+      while (!cancelled && attempts < MAX) {
+        attempts++;
+        await new Promise<void>((r) => setTimeout(r, 2000));
+        if (cancelled) break;
+        try {
+          const res = await fetch(`/api/orders/paymob-status/${intentId}`, { cache: "no-store" });
+          if (!res.ok) continue;
+          const data = await res.json() as { status: string; shopifyOrderId?: number | null; shopifyOrderNumber?: number | null };
+          if (data.shopifyOrderNumber) {
+            setOrderResult((prev) => prev ? {
+              ...prev,
+              shopifyOrderNumber: data.shopifyOrderNumber!,
+              shopifyOrderId: data.shopifyOrderId ?? prev.shopifyOrderId,
+            } : prev);
+            break;
+          }
+        } catch { /* keep polling */ }
+      }
+    };
+
+    void run();
+    return () => { cancelled = true; };
+  }, [step, orderResult?.intentId, orderResult?.shopifyOrderNumber]);
+
   const isSuccessStep = step === "cod-confirm" || step === "card-confirm";
   const isConfirmStep = isSuccessStep || step === "instapay-confirm" || step === "card-failed";
   const isCardCheckoutStep = step === "card-checkout" || (step === "form" && !!paymobIframeUrl);
@@ -2419,6 +2458,19 @@ function OrderSuccessScreen({
 
       <div className="w-full grid gap-3">
         {breakdown && <OrderBreakdownRows breakdown={breakdown} />}
+
+        {/* Order number — appears as soon as the server confirms the Shopify order */}
+        {orderResult.shopifyOrderNumber ? (
+          <div className="flex items-center justify-between px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.12)" }}>
+            <span style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>
+              Order
+            </span>
+            <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
+              #{orderResult.shopifyOrderNumber}
+            </span>
+          </div>
+        ) : null}
+
         <div className="flex items-center justify-between px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.12)" }}>
           <span style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>
             {accentLabel}
@@ -2428,46 +2480,38 @@ function OrderSuccessScreen({
           </span>
         </div>
 
-        {items.map((item) => (
-          <div key={item.id ?? `${item.title}-${item.quantity}`} className="flex items-center gap-3 px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.08)", backgroundColor: "rgba(30,24,20,0.02)" }}>
-            <div className="w-12 h-14 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
-              {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
-            </div>
-            <div className="flex-1 text-left min-w-0">
-              <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {item.title}
-              </p>
-              {item.variantTitle && (
-                <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>
-                  {item.variantTitle}
-                </p>
-              )}
-            </div>
-            <div className="text-right">
-              <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>Qty {item.quantity}</p>
-              <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
-                {item.price ?? orderResult.total}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="w-full text-left" style={{ borderTop: "1px solid rgba(30,24,20,0.08)" }}>
-        <p style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginTop: "18px", marginBottom: "12px" }}>
-          Items Purchased
-        </p>
-        <div className="flex flex-col gap-3">
-          {orderResult.shopifyOrderNumber ? (
-        <div className="flex items-center justify-between gap-4">
-          <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>Order #</span>
-          <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{orderResult.shopifyOrderNumber}</span>
-        </div>
-      ) : null}
-          <div className="flex items-center justify-between gap-4">
-            <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>Order Summary</span>
-          </div>
-        </div>
+        {items.length > 0 && (
+          <>
+            <p style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginTop: 4 }}>
+              Items
+            </p>
+            {items.map((item) => (
+              <div key={item.id ?? `${item.title}-${item.quantity}`} className="flex items-center gap-3 px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.08)", backgroundColor: "rgba(30,24,20,0.02)" }}>
+                <div className="w-12 h-14 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
+                  {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {item.title}
+                  </p>
+                  {item.variantTitle && (
+                    <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>
+                      {item.variantTitle}
+                    </p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>Qty {item.quantity}</p>
+                  {item.price && (
+                    <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
+                      {item.price}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
       </div>
 
       <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.8)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 420 }}>
