@@ -45,6 +45,15 @@ router.post("/webhooks/paymob", async (req, res) => {
   const intentId = String(txn.merchant_order_id ?? orderObj?.merchant_order_id ?? "");
   const paymobTxnId = String(txn.id ?? "");
 
+  // Skip intermediate 3DS notifications — Paymob fires a webhook with
+  // success=false + pending=true while the cardholder is authenticating.
+  // Marking this as declined would kill the intent before 3DS completes.
+  const isPendingTxn = txn.pending === true;
+  if (isPendingTxn) {
+    req.log.info({ intentId, paymobTxnId }, "Paymob webhook: pending/3DS transaction — skipping (waiting for final result)");
+    return;
+  }
+
   // Mark declined/voided transactions so the frontend polling can detect them.
   const isFailure = txn.success !== true || txn.is_voided === true || txn.is_refunded === true;
   if (isFailure) {
