@@ -113,9 +113,11 @@ router.post("/orders/paymob-init", async (req, res) => {
 
   req.log.info({ intentId, amountCents, total }, "Paymob intent saved — creating legacy payment key");
 
-  // Build callback and redirection URLs from the first configured domain
+  // Build callback and redirection URLs from the first configured domain.
+  // callback_url  = server-to-server transaction notification (POST from Paymob servers)
+  // redirection_url = where the browser/iframe navigates after payment completes
   const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
-  const callbackUrl = domain ? `https://${domain}/api/paymob-return` : undefined;
+  const callbackUrl = domain ? `https://${domain}/api/webhooks/paymob` : undefined;
   const redirectionUrl = domain ? `https://${domain}/paymob-relay.html` : undefined;
 
   let result: { iframeUrl: string };
