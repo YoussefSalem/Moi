@@ -1117,7 +1117,7 @@ export function CheckoutPage() {
                 </div>
 
                 {/* Paymob iframe — clipped after "Secured by Paymob" text, hiding logo + bank rows */}
-                <div style={{ width: "100%", height: 620, overflow: "hidden" }}>
+                <div style={{ width: "100%", height: 670, overflow: "hidden" }}>
                   <PaymobIframe
                     url={paymobIframeUrl}
                     onSuccess={handleIframeSuccess}
