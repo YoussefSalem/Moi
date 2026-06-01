@@ -1116,24 +1116,16 @@ export function CheckoutPage() {
                   <div style={{ height: "1px", backgroundColor: "rgba(30,24,20,0.13)" }} />
                 </div>
 
-                {/* Paymob iframe — clipped just after "Secured by Paymob" text */}
-                <div style={{ position: "relative", width: "100%", height: 455, overflow: "hidden" }}>
+                {/* Paymob iframe — clipped after "Secured by Paymob" text, hiding logo + bank rows */}
+                <div style={{ width: "100%", height: 620, overflow: "hidden" }}>
                   <PaymobIframe
                     url={paymobIframeUrl}
                     onSuccess={handleIframeSuccess}
                     onFail={handleIframeFail}
                   />
-                  {/* Gradient fade: blends the clipped bottom edge into the page background */}
-                  <div style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 72,
-                    background: "linear-gradient(to bottom, transparent, #faf8f5)",
-                    pointerEvents: "none",
-                  }} />
                 </div>
+                {/* Page-level gradient: transitions from the iframe background into the page */}
+                <div style={{ height: 48, background: "linear-gradient(to bottom, rgba(250,248,245,0), #faf8f5)", marginTop: -4 }} />
 
                 {/* Security badge */}
                 <div className="mt-4 flex items-center justify-center gap-2">
