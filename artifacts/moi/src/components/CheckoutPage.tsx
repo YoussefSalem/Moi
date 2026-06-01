@@ -2279,13 +2279,21 @@ function PaymobIframe({ url, onSuccess, onFail, iframeStyle }: PaymobIframeProps
 
       // Paymob Unified Checkout inline postMessage — no redirectionUrl needed.
       // Paymob sends { success: boolean, id?: number|string, ... } from their origin.
+      // IMPORTANT: Paymob also sends status/loading messages with success:false and no id.
+      // Only treat as a final payment result when a transaction id is present.
       if (isPaymob && typeof data["success"] === "boolean") {
         const txnId = String(data["id"] ?? data["txn_id"] ?? data["transactionId"] ?? "");
-        if (data["success"]) {
-          onSuccess(txnId || undefined);
-        } else {
+        const hasTxnId = txnId !== "" && txnId !== "0" && txnId !== "undefined";
+        if (data["success"] && hasTxnId) {
+          onSuccess(txnId);
+        } else if (data["success"] && !hasTxnId) {
+          // Success without id — still treat as success, id may arrive separately
+          onSuccess(undefined);
+        } else if (!data["success"] && hasTxnId) {
+          // Only fire onFail when Paymob confirms a real declined transaction
           onFail();
         }
+        // success:false with no txnId = loading/status event — ignore
       }
     }
 
