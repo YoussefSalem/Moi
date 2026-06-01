@@ -709,7 +709,8 @@ export async function recordShopifyPaymentTransaction(params: {
   };
   if (paymobTxnId) {
     body.authorization = paymobTxnId;
-    body.receipt = paymobTxnId;
+    // Shopify expects `receipt` to be an object (hash), not a string
+    body.receipt = { paymob_txn_id: paymobTxnId };
   }
   const res = await fetch(
     `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/transactions.json`,

@@ -582,10 +582,32 @@ export function CheckoutPage() {
         }
 
         const resolvedTotal = data.total ?? fmt(totalAmount);
+        // Snapshot items NOW while cart is still populated.
+        // By the time onSuccess fires (after 5-second overlay countdown) React
+        // may have re-created handleIframeSuccess with stale closure data,
+        // so we capture items here where cart state is guaranteed fresh.
+        const cartItemsSnapshot = isShopify && shopifyCart
+          ? shopifyCart.lines.nodes.map((l) => ({
+              id: l.id,
+              title: l.merchandise.product.title,
+              variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
+              quantity: l.quantity,
+              image: resolveLineImage(l, localItems),
+              price: formatShopifyLinePrice(l),
+            }))
+          : localItems.map((i) => ({
+              id: i.id,
+              title: i.title,
+              variantTitle: null,
+              quantity: i.quantity,
+              image: i.image ?? null,
+              price: i.price,
+            }));
         setOrderResult({
           orderNumber: "",
           total: resolvedTotal,
           intentId: data.intentId,
+          items: cartItemsSnapshot.length > 0 ? cartItemsSnapshot : undefined,
         });
         // Persist in sessionStorage so state survives a 3DS full-page redirect
         if (data.intentId) {
@@ -976,7 +998,24 @@ export function CheckoutPage() {
       }
 
       const resolvedTotal = data.total ?? fmt(totalAmount);
-      setOrderResult({ orderNumber: "", total: resolvedTotal, intentId: data.intentId });
+      const retryItemsSnapshot = isShopify && shopifyCart
+        ? shopifyCart.lines.nodes.map((l) => ({
+            id: l.id,
+            title: l.merchandise.product.title,
+            variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
+            quantity: l.quantity,
+            image: resolveLineImage(l, localItems),
+            price: formatShopifyLinePrice(l),
+          }))
+        : localItems.map((i) => ({
+            id: i.id,
+            title: i.title,
+            variantTitle: null,
+            quantity: i.quantity,
+            image: i.image ?? null,
+            price: i.price,
+          }));
+      setOrderResult({ orderNumber: "", total: resolvedTotal, intentId: data.intentId, items: retryItemsSnapshot.length > 0 ? retryItemsSnapshot : undefined });
       if (data.intentId) {
         sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
         sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
