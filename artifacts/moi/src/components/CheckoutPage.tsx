@@ -775,6 +775,24 @@ export function CheckoutPage() {
     // InstaPay: validate cart + get account info — order is created only at proof upload
     if (paymentMethod === "instapay") {
       try {
+        // Capture cart items snapshot so the confirmation screen shows thumbnails
+        const cartItemsSnapshot = isShopify && shopifyCart
+          ? shopifyCart.lines.nodes.map((l) => ({
+              id: l.id,
+              title: l.merchandise.product.title,
+              variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
+              quantity: l.quantity,
+              image: resolveLineImage(l, localItems),
+              price: formatShopifyLinePrice(l),
+            }))
+          : localItems.map((i) => ({
+              id: i.id,
+              title: i.title,
+              variantTitle: null,
+              quantity: i.quantity,
+              image: i.image ?? null,
+              price: i.price,
+            }));
         const res = await fetch("/api/orders/instapay-init", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -816,6 +834,7 @@ export function CheckoutPage() {
           instapayNumber: data.instapayNumber,
           customerName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
           customerPhone: form.phone.trim(),
+          items: cartItemsSnapshot.length > 0 ? cartItemsSnapshot : undefined,
         };
         setBreakdownSnapshot({ subtotal: subtotalAmount, savings, shippingCost, freeShipping });
         setOrderResult(orderResultPayload);
