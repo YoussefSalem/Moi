@@ -149,6 +149,97 @@ export async function createPaymobPaymentKey(
   return { iframeUrl };
 }
 
+/**
+ * Creates a Paymob legacy payment key specifically for the Apple Pay direct flow.
+ * Uses the configured Apple Pay integration ID (falls back to card integration ID).
+ * Returns the raw payment token used in POST /api/acceptance/payments/pay.
+ */
+export async function createApplePayPaymentKeyRaw(params: {
+  amountCents: number;
+  merchantOrderId: string;
+}): Promise<{ paymentToken: string }> {
+  const config = getPaymobConfig();
+  if (!config.apiKey) throw new Error("Paymob API key is not configured");
+
+  const rawIntegrationId = config.applePayIntegrationId || config.integrationId;
+  if (!rawIntegrationId) throw new Error("Paymob Apple Pay integration ID is not configured");
+  const integrationIdNum = parseInt(rawIntegrationId, 10);
+
+  // Step 1: Auth
+  const authRes = await fetch("https://accept.paymob.com/api/auth/tokens", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ api_key: config.apiKey }),
+  });
+  if (!authRes.ok) {
+    const text = await authRes.text();
+    throw new Error(`Paymob auth error (${authRes.status}): ${text}`);
+  }
+  const authData = await authRes.json() as { token?: string };
+  const authToken = authData.token;
+  if (!authToken) throw new Error("Paymob auth returned no token");
+
+  // Step 2: Order Registration
+  const orderRes = await fetch("https://accept.paymob.com/api/ecommerce/orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      auth_token: authToken,
+      delivery_needed: "false",
+      amount_cents: params.amountCents,
+      currency: "EGP",
+      merchant_order_id: params.merchantOrderId,
+      items: [{ name: "Moi Order", amount_cents: params.amountCents, description: "Fashion order", quantity: 1 }],
+    }),
+  });
+  if (!orderRes.ok) {
+    const text = await orderRes.text();
+    throw new Error(`Paymob order error (${orderRes.status}): ${text}`);
+  }
+  const orderData = await orderRes.json() as { id?: number };
+  const paymobOrderId = orderData.id;
+  if (!paymobOrderId) throw new Error("Paymob order registration returned no ID");
+
+  // Step 3: Payment Key with Apple Pay integration ID
+  const pkRes = await fetch("https://accept.paymob.com/api/acceptance/payment_keys", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      auth_token: authToken,
+      amount_cents: params.amountCents,
+      expiration: 3600,
+      order_id: paymobOrderId,
+      billing_data: {
+        first_name: "Apple",
+        last_name: "Pay",
+        email: "NA",
+        phone_number: "NA",
+        street: "NA",
+        city: "Cairo",
+        country: "EG",
+        state: "NA",
+        postal_code: "NA",
+        apartment: "NA",
+        floor: "NA",
+        building: "NA",
+      },
+      currency: "EGP",
+      integration_id: integrationIdNum,
+      lock_order_when_paid: false,
+    }),
+  });
+  if (!pkRes.ok) {
+    const text = await pkRes.text();
+    throw new Error(`Paymob Apple Pay payment key error (${pkRes.status}): ${text}`);
+  }
+  const pkData = await pkRes.json() as { token?: string };
+  const paymentToken = pkData.token;
+  if (!paymentToken) throw new Error("Paymob Apple Pay payment key returned no token");
+
+  logger.info({ hasToken: true, integrationId: rawIntegrationId }, "Paymob Apple Pay payment key obtained");
+  return { paymentToken };
+}
+
 // In-process auth token cache — avoids re-authenticating on every status poll.
 let _cachedAuthToken: { token: string; expiresAt: number } | null = null;
 

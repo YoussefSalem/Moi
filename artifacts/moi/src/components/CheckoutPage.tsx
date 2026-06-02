@@ -463,6 +463,35 @@ export function CheckoutPage() {
   // the native payment sheet via triggerApplePayDirectInit.
   useEffect(() => {
     if (!checkoutOpen) return;
+
+    // Check for a completed Apple Pay direct payment from ProductPage.
+    // The native sheet already ran; we just need to display the confirmation.
+    const applePayResultRaw = sessionStorage.getItem("moi_apple_pay_result");
+    if (applePayResultRaw) {
+      sessionStorage.removeItem("moi_apple_pay_result");
+      try {
+        const result = JSON.parse(applePayResultRaw) as {
+          txnId?: string;
+          shopifyOrderId?: number;
+          shopifyOrderNumber?: number;
+          total?: string;
+          intentId?: string;
+          items?: OrderResult["items"];
+        };
+        setOrderResult({
+          orderNumber: result.shopifyOrderNumber ?? result.shopifyOrderId ?? "",
+          total: result.total ?? "",
+          intentId: result.intentId,
+          paymobTxnId: result.txnId,
+          shopifyOrderId: result.shopifyOrderId ?? null,
+          shopifyOrderNumber: result.shopifyOrderNumber,
+          items: result.items,
+        });
+        setStep("card-confirm");
+      } catch { /* ignore parse errors */ }
+      return;
+    }
+
     const preferred = sessionStorage.getItem("moi_preferred_payment");
     if (preferred === "apple-pay") {
       sessionStorage.removeItem("moi_preferred_payment");
