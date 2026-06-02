@@ -10,6 +10,7 @@ function getParams() {
   };
 }
 
+/* Injected via <style> so CSS custom props reach -webkit-appearance */
 const STYLE = `
   html, body {
     margin: 0;
@@ -18,20 +19,22 @@ const STYLE = `
     height: 100%;
     overflow: hidden;
   }
+  * { box-sizing: border-box; }
+
   .ap-btn {
     -webkit-appearance: -apple-pay-button;
-    -apple-pay-button-type: buy;
+    -apple-pay-button-type: plain;
     -apple-pay-button-style: black;
+    display: block;
     width: 100%;
     height: 100%;
     min-height: 44px;
-    display: block;
     border: none;
     cursor: pointer;
-    border-radius: 8px;
+    border-radius: 10px;
   }
   .ap-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.55;
     cursor: wait;
   }
 `;

@@ -1,18 +1,17 @@
-import { useState, useEffect } from "react";
-import { createCartWithLines, SHOPIFY_CONFIGURED } from "@/lib/shopify";
+import { useMemo } from "react";
 
 /**
- * Embeds the Shopify one-page checkout (/checkouts/cn/…) in a clipped iframe
- * so only the "Express checkout" + Apple Pay section is visible at the top.
- * The Apple Pay button fires on Shopify's registered domain — no redirect needed.
+ * Renders the /buy/apple-pay iframe which uses Safari's native
+ * -webkit-appearance: -apple-pay-button to show the official Apple Pay button.
+ * On tap, navigates window.top to the Shopify checkout URL where Apple Pay
+ * is the first option in the "Express checkout" section.
  */
 
-const CLIP_HEIGHT = 154; // px — reveals "Express checkout" label + Apple Pay button
+const BUTTON_HEIGHT = 56; // px — height of the native Apple Pay button
+const LABEL_HEIGHT = 28;  // px — "Express checkout" label
 
 export interface ShopifyApplePayButtonProps {
-  /** Ready checkout URL from the cart (CartDrawer / CheckoutPage). */
   checkoutUrl?: string | null;
-  /** Variant ID to auto-create an express cart (ProductPage). */
   variantId?: string;
   quantity?: number;
   disabled?: boolean;
@@ -21,81 +20,69 @@ export interface ShopifyApplePayButtonProps {
 }
 
 export function ShopifyApplePayButton({
-  checkoutUrl: externalUrl,
+  checkoutUrl,
   variantId,
   quantity = 1,
   disabled = false,
   className,
   style,
 }: ShopifyApplePayButtonProps) {
-  const [iframeUrl, setIframeUrl] = useState<string | null>(externalUrl ?? null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (externalUrl) {
-      setIframeUrl(externalUrl);
-      return;
+  const iframeSrc = useMemo(() => {
+    if (checkoutUrl) {
+      return `/buy/apple-pay?checkoutUrl=${encodeURIComponent(checkoutUrl)}`;
     }
-    if (!variantId || !SHOPIFY_CONFIGURED) return;
+    if (variantId) {
+      return `/buy/apple-pay?variantId=${encodeURIComponent(variantId)}&qty=${quantity}`;
+    }
+    return null;
+  }, [checkoutUrl, variantId, quantity]);
 
-    let cancelled = false;
-    setLoading(true);
-    setIframeUrl(null);
-
-    createCartWithLines([{ merchandiseId: variantId, quantity }])
-      .then((cart) => {
-        if (!cancelled) {
-          setIframeUrl(cart.checkoutUrl ?? null);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [variantId, quantity, externalUrl]);
-
-  if (disabled) return null;
-
-  if (loading) {
-    return (
-      <div
-        className={className}
-        style={{ height: CLIP_HEIGHT, borderRadius: 12, background: "#000", opacity: 0.12, ...style }}
-      />
-    );
-  }
-
-  if (!iframeUrl) return null;
+  if (!iframeSrc || disabled) return null;
 
   return (
     <div
       className={className}
       style={{
-        height: CLIP_HEIGHT,
-        overflow: "hidden",
-        borderRadius: 12,
-        background: "#000",
-        position: "relative",
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 0,
         ...style,
       }}
     >
+      {/* "Express checkout" label — matches Shopify checkout screenshot */}
+      <p
+        style={{
+          margin: 0,
+          marginBottom: 10,
+          height: LABEL_HEIGHT,
+          lineHeight: `${LABEL_HEIGHT}px`,
+          fontSize: 13,
+          color: "#6b7280",
+          letterSpacing: "0.02em",
+          textAlign: "center",
+          fontFamily: "inherit",
+        }}
+      >
+        Express checkout
+      </p>
+
+      {/* Native Apple Pay button via -webkit-appearance */}
       <iframe
-        src={iframeUrl}
-        allow="payment; accelerometer; autoplay; camera; encrypted-media; gyroscope; picture-in-picture"
+        src={iframeSrc}
+        allow="payment"
+        scrolling="no"
         style={{
           border: "none",
           width: "100%",
-          height: "900px",
+          height: BUTTON_HEIGHT,
           display: "block",
-          position: "absolute",
-          top: 0,
-          left: 0,
+          overflow: "hidden",
+          background: "transparent",
+          borderRadius: 10,
         }}
-        title="Express checkout"
+        title="Buy with Apple Pay"
       />
     </div>
   );
