@@ -153,7 +153,137 @@ export function CartDrawer() {
     isShopify,
     applyDiscount,
     prefilledEmail,
+    clearCart,
   } = useCart();
+
+  const applePayAvailable =
+    typeof window !== "undefined" &&
+    "ApplePaySession" in window &&
+    !!(window as unknown as { ApplePaySession: { canMakePayments?: () => boolean } }).ApplePaySession.canMakePayments?.();
+
+  const handleBuyWithApplePayCart = () => {
+    const orderLines = isShopify && shopifyCart
+      ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
+      : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
+
+    const subtotal = isShopify && shopifyCart
+      ? parseFloat(shopifyCart.cost?.totalAmount?.amount ?? "0")
+      : localItems.reduce((s, i) => s + (i.priceAmount ?? 0) * i.quantity, 0);
+    const totalAmount = subtotal + 50;
+    const totalAmountCents = Math.round(totalAmount * 100);
+    const estimatedTotal = totalAmount.toFixed(2);
+
+    type APS = {
+      begin(): void; abort(): void;
+      completeMerchantValidation(ms: unknown): void;
+      completePayment(status: number): void;
+      onvalidatemerchant: ((e: { validationURL: string }) => void) | null;
+      onpaymentauthorized: ((e: {
+        payment: {
+          token: { paymentData: unknown };
+          shippingContact?: {
+            givenName?: string; familyName?: string; emailAddress?: string;
+            phoneNumber?: string; addressLines?: string[]; locality?: string;
+            administrativeArea?: string;
+          };
+        };
+      }) => void) | null;
+      oncancel: (() => void) | null;
+    };
+    const W = window as unknown as {
+      ApplePaySession: { new(v: number, r: object): APS; STATUS_SUCCESS: number; STATUS_FAILURE: number };
+    };
+
+    const session = new W.ApplePaySession(3, {
+      countryCode: "EG",
+      currencyCode: "EGP",
+      supportedNetworks: ["visa", "masterCard"],
+      merchantCapabilities: ["supports3DS"],
+      total: { label: "Moi", amount: estimatedTotal, type: "final" },
+      requiredShippingContactFields: ["email", "phone", "name"],
+    });
+
+    let intentId: string | null = null;
+    let paymobPaymentKey: string | null = null;
+    let finalTotal: string | null = estimatedTotal;
+
+    session.onvalidatemerchant = async (event) => {
+      try {
+        clearCart();
+        const res = await fetch("/api/apple-pay/validate-merchant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ validationURL: event.validationURL, lines: orderLines, totalAmountCents }),
+        });
+        if (!res.ok) { session.abort(); return; }
+        const data = await res.json() as {
+          merchantSession: unknown; intentId: string;
+          paymobPaymentKey: string; total: string;
+        };
+        intentId = data.intentId;
+        paymobPaymentKey = data.paymobPaymentKey;
+        finalTotal = data.total;
+        session.completeMerchantValidation(data.merchantSession);
+      } catch { session.abort(); }
+    };
+
+    session.onpaymentauthorized = async (event) => {
+      try {
+        const { payment } = event;
+        const paymentData = JSON.stringify(payment.token.paymentData);
+        const sc = payment.shippingContact;
+        const shippingContact = {
+          firstName: sc?.givenName?.trim() || "NA",
+          lastName: sc?.familyName?.trim() || "NA",
+          email: sc?.emailAddress?.trim() || "NA",
+          phone: sc?.phoneNumber?.trim() || "NA",
+          address: sc?.addressLines?.[0]?.trim() || "NA",
+          city: sc?.locality?.trim() || "Cairo",
+          governorate: sc?.administrativeArea?.trim() || "NA",
+        };
+        const res = await fetch("/api/apple-pay/authorize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentData, intentId, paymobPaymentKey, shippingContact }),
+        });
+        const data = await res.json() as {
+          success: boolean; txnId?: string;
+          shopifyOrderId?: number; shopifyOrderNumber?: number;
+          total?: string; error?: string;
+        };
+        if (data.success) {
+          session.completePayment(W.ApplePaySession.STATUS_SUCCESS);
+          const cartItems = isShopify && shopifyCart
+            ? shopifyCart.lines.nodes.map((l) => ({
+                title: l.merchandise.product?.title ?? "Item",
+                variantTitle: l.merchandise.title !== "Default Title" ? l.merchandise.title : null,
+                quantity: l.quantity,
+                image: l.merchandise.image?.url ?? null,
+                price: formatShopifyLinePrice(l),
+              }))
+            : localItems.map((i) => ({
+                title: i.title, variantTitle: i.size ?? null,
+                quantity: i.quantity, image: i.image, price: i.price,
+              }));
+          sessionStorage.setItem("moi_apple_pay_result", JSON.stringify({
+            txnId: data.txnId,
+            shopifyOrderId: data.shopifyOrderId,
+            shopifyOrderNumber: data.shopifyOrderNumber,
+            total: data.total ?? finalTotal,
+            intentId,
+            items: cartItems,
+          }));
+          openCheckout();
+        } else {
+          session.completePayment(W.ApplePaySession.STATUS_FAILURE);
+          toast.error("Payment was declined. Please try another payment method.");
+        }
+      } catch { session.completePayment(W.ApplePaySession.STATUS_FAILURE); }
+    };
+
+    session.oncancel = () => {};
+    session.begin();
+  };
   const { customer, openAuth } = useCustomer();
 
   const hasItems = (isShopify && (shopifyCart?.lines.nodes.length ?? 0) > 0) || localItems.length > 0;
@@ -513,6 +643,31 @@ export function CartDrawer() {
                 </div>
                 {/* Conversion Banner — FIRST50 (disabled — uncomment to re-enable) */}
                 {/* <DiscountBanner /> */}
+                {applePayAvailable && (
+                  <button
+                    type="button"
+                    onClick={handleBuyWithApplePayCart}
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-1.5 transition-opacity hover:opacity-80 disabled:opacity-50"
+                    style={{
+                      padding: "14px",
+                      backgroundColor: "#000",
+                      color: "#fff",
+                      border: "none",
+                      cursor: "pointer",
+                      fontFamily: "-apple-system, 'Helvetica Neue', sans-serif",
+                      fontSize: "17px",
+                      fontWeight: 500,
+                      letterSpacing: "0.01em",
+                    }}
+                  >
+                    Buy with&nbsp;
+                    <svg viewBox="0 0 814 1000" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#fff" style={{ flexShrink: 0, marginTop: "-1px" }}>
+                      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.1-38.8-168.4-103.1c-73.9-71.9-134.6-183.3-134.6-290.9 0-195.3 129.4-298.5 256.8-298.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/>
+                    </svg>
+                    Pay
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
