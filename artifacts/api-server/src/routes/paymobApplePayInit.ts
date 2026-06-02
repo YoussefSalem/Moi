@@ -28,9 +28,11 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
     return;
   }
 
-  const rawIntegrationId = config.applePayIntegrationId || config.integrationId;
+  // Apple Pay REQUIRES a dedicated Apple Pay integration ID from Paymob.
+  // The regular card integration cannot process Apple Pay tokens, so never fall back to it.
+  const rawIntegrationId = config.applePayIntegrationId;
   if (!rawIntegrationId) {
-    res.status(503).json({ error: "Paymob integration is not configured. Please contact support." });
+    res.status(503).json({ error: "Apple Pay is not configured. Please contact support." });
     return;
   }
 

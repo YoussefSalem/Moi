@@ -197,7 +197,10 @@ export async function createApplePayPaymentKeyRaw(params: {
   const config = getPaymobConfig();
   if (!config.apiKey) throw new Error("Paymob API key is not configured");
 
-  const rawIntegrationId = config.applePayIntegrationId || config.integrationId;
+  // Apple Pay REQUIRES a dedicated Apple Pay integration ID from Paymob.
+  // The regular card integration cannot decrypt/process Apple Pay tokens and
+  // will reject them ("Payment Not Completed"), so we never fall back to it.
+  const rawIntegrationId = config.applePayIntegrationId;
   if (!rawIntegrationId) throw new Error("Paymob Apple Pay integration ID is not configured");
   const integrationIdNum = parseInt(rawIntegrationId, 10);
 
