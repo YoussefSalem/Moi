@@ -238,9 +238,12 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
 
   req.log.info({ intentId }, "Paymob Apple Pay intention created successfully");
 
+  // Use Paymob's hosted Unified Checkout page — this runs on accept.paymob.com
+  // which is already Apple Pay domain-verified by Paymob, so no extra setup needed.
+  const iframeUrl = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(config.publicKey)}&clientSecret=${encodeURIComponent(clientSecret)}`;
+
   res.status(200).json({
-    clientSecret,
-    publicKey: config.publicKey,
+    iframeUrl,
     intentId,
     total,
   });

@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
-import { PaymobApplePayButton } from "./PaymobApplePayButton";
 import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED, cartBuyerIdentityUpdate } from "@/lib/shopify";
 import { IMAGES } from "@/config/images";
@@ -674,14 +673,13 @@ export function CheckoutPage() {
         });
 
         const data = await res.json() as {
-          clientSecret?: string;
-          publicKey?: string;
+          iframeUrl?: string;
           intentId?: string;
           total?: string;
           error?: string;
         };
 
-        if (!res.ok || !data.clientSecret || !data.publicKey || !data.intentId) {
+        if (!res.ok || !data.iframeUrl) {
           setStep("form");
           setSubmitError(data.error ?? "Apple Pay is unavailable right now. Please try another payment method.");
           submittingRef.current = false;
@@ -708,13 +706,15 @@ export function CheckoutPage() {
               price: i.price,
             }));
         setOrderResult({ orderNumber: "", total: resolvedTotal, intentId: data.intentId, items: cartItemsSnapshot.length > 0 ? cartItemsSnapshot : undefined });
-        setApplePayData({ clientSecret: data.clientSecret, publicKey: data.publicKey, intentId: data.intentId });
-        sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
-        sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
-        setBreakdownSnapshot({ subtotal: subtotalAmount, savings, shippingCost, freeShipping });
-        sessionStorage.setItem("moi_paymob_breakdown", JSON.stringify({ subtotal: subtotalAmount, savings, shippingCost, freeShipping }));
-        if (cartItemsSnapshot.length > 0) {
-          sessionStorage.setItem("moi_paymob_items", JSON.stringify(cartItemsSnapshot));
+        paymobTrackedRef.current = false;
+        setPaymobIframeUrl(data.iframeUrl);
+        if (data.intentId) {
+          sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
+          sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
+          sessionStorage.setItem("moi_paymob_breakdown", JSON.stringify({ subtotal: subtotalAmount, savings, shippingCost, freeShipping }));
+          if (cartItemsSnapshot.length > 0) {
+            sessionStorage.setItem("moi_paymob_items", JSON.stringify(cartItemsSnapshot));
+          }
         }
         setStep("form");
       } catch {
@@ -1477,56 +1477,30 @@ export function CheckoutPage() {
                   />
                 )}
 
-                {applePayData ? (
-                  /* Apple Pay section */
+                {/* Card / Apple Pay iframe section */}
+                {(true) && (
                   <div>
-                    <div className="mb-5">
-                      <div className="flex items-center gap-3 mb-4">
-                        <svg viewBox="0 0 814 1000" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#1e1814" style={{ flexShrink: 0 }}>
-                          <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.1-38.8-168.4-103.1c-73.9-71.9-134.6-183.3-134.6-290.9 0-195.3 129.4-298.5 256.8-298.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/>
-                        </svg>
-                        <div>
-                          <p style={{ fontSize: "10px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", marginBottom: "2px" }}>
-                            Payment
-                          </p>
-                          <p style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
-                            Apple Pay
-                          </p>
-                        </div>
-                      </div>
-                      <div style={{ height: "1px", backgroundColor: "rgba(30,24,20,0.13)" }} />
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "24px", paddingBottom: "16px" }}>
-                      <PaymobApplePayButton
-                        clientSecret={applePayData.clientSecret}
-                        publicKey={applePayData.publicKey}
-                        intentId={applePayData.intentId}
-                        onSuccess={(txnId) => {
-                          handleIframeSuccess(txnId);
-                          setApplePayData(null);
-                        }}
-                        onFail={handleApplePayFail}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  /* Card iframe section */
-                  <div>
-                {/* Card header */}
+                {/* Payment method header */}
                 <div className="mb-5">
                   <div className="flex items-center gap-3 mb-4">
-                    <svg width="34" height="24" viewBox="0 0 34 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-                      <rect x="0.5" y="0.5" width="33" height="23" rx="3.5" stroke="rgba(30,24,20,0.22)" fill="rgba(30,24,20,0.03)"/>
-                      <rect x="9" y="7" width="16" height="10" rx="1.5" fill="rgba(30,24,20,0.15)" stroke="rgba(30,24,20,0.2)" strokeWidth="0.75"/>
-                      <line x1="9" y1="12" x2="25" y2="12" stroke="rgba(30,24,20,0.16)" strokeWidth="0.75"/>
-                      <line x1="17" y1="7" x2="17" y2="17" stroke="rgba(30,24,20,0.16)" strokeWidth="0.75"/>
-                    </svg>
+                    {paymentMethod === "apple-pay" ? (
+                      <svg viewBox="0 0 814 1000" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#1e1814" style={{ flexShrink: 0 }}>
+                        <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.1-38.8-168.4-103.1c-73.9-71.9-134.6-183.3-134.6-290.9 0-195.3 129.4-298.5 256.8-298.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/>
+                      </svg>
+                    ) : (
+                      <svg width="34" height="24" viewBox="0 0 34 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                        <rect x="0.5" y="0.5" width="33" height="23" rx="3.5" stroke="rgba(30,24,20,0.22)" fill="rgba(30,24,20,0.03)"/>
+                        <rect x="9" y="7" width="16" height="10" rx="1.5" fill="rgba(30,24,20,0.15)" stroke="rgba(30,24,20,0.2)" strokeWidth="0.75"/>
+                        <line x1="9" y1="12" x2="25" y2="12" stroke="rgba(30,24,20,0.16)" strokeWidth="0.75"/>
+                        <line x1="17" y1="7" x2="17" y2="17" stroke="rgba(30,24,20,0.16)" strokeWidth="0.75"/>
+                      </svg>
+                    )}
                     <div>
                       <p style={{ fontSize: "10px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", marginBottom: "2px" }}>
                         Payment
                       </p>
                       <p style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
-                        Credit / Debit Card
+                        {paymentMethod === "apple-pay" ? "Apple Pay" : "Credit / Debit Card"}
                       </p>
                     </div>
                   </div>
