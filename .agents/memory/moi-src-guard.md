@@ -22,9 +22,9 @@ All had `src={value}` → `src={value || undefined}` or existence-guard added:
 - `LimitedDrop.tsx` — file exists but is never imported; can be deleted.
 - `EditorialPhotoStrip.tsx` — file exists but is never imported anywhere; can be deleted.
 
-## Pre-launch blockers still open (proposed as tasks #58–#60)
-1. SESSION_SECRET falls back to `"dev-secret"` if env var not set → forgeable session cookies in production.
-2. GA4 measurement ID is placeholder `G-MEASUREMENT_ID` in index.html + `ANALYTICS_ENABLED = false` in analytics.ts → zero analytics data after launch.
-3. Auth routes (`/api/customers/signin`, `/api/customers/signup`) have no rate limiting → brute-force vulnerable.
+## Pre-launch blockers still open
+1. SESSION_SECRET: **FIXED** — fails fast at startup in production; dev still falls back safely.
+2. GA4 measurement ID is placeholder `G-MEASUREMENT_ID` in index.html + `ANALYTICS_ENABLED = false` in analytics.ts → zero analytics data after launch. Needs manual action.
+3. Auth routes (`/api/customers/auth/customer/verify-otp`, etc.) have no rate limiting → brute-force vulnerable. Needs manual action.
 
-**Why:** These were out of scope for the code-quality audit but critical for a real launch.
+**Why:** These are post-audit operational tasks, not code defects (except SESSION_SECRET which is now fixed).

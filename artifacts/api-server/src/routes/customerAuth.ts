@@ -8,6 +8,19 @@ import { getShopifyAdminToken } from "../lib/integrations";
 
 const router: IRouter = Router();
 
+// Fail fast if SESSION_SECRET is missing in production — a missing secret
+// allows an attacker to forge valid customer session tokens.
+const SESSION_SECRET = (() => {
+  const s = process.env.SESSION_SECRET;
+  if (!s) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("SESSION_SECRET environment variable is required in production. Set it before starting the server.");
+    }
+    return "dev-secret-change-me";
+  }
+  return s;
+})();
+
 interface CustomerPayload {
   shopifyId: string;
   email: string;
@@ -17,15 +30,14 @@ interface CustomerPayload {
 }
 
 export function signCustomerToken(payload: Omit<CustomerPayload, "exp">): string {
-  const secret = process.env.SESSION_SECRET ?? "dev-secret-change-me";
   const data: CustomerPayload = { ...payload, exp: Date.now() + 30 * 24 * 60 * 60 * 1000 };
   const encoded = Buffer.from(JSON.stringify(data)).toString("base64url");
-  const sig = crypto.createHmac("sha256", secret).update(encoded).digest("base64url");
+  const sig = crypto.createHmac("sha256", SESSION_SECRET).update(encoded).digest("base64url");
   return `${encoded}.${sig}`;
 }
 
 export function verifyCustomerToken(token: string): CustomerPayload | null {
-  const secret = process.env.SESSION_SECRET ?? "dev-secret-change-me";
+  const secret = SESSION_SECRET;
   const dot = token.lastIndexOf(".");
   if (dot === -1) return null;
   const encoded = token.slice(0, dot);
