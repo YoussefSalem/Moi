@@ -4,3 +4,4 @@
 - [Card payments auto-approved](card-payments-auto-approved.md) — card payments create real Shopify orders immediately (no draft, no admin approval); shopifyOrderNumber now persisted to paymobIntents; admin panel has Transactions tab with Record Payment button for retroactive Shopify payment fixes.
 - [Apple Pay via Shopify checkout](apple-pay-shopify.md) — Apple Pay is handled entirely by Shopify: product-page button adds to cart and redirects to checkoutUrl; checkout-page tile redirects immediately; no Paymob Apple Pay routes remain.
 - [Moi src-guard audit](moi-src-guard.md) — pattern for eliminating empty-string src= React warnings; which components are on the home page; pre-launch blockers still outstanding.
+- [COD order bugs root causes](cod-order-bugs.md) — COD "Paid" fixed by payment_pending=true on draft completion; Bosta 0 COD caused by missing BOSTA_API_KEY (silent null return); Bosta App creates competing shipments via Shopify webhook race.
