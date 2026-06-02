@@ -228,6 +228,14 @@ router.post("/auth/customer/verify-otp", async (req, res) => {
 
   const expected = hashOtp(safeCode, record.salt);
   if (expected !== record.hashedCode) {
+    // Invalidate this OTP immediately so the same code cannot be retried.
+    // send-otp is already rate-limited (3 per 10 min), so burning the OTP on
+    // a wrong attempt forces a new request before any further guesses.
+    await db
+      .update(customerOtpCodes)
+      .set({ used: true })
+      .where(eq(customerOtpCodes.id, record.id))
+      .catch(() => { /* non-fatal — OTP still expires naturally in 5 min */ });
     res.status(400).json({ error: "Incorrect code. Please check your email and try again." });
     return;
   }
