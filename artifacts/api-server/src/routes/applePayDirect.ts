@@ -322,6 +322,7 @@ router.post("/apple-pay/authorize", async (req, res) => {
       intentId,
       paymobTxnId: paymobTxnId ?? `apple-pay-${intentId}`,
       amountCents,
+      paymentChannel: "apple-pay",
     });
   } catch (err) {
     req.log.error({ err, intentId }, "Apple Pay direct: processPaymobSuccess failed");

@@ -382,6 +382,16 @@ export function CheckoutPage() {
     setStep("loading");
 
     try {
+      const formCustomer = form.firstName.trim() && form.phone.trim() ? {
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim() || undefined,
+        address: form.address.trim() || "NA",
+        city: form.city.trim() || "Cairo",
+        governorate: form.governorate.trim() || "NA",
+      } : undefined;
+
       const res = await fetch("/api/orders/paymob-apple-pay-init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -392,6 +402,7 @@ export function CheckoutPage() {
           discountCode: promoApplied?.code ?? null,
           attribution: buildOrderAttribution(),
           checkoutToken: shopifyCheckoutToken ?? null,
+          ...(formCustomer ? { customer: formCustomer } : {}),
         }),
       });
 
@@ -441,7 +452,7 @@ export function CheckoutPage() {
       setSubmitError("Network error. Please check your connection and try again.");
       setStep("form");
     }
-  }, [isShopify, shopifyCart, localItems, promoApplied, shopifyCheckoutToken, formatShopifyLinePrice]);
+  }, [isShopify, shopifyCart, localItems, promoApplied, shopifyCheckoutToken, formatShopifyLinePrice, form]);
 
   useEffect(() => {
     if (!checkoutOpen && prefilledEmail) return;

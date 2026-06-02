@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
-import { queryPaymobByMerchantOrderId, verifyPaymobTransactionById } from "../lib/paymob";
+import { queryPaymobByMerchantOrderId, verifyPaymobTransactionById, mapPaymobBillingToCustomer } from "../lib/paymob";
 import { processPaymobSuccess } from "../lib/processPaymobSuccess";
 
 const router: IRouter = Router();
@@ -79,11 +79,21 @@ router.post("/orders/paymob-sync", async (req, res) => {
         { intentId, txnId: verified.txnId, amountCents: verified.amountCents },
         "paymob-sync: verified via txnId — processing order",
       );
+      // Update customer from Apple Pay billing_data (shippingContact) before order creation
+      if (verified.billingData) {
+        const applePayCustomer = mapPaymobBillingToCustomer(verified.billingData);
+        await db.update(paymobIntents)
+          .set({ customer: applePayCustomer as unknown as Record<string, unknown> })
+          .where(eq(paymobIntents.intentId, intentId))
+          .catch((err: unknown) => req.log.warn({ err, intentId }, "paymob-sync: failed to update customer from billing_data"));
+      }
+      const paymentChannelTxn = verified.sourceDataSubType?.toUpperCase() === "APPLE_PAY" ? "apple-pay" as const : "card" as const;
       // Trigger order creation; then read the intent to get the Shopify order details
       await processPaymobSuccess({
         intentId,
         paymobTxnId: verified.txnId,
         amountCents: verified.amountCents,
+        paymentChannel: paymentChannelTxn,
       }).catch((err: unknown) =>
         req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error"),
       );
@@ -117,10 +127,20 @@ router.post("/orders/paymob-sync", async (req, res) => {
       { intentId, txnId: result.txnId, amountCents: result.amountCents },
       "paymob-sync: verified via order query — processing order",
     );
+    // Update customer from Apple Pay billing_data if available
+    if (result.billingData) {
+      const applePayCustomer = mapPaymobBillingToCustomer(result.billingData);
+      await db.update(paymobIntents)
+        .set({ customer: applePayCustomer as unknown as Record<string, unknown> })
+        .where(eq(paymobIntents.intentId, intentId))
+        .catch((err: unknown) => req.log.warn({ err, intentId }, "paymob-sync: failed to update customer from billing_data"));
+    }
+    const paymentChannelOrder = result.sourceDataSubType?.toUpperCase() === "APPLE_PAY" ? "apple-pay" as const : "card" as const;
     await processPaymobSuccess({
       intentId,
       paymobTxnId: result.txnId,
       amountCents: result.amountCents,
+      paymentChannel: paymentChannelOrder,
     }).catch((err: unknown) =>
       req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error"),
     );

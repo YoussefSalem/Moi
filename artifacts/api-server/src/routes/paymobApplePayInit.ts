@@ -132,7 +132,15 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
   await db.insert(paymobIntents).values({
     intentId,
     lines: lines as unknown as Record<string, unknown>[],
-    customer: customer as unknown as Record<string, unknown>,
+    customer: (customer ?? {
+      firstName: "Apple",
+      lastName: "Pay",
+      email: "NA",
+      phone: "NA",
+      address: "NA",
+      city: "Cairo",
+      governorate: "NA",
+    }) as unknown as Record<string, unknown>,
     cartId,
     discountCode: discountCode ?? null,
     amountCents,
