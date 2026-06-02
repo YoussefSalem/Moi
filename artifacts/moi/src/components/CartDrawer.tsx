@@ -214,7 +214,6 @@ export function CartDrawer() {
 
     session.onvalidatemerchant = async (event) => {
       try {
-        clearCart();
         const res = await fetch("/api/apple-pay/validate-merchant", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -258,6 +257,7 @@ export function CartDrawer() {
         };
         if (data.success) {
           session.completePayment(W.ApplePaySession.STATUS_SUCCESS);
+          clearCart();
           const cartItems = isShopify && shopifyCart
             ? shopifyCart.lines.nodes.map((l) => ({
                 title: l.merchandise.product?.title ?? "Item",
