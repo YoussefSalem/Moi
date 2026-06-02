@@ -183,7 +183,18 @@ router.post(
       status: "pending",
     });
 
-    // 5. Branded pending-verification email to customer (fire-and-forget)
+    // 5. Generate signed URL for the screenshot (needed for both customer and admin emails)
+    let screenshotUrl: string | undefined;
+    try {
+      const bucket = getBucket();
+      const f = bucket.file(screenshotKey);
+      const [signedUrl] = await f.getSignedUrl({ action: "read", expires: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+      screenshotUrl = signedUrl;
+    } catch {
+      screenshotUrl = undefined;
+    }
+
+    // 6. Branded pending-verification email to customer (fire-and-forget)
     if (customerEmail) {
       const shippingPrice = draftShippingAmount ?? (parseEGP(amountDisplay) >= 2000 ? "0.00" : "50.00");
       const { html, text } = buildInstapayPendingEmail({
@@ -206,11 +217,11 @@ router.post(
         .catch((err) => logger.warn({ err, email: customerEmail }, "InstaPay pending email failed"));
     }
 
-    // 6. Shopify note + tag on the DRAFT order (fire-and-forget)
+    // 7. Shopify note + tag on the DRAFT order (fire-and-forget)
     void addShopifyOrderNote(draftOrderId, `InstaPay proof submitted — ref: ${referenceNumber.trim()} (draft, awaiting approval)`);
     void tagShopifyOrder(draftOrderId, "instapay-proof-submitted");
 
-    // 7. Admin notifications (WhatsApp + email)
+    // 8. Admin notifications (WhatsApp + email)
     const businessWA = process.env.BUSINESS_WHATSAPP_NUMBER ?? "";
     const siteUrl = process.env.SITE_URL ?? "";
     if (businessWA) {
@@ -219,17 +230,8 @@ router.post(
         `📋 InstaPay proof — draft order #${draftOrderId}\nRef: ${referenceNumber.trim()}\nAmount: ${amountDisplay} EGP\nCustomer: ${customerName} · ${customerPhone}\nReview: ${siteUrl}/admin`,
       );
     }
-    // 7b. Branded admin reference email (same Moi design, for support reference)
+    // 8b. Branded admin reference email (same Moi design, for support reference)
     const adminEmail = (process.env.ADMIN_EMAIL ?? process.env.RESEND_FROM_EMAIL ?? "hello@buy-moi.com").trim();
-    let screenshotUrl: string | undefined;
-    try {
-      const bucket = getBucket();
-      const f = bucket.file(screenshotKey);
-      const [signedUrl] = await f.getSignedUrl({ action: "read", expires: Date.now() + 7 * 24 * 60 * 60 * 1000 });
-      screenshotUrl = signedUrl;
-    } catch {
-      screenshotUrl = undefined;
-    }
     const { html: adminHtml, text: adminText } = buildInstapayAdminReferenceEmail({
       draftOrderId,
       customerName: customerName || "N/A",

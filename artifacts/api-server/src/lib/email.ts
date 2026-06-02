@@ -92,6 +92,7 @@ function buildEmail({
   discountAmount?: string;
   discountCode?: string;
   shippingAmount?: string;
+  footerHtml?: string;
 }): string {
   const itemRows = lineItems && lineItems.length > 0
     ? lineItems.map((item, i) => {
