@@ -149,13 +149,23 @@ async function fetchBostaCities(apiKey: string): Promise<BostaCity[]> {
   if (_bostaCityCache) return _bostaCityCache;
   try {
     const res = await fetch("https://app.bosta.co/api/v2/cities", {
-      headers: { Authorization: apiKey },
+      headers: { Authorization: `Bearer ${apiKey}` },
     });
-    if (!res.ok) return [];
-    const data = await res.json() as { data?: BostaCity[] };
-    _bostaCityCache = data?.data ?? [];
+    if (!res.ok) {
+      logger.warn({ status: res.status }, "fetchBostaCities: non-2xx from Bosta cities API");
+      return [];
+    }
+    const data = await res.json() as unknown;
+    const list = (data as { data?: unknown })?.data;
+    if (!Array.isArray(list)) {
+      logger.warn({ data }, "fetchBostaCities: unexpected response shape — data.data is not an array");
+      _bostaCityCache = [];
+      return [];
+    }
+    _bostaCityCache = list as BostaCity[];
     return _bostaCityCache;
-  } catch {
+  } catch (err) {
+    logger.warn({ err }, "fetchBostaCities: fetch error");
     return [];
   }
 }
@@ -233,7 +243,7 @@ export async function createBostaShipment(params: {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: apiKey,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         type: 10,
