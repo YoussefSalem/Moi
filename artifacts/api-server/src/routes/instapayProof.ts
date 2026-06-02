@@ -5,7 +5,7 @@ import { instapayProofs } from "@workspace/db/schema";
 import { eq, and, or } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
 import { addShopifyOrderNote, tagShopifyOrder, sendWhatsApp, getShopifyAdminToken } from "../lib/integrations";
-import { sendEmail, buildInstapayPendingEmail } from "../lib/email";
+import { sendEmail, buildInstapayPendingEmail, buildInstapayAdminReferenceEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 import { parseEGP } from "@workspace/utils";
 
@@ -218,23 +218,32 @@ router.post(
         `📋 InstaPay proof — draft order #${draftOrderId}\nRef: ${referenceNumber.trim()}\nAmount: ${amountDisplay} EGP\nCustomer: ${customerName} · ${customerPhone}\nReview: ${siteUrl}/admin`,
       );
     }
-    // Always email admin as backup — Resend is configured
+    // 7b. Branded admin reference email (same Moi design, for support reference)
     const adminEmail = (process.env.ADMIN_EMAIL ?? process.env.RESEND_FROM_EMAIL ?? "hello@buy-moi.com").trim();
+    let screenshotUrl: string | undefined;
+    try {
+      const bucket = getBucket();
+      const f = bucket.file(screenshotKey);
+      const [signedUrl] = await f.getSignedUrl({ action: "read", expires: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+      screenshotUrl = signedUrl;
+    } catch {
+      screenshotUrl = undefined;
+    }
+    const { html: adminHtml, text: adminText } = buildInstapayAdminReferenceEmail({
+      draftOrderId,
+      customerName: customerName || "N/A",
+      customerPhone: customerPhone || "N/A",
+      referenceNumber: referenceNumber.trim(),
+      amount: amountDisplay,
+      screenshotUrl,
+    });
     void sendEmail({
       to: adminEmail,
-      subject: `🔔 New InstaPay Proof — Draft #${draftOrderId}`,
-      html: `<p>A new InstaPay proof has been submitted.</p>
-        <ul>
-          <li><b>Draft Order:</b> #${draftOrderId}</li>
-          <li><b>Reference:</b> ${referenceNumber.trim()}</li>
-          <li><b>Amount:</b> ${amountDisplay} EGP</li>
-          <li><b>Customer:</b> ${customerName || "N/A"}</li>
-          <li><b>Phone:</b> ${customerPhone || "N/A"}</li>
-        </ul>
-        <p><a href="${siteUrl || "https://buy-moi.com"}/admin">Review in Admin Dashboard</a></p>`,
-      text: `New InstaPay Proof Submitted\n\nDraft Order: #${draftOrderId}\nReference: ${referenceNumber.trim()}\nAmount: ${amountDisplay} EGP\nCustomer: ${customerName || "N/A"}\nPhone: ${customerPhone || "N/A"}\n\nReview: ${siteUrl || "https://buy-moi.com"}/admin`,
-    }).then(() => logger.info({ draftOrderId, adminEmail }, "InstaPay admin notification email sent"))
-      .catch((err) => logger.warn({ err, draftOrderId }, "InstaPay admin notification email failed"));
+      subject: `Admin Reference — InstaPay Proof for Draft #${draftOrderId}`,
+      html: adminHtml,
+      text: adminText,
+    }).then(() => logger.info({ draftOrderId, adminEmail }, "InstaPay admin reference email sent"))
+      .catch((err) => logger.warn({ err, draftOrderId }, "InstaPay admin reference email failed"));
 
     // 8. WhatsApp to customer
     if (customerPhone) {
