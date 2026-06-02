@@ -29,6 +29,7 @@ interface PaymobConfigMask {
   integrationId: string;
   hmacSecret: string;
   iframeId: string;
+  applePayIntegrationId: string;
 }
 
 const mono: React.CSSProperties = {
@@ -684,6 +685,7 @@ function SettingsTab({ token, onAuth }: { token: string; onAuth?: (t: string | n
     { key: "integrationId", label: "Integration ID (Card)", placeholder: "Numeric ID, e.g. 123456", hint: "Must be the numeric Integration ID from your Paymob dashboard (Integrations → Online Card → ID column). Not the API key." },
     { key: "hmacSecret", label: "HMAC Secret", placeholder: "Enter to update", sensitive: true },
     { key: "iframeId", label: "Iframe ID", placeholder: "e.g. 1041673", hint: "The numeric Iframe ID from your Paymob dashboard (Iframes section). Used for the legacy card payment form." },
+    { key: "applePayIntegrationId", label: "Apple Pay Integration ID", placeholder: "Numeric ID, e.g. 789012", hint: "The numeric Integration ID for Apple Pay from your Paymob dashboard (Integrations → Apple Pay → ID column). Only shown on Apple-capable devices." },
   ];
 
   useEffect(() => {

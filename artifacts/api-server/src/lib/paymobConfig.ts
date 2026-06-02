@@ -9,6 +9,8 @@ export interface PaymobConfig {
   integrationId: string;
   hmacSecret: string;
   iframeId: string;
+  /** Apple Pay integration ID from the Paymob dashboard (Unified Checkout) */
+  applePayIntegrationId: string;
 }
 
 const CONFIG_FILE = join(process.cwd(), "paymob-config.json");
@@ -31,6 +33,7 @@ export function getPaymobConfig(): PaymobConfig {
     integrationId: file.integrationId ?? process.env.PAYMOB_INTEGRATION_ID ?? "",
     hmacSecret: file.hmacSecret ?? process.env.PAYMOB_HMAC_SECRET ?? "",
     iframeId: file.iframeId ?? process.env.PAYMOB_IFRAME_ID ?? "",
+    applePayIntegrationId: file.applePayIntegrationId ?? process.env.PAYMOB_APPLE_PAY_INTEGRATION_ID ?? "",
   };
 }
 
@@ -54,5 +57,6 @@ export function getMaskedConfig(): Record<string, string> {
     integrationId: config.integrationId ? "configured" : "",
     hmacSecret: config.hmacSecret ? "configured" : "",
     iframeId: config.iframeId || "",
+    applePayIntegrationId: config.applePayIntegrationId || "",
   };
 }
