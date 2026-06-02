@@ -142,13 +142,16 @@ router.post("/apple-pay/validate-merchant", async (req, res) => {
             }),
           },
         );
-        if (!validationRes.ok) {
-          const text = await validationRes.text();
-          throw new Error(`Paymob merchant validation failed (${validationRes.status}): ${text}`);
+        // Paymob returns HTTP 400 even on success — check body instead of status
+        const text = await validationRes.text();
+        let data: { api_response?: unknown };
+        try {
+          data = JSON.parse(text) as { api_response?: unknown };
+        } catch {
+          throw new Error(`Paymob merchant validation returned non-JSON (${validationRes.status}): ${text}`);
         }
-        const data = await validationRes.json() as { api_response?: unknown };
         if (!data.api_response) {
-          throw new Error("Paymob merchant validation returned no api_response");
+          throw new Error(`Paymob merchant validation failed (${validationRes.status}): ${text}`);
         }
         return data.api_response;
       })(),
