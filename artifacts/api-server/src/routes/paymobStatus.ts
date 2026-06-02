@@ -87,7 +87,7 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
           const updatedRows = await db
             .select({
               shopifyOrderId: paymobIntents.shopifyOrderId,
-              shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId,
+              shopifyOrderNumber: paymobIntents.shopifyOrderNumber,
             })
             .from(paymobIntents)
             .where(eq(paymobIntents.intentId, intentId))
@@ -97,7 +97,7 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
             status: "completed",
             paymobTxnId: result.txnId,
             shopifyOrderId: updated?.shopifyOrderId ?? null,
-            shopifyOrderNumber: updated?.shopifyConfirmedOrderId ?? null,
+            shopifyOrderNumber: updated?.shopifyOrderNumber ?? null,
           });
         } else {
           req.log.info(
