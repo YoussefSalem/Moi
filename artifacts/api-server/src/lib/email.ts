@@ -542,7 +542,7 @@ export function buildInstapayAdminReferenceEmail(params: {
   const { draftOrderId, customerName, customerPhone, referenceNumber, amount, screenshotUrl } = params;
   const siteUrl = "https://buy-moi.com";
   const adminUrl = `${siteUrl}/admin`;
-  const igLink = "https://www.instagram.com/shopmoi___";
+  const igLink = "https://www.instagram.com/shopmoi/";
   const tiktokLink = "https://www.tiktok.com/@shopmoi___";
 
   const imgPreview = screenshotUrl
@@ -650,7 +650,7 @@ export function buildInstapayAdminReferenceEmail(params: {
           <td>
             <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.5em;text-transform:uppercase;color:#1a1714;">M O I</p>
             <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;">Questions? <a href="mailto:hello@buy-moi.com" style="color:#1a1714;text-decoration:underline;">hello@buy-moi.com</a></p>
-            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;">Instagram: <a href="${igLink}" style="color:#1a1714;text-decoration:underline;">@shopmoi___</a></p>
+            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;">Instagram: <a href="${igLink}" style="color:#1a1714;text-decoration:underline;">@shopmoi</a></p>
           </td>
           <td style="text-align:right;vertical-align:top;">
             <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#b0a89e;line-height:1.6;">
@@ -683,7 +683,7 @@ Amount: ${amount} EGP
 Review in Admin: ${adminUrl}
 
 Questions? hello@buy-moi.com
-Instagram: @shopmoi___ (${igLink})
+Instagram: @shopmoi (${igLink})
 
 buy-moi.com`;
 
@@ -738,7 +738,7 @@ export function buildInstapayRejectedEmail(params: {
         <tr><td style="padding:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Get In Touch</td></tr>
         <tr>
           <td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#5c504a;line-height:1.8;">
-            <a href="https://www.instagram.com/shopmoi___" style="color:#1a1714;text-decoration:underline;">Instagram</a> — @shopmoi___<br/>
+            <a href="https://www.instagram.com/shopmoi/" style="color:#1a1714;text-decoration:underline;">Instagram</a> — @shopmoi<br/>
             <a href="mailto:hello@buy-moi.com" style="color:#1a1714;text-decoration:underline;">Email</a> — hello@buy-moi.com
           </td>
         </tr>
@@ -752,7 +752,7 @@ export function buildInstapayRejectedEmail(params: {
     siteUrl,
   });
 
-  const text = `Payment Not Confirmed — Moi\n\n${name ? `We're sorry, ${name}.` : "We're sorry."}\n\nWe were unable to confirm your payment for Draft Order #${draftOrderId}. Your order has been cancelled.${reasonText}\n\nDraft Order: #${draftOrderId}\nInstaPay Ref: ${referenceNumber}\nTotal: ${total} EGP\nStatus: Payment Not Confirmed\n\nIf you need any help, please contact us:\nInstagram: @shopmoi___\nEmail: hello@buy-moi.com\n\nbuy-moi.com`;
+  const text = `Payment Not Confirmed — Moi\n\n${name ? `We're sorry, ${name}.` : "We're sorry."}\n\nWe were unable to confirm your payment for Draft Order #${draftOrderId}. Your order has been cancelled.${reasonText}\n\nDraft Order: #${draftOrderId}\nInstaPay Ref: ${referenceNumber}\nTotal: ${total} EGP\nStatus: Payment Not Confirmed\n\nIf you need any help, please contact us:\nInstagram: @shopmoi\nEmail: hello@buy-moi.com\n\nbuy-moi.com`;
 
   return { html, text };
 }
@@ -912,7 +912,7 @@ export function buildAbandonedCartEmail(params: {
                   Questions? Contact us at <a href="mailto:hello@buy-moi.com" style="color:#1a1714;text-decoration:underline;font-weight:600;">hello@buy-moi.com</a>
                 </p>
                 <p style="margin:0 0 20px;text-align:center;">
-                  <a href="https://www.instagram.com/shopmoi___" target="_blank" style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#1a1714;text-decoration:none;">Instagram</a>
+                  <a href="https://www.instagram.com/shopmoi/" target="_blank" style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#1a1714;text-decoration:none;">Instagram</a>
                   <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#c8bfb5;padding:0 10px;">|</span>
                   <a href="https://www.tiktok.com/@shopmoi_" target="_blank" style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#1a1714;text-decoration:none;">TikTok</a>
                 </p>
@@ -946,7 +946,7 @@ export function buildAbandonedCartEmail(params: {
     return `  ${i.title}${v} x ${i.quantity}  (${i.price} EGP)`;
   }).join("\n");
 
-  const text = `Our MOI pieces are waiting for you.\n\nComplete your wardrobe before they sell out.\n\nYOUR CART:\n${itemsText}\n\nComplete My Order:\n${recoveryUrl}\n\nQuestions? Contact us at hello@buy-moi.com\nInstagram: https://www.instagram.com/shopmoi___\nTikTok: https://www.tiktok.com/@shopmoi_\n\nbuy-moi.com`;
+  const text = `Our MOI pieces are waiting for you.\n\nComplete your wardrobe before they sell out.\n\nYOUR CART:\n${itemsText}\n\nComplete My Order:\n${recoveryUrl}\n\nQuestions? Contact us at hello@buy-moi.com\nInstagram: https://www.instagram.com/shopmoi/\nTikTok: https://www.tiktok.com/@shopmoi_\n\nbuy-moi.com`;
 
   return { html, text };
 }
