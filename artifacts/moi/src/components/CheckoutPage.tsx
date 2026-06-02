@@ -299,6 +299,7 @@ export function CheckoutPage() {
     formatShopifyLinePrice,
     applyDiscount,
     prefilledEmail,
+    checkoutUrl,
   } = useCart();
 
   const [step, setStep] = useState<Step>("form");
@@ -1998,11 +1999,11 @@ export function CheckoutPage() {
                       </p>
                     </button>
                   ))}
-                  {/* Apple Pay tile — selects Apple Pay and immediately triggers Paymob hosted intent */}
-                  {typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
+                  {/* Apple Pay tile — redirects to Shopify hosted checkout (handles Apple Pay via Paymob) */}
+                  {typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && checkoutUrl && (
                     <button
                       type="button"
-                      onClick={() => { void triggerApplePayDirectInit(); }}
+                      onClick={() => { window.location.href = checkoutUrl; }}
                       className="text-left transition-all"
                       style={{
                         padding: "14px 12px",
