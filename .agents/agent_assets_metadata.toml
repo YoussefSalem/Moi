@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "fgwv8IFvCKLfgafslDtHz"
@@ -24,3 +23,9 @@ id = "LMSJoyBCm_WRxdkLWH8FN"
 uri = "file://artifacts/moi/public/moi-m-logo.png"
 type = "image"
 title = "Moi brand M letter logo"
+
+[[outputs]]
+id = "l0kyFHkIkqipyIdnwltMm"
+uri = "file://private-certs/moi-apple-pay-csrs.tar.gz"
+type = "unspecified"
+title = "Apple Pay CSR files (upload to Apple Developer Portal)"
