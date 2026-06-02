@@ -183,17 +183,6 @@ router.post(
       status: "pending",
     });
 
-    // 5. Generate signed URL for the screenshot (needed for both customer and admin emails)
-    let screenshotUrl: string | undefined;
-    try {
-      const bucket = getBucket();
-      const f = bucket.file(screenshotKey);
-      const [signedUrl] = await f.getSignedUrl({ action: "read", expires: Date.now() + 7 * 24 * 60 * 60 * 1000 });
-      screenshotUrl = signedUrl;
-    } catch {
-      screenshotUrl = undefined;
-    }
-
     // 6. Branded pending-verification email to customer (fire-and-forget)
     if (customerEmail) {
       const shippingPrice = draftShippingAmount ?? (parseEGP(amountDisplay) >= 2000 ? "0.00" : "50.00");
@@ -205,7 +194,6 @@ router.post(
         discountAmount: draftDiscountAmount ? draftDiscountAmount.toFixed(2) : undefined,
         discountCode: draftDiscountCode || undefined,
         shippingAmount: shippingPrice,
-        screenshotUrl: screenshotUrl || undefined,
       });
       void sendEmail({
         to: customerEmail,
@@ -238,7 +226,6 @@ router.post(
       customerPhone: customerPhone || "N/A",
       referenceNumber: referenceNumber.trim(),
       amount: amountDisplay,
-      screenshotUrl,
     });
     void sendEmail({
       to: adminEmail,

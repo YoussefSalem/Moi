@@ -427,20 +427,10 @@ export function buildInstapayPendingEmail(params: {
   discountAmount?: string;
   discountCode?: string;
   shippingAmount?: string;
-  screenshotUrl?: string;
 }): { html: string; text: string } {
-  const { orderNumber, customerName, total, referenceNumber, discountAmount, discountCode, shippingAmount, screenshotUrl } = params;
+  const { orderNumber, customerName, total, referenceNumber, discountAmount, discountCode, shippingAmount } = params;
   const name = customerName ? customerName.split(" ")[0] : "";
   const siteUrl = "https://buy-moi.com";
-
-  const proofImage = screenshotUrl
-    ? `<tr><td style="padding:16px 0 0;">
-         <a href="${screenshotUrl}" style="display:inline-block;border:1px solid #ede9e3;padding:4px;border-radius:2px;text-decoration:none;">
-           <img src="${screenshotUrl}" alt="Payment screenshot" style="display:block;max-width:260px;width:100%;height:auto;border:0;" />
-         </a>
-         <p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#9a8e82;letter-spacing:0.05em;">Your submitted payment screenshot</p>
-       </td></tr>`
-    : "";
 
   const html = buildEmail({
     preheader: `We've received your InstaPay proof for order #${orderNumber}. Verification is in progress.`,
@@ -456,7 +446,6 @@ export function buildInstapayPendingEmail(params: {
           <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a8e82;padding:11px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">Status</td>
           <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#b08d6a;font-weight:700;padding:11px 0;border-top:1px solid #ede9e3;text-align:right;letter-spacing:0.08em;text-transform:uppercase;">Pending Verification</td>
         </tr>
-        ${proofImage}
       </table>`,
     orderNumber,
     total,
@@ -549,19 +538,12 @@ export function buildInstapayAdminReferenceEmail(params: {
   customerPhone: string;
   referenceNumber: string;
   amount: string;
-  screenshotUrl?: string;
 }): { html: string; text: string } {
-  const { draftOrderId, customerName, customerPhone, referenceNumber, amount, screenshotUrl } = params;
+  const { draftOrderId, customerName, customerPhone, referenceNumber, amount } = params;
   const siteUrl = "https://buy-moi.com";
   const adminUrl = `${siteUrl}/admin`;
   const igLink = "https://www.instagram.com/shopmoi/";
   const tiktokLink = "https://www.tiktok.com/@shopmoi___";
-
-  const imgPreview = screenshotUrl
-    ? `<a href="${screenshotUrl}" style="display:inline-block;margin:0 0 24px;border:1px solid #ede9e3;padding:6px;border-radius:2px;">
-         <img src="${screenshotUrl}" alt="Payment screenshot" style="display:block;max-width:260px;height:auto;border:0;" />
-       </a>`
-    : "";
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -635,9 +617,6 @@ export function buildInstapayAdminReferenceEmail(params: {
         </tr>
       </table>
     </td></tr>
-
-    <!-- Screenshot -->
-    ${imgPreview}
 
     <!-- Divider -->
     <tr><td style="padding:32px 48px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #ede9e3;font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>
