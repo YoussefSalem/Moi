@@ -1,8 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import { PaymobApplePayButton } from "./PaymobApplePayButton";
-import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
-import { canUseApplePay } from "@/lib/applePayUtils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -2000,11 +1998,11 @@ export function CheckoutPage() {
                       </p>
                     </button>
                   ))}
-                  {/* Apple Pay tile — selects Apple Pay; express button appears below */}
+                  {/* Apple Pay tile — selects Apple Pay and immediately triggers Paymob hosted intent */}
                   {typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
                     <button
                       type="button"
-                      onClick={() => setPaymentMethod("apple-pay")}
+                      onClick={() => { void triggerApplePayDirectInit(); }}
                       className="text-left transition-all"
                       style={{
                         padding: "14px 12px",
@@ -2029,30 +2027,6 @@ export function CheckoutPage() {
                     </button>
                   )}
                 </div>
-
-                {/* Apple Pay express button — shown when Apple Pay tile is selected */}
-                {paymentMethod === "apple-pay" && (
-                  <div style={{ marginTop: "24px" }}>
-                    <ShopifyApplePayButton
-                      lines={
-                        isShopify && shopifyCart
-                          ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
-                          : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }))
-                      }
-                      totalAmount={
-                        isShopify && shopifyCart
-                          ? shopifyCart.cost.totalAmount.amount
-                          : String(totalAmount.toFixed(2))
-                      }
-                      currencyCode={currencyCode}
-                      discountCode={promoApplied?.code}
-                      style={{ padding: "16px" }}
-                      onSuccess={handleShopifyApplePaySuccess}
-                      onFail={(error) => setSubmitError(error)}
-                      onCancel={() => {}}
-                    />
-                  </div>
-                )}
 
                 {/* Delivery form — hidden when Apple Pay is selected */}
                 {paymentMethod !== "apple-pay" && (<>
