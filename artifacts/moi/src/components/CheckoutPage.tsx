@@ -945,8 +945,13 @@ export function CheckoutPage() {
       ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
       : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
 
-    const totalAmountCents = Math.round(totalAmount * 100);
-    const estimatedTotal = totalAmount.toFixed(2);
+    const subtotalForAP = isShopify && shopifyCart
+      ? parseFloat(shopifyCart.cost.totalAmount.amount)
+      : localItems.reduce((s, i) => s + (i.priceAmount ?? 0) * i.quantity, 0);
+    const shippingForAP = subtotalForAP >= 2000 ? 0 : 50;
+    const totalForAP = subtotalForAP + shippingForAP;
+    const totalAmountCents = Math.round(totalForAP * 100);
+    const estimatedTotal = totalForAP.toFixed(2);
 
     type APS = {
       begin(): void; abort(): void;
@@ -974,6 +979,10 @@ export function CheckoutPage() {
       currencyCode: "EGP",
       supportedNetworks: ["visa", "masterCard"],
       merchantCapabilities: ["supports3DS"],
+      lineItems: [
+        { label: "Subtotal", amount: subtotalForAP.toFixed(2) },
+        { label: shippingForAP === 0 ? "Shipping — Free" : "Shipping", amount: shippingForAP.toFixed(2) },
+      ],
       total: { label: "Moi", amount: estimatedTotal, type: "final" },
       requiredShippingContactFields: ["email", "phone", "name"],
     });

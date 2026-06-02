@@ -240,7 +240,8 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
 
     const variantId = selectedVariant?.id ?? product.variantId ?? "";
     const priceAmount = parseEGP(String(effectivePrice)) || 0;
-    const totalAmountCents = Math.round(priceAmount * 100) + 5000;
+    const shippingEGP = priceAmount >= 2000 ? 0 : 50;
+    const totalAmountCents = Math.round(priceAmount * 100) + Math.round(shippingEGP * 100);
     const estimatedTotal = (totalAmountCents / 100).toFixed(2);
 
     trackAddToCart(variantId, product.name, 1, priceAmount);
@@ -272,6 +273,10 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       currencyCode: "EGP",
       supportedNetworks: ["visa", "masterCard"],
       merchantCapabilities: ["supports3DS"],
+      lineItems: [
+        { label: "Subtotal", amount: priceAmount.toFixed(2) },
+        { label: shippingEGP === 0 ? "Shipping — Free" : "Shipping", amount: shippingEGP.toFixed(2) },
+      ],
       total: { label: "Moi", amount: estimatedTotal, type: "final" },
       requiredShippingContactFields: ["email", "phone", "name"],
     });

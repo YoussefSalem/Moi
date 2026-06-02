@@ -169,7 +169,8 @@ export function CartDrawer() {
     const subtotal = isShopify && shopifyCart
       ? parseFloat(shopifyCart.cost?.totalAmount?.amount ?? "0")
       : localItems.reduce((s, i) => s + (i.priceAmount ?? 0) * i.quantity, 0);
-    const totalAmount = subtotal + 50;
+    const shippingEGP = subtotal >= 2000 ? 0 : 50;
+    const totalAmount = subtotal + shippingEGP;
     const totalAmountCents = Math.round(totalAmount * 100);
     const estimatedTotal = totalAmount.toFixed(2);
 
@@ -199,6 +200,10 @@ export function CartDrawer() {
       currencyCode: "EGP",
       supportedNetworks: ["visa", "masterCard"],
       merchantCapabilities: ["supports3DS"],
+      lineItems: [
+        { label: "Subtotal", amount: subtotal.toFixed(2) },
+        { label: shippingEGP === 0 ? "Shipping — Free" : "Shipping", amount: shippingEGP.toFixed(2) },
+      ],
       total: { label: "Moi", amount: estimatedTotal, type: "final" },
       requiredShippingContactFields: ["email", "phone", "name"],
     });
