@@ -154,6 +154,7 @@ export function CartDrawer() {
     applyDiscount,
     prefilledEmail,
     clearCart,
+    checkoutUrl,
   } = useCart();
 
   const applePayAvailable =
@@ -162,139 +163,14 @@ export function CartDrawer() {
     !!(window as unknown as { ApplePaySession: { canMakePayments?: () => boolean } }).ApplePaySession.canMakePayments?.();
 
   const handleBuyWithApplePayCart = () => {
-    const orderLines = isShopify && shopifyCart
-      ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
-      : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
-
-    const subtotal = isShopify && shopifyCart
-      ? parseFloat(shopifyCart.cost?.totalAmount?.amount ?? "0")
-      : localItems.reduce((s, i) => s + (i.priceAmount ?? 0) * i.quantity, 0);
-    const shippingEGP = subtotal >= 2000 ? 0 : 50;
-    const totalAmount = subtotal + shippingEGP;
-    const totalAmountCents = Math.round(totalAmount * 100);
-    const estimatedTotal = totalAmount.toFixed(2);
-
-    type APS = {
-      begin(): void; abort(): void;
-      completeMerchantValidation(ms: unknown): void;
-      completePayment(status: number): void;
-      onvalidatemerchant: ((e: { validationURL: string }) => void) | null;
-      onpaymentauthorized: ((e: {
-        payment: {
-          token: { paymentData: unknown };
-          shippingContact?: {
-            givenName?: string; familyName?: string; emailAddress?: string;
-            phoneNumber?: string; addressLines?: string[]; locality?: string;
-            administrativeArea?: string;
-          };
-        };
-      }) => void) | null;
-      oncancel: (() => void) | null;
-    };
-    const W = window as unknown as {
-      ApplePaySession: { new(v: number, r: object): APS; STATUS_SUCCESS: number; STATUS_FAILURE: number };
-    };
-
-    const session = new W.ApplePaySession(3, {
-      countryCode: "EG",
-      currencyCode: "EGP",
-      supportedNetworks: ["visa", "masterCard"],
-      merchantCapabilities: ["supports3DS"],
-      lineItems: [
-        { label: "Subtotal", amount: subtotal.toFixed(2) },
-      ],
-      shippingMethods: [
-        {
-          label: "Standard",
-          detail: shippingEGP === 0 ? "Free delivery" : "Flat rate",
-          amount: shippingEGP.toFixed(2),
-          identifier: "standard",
-        },
-      ],
-      total: { label: "Moi", amount: estimatedTotal, type: "final" },
-      requiredShippingContactFields: ["email", "phone", "name"],
-    });
-
-    let intentId: string | null = null;
-    let paymobPaymentKey: string | null = null;
-    let finalTotal: string | null = estimatedTotal;
-
-    session.onvalidatemerchant = async (event) => {
-      try {
-        const res = await fetch("/api/apple-pay/validate-merchant", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ validationURL: event.validationURL, lines: orderLines, totalAmountCents }),
-        });
-        if (!res.ok) { session.abort(); return; }
-        const data = await res.json() as {
-          merchantSession: unknown; intentId: string;
-          paymobPaymentKey: string; total: string;
-        };
-        intentId = data.intentId;
-        paymobPaymentKey = data.paymobPaymentKey;
-        finalTotal = data.total;
-        session.completeMerchantValidation(data.merchantSession);
-      } catch { session.abort(); }
-    };
-
-    session.onpaymentauthorized = async (event) => {
-      try {
-        const { payment } = event;
-        const paymentData = JSON.stringify(payment.token.paymentData);
-        const sc = payment.shippingContact;
-        const shippingContact = {
-          firstName: sc?.givenName?.trim() || "NA",
-          lastName: sc?.familyName?.trim() || "NA",
-          email: sc?.emailAddress?.trim() || "NA",
-          phone: sc?.phoneNumber?.trim() || "NA",
-          address: sc?.addressLines?.[0]?.trim() || "NA",
-          city: sc?.locality?.trim() || "Cairo",
-          governorate: sc?.administrativeArea?.trim() || "NA",
-        };
-        const res = await fetch("/api/apple-pay/authorize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentData, intentId, paymobPaymentKey, shippingContact }),
-        });
-        const data = await res.json() as {
-          success: boolean; txnId?: string;
-          shopifyOrderId?: number; shopifyOrderNumber?: number;
-          total?: string; error?: string;
-        };
-        if (data.success) {
-          session.completePayment(W.ApplePaySession.STATUS_SUCCESS);
-          clearCart();
-          const cartItems = isShopify && shopifyCart
-            ? shopifyCart.lines.nodes.map((l) => ({
-                title: l.merchandise.product?.title ?? "Item",
-                variantTitle: l.merchandise.title !== "Default Title" ? l.merchandise.title : null,
-                quantity: l.quantity,
-                image: l.merchandise.image?.url ?? null,
-                price: formatShopifyLinePrice(l),
-              }))
-            : localItems.map((i) => ({
-                title: i.title, variantTitle: i.size ?? null,
-                quantity: i.quantity, image: i.image, price: i.price,
-              }));
-          sessionStorage.setItem("moi_apple_pay_result", JSON.stringify({
-            txnId: data.txnId,
-            shopifyOrderId: data.shopifyOrderId,
-            shopifyOrderNumber: data.shopifyOrderNumber,
-            total: data.total ?? finalTotal,
-            intentId,
-            items: cartItems,
-          }));
-          openCheckout();
-        } else {
-          session.completePayment(W.ApplePaySession.STATUS_FAILURE);
-          toast.error("Payment was declined. Please try another payment method.");
-        }
-      } catch { session.completePayment(W.ApplePaySession.STATUS_FAILURE); }
-    };
-
-    session.oncancel = () => {};
-    session.begin();
+    // Apple Pay is processed by Shopify's checkout (where Apple Pay is enabled).
+    // Hand the shopper to the Shopify checkout for the current cart, which
+    // presents the native Apple Pay button.
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl;
+    } else {
+      toast.error("Unable to start Apple Pay checkout. Please try again.");
+    }
   };
   const { customer, openAuth } = useCustomer();
 

@@ -74,6 +74,7 @@ interface CartContextValue {
   closeCheckout: () => void;
   prefilledEmail: string | null;
   addToCart: (params: AddToCartParams) => Promise<string | null>;
+  buyNowCheckoutUrl: (variantId: string, quantity?: number) => Promise<string | null>;
   removeItem: (idOrLineId: string) => Promise<void>;
   updateQuantity: (idOrLineId: string, quantity: number) => Promise<void>;
   applyDiscount: (code: string) => Promise<{ applicable: boolean; code: string; discountAmount: number }>;
@@ -261,6 +262,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
     return resolvedCheckoutUrl;
   }, [ensureShopifyCart]);
+
+  // Express single-item checkout (e.g. Apple Pay): creates a brand-new, ephemeral
+  // Shopify cart containing only this item and returns its checkoutUrl. The
+  // shopper's persistent cart is left untouched, so cancelling Apple Pay loses
+  // nothing. Avoids the clearCart()+addToCart() race (stale cart contents).
+  const buyNowCheckoutUrl = useCallback(async (variantId: string, quantity = 1): Promise<string | null> => {
+    if (!SHOPIFY_CONFIGURED || !variantId) return null;
+    try {
+      const cart = await createCartWithLines([{ merchandiseId: variantId, quantity }]);
+      return cart.checkoutUrl ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const removeItem = useCallback(async (idOrLineId: string) => {
     setLoading(true);
@@ -525,6 +540,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       },
       prefilledEmail,
       addToCart,
+      buyNowCheckoutUrl,
       removeItem,
       updateQuantity,
       applyDiscount,

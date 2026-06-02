@@ -73,7 +73,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const pageColorName = fallback.name.includes(" — ")
     ? (fallback.name.split(" — ").pop() ?? "")
     : "";
-  const { addToCart, clearCart, openCheckout } = useCart();
+  const { addToCart, clearCart, openCheckout, buyNowCheckoutUrl } = useCart();
   const { customer } = useCustomer();
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -235,141 +235,23 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     openCheckout();
   };
 
-  const handleBuyWithApplePay = () => {
+  const handleBuyWithApplePay = async () => {
     if (isOutOfStock) return;
 
     const variantId = selectedVariant?.id ?? product.variantId ?? "";
     const priceAmount = parseEGP(String(effectivePrice)) || 0;
-    const shippingEGP = priceAmount >= 2000 ? 0 : 50;
-    const totalAmountCents = Math.round(priceAmount * 100) + Math.round(shippingEGP * 100);
-    const estimatedTotal = (totalAmountCents / 100).toFixed(2);
 
     trackAddToCart(variantId, product.name, 1, priceAmount);
 
-    type APS = {
-      begin(): void;
-      abort(): void;
-      completeMerchantValidation(ms: unknown): void;
-      completePayment(status: number): void;
-      onvalidatemerchant: ((e: { validationURL: string }) => void) | null;
-      onpaymentauthorized: ((e: {
-        payment: {
-          token: { paymentData: unknown };
-          shippingContact?: {
-            givenName?: string; familyName?: string; emailAddress?: string;
-            phoneNumber?: string; addressLines?: string[]; locality?: string;
-            administrativeArea?: string;
-          };
-        };
-      }) => void) | null;
-      oncancel: (() => void) | null;
-    };
-    const W = window as unknown as {
-      ApplePaySession: { new(v: number, r: object): APS; STATUS_SUCCESS: number; STATUS_FAILURE: number };
-    };
-
-    const session = new W.ApplePaySession(3, {
-      countryCode: "EG",
-      currencyCode: "EGP",
-      supportedNetworks: ["visa", "masterCard"],
-      merchantCapabilities: ["supports3DS"],
-      lineItems: [
-        { label: "Subtotal", amount: priceAmount.toFixed(2) },
-      ],
-      shippingMethods: [
-        {
-          label: "Standard",
-          detail: shippingEGP === 0 ? "Free delivery" : "Flat rate",
-          amount: shippingEGP.toFixed(2),
-          identifier: "standard",
-        },
-      ],
-      total: { label: "Moi", amount: estimatedTotal, type: "final" },
-      requiredShippingContactFields: ["email", "phone", "name"],
-    });
-
-    let intentId: string | null = null;
-    let paymobPaymentKey: string | null = null;
-    let finalTotal: string | null = estimatedTotal;
-
-    session.onvalidatemerchant = async (event) => {
-      try {
-        const res = await fetch("/api/apple-pay/validate-merchant", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            validationURL: event.validationURL,
-            lines: [{ variantId, quantity: 1 }],
-            totalAmountCents,
-          }),
-        });
-        if (!res.ok) { session.abort(); return; }
-        const data = await res.json() as {
-          merchantSession: unknown; intentId: string;
-          paymobPaymentKey: string; total: string;
-        };
-        intentId = data.intentId;
-        paymobPaymentKey = data.paymobPaymentKey;
-        finalTotal = data.total;
-        session.completeMerchantValidation(data.merchantSession);
-      } catch {
-        session.abort();
-      }
-    };
-
-    session.onpaymentauthorized = async (event) => {
-      try {
-        const { payment } = event;
-        const paymentData = JSON.stringify(payment.token.paymentData);
-        const sc = payment.shippingContact;
-        const shippingContact = {
-          firstName: sc?.givenName?.trim() || "NA",
-          lastName: sc?.familyName?.trim() || "NA",
-          email: sc?.emailAddress?.trim() || "NA",
-          phone: sc?.phoneNumber?.trim() || "NA",
-          address: sc?.addressLines?.[0]?.trim() || "NA",
-          city: sc?.locality?.trim() || "Cairo",
-          governorate: sc?.administrativeArea?.trim() || "NA",
-        };
-        const res = await fetch("/api/apple-pay/authorize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentData, intentId, paymobPaymentKey, shippingContact }),
-        });
-        const data = await res.json() as {
-          success: boolean; txnId?: string;
-          shopifyOrderId?: number; shopifyOrderNumber?: number;
-          total?: string; error?: string;
-        };
-        if (data.success) {
-          session.completePayment(W.ApplePaySession.STATUS_SUCCESS);
-          clearCart();
-          sessionStorage.setItem("moi_apple_pay_result", JSON.stringify({
-            txnId: data.txnId,
-            shopifyOrderId: data.shopifyOrderId,
-            shopifyOrderNumber: data.shopifyOrderNumber,
-            total: data.total ?? finalTotal,
-            intentId,
-            items: [{
-              title: product.name,
-              variantTitle: selectedSize || null,
-              quantity: 1,
-              image: galleryImages[0] ?? product.productShot ?? null,
-              price: String(effectivePrice),
-            }],
-          }));
-          openCheckout();
-        } else {
-          session.completePayment(W.ApplePaySession.STATUS_FAILURE);
-          toast.error(data.error ?? "Payment was declined. Please try another card.");
-        }
-      } catch {
-        session.completePayment(W.ApplePaySession.STATUS_FAILURE);
-      }
-    };
-
-    session.oncancel = () => {};
-    session.begin();
+    // Apple Pay is processed by Shopify's checkout (where Apple Pay is enabled).
+    // Create a fresh single-item Shopify checkout for this product and hand the
+    // shopper to it. The persistent cart is left untouched.
+    const checkoutUrl = await buyNowCheckoutUrl(variantId, 1);
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl;
+    } else {
+      toast.error("Unable to start Apple Pay checkout. Please try again.");
+    }
   };
 
   const applePayAvailable =
