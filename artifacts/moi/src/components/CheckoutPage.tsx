@@ -2037,11 +2037,11 @@ export function CheckoutPage() {
                       </p>
                     </button>
                   ))}
-                  {/* Apple Pay tile — opens native Apple Pay sheet via Paymob Pixel SDK */}
-                  {typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
+                  {/* Apple Pay tile — redirects to Shopify checkout (Apple Pay handled natively there via Paymob) */}
+                  {typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && checkoutUrl && (
                     <button
                       type="button"
-                      onClick={() => setPaymentMethod("apple-pay")}
+                      onClick={() => { window.location.href = checkoutUrl; }}
                       className="text-left transition-all"
                       style={{
                         padding: "14px 12px",
