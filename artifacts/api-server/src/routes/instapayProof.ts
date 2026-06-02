@@ -194,6 +194,7 @@ router.post(
         discountAmount: draftDiscountAmount ? draftDiscountAmount.toFixed(2) : undefined,
         discountCode: draftDiscountCode || undefined,
         shippingAmount: shippingPrice,
+        screenshotUrl: screenshotUrl || undefined,
       });
       void sendEmail({
         to: customerEmail,
