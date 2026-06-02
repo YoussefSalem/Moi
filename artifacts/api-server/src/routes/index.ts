@@ -21,6 +21,8 @@ import analyticsRouter from "./analytics";
 import checkoutsRouter from "./checkouts";
 import abandonedCartsRouter from "./abandonedCarts";
 import metaCapiRouter from "./metaCapi";
+import paymobApplePayInitRouter from "./paymobApplePayInit";
+import applePayDirectRouter from "./applePayDirect";
 
 const router: IRouter = Router();
 
@@ -46,5 +48,7 @@ router.use(analyticsRouter);
 router.use(checkoutsRouter);
 router.use(abandonedCartsRouter);
 router.use(metaCapiRouter);
+router.use(paymobApplePayInitRouter);
+router.use(applePayDirectRouter);
 
 export default router;

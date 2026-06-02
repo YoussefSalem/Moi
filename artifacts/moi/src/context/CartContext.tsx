@@ -73,7 +73,7 @@ interface CartContextValue {
   openCheckout: (email?: string) => void;
   closeCheckout: () => void;
   prefilledEmail: string | null;
-  addToCart: (params: AddToCartParams) => Promise<string | null>;
+  addToCart: (params: AddToCartParams) => Promise<void>;
   removeItem: (idOrLineId: string) => Promise<void>;
   updateQuantity: (idOrLineId: string, quantity: number) => Promise<void>;
   applyDiscount: (code: string) => Promise<{ applicable: boolean; code: string; discountAmount: number }>;
@@ -167,10 +167,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return newCart;
   }, [shopifyCart]);
 
-  const addToCart = useCallback(async (params: AddToCartParams): Promise<string | null> => {
+  const addToCart = useCallback(async (params: AddToCartParams): Promise<void> => {
     const qty = params.quantity ?? 1;
     setLoading(true);
-    let resolvedCheckoutUrl: string | null = null;
     try {
       // Shopify sync — best-effort; local cart always succeeds regardless
       if (SHOPIFY_CONFIGURED && params.variantId) {
@@ -178,7 +177,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           const c = await ensureShopifyCart();
           const updated = await addCartLines(c.id, [{ merchandiseId: params.variantId, quantity: qty }]);
           setShopifyCart(updated);
-          resolvedCheckoutUrl = updated.checkoutUrl ?? null;
         } catch {
           // Shopify failure must not block local cart; silently fall through
         }
@@ -255,7 +253,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-    return resolvedCheckoutUrl;
   }, [ensureShopifyCart]);
 
   const removeItem = useCallback(async (idOrLineId: string) => {

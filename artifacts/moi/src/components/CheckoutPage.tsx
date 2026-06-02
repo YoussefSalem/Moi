@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { PaymobApplePayButton } from "./PaymobApplePayButton";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -316,6 +317,7 @@ export function CheckoutPage() {
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
   const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
+  const [applePayData, setApplePayData] = useState<{ clientSecret: string; publicKey: string; intentId: string } | null>(null);
   const [paymentTimerActive, setPaymentTimerActive] = useState(false);
   const [paymentTimerKey, setPaymentTimerKey] = useState(0);
   const [sessionRefreshed, setSessionRefreshed] = useState(false);
@@ -348,6 +350,7 @@ export function CheckoutPage() {
         setEmailInput("");
         setOrderResult(null);
         setPaymobIframeUrl(null);
+        setApplePayData(null);
         setPaymentMethod("cod");
         setSubmitError("");
         closeCheckout();
@@ -356,6 +359,135 @@ export function CheckoutPage() {
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, [checkoutOpen, closeCheckout]);
+
+  // Direct Apple Pay fast-path: skip the email + form steps entirely.
+  // Called immediately when checkout is opened via the "Buy with Apple Pay" button.
+  const triggerApplePayDirectInit = useCallback(async () => {
+    const orderLines = isShopify && shopifyCart
+      ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
+      : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
+
+    if (orderLines.length === 0) return;
+
+    const subTotal = isShopify && shopifyCart
+      ? shopifyCart.lines.nodes.reduce((s, l) => s + parseFloat(l.merchandise.price.amount) * l.quantity, 0)
+      : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
+    const cartDiscounted = isShopify && shopifyCart
+      ? parseFloat(shopifyCart.cost.totalAmount.amount)
+      : subTotal;
+    const savingsAmt = Math.max(0, subTotal - cartDiscounted);
+    const discSubtotal = subTotal - savingsAmt;
+    const isFreeShipping = discSubtotal >= 2000;
+    const shippingAmt = isFreeShipping ? 0 : SHIPPING_EGP;
+    const total = discSubtotal + shippingAmt;
+
+    setPaymentMethod("apple-pay");
+    setStep("loading");
+
+    try {
+      const res = await fetch("/api/orders/paymob-apple-pay-init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lines: orderLines,
+          cartId: isShopify ? (shopifyCart?.id ?? null) : null,
+          totalAmountCents: Math.round(total * 100),
+          discountCode: promoApplied?.code ?? null,
+          attribution: buildOrderAttribution(),
+          checkoutToken: shopifyCheckoutToken ?? null,
+        }),
+      });
+
+      const data = await res.json() as { clientSecret?: string; publicKey?: string; intentId?: string; total?: string; error?: string };
+
+      if (!res.ok || !data.clientSecret || !data.publicKey || !data.intentId) {
+        setSubmitError(data.error ?? "Apple Pay is unavailable right now. Please try another payment method.");
+        setStep("form");
+        return;
+      }
+
+      const resolvedTotal = data.total ?? `${Math.round(total)} EGP`;
+      setBreakdownSnapshot({ subtotal: subTotal, savings: savingsAmt, shippingCost: shippingAmt, freeShipping: isFreeShipping });
+
+      const cartItemsSnapshot = isShopify && shopifyCart
+        ? shopifyCart.lines.nodes.map((l) => ({
+            id: l.id,
+            title: l.merchandise.product.title,
+            variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
+            quantity: l.quantity,
+            image: resolveLineImage(l, localItems),
+            price: formatShopifyLinePrice(l),
+          }))
+        : localItems.map((i) => ({
+            id: i.id,
+            title: i.title,
+            variantTitle: null,
+            quantity: i.quantity,
+            image: i.image ?? null,
+            price: i.price,
+          }));
+
+      setOrderResult({ orderNumber: "", total: resolvedTotal, intentId: data.intentId, items: cartItemsSnapshot.length > 0 ? cartItemsSnapshot : undefined });
+      paymobTrackedRef.current = false;
+      setApplePayData({ clientSecret: data.clientSecret, publicKey: data.publicKey, intentId: data.intentId });
+
+      if (data.intentId) {
+        sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
+        sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
+        sessionStorage.setItem("moi_paymob_breakdown", JSON.stringify({ subtotal: subTotal, savings: savingsAmt, shippingCost: shippingAmt, freeShipping: isFreeShipping }));
+        if (cartItemsSnapshot.length > 0) {
+          sessionStorage.setItem("moi_paymob_items", JSON.stringify(cartItemsSnapshot));
+        }
+      }
+      setStep("form");
+    } catch {
+      setSubmitError("Network error. Please check your connection and try again.");
+      setStep("form");
+    }
+  }, [isShopify, shopifyCart, localItems, promoApplied, shopifyCheckoutToken, formatShopifyLinePrice]);
+
+  useEffect(() => {
+    if (!checkoutOpen && prefilledEmail) return;
+    if (!checkoutOpen) return;
+
+    const applePayResultRaw = sessionStorage.getItem("moi_apple_pay_result");
+    if (applePayResultRaw) {
+      sessionStorage.removeItem("moi_apple_pay_result");
+      try {
+        const result = JSON.parse(applePayResultRaw) as {
+          txnId?: string;
+          shopifyOrderId?: number;
+          shopifyOrderNumber?: number;
+          total?: string;
+          intentId?: string;
+          items?: OrderResult["items"];
+        };
+        setOrderResult({
+          orderNumber: result.shopifyOrderNumber ?? result.shopifyOrderId ?? "",
+          total: result.total ?? "",
+          intentId: result.intentId,
+          paymobTxnId: result.txnId,
+          shopifyOrderId: result.shopifyOrderId ?? null,
+          shopifyOrderNumber: result.shopifyOrderNumber,
+          items: result.items,
+        });
+        setStep("card-confirm");
+      } catch { /* ignore parse errors */ }
+      return;
+    }
+
+    const preferred = sessionStorage.getItem("moi_preferred_payment");
+    if (preferred === "apple-pay") {
+      sessionStorage.removeItem("moi_preferred_payment");
+      const applePayAvailable =
+        typeof window !== "undefined" &&
+        "ApplePaySession" in window &&
+        !!(window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.();
+      if (applePayAvailable) {
+        void triggerApplePayDirectInit();
+      }
+    }
+  }, [checkoutOpen, triggerApplePayDirectInit]);
 
   useEffect(() => {
     if (checkoutOpen && prefilledEmail) {
@@ -955,8 +1087,64 @@ export function CheckoutPage() {
     refreshSessionRef.current();
   }, []);
 
+  const handleApplePayFail = useCallback(() => {
+    setApplePayData(null);
+    setSubmitError("Apple Pay payment was declined or cancelled. Please try again.");
+    setStep("form");
+    submittingRef.current = false;
+  }, []);
+
+  const handleApplePaySuccess = useCallback((txnId: string) => {
+    const intentId = applePayData?.intentId;
+    setApplePayData(null);
+    if (!intentId) {
+      handleApplePayFail();
+      return;
+    }
+
+    type SyncResult = { status?: string; paymobTxnId?: string; shopifyOrderId?: number | null; shopifyOrderNumber?: number | null };
+
+    const syncOnce = async (): Promise<SyncResult | null> => {
+      try {
+        const r = await fetch("/api/orders/paymob-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intentId, ...(txnId ? { paymobTxnId: txnId } : {}) }),
+        });
+        if (!r.ok) return null;
+        return (await r.json()) as SyncResult;
+      } catch {
+        return null;
+      }
+    };
+
+    const run = async () => {
+      const maxAttempts = 5;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const d = await syncOnce();
+        if (d?.status === "completed") {
+          handleIframeSuccess(d.paymobTxnId ?? txnId ?? undefined, d.shopifyOrderId ?? null, d.shopifyOrderNumber ?? null);
+          return;
+        }
+        if (d?.status === "declined") {
+          handleApplePayFail();
+          return;
+        }
+        if (attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      }
+      setSubmitError("Your Apple Pay payment is processing. If it doesn't confirm shortly, please check your email or contact us before retrying.");
+      setStep("form");
+      submittingRef.current = false;
+    };
+
+    void run();
+  }, [applePayData, handleIframeSuccess, handleApplePayFail]);
+
   const handleCancelCardCheckout = useCallback(() => {
     setPaymobIframeUrl(null);
+    setApplePayData(null);
     setStep("form");
     setPaymentMethod("card");
     submittingRef.current = false;
@@ -1219,7 +1407,7 @@ export function CheckoutPage() {
 
   const isSuccessStep = step === "cod-confirm" || step === "card-confirm";
   const isConfirmStep = isSuccessStep || step === "instapay-confirm" || step === "card-failed";
-  const isCardCheckoutStep = step === "card-checkout" || (step === "form" && !!paymobIframeUrl);
+  const isCardCheckoutStep = step === "card-checkout" || (step === "form" && !!(paymobIframeUrl || applePayData));
   const loadingText = paymentMethod === "card" ? "Preparing payment…" : "Placing your order…";
 
   return (
@@ -1421,26 +1609,36 @@ export function CheckoutPage() {
                   <div style={{ height: "1px", backgroundColor: "rgba(30,24,20,0.13)" }} />
                 </div>
 
-                {/* Card payment iframe */}
-                <div style={{ borderRadius: "16px", overflow: "hidden" }}>
-                  <div className="max-h-[715px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
-                    <PaymobIframe
-                      url={paymobIframeUrl ?? ""}
-                      intentId={orderResult?.intentId}
-                      onSuccess={handleIframeSuccess}
-                      onFail={handleIframeFail}
-                    />
-                    <div style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: 20,
-                      background: "linear-gradient(to bottom, rgba(250,248,245,0), rgba(250,248,245,1))",
-                      pointerEvents: "none",
-                    }} />
+                {/* Payment surface — native Apple Pay button (Pixel SDK) or card iframe */}
+                {applePayData ? (
+                  <PaymobApplePayButton
+                    clientSecret={applePayData.clientSecret}
+                    publicKey={applePayData.publicKey}
+                    intentId={applePayData.intentId}
+                    onSuccess={handleApplePaySuccess}
+                    onFail={handleApplePayFail}
+                  />
+                ) : (
+                  <div style={{ borderRadius: "16px", overflow: "hidden" }}>
+                    <div className="max-h-[715px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
+                      <PaymobIframe
+                        url={paymobIframeUrl ?? ""}
+                        intentId={orderResult?.intentId}
+                        onSuccess={handleIframeSuccess}
+                        onFail={handleIframeFail}
+                      />
+                      <div style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 20,
+                        background: "linear-gradient(to bottom, rgba(250,248,245,0), rgba(250,248,245,1))",
+                        pointerEvents: "none",
+                      }} />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Security badge */}
                 <div className="mt-4 flex flex-col items-center gap-3">
@@ -1450,6 +1648,7 @@ export function CheckoutPage() {
                       Secured by Paymob · 256-bit SSL
                     </p>
                   </div>
+                  {!applePayData && (
                   <button
                     onClick={() => {
                       if (paymobIframeUrl) {
@@ -1471,6 +1670,7 @@ export function CheckoutPage() {
                   >
                     Payment stuck? Open in new window
                   </button>
+                  )}
                 </div>
                   </div>
                 )}
@@ -1837,11 +2037,11 @@ export function CheckoutPage() {
                       </p>
                     </button>
                   ))}
-                  {/* Apple Pay tile — redirects to Shopify checkout which handles Apple Pay natively */}
-                  {typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && checkoutUrl && (
+                  {/* Apple Pay tile — opens native Apple Pay sheet via Paymob Pixel SDK */}
+                  {typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
                     <button
                       type="button"
-                      onClick={() => { window.location.href = checkoutUrl; }}
+                      onClick={() => setPaymentMethod("apple-pay")}
                       className="text-left transition-all"
                       style={{
                         padding: "14px 12px",

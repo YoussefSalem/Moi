@@ -1,20 +1,28 @@
 ---
-name: Apple Pay via Shopify checkout
-description: Apple Pay is now handled entirely by Shopify checkout redirect — all Paymob Apple Pay code removed.
+name: Apple Pay via Paymob — native sheet + Shopify order
+description: Apple Pay uses the native OS sheet (Paymob direct on product page, Pixel SDK on checkout). On success, a Shopify order is created.
 ---
 
 ## Rule
-Apple Pay goes through Shopify's hosted checkout, not Paymob. When a user taps Apple Pay anywhere on the site, they are redirected to `cart.checkoutUrl` (the Shopify-generated checkout URL). Shopify's checkout shows Apple Pay as an express payment option natively.
+Apple Pay shows the native Apple Pay sheet. After authorization, a Shopify order is created via `processPaymobSuccess` (same as card payments). The Shopify `checkoutUrl` redirect approach was tried but reverted because the user wanted the native double-click sheet experience.
 
-**Why:** Owner requested Apple Pay be handled by Shopify only, eliminating the Paymob Pixel SDK dependency, the custom ApplePaySession flow, and all associated backend routes.
+**Why:** Owner confirmed they want the native Apple Pay sheet (Touch ID / Face ID double-press), not a redirect to Shopify checkout. Payment is processed via Paymob; Shopify order is created server-side on success.
 
-## How to apply
-- **Product page**: `handleBuyWithApplePay` calls `addToCart(...)` (which now returns `string | null` — the checkoutUrl) then does `window.location.href = checkoutUrl`.
-- **Checkout page**: The Apple Pay tile in the payment method grid directly redirects to `checkoutUrl` on click. The tile is only shown when `checkoutUrl` is non-null AND `ApplePaySession.canMakePayments()` is true.
-- **`CartContext.addToCart`**: Return type changed from `Promise<void>` to `Promise<string | null>` — returns `cart.checkoutUrl` after the Shopify cart add.
+## Two flows
 
-## Removed code
-- `artifacts/api-server/src/routes/applePayDirect.ts` — `POST /api/apple-pay/validate-merchant` and `/api/apple-pay/authorize`
-- `artifacts/api-server/src/routes/paymobApplePayInit.ts` — `POST /api/orders/paymob-apple-pay-init`
-- `artifacts/moi/src/components/PaymobApplePayButton.tsx` — Paymob Pixel SDK wrapper
-- All `applePayData` state, `triggerApplePayDirectInit`, `handleApplePaySuccess`, `handleApplePayFail` in CheckoutPage
+### Product page (direct ApplePaySession)
+- `handleBuyWithApplePay` in `ProductPage.tsx` creates `ApplePaySession` synchronously in the click handler (required by Apple).
+- `onvalidatemerchant`: calls `/api/apple-pay/validate-merchant` — creates intent + Paymob legacy payment key + proxies merchant validation.
+- `onpaymentauthorized`: calls `/api/apple-pay/authorize` — submits token to Paymob, calls `processPaymobSuccess` to create Shopify order, stores result in `sessionStorage("moi_apple_pay_result")`, then `openCheckout()` to show confirmation.
+- Backend: `applePayDirect.ts`
+
+### Checkout page (Paymob Pixel SDK)
+- Apple Pay tile sets `paymentMethod = "apple-pay"`. `handleSubmit` calls `/api/orders/paymob-apple-pay-init` which creates a Paymob Unified Checkout intention.
+- `PaymobApplePayButton` loads the Pixel SDK, renders the native Apple Pay button, fires `afterPaymentComplete(txnId)`.
+- `handleApplePaySuccess` polls `/api/orders/paymob-sync` (up to 5×) until `status === "completed"`, then shows confirmation. Creates Shopify order via webhook/sync.
+- `triggerApplePayDirectInit` is called when checkout opens with `moi_preferred_payment = "apple-pay"` in sessionStorage.
+- Backend: `paymobApplePayInit.ts`
+
+## CartContext
+`addToCart` returns `Promise<void>` (not `string | null`). The `checkoutUrl` is exposed on the context as `checkoutUrl: string | null` from `shopifyCart.checkoutUrl`.
+
