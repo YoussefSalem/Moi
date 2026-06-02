@@ -122,8 +122,11 @@ export function ShopifyApplePayButton({
     let checkoutId: string | null = null;
     let checkoutWebUrl: string | null = null;
     let resolvedTotal: string = totalAmount;
+    let validationStarted = false;
+    let paymentAuthorized = false;
 
     session.onvalidatemerchant = async (event) => {
+      validationStarted = true;
       try {
         const checkout = await checkoutCreate(
           lines,
@@ -162,6 +165,7 @@ export function ShopifyApplePayButton({
     };
 
     session.onpaymentauthorized = async (event) => {
+      paymentAuthorized = true;
       try {
         if (!checkoutId) throw new Error("Checkout not ready");
 
@@ -225,7 +229,16 @@ export function ShopifyApplePayButton({
     };
 
     session.oncancel = () => {
-      onCancel?.();
+      if (paymentAuthorized) return; // already handled
+      if (!validationStarted) {
+        // Apple closed the sheet before merchant validation — the domain is not
+        // registered as an Apple Pay merchant domain.
+        const msg = "Apple Pay is not active on this domain. Please register buy-moi.com in Shopify Admin → Settings → Payments → Apple Pay, then try again.";
+        onFail?.(msg);
+        toast.error(msg, { duration: 10_000 });
+      } else {
+        onCancel?.();
+      }
     };
 
     void checkoutWebUrl;
