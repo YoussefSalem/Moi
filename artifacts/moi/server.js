@@ -20,7 +20,7 @@ const PRODUCT_IMAGES = {
   "moi-versa-top-beige": "/images/beige.jpg",
   "moi-versa-top-yellow": "/images/white.jpg",
   "moi-versa-top-teal": "/images/teal.jpg",
-  "trio-bangles": "/images/bangles.jpg",
+  "trio-bangles": "/images/bangles-main.jpg",
 };
 
 const PRODUCT_DATA = {
