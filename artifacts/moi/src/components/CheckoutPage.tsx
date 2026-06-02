@@ -2893,13 +2893,13 @@ function OrderBreakdownRows({ breakdown }: { breakdown: OrderBreakdown }) {
       {subtotal > 0 && (
         <div style={rowStyle}>
           <span style={labelStyle}>Subtotal</span>
-          <span style={valueStyle}>{fmt(subtotal)} EGP</span>
+          <span style={valueStyle}>{fmt(subtotal)}</span>
         </div>
       )}
       {savings > 0 && (
         <div style={rowStyle}>
           <span style={labelStyle}>Discount</span>
-          <span style={{ ...valueStyle, color: "#5a7a5a" }}>−{fmt(savings)} EGP</span>
+          <span style={{ ...valueStyle, color: "#5a7a5a" }}>−{fmt(savings)}</span>
         </div>
       )}
       <div style={rowStyle}>
@@ -2907,12 +2907,12 @@ function OrderBreakdownRows({ breakdown }: { breakdown: OrderBreakdown }) {
         {freeShipping ? (
           <span style={{ ...valueStyle, color: "rgba(30,24,20,0.5)", fontStyle: "italic" }}>Complimentary</span>
         ) : (
-          <span style={valueStyle}>{fmt(shippingCost)} EGP</span>
+          <span style={valueStyle}>{fmt(shippingCost)}</span>
         )}
       </div>
       <div style={{ ...rowStyle, borderTop: "1px solid rgba(30,24,20,0.12)", paddingTop: 8, marginTop: 2 }}>
         <span style={totalLabelStyle}>Total</span>
-        <span style={totalValueStyle}>{fmt(computedTotal)} EGP</span>
+        <span style={totalValueStyle}>{fmt(computedTotal)}</span>
       </div>
     </div>
   );
