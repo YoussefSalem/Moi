@@ -168,6 +168,7 @@ export async function processPaymobSuccess(params: {
     const shippingForAdmin = parseEGP(amount) >= 2000 ? "0.00" : "50.00";
     const { html: adminHtml, text: adminText } = buildAdminPaymentNotificationEmail({
       draftOrderId: shopifyOrderId,
+      orderNumber: shopifyOrderNumber,
       paymobTxnId,
       amount,
       customer,
