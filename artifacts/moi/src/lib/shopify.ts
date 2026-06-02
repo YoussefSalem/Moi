@@ -1,7 +1,24 @@
 const STORE_DOMAIN = import.meta.env.VITE_SHOPIFY_STORE_DOMAIN as string | undefined;
 const STOREFRONT_TOKEN = import.meta.env.VITE_SHOPIFY_STOREFRONT_TOKEN as string | undefined;
+const CHECKOUT_DOMAIN = (import.meta.env.VITE_SHOPIFY_CHECKOUT_DOMAIN as string | undefined)
+  ?.replace(/^https?:\/\//, "")
+  .replace(/\/$/, "");
 
 export const SHOPIFY_CONFIGURED = Boolean(STORE_DOMAIN && STOREFRONT_TOKEN);
+
+// Shopify's Storefront API always returns *.myshopify.com in checkoutUrl, even
+// when a custom primary domain is configured. Rewrite to the brand domain so
+// shoppers never see the internal myshopify URL.
+function normalizeCart(cart: ShopifyCart): ShopifyCart {
+  if (!CHECKOUT_DOMAIN || !cart.checkoutUrl) return cart;
+  try {
+    const url = new URL(cart.checkoutUrl);
+    url.hostname = CHECKOUT_DOMAIN;
+    return { ...cart, checkoutUrl: url.toString() };
+  } catch {
+    return cart;
+  }
+}
 
 const ENDPOINT = STORE_DOMAIN
   ? `https://${STORE_DOMAIN}/api/2024-04/graphql.json`
@@ -186,7 +203,7 @@ export async function createCart(): Promise<ShopifyCart> {
       cartCreate { cart { ...CartFields } }
     }
   `);
-  return data.cartCreate.cart;
+  return normalizeCart(data.cartCreate.cart);
 }
 
 export async function createCartWithLines(
@@ -198,7 +215,7 @@ export async function createCartWithLines(
       cartCreate(input: { lines: $lines }) { cart { ...CartFields } }
     }
   `, { lines });
-  return data.cartCreate.cart;
+  return normalizeCart(data.cartCreate.cart);
 }
 
 export async function getCart(cartId: string): Promise<ShopifyCart | null> {
@@ -208,7 +225,7 @@ export async function getCart(cartId: string): Promise<ShopifyCart | null> {
       cart(id: $cartId) { ...CartFields }
     }
   `, { cartId });
-  return data.cart;
+  return data.cart ? normalizeCart(data.cart) : null;
 }
 
 export async function addCartLines(
@@ -221,7 +238,7 @@ export async function addCartLines(
       cartLinesAdd(cartId: $cartId, lines: $lines) { cart { ...CartFields } }
     }
   `, { cartId, lines });
-  return data.cartLinesAdd.cart;
+  return normalizeCart(data.cartLinesAdd.cart);
 }
 
 export async function removeCartLines(cartId: string, lineIds: string[]): Promise<ShopifyCart> {
@@ -231,7 +248,7 @@ export async function removeCartLines(cartId: string, lineIds: string[]): Promis
       cartLinesRemove(cartId: $cartId, lineIds: $lineIds) { cart { ...CartFields } }
     }
   `, { cartId, lineIds });
-  return data.cartLinesRemove.cart;
+  return normalizeCart(data.cartLinesRemove.cart);
 }
 
 export async function updateCartLines(
@@ -244,7 +261,7 @@ export async function updateCartLines(
       cartLinesUpdate(cartId: $cartId, lines: $lines) { cart { ...CartFields } }
     }
   `, { cartId, lines });
-  return data.cartLinesUpdate.cart;
+  return normalizeCart(data.cartLinesUpdate.cart);
 }
 
 export async function customerCreate(
@@ -336,7 +353,7 @@ export async function cartDiscountCodesUpdate(
   if (data.cartDiscountCodesUpdate.userErrors.length) {
     throw new Error(data.cartDiscountCodesUpdate.userErrors[0].message);
   }
-  return data.cartDiscountCodesUpdate.cart;
+  return normalizeCart(data.cartDiscountCodesUpdate.cart);
 }
 
 export async function cartBuyerIdentityUpdate(
@@ -362,7 +379,7 @@ export async function cartBuyerIdentityUpdate(
     if (data.cartBuyerIdentityUpdate.userErrors.length) {
       return null;
     }
-    return data.cartBuyerIdentityUpdate.cart;
+    return normalizeCart(data.cartBuyerIdentityUpdate.cart);
   } catch {
     return null;
   }

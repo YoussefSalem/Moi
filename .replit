@@ -27,6 +27,7 @@ RESEND_AUDIENCE_ID = "12395a94-5b31-4b42-aad3-fd329701f987"
 BUSINESS_WHATSAPP_NUMBER = "+201200520083"
 ADMIN_EMAIL = "youssefasalem@gmail.com"
 ADMIN_NOTIFICATION_EMAIL = "youssefasalem@gmail.com"
+VITE_SHOPIFY_CHECKOUT_DOMAIN = "www.buy-moi.com"
 
 [nix]
 channel = "stable-25_05"
