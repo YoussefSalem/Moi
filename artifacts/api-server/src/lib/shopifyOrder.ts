@@ -663,8 +663,14 @@ export async function createDraftOrder(params: {
     return { orderNumber: draftId, orderId: draftId, total: draftTotal, lineItems: [], draftOrderId: draftId, discountAmount: cartDiscountAmount > 0.01 ? cartDiscountAmount : undefined, discountCode: cartDiscountCode || undefined, shippingAmount: shippingPrice };
   }
 
+  // For COD orders, pass payment_pending=true so Shopify creates the order
+  // with financial_status:"pending" and does NOT auto-create a pending payment
+  // transaction. Without this, stores with automatic payment capture enabled
+  // would capture the auto-created pending transaction and mark the order as
+  // "paid" immediately — incorrect for Cash on Delivery.
+  const paymentPendingParam = params.paymentMethod === "cod" ? "&payment_pending=true" : "";
   const completeRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?send_receipt=true&send_fulfillment_receipt=false`,
+    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?send_receipt=true&send_fulfillment_receipt=false${paymentPendingParam}`,
     {
       method: "PUT",
       headers: {
