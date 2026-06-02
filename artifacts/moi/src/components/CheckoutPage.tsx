@@ -298,7 +298,6 @@ export function CheckoutPage() {
     formatShopifyLinePrice,
     applyDiscount,
     prefilledEmail,
-    checkoutUrl,
   } = useCart();
 
   const [step, setStep] = useState<Step>("email");
@@ -770,15 +769,11 @@ export function CheckoutPage() {
       return;
     }
 
-    // Apple Pay: redirect to Shopify checkout which handles Apple Pay natively
+    // Apple Pay is handled by the native "Buy with Apple Pay" button above — never redirect to Shopify.
     if (paymentMethod === "apple-pay") {
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl;
-      } else {
-        setStep("form");
-        setSubmitError("Apple Pay checkout is unavailable right now. Please choose another payment method.");
-      }
       submittingRef.current = false;
+      setSubmitError("Please tap the Apple Pay button above to complete your purchase.");
+      setStep("form");
       return;
     }
 
