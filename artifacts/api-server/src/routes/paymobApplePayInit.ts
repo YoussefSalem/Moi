@@ -71,15 +71,10 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
     }
   }
 
+  // Customer fields are optional for Apple Pay — the native Apple Pay sheet
+  // collects the buyer's billing/contact info on the device. We fall back to
+  // "NA" placeholders so the Paymob Intentions API billing_data is satisfied.
   const customer = body.customer as CustomerInfo | undefined;
-  if (
-    !customer?.firstName?.trim() || !customer?.lastName?.trim() ||
-    !customer?.phone?.trim() || !customer?.address?.trim() ||
-    !customer?.governorate?.trim() || !customer?.city?.trim()
-  ) {
-    res.status(400).json({ error: "All customer fields are required." });
-    return;
-  }
 
   const lines = body.lines as OrderLine[];
   const discountCode = typeof body.discountCode === "string" && body.discountCode.trim() ? body.discountCode.trim() : undefined;
@@ -178,12 +173,12 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
       },
     ],
     billing_data: {
-      first_name: customer.firstName,
-      last_name: customer.lastName,
-      email: customer.email ?? "NA",
-      phone_number: customer.phone,
-      street: customer.address,
-      city: customer.city,
+      first_name: customer?.firstName?.trim() || "Apple",
+      last_name: customer?.lastName?.trim() || "Pay",
+      email: customer?.email?.trim() || "NA",
+      phone_number: customer?.phone?.trim() || "NA",
+      street: customer?.address?.trim() || "NA",
+      city: customer?.city?.trim() || "Cairo",
       country: "EG",
       state: "NA",
       postal_code: "NA",
@@ -192,9 +187,9 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
       building: "NA",
     },
     customer: {
-      first_name: customer.firstName,
-      last_name: customer.lastName,
-      email: customer.email ?? "NA",
+      first_name: customer?.firstName?.trim() || "Apple",
+      last_name: customer?.lastName?.trim() || "Pay",
+      email: customer?.email?.trim() || "NA",
     },
     extras: {
       merchant_order_id: intentId,

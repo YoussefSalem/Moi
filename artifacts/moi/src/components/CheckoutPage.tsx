@@ -370,7 +370,97 @@ export function CheckoutPage() {
     }
   }, [checkoutOpen, prefilledEmail]);
 
-  // Read sessionStorage flag set by ProductPage "Buy with Apple Pay" shortcut
+  // Direct Apple Pay fast-path: skip the email + form steps entirely.
+  // Called immediately when checkout is opened via the "Buy with Apple Pay" button.
+  // The native Apple Pay sheet collects payment/contact info — no form needed.
+  const triggerApplePayDirectInit = useCallback(async () => {
+    const orderLines = isShopify && shopifyCart
+      ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
+      : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
+
+    if (orderLines.length === 0) return; // cart not ready — let normal flow handle it
+
+    // Recompute totals inline (mirrors the render-level computed values)
+    const subTotal = isShopify && shopifyCart
+      ? shopifyCart.lines.nodes.reduce((s, l) => s + parseFloat(l.merchandise.price.amount) * l.quantity, 0)
+      : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
+    const cartDiscounted = isShopify && shopifyCart
+      ? parseFloat(shopifyCart.cost.totalAmount.amount)
+      : subTotal;
+    const savingsAmt = Math.max(0, subTotal - cartDiscounted);
+    const discSubtotal = subTotal - savingsAmt;
+    const isFreeShipping = discSubtotal >= 2000;
+    const shippingAmt = isFreeShipping ? 0 : SHIPPING_EGP;
+    const total = discSubtotal + shippingAmt;
+
+    setPaymentMethod("apple-pay");
+    setStep("loading");
+
+    try {
+      const res = await fetch("/api/orders/paymob-apple-pay-init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lines: orderLines,
+          cartId: isShopify ? (shopifyCart?.id ?? null) : null,
+          totalAmountCents: Math.round(total * 100),
+          discountCode: promoApplied?.code ?? null,
+          attribution: buildOrderAttribution(),
+          checkoutToken: shopifyCheckoutToken ?? null,
+        }),
+      });
+
+      const data = await res.json() as { clientSecret?: string; publicKey?: string; intentId?: string; total?: string; error?: string };
+
+      if (!res.ok || !data.clientSecret || !data.publicKey || !data.intentId) {
+        setSubmitError(data.error ?? "Apple Pay is unavailable right now. Please try another payment method.");
+        setStep("form");
+        return;
+      }
+
+      const resolvedTotal = data.total ?? `${Math.round(total)} EGP`;
+      setBreakdownSnapshot({ subtotal: subTotal, savings: savingsAmt, shippingCost: shippingAmt, freeShipping: isFreeShipping });
+
+      const cartItemsSnapshot = isShopify && shopifyCart
+        ? shopifyCart.lines.nodes.map((l) => ({
+            id: l.id,
+            title: l.merchandise.product.title,
+            variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
+            quantity: l.quantity,
+            image: resolveLineImage(l, localItems),
+            price: formatShopifyLinePrice(l),
+          }))
+        : localItems.map((i) => ({
+            id: i.id,
+            title: i.title,
+            variantTitle: null,
+            quantity: i.quantity,
+            image: i.image ?? null,
+            price: i.price,
+          }));
+
+      setOrderResult({ orderNumber: "", total: resolvedTotal, intentId: data.intentId, items: cartItemsSnapshot.length > 0 ? cartItemsSnapshot : undefined });
+      paymobTrackedRef.current = false;
+      setApplePayData({ clientSecret: data.clientSecret, publicKey: data.publicKey, intentId: data.intentId });
+
+      if (data.intentId) {
+        sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
+        sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
+        sessionStorage.setItem("moi_paymob_breakdown", JSON.stringify({ subtotal: subTotal, savings: savingsAmt, shippingCost: shippingAmt, freeShipping: isFreeShipping }));
+        if (cartItemsSnapshot.length > 0) {
+          sessionStorage.setItem("moi_paymob_items", JSON.stringify(cartItemsSnapshot));
+        }
+      }
+      setStep("form");
+    } catch {
+      setSubmitError("Network error. Please check your connection and try again.");
+      setStep("form");
+    }
+  }, [isShopify, shopifyCart, localItems, promoApplied, shopifyCheckoutToken, formatShopifyLinePrice]);
+
+  // Read sessionStorage flag set by ProductPage "Buy with Apple Pay" shortcut.
+  // When Apple Pay is available, skip the email + form steps and go straight to
+  // the native payment sheet via triggerApplePayDirectInit.
   useEffect(() => {
     if (!checkoutOpen) return;
     const preferred = sessionStorage.getItem("moi_preferred_payment");
@@ -381,10 +471,10 @@ export function CheckoutPage() {
         "ApplePaySession" in window &&
         !!(window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.();
       if (applePayAvailable) {
-        setPaymentMethod("apple-pay");
+        void triggerApplePayDirectInit();
       }
     }
-  }, [checkoutOpen]);
+  }, [checkoutOpen, triggerApplePayDirectInit]);
 
   useEffect(() => {
     if (prevStepRef.current) {
