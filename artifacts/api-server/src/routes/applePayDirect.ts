@@ -278,7 +278,6 @@ router.post("/apple-pay/authorize", async (req, res) => {
       body: JSON.stringify({
         source: { identifier: paymentData, subtype: "APPLE_PAY" },
         payment_token: paymobPaymentKey,
-        api_source: "PIXEL",
       }),
     });
 
