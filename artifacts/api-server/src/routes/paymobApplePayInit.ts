@@ -26,18 +26,21 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
     res.status(503).json({ error: "Payment gateway is not configured." });
     return;
   }
-  if (!config.applePayIntegrationId) {
-    res.status(503).json({ error: "Apple Pay is not configured. Please contact support." });
-    return;
-  }
   if (!config.publicKey) {
     res.status(503).json({ error: "Payment gateway public key is not configured." });
     return;
   }
 
-  const applePayIntegrationIdNum = parseInt(config.applePayIntegrationId, 10);
+  // Use the dedicated Apple Pay integration ID if set, otherwise fall back to the card integration ID
+  const rawIntegrationId = config.applePayIntegrationId || config.integrationId;
+  if (!rawIntegrationId) {
+    res.status(503).json({ error: "Paymob integration is not configured. Please contact support." });
+    return;
+  }
+
+  const applePayIntegrationIdNum = parseInt(rawIntegrationId, 10);
   if (isNaN(applePayIntegrationIdNum) || applePayIntegrationIdNum <= 0) {
-    res.status(503).json({ error: "Apple Pay integration ID is invalid." });
+    res.status(503).json({ error: "Paymob integration ID is invalid. Please contact support." });
     return;
   }
 
