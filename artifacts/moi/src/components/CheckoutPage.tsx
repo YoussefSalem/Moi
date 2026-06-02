@@ -2869,9 +2869,9 @@ function InstapayConfirmation({
             title="Order Confirmed."
             subtitle="InstaPay"
             message={confirmedOrderNumber != null
-              ? <>Your payment proof has been received for order <strong style={{ color: "#1e1814" }}>#{confirmedOrderNumber}</strong>. Our team will verify and confirm your order shortly.</>
-              : "Your payment proof has been received. Our team will verify and confirm your order shortly."}
-            note="You'll receive a WhatsApp message with your order details and tracking update shortly."
+              ? <>Your order is confirmed and payment proof is awaiting verification. Our team will review and confirm your order <strong style={{ color: "#1e1814" }}>#{confirmedOrderNumber}</strong> shortly.</>
+              : "Your order is confirmed and payment proof is awaiting verification. Our team will review and confirm your order shortly."}
+            note="Verification is usually completed within a few hours. You'll receive a WhatsApp message once confirmed."
             orderNumber={confirmedOrderNumber}
           />
         )}
