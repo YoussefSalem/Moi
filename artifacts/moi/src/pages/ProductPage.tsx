@@ -715,7 +715,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       variantId={selectedVariant?.id ?? product.variantId ?? ""}
                       quantity={1}
                       disabled={isOutOfStock}
-                      style={{ minWidth: 280, maxWidth: 400, height: 52 }}
+                      style={{ width: "100%" }}
                     />
                   )}
                 </div>
