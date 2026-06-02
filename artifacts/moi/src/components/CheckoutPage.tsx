@@ -9,6 +9,7 @@ import { trackTikTokPurchase } from "@/lib/tiktokPixel";
 import { trackShopifyPurchase } from "@/lib/shopifyAnalytics";
 import { getAttribution } from "@/lib/adAttribution";
 import { trackCheckoutStep, trackCheckoutStepTime } from "@/lib/analytics";
+import { PaymobApplePayButton } from "@/components/PaymobApplePayButton";
 import type { ShopifyCartLine } from "@/lib/shopify";
 
 const PRODUCT_COLOR_MAP: Record<string, string> = {};
@@ -673,13 +674,14 @@ export function CheckoutPage() {
         });
 
         const data = await res.json() as {
-          iframeUrl?: string;
+          clientSecret?: string;
+          publicKey?: string;
           intentId?: string;
           total?: string;
           error?: string;
         };
 
-        if (!res.ok || !data.iframeUrl) {
+        if (!res.ok || !data.clientSecret || !data.publicKey || !data.intentId) {
           setStep("form");
           setSubmitError(data.error ?? "Apple Pay is unavailable right now. Please try another payment method.");
           submittingRef.current = false;
@@ -707,7 +709,7 @@ export function CheckoutPage() {
             }));
         setOrderResult({ orderNumber: "", total: resolvedTotal, intentId: data.intentId, items: cartItemsSnapshot.length > 0 ? cartItemsSnapshot : undefined });
         paymobTrackedRef.current = false;
-        setPaymobIframeUrl(data.iframeUrl);
+        setApplePayData({ clientSecret: data.clientSecret, publicKey: data.publicKey, intentId: data.intentId });
         if (data.intentId) {
           sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
           sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
@@ -1037,6 +1039,65 @@ export function CheckoutPage() {
     setStep("form");
     submittingRef.current = false;
   }, []);
+
+  // Called by the Pixel SDK's afterPaymentComplete once the native Apple Pay
+  // sheet authorises the payment. We ask the server to verify the intention and
+  // create the Shopify order (same finaliser the card flow uses) BEFORE showing
+  // the confirmation screen — we only treat an explicit "completed" status as
+  // success. A "pending" status (Paymob not yet reporting the txn) is retried a
+  // few times; anything else returns the user to the form so we never show a
+  // false success or clear the cart for an unverified payment.
+  const handleApplePaySuccess = useCallback((txnId: string) => {
+    const intentId = applePayData?.intentId;
+    setApplePayData(null);
+    if (!intentId) {
+      handleApplePayFail();
+      return;
+    }
+
+    type SyncResult = { status?: string; paymobTxnId?: string; shopifyOrderId?: number | null; shopifyOrderNumber?: number | null };
+
+    const syncOnce = async (): Promise<SyncResult | null> => {
+      try {
+        const r = await fetch("/api/orders/paymob-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intentId, ...(txnId ? { paymobTxnId: txnId } : {}) }),
+        });
+        if (!r.ok) return null;
+        return (await r.json()) as SyncResult;
+      } catch {
+        return null;
+      }
+    };
+
+    const run = async () => {
+      const maxAttempts = 5;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const d = await syncOnce();
+        if (d?.status === "completed") {
+          handleIframeSuccess(d.paymobTxnId ?? txnId ?? undefined, d.shopifyOrderId ?? null, d.shopifyOrderNumber ?? null);
+          return;
+        }
+        if (d?.status === "declined") {
+          handleApplePayFail();
+          return;
+        }
+        // pending / null (transient) — wait and retry
+        if (attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      }
+      // Still unresolved after retries. The payment was authorised by Apple but
+      // the server hasn't confirmed it yet — show a processing message and let
+      // the webhook reconcile the order rather than asserting a false success.
+      setSubmitError("Your Apple Pay payment is processing. If it doesn't confirm shortly, please check your email or contact us before retrying.");
+      setStep("form");
+      submittingRef.current = false;
+    };
+
+    void run();
+  }, [applePayData, handleIframeSuccess, handleApplePayFail]);
 
   const handleCancelCardCheckout = useCallback(() => {
     setPaymobIframeUrl(null);
@@ -1507,26 +1568,36 @@ export function CheckoutPage() {
                   <div style={{ height: "1px", backgroundColor: "rgba(30,24,20,0.13)" }} />
                 </div>
 
-                {/* Iframe container with rounded corners — clean blend into the page */}
-                <div style={{ borderRadius: "16px", overflow: "hidden" }}>
-                  <div className="max-h-[715px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
-                    <PaymobIframe
-                      url={paymobIframeUrl ?? ""}
-                      intentId={orderResult?.intentId}
-                      onSuccess={handleIframeSuccess}
-                      onFail={handleIframeFail}
-                    />
-                    <div style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: 20,
-                      background: "linear-gradient(to bottom, rgba(250,248,245,0), rgba(250,248,245,1))",
-                      pointerEvents: "none",
-                    }} />
+                {/* Payment surface — native Apple Pay button (Pixel SDK) or card iframe */}
+                {applePayData ? (
+                  <PaymobApplePayButton
+                    clientSecret={applePayData.clientSecret}
+                    publicKey={applePayData.publicKey}
+                    intentId={applePayData.intentId}
+                    onSuccess={handleApplePaySuccess}
+                    onFail={handleApplePayFail}
+                  />
+                ) : (
+                  <div style={{ borderRadius: "16px", overflow: "hidden" }}>
+                    <div className="max-h-[715px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
+                      <PaymobIframe
+                        url={paymobIframeUrl ?? ""}
+                        intentId={orderResult?.intentId}
+                        onSuccess={handleIframeSuccess}
+                        onFail={handleIframeFail}
+                      />
+                      <div style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 20,
+                        background: "linear-gradient(to bottom, rgba(250,248,245,0), rgba(250,248,245,1))",
+                        pointerEvents: "none",
+                      }} />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Security badge */}
                 <div className="mt-4 flex flex-col items-center gap-3">
@@ -1536,27 +1607,29 @@ export function CheckoutPage() {
                       Secured by Paymob · 256-bit SSL
                     </p>
                   </div>
-                  <button
-                    onClick={() => {
-                      if (paymobIframeUrl) {
-                        window.open(paymobIframeUrl, "_blank", "width=520,height=720");
-                      }
-                    }}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: 0,
-                      cursor: "pointer",
-                      fontSize: "11px",
-                      color: "rgba(30,24,20,0.38)",
-                      fontFamily: "'Montserrat', sans-serif",
-                      letterSpacing: "0.06em",
-                      textDecoration: "underline",
-                      textUnderlineOffset: "3px",
-                    }}
-                  >
-                    Payment stuck? Open in new window
-                  </button>
+                  {!applePayData && (
+                    <button
+                      onClick={() => {
+                        if (paymobIframeUrl) {
+                          window.open(paymobIframeUrl, "_blank", "width=520,height=720");
+                        }
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                        fontSize: "11px",
+                        color: "rgba(30,24,20,0.38)",
+                        fontFamily: "'Montserrat', sans-serif",
+                        letterSpacing: "0.06em",
+                        textDecoration: "underline",
+                        textUnderlineOffset: "3px",
+                      }}
+                    >
+                      Payment stuck? Open in new window
+                    </button>
+                  )}
                 </div>
                   </div>
                 )}

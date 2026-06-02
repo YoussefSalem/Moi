@@ -2,3 +2,4 @@
 - [Paymob webhook unreliable in dev](paymob-webhook-fallback.md) — server-to-server webhook never arrives in dev; paymob-status now polls Paymob API directly as fallback after 8s pending.
 - [Paymob API auth 401 fix](paymob-api-auth.md) — orders/transactions endpoints return 401 with auth_token query param; must try Bearer header first, then query param, then secret key Bearer.
 - [Card payments auto-approved](card-payments-auto-approved.md) — card payments create real Shopify orders immediately (no draft, no admin approval); shopifyOrderNumber now persisted to paymobIntents; admin panel has Transactions tab with Record Payment button for retroactive Shopify payment fixes.
+- [Paymob Apple Pay = Pixel SDK](paymob-apple-pay-pixel.md) — web Apple Pay uses Paymob Pixel embedded SDK (intention client_secret → new Pixel({paymentMethods:['apple-pay']})); needs domain verification + payment-processing cert, can't run in dev.

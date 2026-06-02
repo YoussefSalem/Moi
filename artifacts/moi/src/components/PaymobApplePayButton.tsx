@@ -8,44 +8,79 @@ interface PaymobApplePayButtonProps {
   onFail: () => void;
 }
 
+interface PixelOptions {
+  publicKey: string;
+  clientSecret: string;
+  paymentMethods: string[];
+  elementId: string;
+  disablePay?: boolean;
+  showSaveCard?: boolean;
+  beforePaymentComplete?: (paymentMethod: unknown) => Promise<boolean> | boolean;
+  afterPaymentComplete?: (response: { id?: string | number; [key: string]: unknown }) => void;
+  onPaymentCancel?: () => void;
+  onError?: (error: unknown) => void;
+  customStyle?: Record<string, string | number>;
+}
+
 declare global {
   interface Window {
-    Paymob?: {
-      init: (options: {
-        publicKey: string;
-        clientSecret: string;
-        onPaymentSuccess?: (response: { id?: string | number; [key: string]: unknown }) => void;
-        onPaymentFail?: (response: { id?: string | number; [key: string]: unknown }) => void;
-        onPaymentPending?: (response: { id?: string | number; [key: string]: unknown }) => void;
-        onError?: (error: unknown) => void;
-      }) => void;
-    };
+    Pixel?: new (options: PixelOptions) => unknown;
   }
 }
 
-const PAYMOB_SDK_URL = "https://accept.paymob.com/v2/fawry/paymob.js";
+const PIXEL_BASE = "https://cdn.jsdelivr.net/npm/paymob-pixel@latest";
+const PIXEL_ELEMENT_ID = "paymob-apple-pay-elements";
 
-function loadPaymobSdk(): Promise<void> {
+function ensureStylesheet(href: string): void {
+  if (document.querySelector(`link[href="${href}"]`)) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = href;
+  document.head.appendChild(link);
+}
+
+function loadPixelSdk(): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (window.Paymob) { resolve(); return; }
-    const existing = document.querySelector(`script[src="${PAYMOB_SDK_URL}"]`);
+    ensureStylesheet(`${PIXEL_BASE}/styles.css`);
+    ensureStylesheet(`${PIXEL_BASE}/main.css`);
+
+    if (window.Pixel) { resolve(); return; }
+
+    const src = `${PIXEL_BASE}/main.js`;
+    const existing = document.querySelector(`script[src="${src}"]`);
+
+    // The Pixel SDK is an ES module; once it loads it attaches `Pixel` to window.
+    // Poll briefly after the module executes since the global may be set async.
+    const waitForGlobal = () => {
+      const started = Date.now();
+      const tick = () => {
+        if (window.Pixel) { resolve(); return; }
+        if (Date.now() - started > 8000) { reject(new Error("Paymob Pixel SDK did not initialise")); return; }
+        setTimeout(tick, 100);
+      };
+      tick();
+    };
+
     if (existing) {
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error("Paymob SDK failed to load")));
+      existing.addEventListener("load", waitForGlobal);
+      existing.addEventListener("error", () => reject(new Error("Paymob Pixel SDK failed to load")));
+      // If it was already loaded before listeners attached, start polling anyway.
+      waitForGlobal();
       return;
     }
+
     const script = document.createElement("script");
-    script.src = PAYMOB_SDK_URL;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Paymob SDK failed to load"));
+    script.src = src;
+    script.type = "module";
+    script.onload = waitForGlobal;
+    script.onerror = () => reject(new Error("Paymob Pixel SDK failed to load"));
     document.head.appendChild(script);
   });
 }
 
 export function PaymobApplePayButton({ clientSecret, publicKey, onSuccess, onFail }: PaymobApplePayButtonProps) {
-  const [sdkReady, setSdkReady] = useState(false);
-  const [sdkError, setSdkError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -53,36 +88,38 @@ export function PaymobApplePayButton({ clientSecret, publicKey, onSuccess, onFai
 
     const init = async () => {
       try {
-        await loadPaymobSdk();
+        await loadPixelSdk();
         if (cancelled) return;
-        if (!window.Paymob) {
-          setSdkError("Apple Pay is not available on this device.");
+        if (!window.Pixel) {
+          setError("Apple Pay is not available on this device.");
           return;
         }
         if (initializedRef.current) return;
         initializedRef.current = true;
 
-        window.Paymob.init({
+        new window.Pixel({
           publicKey,
           clientSecret,
-          onPaymentSuccess: (response) => {
-            const txnId = String(response.id ?? "");
+          paymentMethods: ["apple-pay"],
+          elementId: PIXEL_ELEMENT_ID,
+          disablePay: false,
+          beforePaymentComplete: () => true,
+          afterPaymentComplete: (response) => {
+            const txnId = String(response?.id ?? "");
             onSuccess(txnId);
           },
-          onPaymentFail: () => {
+          onPaymentCancel: () => {
             onFail();
           },
-          onPaymentPending: () => {
-          },
           onError: () => {
-            setSdkError("Apple Pay encountered an error. Please try another payment method.");
+            setError("Apple Pay encountered an error. Please try another payment method.");
           },
         });
 
-        setSdkReady(true);
+        setReady(true);
       } catch {
         if (!cancelled) {
-          setSdkError("Could not load Apple Pay. Please try another payment method.");
+          setError("Could not load Apple Pay. Please try another payment method.");
         }
       }
     };
@@ -92,8 +129,8 @@ export function PaymobApplePayButton({ clientSecret, publicKey, onSuccess, onFai
   }, [clientSecret, publicKey, onSuccess, onFail]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-      {sdkError ? (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, paddingTop: 8 }}>
+      {error ? (
         <p style={{
           fontSize: 13,
           color: "rgba(30,24,20,0.6)",
@@ -102,9 +139,9 @@ export function PaymobApplePayButton({ clientSecret, publicKey, onSuccess, onFai
           textAlign: "center",
           maxWidth: 320,
         }}>
-          {sdkError}
+          {error}
         </p>
-      ) : !sdkReady ? (
+      ) : !ready ? (
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 20, height: 20,
@@ -119,20 +156,17 @@ export function PaymobApplePayButton({ clientSecret, publicKey, onSuccess, onFai
         </div>
       ) : null}
 
-      {/* Paymob SDK mounts the Apple Pay button here via #paymob-apple-pay-container */}
+      {/* Paymob Pixel mounts the native Apple Pay button into this element */}
       <div
-        id="paymob-apple-pay-container"
+        id={PIXEL_ELEMENT_ID}
         style={{
           width: "100%",
-          maxWidth: 360,
-          minHeight: sdkReady ? 52 : 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          maxWidth: 400,
+          display: error ? "none" : "block",
         }}
       />
 
-      {sdkReady && (
+      {ready && (
         <p style={{
           fontSize: 11,
           letterSpacing: "0.06em",

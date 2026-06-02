@@ -238,12 +238,14 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
 
   req.log.info({ intentId }, "Paymob Apple Pay intention created successfully");
 
-  // Use Paymob's hosted Unified Checkout page — this runs on accept.paymob.com
-  // which is already Apple Pay domain-verified by Paymob, so no extra setup needed.
-  const iframeUrl = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(config.publicKey)}&clientSecret=${encodeURIComponent(clientSecret)}`;
-
+  // Return the intention's client_secret + the merchant public key. The frontend
+  // feeds these into the Paymob Pixel SDK (`new Pixel({ paymentMethods: ['apple-pay'] })`),
+  // which renders the native Apple Pay button inline and triggers the real Apple Pay
+  // sheet on supported devices. This requires the domain to be Apple-Pay verified
+  // and the payment-processing certificate to be registered with Paymob.
   res.status(200).json({
-    iframeUrl,
+    clientSecret,
+    publicKey: config.publicKey,
     intentId,
     total,
   });
