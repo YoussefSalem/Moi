@@ -32,10 +32,12 @@ const AccountPage = lazy(() => import("@/components/AccountPage").then(m => ({ d
 const SearchDrawer = lazy(() => import("@/components/SearchDrawer").then(m => ({ default: m.SearchDrawer })));
 import type { SearchItem } from "@/components/SearchDrawer";
 import { ProductPage } from "@/pages/ProductPage";
+import { ApplePayIframePage } from "@/pages/ApplePayIframePage";
 const AdminPage = lazy(() => import("@/pages/AdminPage").then(m => ({ default: m.AdminPage })));
 const NotFoundPage = lazy(() => import("@/components/NotFoundPage").then(m => ({ default: m.NotFoundPage })));
 
 const IS_ADMIN = window.location.pathname.startsWith("/admin");
+const IS_APPLE_PAY_IFRAME = window.location.pathname === "/buy/apple-pay";
 
 type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product" | "notfound" | "checkout";
 const POLICY_PAGES: PageType[] = ["privacy", "refund", "return", "delivery"];
@@ -436,6 +438,10 @@ function App() {
         <AdminPage />
       </Suspense>
     );
+  }
+
+  if (IS_APPLE_PAY_IFRAME) {
+    return <ApplePayIframePage />;
   }
 
   return (
