@@ -1576,11 +1576,13 @@ export function CheckoutPage() {
                 </p>
                 <div style={{ borderTop: "1px solid rgba(30,24,20,0.16)" }}>
                   {lines
-                    ? lines.map((line) => (
+                    ? lines.map((line) => {
+                        const lineImg = resolveLineImage(line, localItems);
+                        return (
                         <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
-                            {resolveLineImage(line, localItems) && (
-                              <img src={resolveLineImage(line, localItems)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            {lineImg && (
+                              <img src={lineImg} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             )}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
@@ -1591,7 +1593,7 @@ export function CheckoutPage() {
                             </div>
                           </div>
                         </div>
-                      ))
+                      );})
                     : localLines.map((item) => (
                         <div key={item.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
@@ -1740,7 +1742,7 @@ export function CheckoutPage() {
                   <div style={{ borderRadius: "16px", overflow: "hidden" }}>
                     <div className="max-h-[715px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
                       <PaymobIframe
-                        url={paymobIframeUrl ?? ""}
+                        url={paymobIframeUrl}
                         intentId={orderResult?.intentId}
                         onSuccess={handleIframeSuccess}
                         onFail={handleIframeFail}
@@ -1883,11 +1885,13 @@ export function CheckoutPage() {
 
                 <div style={{ borderTop: "1px solid rgba(30,24,20,0.16)" }}>
                   {lines
-                    ? lines.map((line) => (
+                    ? lines.map((line) => {
+                        const lineImg = resolveLineImage(line, localItems);
+                        return (
                         <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.1)" }}>
-                            {resolveLineImage(line, localItems) && (
-                              <img src={resolveLineImage(line, localItems)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            {lineImg && (
+                              <img src={lineImg} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             )}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
@@ -1903,7 +1907,7 @@ export function CheckoutPage() {
                             </div>
                           </div>
                         </div>
-                      ))
+                      );})
                     : localLines.map((item) => (
                         <div key={item.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.1)" }}>
@@ -3024,7 +3028,7 @@ function OrderSuccessScreen({
 }
 
 interface PaymobIframeProps {
-  url: string;
+  url: string | null | undefined;
   intentId?: string | null;
   onSuccess: (txnId?: string, shopifyOrderId?: number | null, shopifyOrderNumber?: number | null) => void;
   onFail: () => void;
@@ -3387,7 +3391,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
     <div style={{ position: "relative", width: "100%" }}>
       <iframe
         ref={iframeRef}
-        src={url}
+        src={url ?? undefined}
         title="Secure Card Payment"
         allow="payment"
         scrolling="no"

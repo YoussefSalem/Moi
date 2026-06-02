@@ -99,7 +99,7 @@ export function Carousel() {
                 transition={{ duration: 0.3 }}
               >
                 <img
-                  src={src}
+                  src={src || undefined}
                   alt={`Cape look ${i + 1}`}
                   className="w-full h-full object-cover object-top transition-opacity duration-300"
                   style={{
@@ -181,7 +181,7 @@ export function Carousel() {
                       style={{ width: "100%", aspectRatio: "2/3" }}
                     >
                       <img
-                        src={src}
+                        src={src || undefined}
                         alt={`Look ${i + 1} thumbnail`}
                         className="w-full h-full object-cover object-top transition-all duration-300"
                         style={{ opacity: i === lightboxIdx ? 1 : 0.45 }}
@@ -207,7 +207,7 @@ export function Carousel() {
                 <AnimatePresence initial={false} mode="wait">
                   <motion.img
                     key={lightboxIdx}
-                    src={images[lightboxIdx]}
+                    src={images[lightboxIdx] || undefined}
                     alt={`Cape look ${lightboxIdx + 1}`}
                     className="max-h-full max-w-full object-contain"
                     loading="lazy"

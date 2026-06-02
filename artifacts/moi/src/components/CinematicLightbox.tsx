@@ -262,7 +262,7 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
         <img
           key={current}
           ref={imgRef}
-          src={current}
+          src={current || undefined}
           alt={currentAlt}
           className="max-w-full max-h-full object-contain"
           style={{
@@ -332,7 +332,7 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
                 borderRadius: 2,
               }}
             >
-              <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+              <img src={src || undefined} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
             </button>
           ))}
         </div>

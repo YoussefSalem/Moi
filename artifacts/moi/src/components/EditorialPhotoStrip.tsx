@@ -161,7 +161,7 @@ export function EditorialPhotoStrip() {
               style={{ height: "clamp(280px, 44vw, 520px)" }}
             >
               <motion.img
-                src={src}
+                src={src || undefined}
                 alt={`Moi collection image ${i + 1}`}
                 loading="lazy"
                 decoding="async"
