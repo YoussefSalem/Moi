@@ -981,7 +981,14 @@ export function CheckoutPage() {
       merchantCapabilities: ["supports3DS"],
       lineItems: [
         { label: "Subtotal", amount: subtotalForAP.toFixed(2) },
-        { label: shippingForAP === 0 ? "Shipping — Free" : "Shipping", amount: shippingForAP.toFixed(2) },
+      ],
+      shippingMethods: [
+        {
+          label: "Standard",
+          detail: shippingForAP === 0 ? "Free delivery" : "Flat rate",
+          amount: shippingForAP.toFixed(2),
+          identifier: "standard",
+        },
       ],
       total: { label: "Moi", amount: estimatedTotal, type: "final" },
       requiredShippingContactFields: ["email", "phone", "name"],

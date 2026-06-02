@@ -275,7 +275,14 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       merchantCapabilities: ["supports3DS"],
       lineItems: [
         { label: "Subtotal", amount: priceAmount.toFixed(2) },
-        { label: shippingEGP === 0 ? "Shipping — Free" : "Shipping", amount: shippingEGP.toFixed(2) },
+      ],
+      shippingMethods: [
+        {
+          label: "Standard",
+          detail: shippingEGP === 0 ? "Free delivery" : "Flat rate",
+          amount: shippingEGP.toFixed(2),
+          identifier: "standard",
+        },
       ],
       total: { label: "Moi", amount: estimatedTotal, type: "final" },
       requiredShippingContactFields: ["email", "phone", "name"],
