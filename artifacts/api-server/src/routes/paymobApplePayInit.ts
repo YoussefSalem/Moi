@@ -48,6 +48,7 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
     lines?: unknown;
     customer?: unknown;
     cartId?: unknown;
+    totalAmountCents?: unknown;
     discountCode?: unknown;
     attribution?: unknown;
     checkoutToken?: unknown;
@@ -84,6 +85,12 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
   const discountCode = typeof body.discountCode === "string" && body.discountCode.trim() ? body.discountCode.trim() : undefined;
   const cartId = typeof body.cartId === "string" && body.cartId.trim() ? body.cartId.trim() : undefined;
   const checkoutToken = typeof body.checkoutToken === "string" && body.checkoutToken.trim() ? body.checkoutToken.trim() : null;
+  // totalAmountCents is sent by the frontend as a fallback when the Shopify cart
+  // isn't available (e.g. immediately after clearCart on the product page).
+  // It already includes shipping and any applied discount, computed client-side.
+  const clientTotalAmountCents = typeof body.totalAmountCents === "number" && Number.isFinite(body.totalAmountCents) && body.totalAmountCents > 0
+    ? Math.round(body.totalAmountCents)
+    : undefined;
 
   let attribution: OrderAttribution | undefined;
   if (body.attribution && typeof body.attribution === "object") {
@@ -103,31 +110,39 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
     if (Object.keys(attribution).length === 0) attribution = undefined;
   }
 
-  if (!cartId) {
-    res.status(400).json({ error: "Cart ID is required for Apple Pay." });
-    return;
-  }
+  let amountCents: number;
+  let total: string;
 
-  req.log.info({ lineCount: lines.length }, "Paymob Apple Pay init — computing total from Storefront cart");
+  if (cartId) {
+    req.log.info({ lineCount: lines.length }, "Paymob Apple Pay init — computing total from Storefront cart");
 
-  const cart = await fetchStorefrontCart(cartId);
-  if (!cart) {
-    res.status(400).json({ error: "Could not load your cart. Please try again." });
-    return;
-  }
-
-  if (discountCode && cart.discountCodes.length > 0) {
-    const applicable = cart.discountCodes.find((d) => d.applicable);
-    if (!applicable) {
-      res.status(422).json({ error: `Discount code "${discountCode}" is not applicable to this order.` });
+    const cart = await fetchStorefrontCart(cartId);
+    if (!cart) {
+      res.status(400).json({ error: "Could not load your cart. Please try again." });
       return;
     }
-  }
 
-  const cartTotalEGP = cart.totalAmount;
-  const totalEGP = cartTotalEGP + SHIPPING_EGP;
-  const amountCents = Math.round(totalEGP * 100);
-  const total = totalEGP.toFixed(2);
+    if (discountCode && cart.discountCodes.length > 0) {
+      const applicable = cart.discountCodes.find((d) => d.applicable);
+      if (!applicable) {
+        res.status(422).json({ error: `Discount code "${discountCode}" is not applicable to this order.` });
+        return;
+      }
+    }
+
+    const cartTotalEGP = cart.totalAmount;
+    const totalEGP = cartTotalEGP + SHIPPING_EGP;
+    amountCents = Math.round(totalEGP * 100);
+    total = totalEGP.toFixed(2);
+  } else if (clientTotalAmountCents) {
+    // Fallback: use the client-computed total (already includes shipping + discounts)
+    req.log.info({ lineCount: lines.length, clientTotalAmountCents }, "Paymob Apple Pay init — using client-provided total (no cart ID)");
+    amountCents = clientTotalAmountCents;
+    total = (clientTotalAmountCents / 100).toFixed(2);
+  } else {
+    res.status(400).json({ error: "Could not determine order total. Please try again." });
+    return;
+  }
 
   const intentId = randomUUID();
 

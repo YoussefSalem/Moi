@@ -666,6 +666,7 @@ export function CheckoutPage() {
             lines: orderLines,
             customer: customerPayload,
             cartId: shopifyCart?.id ?? null,
+            totalAmountCents: Math.round(totalAmount * 100),
             discountCode: promoApplied?.code ?? null,
             attribution: buildOrderAttribution(),
             checkoutToken: shopifyCheckoutToken ?? null,
