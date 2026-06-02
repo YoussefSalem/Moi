@@ -117,7 +117,12 @@ function saveLocalCart(items: LocalCartItem[]) {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [shopifyCart, setShopifyCart] = useState<ShopifyCart | null>(null);
-  const [localItems, setLocalItems] = useState<LocalCartItem[]>([]);
+  // Load local cart synchronously on first render so checkout doesn't flash
+  // empty items after a refresh on /checkout.
+  const [localItems, setLocalItems] = useState<LocalCartItem[]>(() => {
+    if (typeof window === "undefined") return [];
+    return loadLocalCart();
+  });
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [prefilledEmail, setPrefilledEmail] = useState<string | null>(null);
@@ -128,7 +133,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
-    setLocalItems(loadLocalCart());
     // Auto-open checkout on initial load if URL is /checkout
     if (typeof window !== "undefined" && window.location.pathname === "/checkout" && !checkoutInitRef.current) {
       checkoutInitRef.current = true;
