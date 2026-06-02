@@ -23,9 +23,11 @@ import abandonedCartsRouter from "./abandonedCarts";
 import metaCapiRouter from "./metaCapi";
 import paymobApplePayInitRouter from "./paymobApplePayInit";
 import applePayDirectRouter from "./applePayDirect";
+import shopifyApplePayRouter from "./shopifyApplePay";
 
 const router: IRouter = Router();
 
+router.use(shopifyApplePayRouter);
 router.use(healthRouter);
 router.use(contactRouter);
 router.use(newsletterRouter);
