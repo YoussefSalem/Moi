@@ -15,6 +15,7 @@ interface ColorCardProps {
   handle: string;
   swatchColor?: string;
   description?: string;
+  outOfStock?: boolean;
   onNavigate: (handle: string) => void;
   onAddToCart?: (handle: string, currentImage: string) => void;
   index?: number;
@@ -32,6 +33,7 @@ export function ColorCard({
   handle,
   swatchColor,
   description,
+  outOfStock = false,
   onNavigate,
   onAddToCart,
   index = 0,
@@ -130,6 +132,30 @@ export function ColorCard({
               />
             )}
           </div>
+
+          {/* ── Out of Stock overlay ── */}
+          {outOfStock && (
+            <div
+              className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center py-2.5"
+              style={{
+                background: "rgba(30,24,20,0.52)",
+                backdropFilter: "blur(2px)",
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "clamp(0.55rem, 1.6vw, 0.65rem)",
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  color: "rgba(250,248,245,0.9)",
+                  fontWeight: 500,
+                }}
+              >
+                Sold Out
+              </span>
+            </div>
+          )}
 
           {/* ── MOBILE: swipe + long-press quick preview ── */}
           <div
@@ -331,18 +357,20 @@ export function ColorCard({
             >
               {productName}
             </h3>
-            <span
-              style={{
-                fontFamily: "'Montserrat', sans-serif",
-                fontSize: "clamp(0.56rem, 1.6vw, 0.71rem)",
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "#c83232",
-                fontWeight: 500,
-              }}
-            >
-              Only {getStockCount(handle.split("-")[0] ?? "", colorName)} left
-            </span>
+            {!outOfStock && (
+              <span
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "clamp(0.56rem, 1.6vw, 0.71rem)",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: "#c83232",
+                  fontWeight: 500,
+                }}
+              >
+                Only {getStockCount(handle.split("-")[0] ?? "", colorName)} left
+              </span>
+            )}
           </div>
 
           <div className="text-center mt-auto flex flex-col items-center" style={{ gap: 2 }}>
@@ -376,39 +404,61 @@ export function ColorCard({
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onAddToCart) {
-                onAddToCart(handle, image);
-              } else {
-                onNavigate(handle);
-              }
-            }}
-            className="self-center border transition-all duration-300 px-6 py-2.5 md:px-14 md:py-3.5 hover:shadow-lg w-full md:w-auto"
-            style={{
-              fontSize: "clamp(0.62rem, 2vw, 0.78rem)",
-              letterSpacing: "0.28em",
-              textTransform: "uppercase",
-              fontFamily: "'Montserrat', sans-serif",
-              fontWeight: 500,
-              color: "#faf8f5",
-              borderColor: "#1e1814",
-              backgroundColor: "#1e1814",
-              borderRadius: 6,
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#2d231c";
-              (e.currentTarget as HTMLButtonElement).style.borderColor = "#2d231c";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#1e1814";
-              (e.currentTarget as HTMLButtonElement).style.borderColor = "#1e1814";
-            }}
-          >
-            {onAddToCart ? "Order Now" : "View Details"}
-          </button>
+          {outOfStock ? (
+            <button
+              type="button"
+              disabled
+              onClick={(e) => e.stopPropagation()}
+              className="self-center border px-6 py-2.5 md:px-14 md:py-3.5 w-full md:w-auto cursor-not-allowed"
+              style={{
+                fontSize: "clamp(0.62rem, 2vw, 0.78rem)",
+                letterSpacing: "0.28em",
+                textTransform: "uppercase",
+                fontFamily: "'Montserrat', sans-serif",
+                fontWeight: 500,
+                color: "#a89e97",
+                borderColor: "#c8bfb8",
+                backgroundColor: "#f0ece8",
+                borderRadius: 6,
+              }}
+            >
+              Sold Out
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onAddToCart) {
+                  onAddToCart(handle, image);
+                } else {
+                  onNavigate(handle);
+                }
+              }}
+              className="self-center border transition-all duration-300 px-6 py-2.5 md:px-14 md:py-3.5 hover:shadow-lg w-full md:w-auto"
+              style={{
+                fontSize: "clamp(0.62rem, 2vw, 0.78rem)",
+                letterSpacing: "0.28em",
+                textTransform: "uppercase",
+                fontFamily: "'Montserrat', sans-serif",
+                fontWeight: 500,
+                color: "#faf8f5",
+                borderColor: "#1e1814",
+                backgroundColor: "#1e1814",
+                borderRadius: 6,
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#2d231c";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "#2d231c";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#1e1814";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "#1e1814";
+              }}
+            >
+              {onAddToCart ? "Order Now" : "View Details"}
+            </button>
+          )}
         </div>
       </motion.article>
 

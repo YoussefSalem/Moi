@@ -194,7 +194,7 @@ export const IMAGES = {
     variants: [
       { id: "moi-wavvy-light-blue",    title: "Light Blue / One Size",    availableForSale: true, inventoryQuantity: 5, price: "899 EGP", selectedOptions: [{ name: "Color", value: "Light Blue" }, { name: "Size", value: "One Size" }] },
       { id: "moi-wavvy-navy",          title: "Navy / One Size",          availableForSale: true, inventoryQuantity: 5, price: "899 EGP", selectedOptions: [{ name: "Color", value: "Navy" },       { name: "Size", value: "One Size" }] },
-      { id: "moi-wavvy-mint",          title: "Mint / One Size",          availableForSale: true, inventoryQuantity: 5, price: "899 EGP", selectedOptions: [{ name: "Color", value: "Mint" },       { name: "Size", value: "One Size" }] },
+      { id: "moi-wavvy-mint",          title: "Mint / One Size",          availableForSale: false, inventoryQuantity: 0, price: "899 EGP", selectedOptions: [{ name: "Color", value: "Mint" },       { name: "Size", value: "One Size" }] },
     ],
     defaultInventory: {
       "light blue": { "One Size": 5 },
