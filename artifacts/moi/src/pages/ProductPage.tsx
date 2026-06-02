@@ -294,7 +294,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
 
     session.onvalidatemerchant = async (event) => {
       try {
-        clearCart();
         const res = await fetch("/api/apple-pay/validate-merchant", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -344,6 +343,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
         };
         if (data.success) {
           session.completePayment(W.ApplePaySession.STATUS_SUCCESS);
+          clearCart();
           sessionStorage.setItem("moi_apple_pay_result", JSON.stringify({
             txnId: data.txnId,
             shopifyOrderId: data.shopifyOrderId,
