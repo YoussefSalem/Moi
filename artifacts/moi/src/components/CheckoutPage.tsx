@@ -2294,16 +2294,17 @@ export function CheckoutPage() {
 
 function CODConfirmation({ orderResult, onDone, items, breakdown }: { orderResult: OrderResult; onDone: () => void; items: NonNullable<OrderResult["items"]>; breakdown: OrderBreakdown }) {
   return (
-    <OrderSuccessScreen
+    <OrderConfirmedScreen
       orderResult={orderResult}
       onDone={onDone}
       items={items}
-      title="Order Placed"
-      subtitle="Cash on Delivery"
-      detail={`Our team will contact you shortly to arrange delivery. Total due on arrival: ${orderResult.total} EGP`}
-      note="A WhatsApp confirmation has been sent to your number."
-      accentLabel="Pay on Delivery"
       breakdown={breakdown}
+      title="Order Confirmed."
+      subtitle="Cash on Delivery"
+      message={orderResult.shopifyOrderNumber
+        ? <>Your order has been placed for order <strong style={{ color: "#1e1814" }}>#{orderResult.shopifyOrderNumber}</strong>. Our team will contact you shortly to arrange delivery. Total due on arrival: {orderResult.total} EGP.</>
+        : `Your order has been placed. Our team will contact you shortly to arrange delivery. Total due on arrival: ${orderResult.total} EGP.`}
+      note="A WhatsApp confirmation has been sent to your number."
     />
   );
 }
@@ -2320,6 +2321,42 @@ function CardConfirmation({
   breakdown: OrderBreakdown;
 }) {
   return (
+    <OrderConfirmedScreen
+      orderResult={orderResult}
+      onDone={onDone}
+      items={items}
+      breakdown={breakdown}
+      message={orderResult.shopifyOrderNumber
+        ? <>Your payment has been received for order <strong style={{ color: "#1e1814" }}>#{orderResult.shopifyOrderNumber}</strong>. Your order is now being prepared.</>
+        : "Your payment has been received and your order is now being prepared."}
+      note="You'll receive a WhatsApp message with your order details and tracking update shortly."
+    />
+  );
+}
+
+function OrderConfirmedScreen({
+  orderResult,
+  onDone,
+  items,
+  breakdown,
+  title = "Order Confirmed.",
+  subtitle,
+  message,
+  note,
+  orderNumber,
+}: {
+  orderResult: OrderResult;
+  onDone: () => void;
+  items: NonNullable<OrderResult["items"]>;
+  breakdown: OrderBreakdown;
+  title?: string;
+  subtitle?: string;
+  message?: React.ReactNode;
+  note?: string;
+  orderNumber?: string | number | null;
+}) {
+  const displayOrderNumber = orderNumber ?? orderResult.shopifyOrderNumber;
+  return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
@@ -2330,23 +2367,28 @@ function CardConfirmation({
       </div>
 
       <div style={{ textAlign: "center" }}>
+        {subtitle && (
+          <p style={{ fontSize: "11px", letterSpacing: "0.34em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginBottom: "6px" }}>
+            {subtitle}
+          </p>
+        )}
         <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "33px", fontWeight: 700, color: "#1e1814", marginBottom: "6px" }}>
-          Order Confirmed.
+          {title}
         </h1>
-        <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
-          {orderResult.shopifyOrderNumber
-            ? <>Your payment has been received for order <strong style={{ color: "#1e1814" }}>#{orderResult.shopifyOrderNumber}</strong>. Your order is now being prepared.</>
-            : "Your payment has been received and your order is now being prepared."}
-        </p>
+        {message && (
+          <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
+            {message}
+          </p>
+        )}
       </div>
 
-      {orderResult.shopifyOrderNumber ? (
+      {displayOrderNumber ? (
         <div style={{ padding: "14px 24px", border: "1px solid rgba(30,24,20,0.22)", width: "100%", textAlign: "center" }}>
           <p style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>
             Order Number
           </p>
           <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "29px", color: "#1e1814", fontWeight: 700 }}>
-            #{orderResult.shopifyOrderNumber}
+            #{displayOrderNumber}
           </p>
         </div>
       ) : (
@@ -2389,11 +2431,13 @@ function CardConfirmation({
         </div>
       )}
 
-      <div style={{ padding: "14px 18px", backgroundColor: "rgba(30,24,20,0.04)", border: "1px solid rgba(30,24,20,0.12)", width: "100%", textAlign: "center" }}>
-        <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", lineHeight: 1.7 }}>
-          You'll receive a WhatsApp message with your order details and tracking update shortly.
-        </p>
-      </div>
+      {note && (
+        <div style={{ padding: "14px 18px", backgroundColor: "rgba(30,24,20,0.04)", border: "1px solid rgba(30,24,20,0.12)", width: "100%", textAlign: "center" }}>
+          <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", lineHeight: 1.7 }}>
+            {note}
+          </p>
+        </div>
+      )}
 
       <button
         onClick={onDone}
@@ -2817,33 +2861,19 @@ function InstapayConfirmation({
         )}
 
         {subStep === "review" && (
-          <motion.div key="review" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full flex flex-col items-center gap-5 py-4">
-            <div style={{ width: 52, height: 52, borderRadius: "50%", backgroundColor: "rgba(30,24,20,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Check size={24} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "29px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
-                Proof Submitted
-              </h2>
-              <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
-                {confirmedOrderNumber != null
-                  ? <>We've received your payment proof for order <strong style={{ color: "#1e1814" }}>#{confirmedOrderNumber}</strong>. Our team will verify and confirm your order via WhatsApp shortly.</>
-                  : <>We've received your payment proof. Our team will verify and confirm your order via WhatsApp shortly.</>}
-              </p>
-            </div>
-            <div style={{ padding: "14px 18px", backgroundColor: "rgba(30,24,20,0.04)", border: "1px solid rgba(30,24,20,0.12)", width: "100%", textAlign: "center" as const }}>
-              <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", lineHeight: 1.7 }}>
-                Verification is usually completed within a few hours during business hours.
-              </p>
-            </div>
-            <button
-              onClick={onDone}
-              className="mt-2 transition-opacity hover:opacity-60"
-              style={{ fontSize: "14px", letterSpacing: "0.28em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", padding: "12px 32px", border: "1px solid rgba(30,24,20,0.18)" }}
-            >
-              Continue Shopping
-            </button>
-          </motion.div>
+          <OrderConfirmedScreen
+            orderResult={orderResult}
+            onDone={onDone}
+            items={orderResult.items ?? []}
+            breakdown={breakdown}
+            title="Order Confirmed."
+            subtitle="InstaPay"
+            message={confirmedOrderNumber != null
+              ? <>Your payment proof has been received for order <strong style={{ color: "#1e1814" }}>#{confirmedOrderNumber}</strong>. Our team will verify and confirm your order shortly.</>
+              : "Your payment proof has been received. Our team will verify and confirm your order shortly."}
+            note="You'll receive a WhatsApp message with your order details and tracking update shortly."
+            orderNumber={confirmedOrderNumber}
+          />
         )}
       </AnimatePresence>
     </motion.div>
@@ -2885,145 +2915,6 @@ function OrderBreakdownRows({ breakdown }: { breakdown: OrderBreakdown }) {
         <span style={totalValueStyle}>{fmt(computedTotal)} EGP</span>
       </div>
     </div>
-  );
-}
-
-function OrderSuccessScreen({
-  orderResult,
-  onDone,
-  items,
-  title,
-  subtitle,
-  detail,
-  note,
-  accentLabel,
-  breakdown,
-}: {
-  orderResult: OrderResult;
-  onDone: () => void;
-  items: NonNullable<OrderResult["items"]>;
-  title: string;
-  subtitle: string;
-  detail: string;
-  note: string;
-  accentLabel: string;
-  breakdown?: OrderBreakdown;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-xl mx-auto px-6 py-14 md:py-16 flex flex-col items-center text-center gap-7"
-    >
-      <div className="relative flex items-center justify-center" style={{ width: 82, height: 82 }}>
-        <motion.div
-          initial={{ scale: 0.7, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          style={{ width: 82, height: 82, borderRadius: "50%", border: "1px solid rgba(30,24,20,0.12)", backgroundColor: "rgba(30,24,20,0.03)" }}
-        />
-        <motion.div
-          initial={{ scale: 0.75, opacity: 0, rotate: -10 }}
-          animate={{ scale: 1, opacity: 1, rotate: 0 }}
-          transition={{ duration: 0.42, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute inset-0 flex items-center justify-center"
-        >
-          <motion.div
-            animate={{ y: [0, -2, 0] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-            style={{ width: 52, height: 52, borderRadius: "50%", backgroundColor: "#1e1814", display: "flex", alignItems: "center", justifyContent: "center" }}
-          >
-            <Check size={24} strokeWidth={2} style={{ color: "#faf8f5" }} />
-          </motion.div>
-        </motion.div>
-      </div>
-
-      <div className="space-y-2">
-        <p style={{ fontSize: "11px", letterSpacing: "0.34em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif" }}>
-          {subtitle}
-        </p>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "40px", fontWeight: 700, color: "#1e1814", lineHeight: 1 }}>
-          {title}
-        </h1>
-      </div>
-
-      <div className="w-full grid gap-3">
-        {breakdown && <OrderBreakdownRows breakdown={breakdown} />}
-
-        {/* Order number — appears as soon as the server confirms the Shopify order */}
-        {orderResult.shopifyOrderNumber ? (
-          <div className="flex items-center justify-between px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.12)" }}>
-            <span style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>
-              Order
-            </span>
-            <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
-              #{orderResult.shopifyOrderNumber}
-            </span>
-          </div>
-        ) : null}
-
-        <div className="flex items-center justify-between px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.12)" }}>
-          <span style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>
-            {accentLabel}
-          </span>
-          <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
-            {orderResult.total} EGP
-          </span>
-        </div>
-
-        {items.length > 0 && (
-          <>
-            <p style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginTop: 4 }}>
-              Items
-            </p>
-            {items.map((item) => (
-              <div key={item.id ?? `${item.title}-${item.quantity}`} className="flex items-center gap-3 px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.08)", backgroundColor: "rgba(30,24,20,0.02)" }}>
-                <div className="w-12 h-14 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
-                  {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
-                </div>
-                <div className="flex-1 text-left min-w-0">
-                  <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {item.title}
-                  </p>
-                  {item.variantTitle && (
-                    <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>
-                      {item.variantTitle}
-                    </p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>Qty {item.quantity}</p>
-                  {item.price && (
-                    <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
-                      {item.price}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </>
-        )}
-      </div>
-
-      <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.8)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 420 }}>
-        {detail}
-      </p>
-
-      <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.68)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 420 }}>
-        {note}
-      </p>
-
-      <button
-        onClick={onDone}
-        className="w-full max-w-sm py-4 transition-opacity hover:opacity-85"
-        style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "12px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
-      >
-        <span className="inline-flex items-center justify-center gap-2">
-          <ShoppingBag size={14} strokeWidth={2} />
-          Shop More
-        </span>
-      </button>
-    </motion.div>
   );
 }
 
