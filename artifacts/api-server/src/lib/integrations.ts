@@ -235,10 +235,10 @@ export async function createBostaShipment(params: {
     return null;
   }
 
-  const resolvedCity = await resolveBostaCityName(params.city, apiKey);
-  const formatted = formatPhone(params.phone);
-
   try {
+    const resolvedCity = await resolveBostaCityName(params.city, apiKey);
+    const formatted = formatPhone(params.phone);
+
     const res = await fetch("https://app.bosta.co/api/v2/deliveries", {
       method: "POST",
       headers: {
