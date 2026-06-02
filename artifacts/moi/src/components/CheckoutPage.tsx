@@ -135,7 +135,7 @@ function resolveEmailImage(line: ShopifyCartLine, localItems?: { variantId: stri
 }
 
 type PaymentMethod = "cod" | "instapay" | "card" | "apple-pay";
-type Step = "email" | "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
+type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
 type InstapaySubStep = "instructions" | "upload" | "review";
 
 interface OrderResult {
@@ -300,8 +300,7 @@ export function CheckoutPage() {
     prefilledEmail,
   } = useCart();
 
-  const [step, setStep] = useState<Step>("email");
-  const [emailInput, setEmailInput] = useState("");
+  const [step, setStep] = useState<Step>("form");
   const [emailError, setEmailError] = useState("");
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
@@ -345,8 +344,7 @@ export function CheckoutPage() {
     if (!checkoutOpen) return;
     function onPopState() {
       if (window.location.pathname !== "/checkout") {
-        setStep("email");
-        setEmailInput("");
+        setStep("form");
         setOrderResult(null);
         setPaymobIframeUrl(null);
         setApplePayData(null);
@@ -492,9 +490,7 @@ export function CheckoutPage() {
     if (checkoutOpen && prefilledEmail) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (emailRegex.test(prefilledEmail.trim())) {
-        setEmailInput(prefilledEmail);
         setForm((f) => ({ ...f, email: prefilledEmail }));
-        setStep("form");
       }
     }
   }, [checkoutOpen, prefilledEmail]);
@@ -508,7 +504,7 @@ export function CheckoutPage() {
     prevStepRef.current = step;
     stepEnterTimeRef.current = Date.now();
 
-    // Map step names to analytics events (skip "email" — CartDrawer already fires start)
+    // Map step names to analytics events (CartDrawer fires the start event)
     const stepMap: Record<string, string> = {
       form: "shipping",
       "card-checkout": "payment",
@@ -628,8 +624,7 @@ export function CheckoutPage() {
     // Safety net: mark recovered in case payment path missed it
     markAbandonedCartRecovered();
     clearCart();
-    setStep("email");
-    setEmailInput("");
+    setStep("form");
     setOrderResult(null);
     setPaymobIframeUrl(null);
     setShopifyCheckoutToken(null);
@@ -918,8 +913,7 @@ export function CheckoutPage() {
 
   const handleDone = useCallback(() => {
     clearCart();
-    setStep("email");
-    setEmailInput("");
+    setStep("form");
     setOrderResult(null);
     setPaymobIframeUrl(null);
     setShopifyCheckoutToken(null);
@@ -1070,17 +1064,11 @@ export function CheckoutPage() {
     session.begin();
   }, [isShopify, shopifyCart, localItems, totalAmount, clearCart, openCheckout, formatShopifyLinePrice]);
 
-  const handleEmailContinue = useCallback(async () => {
-    const email = emailInput.trim();
+  const handleEmailBlur = useCallback(() => {
+    const email = form.email.trim();
     if (!email) return;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setEmailError("Please enter a valid email address (e.g. your@email.com).");
-      return;
-    }
-    setEmailError("");
-    setForm((f) => ({ ...f, email }));
-    setStep("form");
+    if (!emailRegex.test(email)) return;
     const cartId = shopifyCart?.id;
     if (cartId) {
       // Fire-and-forget: set buyer identity on cart via Storefront API
@@ -1131,7 +1119,7 @@ export function CheckoutPage() {
           .catch(() => {});
       }
     }
-  }, [emailInput, shopifyCart, isShopify, localItems, totalAmount, fmt]);
+  }, [form.email, shopifyCart, isShopify, localItems, totalAmount, fmt]);
 
   const handleIframeSuccess = useCallback((txnId?: string, shopifyOrderId?: number | null, shopifyOrderNumber?: number | null) => {
     // Update orderResult immediately so Shopify data reaches the state even
@@ -1558,7 +1546,7 @@ export function CheckoutPage() {
             style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}
           >
             <button
-              onClick={isSuccessStep ? handleSuccessDone : isConfirmStep ? handleDone : isCardCheckoutStep ? handleCancelCardCheckout : step === "form" ? () => setStep("email") : closeCheckout}
+              onClick={isSuccessStep ? handleSuccessDone : isConfirmStep ? handleDone : isCardCheckoutStep ? handleCancelCardCheckout : closeCheckout}
               className="flex items-center gap-2 transition-opacity hover:opacity-50"
               aria-label="Back"
             >
@@ -1804,61 +1792,6 @@ export function CheckoutPage() {
                 </div>
                   </div>
                 )}
-              </div>
-            </motion.div>
-          ) : step === "email" ? (
-            <motion.div
-              key="email-step"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-              className="flex flex-col items-center justify-center min-h-[75vh] px-6"
-            >
-              <div style={{ width: "100%", maxWidth: "440px" }}>
-                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(29px, 5vw, 40px)", fontWeight: 400, color: "#1e1814", marginBottom: "8px", letterSpacing: "0.02em", lineHeight: 1.15 }}>
-                  What's your email?
-                </h2>
-                <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", marginBottom: "40px" }}>
-                  We'll send your order confirmation here.
-                </p>
-                <div style={{ marginBottom: "28px" }}>
-                  <label style={labelStyle}>Email Address</label>
-                  <input
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    value={emailInput}
-                    onChange={(e) => { setEmailInput(e.target.value); setEmailError(""); }}
-                    onKeyDown={(e) => { if (e.key === "Enter" && emailInput.trim()) void handleEmailContinue(); }}
-                    style={{ ...inputStyle, fontSize: "17px", padding: "14px 0", borderBottomColor: emailError ? "#c0392b" : undefined }}
-                    placeholder="your@email.com"
-                    autoFocus
-                    className="checkout-input"
-                  />
-                  {emailError && (
-                    <p style={{ marginTop: "8px", fontSize: "12px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{emailError}</p>
-                  )}
-                </div>
-                <button
-                  onClick={() => void handleEmailContinue()}
-                  disabled={!emailInput.trim()}
-                  style={{ 
-                    width: "100%",
-                    padding: "16px",
-                    backgroundColor: emailInput.trim() ? "#1e1814" : "rgba(30,24,20,0.22)",
-                    color: "#efe6da",
-                    fontFamily: "'Montserrat', sans-serif",
-                    fontSize: "12px",
-                    letterSpacing: "0.3em",
-                    textTransform: "uppercase",
-                    fontWeight: 700,
-                    border: "none",
-                    cursor: emailInput.trim() ? "pointer" : "not-allowed",
-                    transition: "background-color 0.2s ease",
-                  }}
-                >
-                  Continue
-                </button>
               </div>
             </motion.div>
           ) : step === "loading" ? (
@@ -2253,17 +2186,22 @@ export function CheckoutPage() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                      <label style={labelStyle}>Email Address</label>
-                      <button
-                        type="button"
-                        onClick={() => setStep("email")}
-                        style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                      >
-                        Change
-                      </button>
-                    </div>
-                    <input type="email" name="email" value={form.email} readOnly style={{ ...inputStyle, color: "rgba(30,24,20,0.65)" }} className="checkout-input" />
+                    <label style={labelStyle}>Email Address</label>
+                    <input
+                      type="email"
+                      name="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      value={form.email}
+                      onChange={(e) => { setForm((f) => ({ ...f, email: e.target.value })); setEmailError(""); }}
+                      onBlur={handleEmailBlur}
+                      style={inputStyle}
+                      placeholder="your@email.com"
+                      className="checkout-input"
+                    />
+                    {emailError && (
+                      <p style={{ marginTop: "6px", fontSize: "12px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{emailError}</p>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-1">
