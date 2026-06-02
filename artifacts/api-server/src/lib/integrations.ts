@@ -220,7 +220,10 @@ export async function createBostaShipment(params: {
   codAmount?: number;
 }): Promise<string | null> {
   const apiKey = process.env.BOSTA_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) {
+    logger.warn("createBostaShipment: BOSTA_API_KEY is not set — skipping shipment creation");
+    return null;
+  }
 
   const resolvedCity = await resolveBostaCityName(params.city, apiKey);
   const formatted = formatPhone(params.phone);
