@@ -165,6 +165,8 @@ interface OrderBreakdown {
   shippingCost: number;
   freeShipping: boolean;
   fmt: (n: number) => string;
+  /** Total amount charged — shown as a final "Total" row when provided */
+  total?: number;
 }
 
 const SHIPPING_EGP = 50;
@@ -1028,9 +1030,16 @@ export function CheckoutPage() {
             price: i.price,
           }));
       setOrderResult({ orderNumber: "", total: resolvedTotal, intentId: data.intentId, items: retryItemsSnapshot.length > 0 ? retryItemsSnapshot : undefined });
+      // Refresh the breakdown snapshot so the confirmation screen shows correct values
+      setBreakdownSnapshot({ subtotal: subtotalAmount, savings, shippingCost, freeShipping });
       if (data.intentId) {
         sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
         sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
+        // Persist breakdown + items so they survive a 3DS full-page redirect after retry
+        sessionStorage.setItem("moi_paymob_breakdown", JSON.stringify({ subtotal: subtotalAmount, savings, shippingCost, freeShipping }));
+        if (retryItemsSnapshot.length > 0) {
+          sessionStorage.setItem("moi_paymob_items", JSON.stringify(retryItemsSnapshot));
+        }
       }
       paymobTrackedRef.current = false;
       setPaymentTimerKey((k) => k + 1);
@@ -1563,7 +1572,11 @@ export function CheckoutPage() {
               orderResult={orderResult!}
               onDone={handleSuccessDone}
               items={successItems}
-              breakdown={{ ...(breakdownSnapshot ?? { subtotal: subtotalAmount, savings, shippingCost, freeShipping }), fmt }}
+              breakdown={{
+                ...(breakdownSnapshot ?? { subtotal: subtotalAmount, savings, shippingCost, freeShipping }),
+                fmt,
+                total: orderResult?.total ? parseFloat(orderResult.total) || undefined : undefined,
+              }}
             />
           ) : step === "card-failed" ? (
             <CardFailed
@@ -2479,16 +2492,21 @@ function InstapayConfirmation({
 }
 
 function OrderBreakdownRows({ breakdown }: { breakdown: OrderBreakdown }) {
-  const { subtotal, savings, shippingCost, freeShipping, fmt } = breakdown;
+  const { subtotal, savings, shippingCost, freeShipping, fmt, total } = breakdown;
+  const computedTotal = total ?? (subtotal - savings + shippingCost);
   const rowStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center" };
   const labelStyle: React.CSSProperties = { fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" };
   const valueStyle: React.CSSProperties = { fontSize: "12px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 };
+  const totalLabelStyle: React.CSSProperties = { fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, letterSpacing: "0.08em" };
+  const totalValueStyle: React.CSSProperties = { fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 };
   return (
     <div style={{ border: "1px solid rgba(30,24,20,0.1)", backgroundColor: "rgba(30,24,20,0.02)", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={rowStyle}>
-        <span style={labelStyle}>Subtotal</span>
-        <span style={valueStyle}>{fmt(subtotal)} EGP</span>
-      </div>
+      {subtotal > 0 && (
+        <div style={rowStyle}>
+          <span style={labelStyle}>Subtotal</span>
+          <span style={valueStyle}>{fmt(subtotal)} EGP</span>
+        </div>
+      )}
       {savings > 0 && (
         <div style={rowStyle}>
           <span style={labelStyle}>Discount</span>
@@ -2502,6 +2520,10 @@ function OrderBreakdownRows({ breakdown }: { breakdown: OrderBreakdown }) {
         ) : (
           <span style={valueStyle}>{fmt(shippingCost)} EGP</span>
         )}
+      </div>
+      <div style={{ ...rowStyle, borderTop: "1px solid rgba(30,24,20,0.12)", paddingTop: 8, marginTop: 2 }}>
+        <span style={totalLabelStyle}>Total</span>
+        <span style={totalValueStyle}>{fmt(computedTotal)} EGP</span>
       </div>
     </div>
   );
