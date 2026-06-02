@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
+import { ENABLE_CARD_PAYMENTS, ENABLE_APPLE_PAY } from "@/config/features";
 import { PaymobApplePayButton } from "./PaymobApplePayButton";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
@@ -136,6 +137,13 @@ function resolveEmailImage(line: ShopifyCartLine, localItems?: { variantId: stri
 }
 
 type PaymentMethod = "cod" | "instapay" | "card" | "apple-pay";
+/* Card + Apple Pay are gated by ENABLE_CARD_PAYMENTS / ENABLE_APPLE_PAY flags in @/config/features */
+const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = [
+  "cod",
+  "instapay",
+  ...(ENABLE_CARD_PAYMENTS ? ["card" as PaymentMethod] : []),
+  ...(ENABLE_APPLE_PAY ? ["apple-pay" as PaymentMethod] : []),
+];
 type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
 type InstapaySubStep = "instructions" | "upload" | "review";
 
@@ -690,6 +698,12 @@ export function CheckoutPage() {
 
     // Card payment: call paymob-init → embed Paymob hosted checkout in-page via iframe
     if (paymentMethod === "card") {
+      if (!ENABLE_CARD_PAYMENTS) {
+        submittingRef.current = false;
+        setSubmitError("Card payments are temporarily unavailable. Please choose another payment method.");
+        setStep("form");
+        return;
+      }
       try {
         const res = await fetch("/api/orders/paymob-init", {
           method: "POST",
@@ -773,6 +787,12 @@ export function CheckoutPage() {
 
     // Apple Pay is handled by the native "Buy with Apple Pay" button above — never redirect to Shopify.
     if (paymentMethod === "apple-pay") {
+      if (!ENABLE_APPLE_PAY) {
+        submittingRef.current = false;
+        setSubmitError("Apple Pay is temporarily unavailable. Please choose another payment method.");
+        setStep("form");
+        return;
+      }
       submittingRef.current = false;
       setSubmitError("Please tap the Apple Pay button above to complete your purchase.");
       setStep("form");
@@ -1977,7 +1997,7 @@ export function CheckoutPage() {
                   Payment Method
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-8">
-                  {(["cod", "instapay", "card"] as PaymentMethod[]).map((m) => (
+                  {AVAILABLE_PAYMENT_METHODS.filter((m) => m !== "apple-pay").map((m) => (
                     <button
                       key={m}
                       onClick={() => setPaymentMethod(m)}
@@ -2000,7 +2020,7 @@ export function CheckoutPage() {
                     </button>
                   ))}
                   {/* Apple Pay tile — redirects to Shopify hosted checkout (handles Apple Pay via Paymob) */}
-                  {typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && checkoutUrl && (
+                  {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && checkoutUrl && (
                     <button
                       type="button"
                       onClick={() => { window.location.href = checkoutUrl; }}

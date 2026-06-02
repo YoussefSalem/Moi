@@ -441,7 +441,8 @@ function App() {
   }
 
   if (IS_APPLE_PAY_IFRAME) {
-    return <ApplePayIframePage />;
+    // Apple Pay iframe is disabled until ENABLE_APPLE_PAY is true in features.ts
+    return null;
   }
 
   return (

@@ -14,7 +14,7 @@ import { trackAddToCart } from "@/lib/analytics";
 import { trackViewContent } from "@/lib/metaPixel";
 import { trackTikTokViewContent } from "@/lib/tiktokPixel";
 import { getStockCount } from "@/lib/stock";
-import { canUseApplePay } from "@/lib/applePayUtils";
+import { ENABLE_APPLE_PAY } from "@/config/features";
 import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
 
 function slugify(str: string): string {
@@ -710,7 +710,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                   </motion.button>
 
                   {/* Apple Pay quick-buy — opens native payment sheet via Paymob */}
-                  {(
+                  {ENABLE_APPLE_PAY && (
                     <ShopifyApplePayButton
                       variantId={selectedVariant?.id ?? product.variantId ?? ""}
                       quantity={1}
