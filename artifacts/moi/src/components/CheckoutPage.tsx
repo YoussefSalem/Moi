@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import { PaymobApplePayButton } from "./PaymobApplePayButton";
-import { ShopifyApplePayButton, canUseApplePay } from "@/components/ShopifyApplePayButton";
+import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
+import { canUseApplePay } from "@/lib/applePayUtils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -489,15 +490,9 @@ export function CheckoutPage() {
     const preferred = sessionStorage.getItem("moi_preferred_payment");
     if (preferred === "apple-pay") {
       sessionStorage.removeItem("moi_preferred_payment");
-      const applePayAvailable =
-        typeof window !== "undefined" &&
-        "ApplePaySession" in window &&
-        !!(window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.();
-      if (applePayAvailable) {
-        void triggerApplePayDirectInit();
-      }
+      setPaymentMethod("apple-pay");
     }
-  }, [checkoutOpen, triggerApplePayDirectInit]);
+  }, [checkoutOpen]);
 
   useEffect(() => {
     if (checkoutOpen && prefilledEmail) {

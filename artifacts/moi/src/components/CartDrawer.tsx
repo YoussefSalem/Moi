@@ -11,7 +11,8 @@ import { trackCheckoutStep, trackCartAbandonment } from "@/lib/analytics";
 import { formatMoney } from "@/lib/shopify";
 import type { ShopifyCartLine } from "@/lib/shopify";
 import type { LocalCartItem } from "@/context/CartContext";
-import { ShopifyApplePayButton, canUseApplePay } from "@/components/ShopifyApplePayButton";
+import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
+import { canUseApplePay } from "@/lib/applePayUtils";
 
 // Product-scoped color map: "productname::color" → image URL
 // This prevents color collisions across products (e.g. "Beige" exists in both the Cape and Bangles variants).

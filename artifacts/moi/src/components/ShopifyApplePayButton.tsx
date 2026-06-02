@@ -6,7 +6,6 @@ import {
   pollCheckoutPayment,
   SHOPIFY_CONFIGURED,
 } from "@/lib/shopify";
-
 declare global {
   interface Window {
     ApplePaySession?: {
@@ -77,14 +76,6 @@ export interface ShopifyApplePayButtonProps {
   onCancel?: () => void;
 }
 
-export function canUseApplePay(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    "ApplePaySession" in window &&
-    !!(window.ApplePaySession?.canMakePayments?.())
-  );
-}
-
 export function ShopifyApplePayButton({
   lines,
   totalAmount,
@@ -153,13 +144,17 @@ export function ShopifyApplePayButton({
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({})) as { error?: string };
-          throw new Error(data.error ?? "Merchant validation failed");
+          const errMsg = data.error ?? "Merchant validation failed — please try another payment method";
+          session.abort();
+          onFail?.(errMsg);
+          toast.error(errMsg);
+          return;
         }
 
         const { merchantSession } = await res.json() as { merchantSession: unknown };
         session.completeMerchantValidation(merchantSession);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Merchant validation failed";
+        const msg = err instanceof Error ? err.message : "Apple Pay is unavailable. Please try another payment method.";
         session.abort();
         onFail?.(msg);
         toast.error(msg);
