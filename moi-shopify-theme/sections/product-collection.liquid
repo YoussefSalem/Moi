@@ -25,9 +25,24 @@
     <div class="moi-product-grid">
       {% if target_product %}
         {% comment %} One card per colour — deduplicate by option1 {% endcomment %}
+        {% comment %} Find which option index (0-based) is Color/Colour {% endcomment %}
+        {% assign color_option_index = 0 %}
+        {% for opt in target_product.options %}
+          {% assign opt_down = opt | downcase %}
+          {% if opt_down == 'color' or opt_down == 'colour' %}
+            {% assign color_option_index = forloop.index0 %}
+          {% endif %}
+        {% endfor %}
+
         {% assign seen_colors = '' %}
         {% for variant in target_product.variants %}
-          {% assign color_name = variant.option1 | default: '' %}
+          {% if color_option_index == 1 %}
+            {% assign color_name = variant.option2 | default: '' %}
+          {% elsif color_option_index == 2 %}
+            {% assign color_name = variant.option3 | default: '' %}
+          {% else %}
+            {% assign color_name = variant.option1 | default: '' %}
+          {% endif %}
           {% assign color_key  = color_name | handleize | append: '|' %}
 
           {% unless seen_colors contains color_key %}
@@ -38,7 +53,14 @@
             {% assign color_available = false %}
             {% assign first_variant   = nil %}
             {% for v in target_product.variants %}
-              {% if v.option1 == color_name %}
+              {% if color_option_index == 1 %}
+                {% assign v_color = v.option2 %}
+              {% elsif color_option_index == 2 %}
+                {% assign v_color = v.option3 %}
+              {% else %}
+                {% assign v_color = v.option1 %}
+              {% endif %}
+              {% if v_color == color_name %}
                 {% if first_variant == nil %}{% assign first_variant = v %}{% endif %}
                 {% if v.available %}{% assign color_available = true %}{% endif %}
                 {% if v.inventory_quantity > 0 %}

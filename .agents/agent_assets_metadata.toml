@@ -34,7 +34,7 @@ title = "Apple Pay CSR files (upload to Apple Developer Portal)"
 id = "KLOtmpf10AMQEjSuEYrCx"
 uri = "file://moi-shopify-theme.zip"
 type = "unspecified"
-title = "moi-shopify-theme.zip — Hero text repositioned to bottom"
+title = "moi-shopify-theme.zip — Versa Top color deduplication fixed"
 
 [[outputs]]
 id = "75If9yBtyJsavm34tO03v"
