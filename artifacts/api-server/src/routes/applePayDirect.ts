@@ -144,7 +144,17 @@ router.post("/apple-pay/validate-merchant", async (req, res) => {
       throw new Error(`Paymob merchant validation failed (${validationRes.status}): ${text}`);
     }
 
-    req.log.info({ intentId }, "Apple Pay: merchant validation complete");
+    const sess = data.api_response as Record<string, unknown>;
+    req.log.info(
+      {
+        intentId,
+        sessionDomainName: sess.domainName,
+        sessionDisplayName: sess.displayName,
+        sessionMerchantId: sess.merchantIdentifier,
+        sessionKeys: Object.keys(sess),
+      },
+      "Apple Pay: merchant validation complete",
+    );
 
     res.status(200).json({
       merchantSession: data.api_response,
