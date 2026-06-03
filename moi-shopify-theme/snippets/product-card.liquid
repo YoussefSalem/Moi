@@ -16,7 +16,7 @@
 
 <a href="{{ card_url }}" class="moi-color-card moi-fade-in">
   <div class="moi-color-card__image">
-    <img src="{{ card_image | image_url: width: 600 }}" alt="{{ card_title }}" loading="lazy" decoding="async">
+    <img src="{{ card_image | image_url: width: 600 }}" alt="{{ card_title }}" loading="lazy" decoding="async" class="moi-color-card__main-img">
     {% if hover_image != blank %}
       <div class="moi-color-card__image-hover">
         <img src="{{ hover_image | image_url: width: 600 }}" alt="{{ card_title }} alternate" loading="lazy" decoding="async">

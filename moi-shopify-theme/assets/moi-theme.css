@@ -1241,3 +1241,26 @@ img { display: block; max-width: 100%; image-rendering: auto; backface-visibilit
 }
 
 body.is-drawer-open { overflow: hidden; }
+
+/* ================================================
+   LIGHTBOX
+   ================================================ */
+.moi-lightbox {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(30, 24, 20, 0.92);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.35s ease;
+}
+.moi-lightbox.is-open { opacity: 1; pointer-events: auto; }
+.moi-lightbox img { max-width: 90%; max-height: 90%; object-fit: contain; }
+.moi-lightbox__close {
+  position: absolute; top: 24px; right: 24px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.1); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.2s;
+}
+.moi-lightbox__close:hover { background: rgba(255,255,255,0.2); }
+
+/* Click on main image to open lightbox */
+.moi-product-gallery__main { cursor: zoom-in; }

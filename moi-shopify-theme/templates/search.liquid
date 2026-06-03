@@ -23,9 +23,9 @@
           {% for item in search.results %}
             {% if item.object_type == 'product' %}
               <div class="moi-grid-2 flex justify-center">
-                <a href="{{ item.url }}" class="moi-color-card">
+                <a href="{{ item.url }}" class="moi-color-card moi-fade-in">
                   <div class="moi-color-card__image">
-                    <img src="{{ item.featured_image | image_url: width: 600 }}" alt="{{ item.title }}" loading="lazy">
+                    <img src="{{ item.featured_image | image_url: width: 600 }}" alt="{{ item.title }}" loading="lazy" class="moi-color-card__main-img">
                   </div>
                   <div class="moi-color-card__info">
                     <h3 class="moi-color-card__product-name">{{ item.title }}</h3>

@@ -371,5 +371,33 @@
     }
   });
 
+  // ━━━ Lightbox ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  (function initLightbox() {
+    const mainImage = document.getElementById('moi-product-main-image');
+    const lightbox = document.getElementById('moi-lightbox');
+    const lightboxImage = document.getElementById('moi-lightbox-image');
+    const lightboxClose = document.getElementById('moi-lightbox-close');
+    if (mainImage && lightbox && lightboxImage) {
+      mainImage.addEventListener('click', () => {
+        lightboxImage.src = mainImage.src;
+        lightboxImage.alt = mainImage.alt;
+        lightbox.classList.add('is-open');
+        document.body.classList.add('is-drawer-open');
+      });
+      if (lightboxClose) {
+        lightboxClose.addEventListener('click', () => {
+          lightbox.classList.remove('is-open');
+          document.body.classList.remove('is-drawer-open');
+        });
+      }
+      lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) {
+          lightbox.classList.remove('is-open');
+          document.body.classList.remove('is-drawer-open');
+        }
+      });
+    }
+  })();
+
   console.log('MOI theme initialized');
 })();
