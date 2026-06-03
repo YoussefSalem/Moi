@@ -60,7 +60,7 @@ export function ProductColorSection({
               marginBottom: 10,
             }}
           >
-            Collection
+            Collections
           </p>
           <h2
             style={{
