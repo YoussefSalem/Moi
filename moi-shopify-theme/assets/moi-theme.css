@@ -1907,3 +1907,244 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   display: block; width: 100%; aspect-ratio: 9/16;
   border: none;
 }
+
+/* ══════════════════════════════════════════════
+   PRODUCT PAGE (PDP)
+══════════════════════════════════════════════ */
+.moi-pdp {
+  background: #faf8f5;
+  min-height: 100vh;
+  padding: 32px 24px 80px;
+}
+@media (min-width: 768px) {
+  .moi-pdp { padding: 48px 40px 96px; }
+}
+
+.moi-pdp__grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+}
+@media (min-width: 768px) {
+  .moi-pdp__grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: start;
+  }
+}
+
+/* ── Gallery ── */
+.moi-pdp__gallery { display: flex; flex-direction: column; gap: 16px; }
+
+.moi-pdp__main-img-wrap {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ede9e3;
+  aspect-ratio: 3 / 4;
+}
+.moi-pdp__main-img-wrap img {
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: center top;
+  display: block;
+}
+
+.moi-pdp__thumbs {
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+.moi-pdp__thumb {
+  width: 72px; height: 72px;
+  border-radius: 8px; overflow: hidden;
+  border: 2px solid transparent;
+  cursor: pointer; padding: 0; background: none;
+  transition: border-color 0.2s;
+  flex-shrink: 0;
+}
+.moi-pdp__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.moi-pdp__thumb.is-active { border-color: #1e1814; }
+
+/* ── Info panel ── */
+.moi-pdp__info { display: flex; flex-direction: column; gap: 0; }
+
+.moi-pdp__title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 400; letter-spacing: 0.04em;
+  color: #1e1814; line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.moi-pdp__urgency {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px; font-weight: 600;
+  color: #c0392b; letter-spacing: 0.04em;
+  min-height: 18px;
+  margin-bottom: 12px;
+}
+
+/* Price */
+.moi-pdp__price { margin-bottom: 24px; }
+.moi-pdp__compare {
+  display: block;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px; color: rgba(30,24,20,0.45);
+  text-decoration: line-through;
+  margin-bottom: 4px;
+}
+.moi-pdp__price-row { display: flex; align-items: baseline; gap: 12px; }
+.moi-pdp__sale {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 500; color: #c0392b;
+}
+.moi-pdp__save {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+  color: #c0392b; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 4px;
+  background: rgba(192,57,43,0.08);
+}
+.moi-pdp__regular {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 500; color: #1e1814;
+}
+
+/* Description */
+.moi-pdp__desc {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px; line-height: 1.9;
+  color: rgba(30,24,20,0.6);
+  margin-bottom: 28px;
+}
+.moi-pdp__desc ul { list-style: none; padding: 0; margin: 0; }
+.moi-pdp__desc ul li {
+  padding-left: 20px; position: relative;
+}
+.moi-pdp__desc ul li::before {
+  content: '○'; position: absolute; left: 0;
+  font-size: 9px; top: 3px;
+  color: rgba(30,24,20,0.35);
+}
+.moi-pdp__desc p { margin: 0; }
+
+/* Options */
+.moi-pdp__option-group { margin-bottom: 20px; }
+.moi-pdp__option-label {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: rgba(30,24,20,0.5);
+  margin-bottom: 10px;
+}
+
+/* Color swatches */
+.moi-pdp__swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+.moi-pdp__swatch {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid transparent;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  cursor: pointer; padding: 0;
+  transition: outline-color 0.18s, border-color 0.18s;
+}
+.moi-pdp__swatch.is-active {
+  outline-color: #1e1814;
+  border-color: #faf8f5;
+}
+.moi-pdp__swatch.is-unavailable { opacity: 0.35; cursor: default; }
+
+/* One size pill */
+.moi-pdp__one-size {
+  display: inline-flex; align-items: center;
+  padding: 10px 20px;
+  border: 1.5px solid rgba(30,24,20,0.25);
+  border-radius: 6px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #1e1814;
+}
+
+/* Size pills */
+.moi-pdp__sizes { display: flex; gap: 8px; flex-wrap: wrap; }
+.moi-pdp__size {
+  padding: 10px 18px;
+  border: 1.5px solid rgba(30,24,20,0.2);
+  border-radius: 6px; background: none;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: #1e1814; cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+}
+.moi-pdp__size.is-active {
+  border-color: #1e1814; background: #1e1814; color: #faf8f5;
+}
+.moi-pdp__size.is-unavailable { opacity: 0.35; cursor: default; }
+
+/* Buttons */
+.moi-pdp__actions { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+
+.moi-pdp__btn {
+  display: block; width: 100%;
+  padding: 16px 24px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase;
+  text-align: center; border-radius: 4px; cursor: pointer;
+  transition: background 0.22s, color 0.22s, border-color 0.22s;
+  text-decoration: none;
+}
+.moi-pdp__btn--outline {
+  border: 1.5px solid rgba(30,24,20,0.4);
+  background: transparent; color: #1e1814;
+}
+.moi-pdp__btn--outline:hover { border-color: #1e1814; background: rgba(30,24,20,0.04); }
+.moi-pdp__btn--outline.is-sold-out {
+  border-color: rgba(30,24,20,0.2); color: rgba(30,24,20,0.35); cursor: default;
+}
+.moi-pdp__btn--solid {
+  border: 1.5px solid #1e1814;
+  background: #1e1814; color: #faf8f5;
+}
+.moi-pdp__btn--solid:hover { background: #2e2820; border-color: #2e2820; }
+
+/* ── You May Also Like ── */
+.moi-pdp__recs {
+  max-width: 1100px; margin: 64px auto 0;
+}
+.moi-pdp__recs-label {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 10px; letter-spacing: 0.45em; text-transform: uppercase;
+  color: rgba(30,24,20,0.45);
+  text-align: center; margin-bottom: 32px;
+}
+.moi-pdp__recs-track {
+  display: flex; gap: 20px;
+  overflow-x: auto; scroll-snap-type: x mandatory;
+  scrollbar-width: none; -ms-overflow-style: none;
+  padding-bottom: 8px;
+}
+.moi-pdp__recs-track::-webkit-scrollbar { display: none; }
+
+.moi-pdp__rec-item {
+  flex: 0 0 calc(50% - 10px);
+  scroll-snap-align: start;
+  text-decoration: none; color: #1e1814;
+}
+@media (min-width: 480px) { .moi-pdp__rec-item { flex: 0 0 calc(33.333% - 14px); } }
+@media (min-width: 768px) { .moi-pdp__rec-item { flex: 0 0 calc(25% - 15px); } }
+
+.moi-pdp__rec-img {
+  aspect-ratio: 3 / 4; border-radius: 10px;
+  overflow: hidden; background: #ede9e3;
+  margin-bottom: 12px;
+}
+.moi-pdp__rec-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.moi-pdp__rec-name {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px; font-weight: 400; margin-bottom: 4px;
+}
+.moi-pdp__rec-price {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px; color: rgba(30,24,20,0.55);
+}
