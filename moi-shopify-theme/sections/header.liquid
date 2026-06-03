@@ -4,19 +4,19 @@
   {% assign is_dark = true %}
 {% endif %}
 
-<header class="moi-header {% unless is_dark %}moi-header--transparent{% endunless %} moi-header--dark{% if is_dark %} moi-header--dark{% endif %}" id="moi-header" data-scrolled-class="{% if is_dark %}moi-header--dark{% else %}moi-header--scrolled{% endif %}">
+<header class="moi-header {% if is_dark %}moi-header--dark{% else %}moi-header--transparent{% endif %}" id="moi-header" data-scrolled-class="{% if is_dark %}moi-header--dark{% else %}moi-header--scrolled{% endif %}">
   <div class="moi-header__inner">
     <button class="moi-header__hamburger" aria-label="Open menu" id="moi-drawer-toggle">
-      <span style="background-color: {% if is_dark %}#1e1814{% else %}#fff{% endif %};"></span>
-      <span style="background-color: {% if is_dark %}#1e1814{% else %}#fff{% endif %};"></span>
+      <span></span>
+      <span></span>
     </button>
 
-    <a href="/" class="moi-header__logo" style="color: {% if is_dark %}#1e1814{% else %}#fff{% endif %};">MOI</a>
+    <a href="/" class="moi-header__logo">MOI</a>
 
     <div class="moi-header__nav">
-      <a href="/search" class="moi-header__icon-btn" aria-label="Search" id="moi-search-toggle">
+      <button class="moi-header__icon-btn" aria-label="Search" id="moi-search-toggle">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
-      </a>
+      </button>
       <a href="{% if customer %}/account{% else %}/account/login{% endif %}" class="moi-header__icon-btn" aria-label="{% if customer %}My Account{% else %}Sign In{% endif %}">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
       </a>
@@ -56,6 +56,68 @@
     {% endif %}
   </div>
 </nav>
+
+<!-- Cart Drawer -->
+<div class="moi-cart-drawer__overlay" id="moi-cart-overlay"></div>
+<div class="moi-cart-drawer" id="moi-cart-drawer" aria-label="Shopping cart">
+  <div class="moi-cart-drawer__header">
+    <span class="moi-cart-drawer__title">Cart ({{ cart.item_count }})</span>
+    <button class="moi-cart-drawer__close" id="moi-cart-close" aria-label="Close cart">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+    </button>
+  </div>
+  <div class="moi-cart-drawer__items">
+    {% if cart.item_count == 0 %}
+      <div class="moi-cart-drawer__empty">
+        <svg class="moi-cart-drawer__empty-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        <p class="moi-cart-drawer__empty-text">Your cart is empty</p>
+      </div>
+    {% else %}
+      {% for item in cart.items %}
+        <div class="moi-cart-item">
+          <div class="moi-cart-item__image">
+            <img src="{{ item.image | image_url: width: 200 }}" alt="{{ item.product.title }}">
+          </div>
+          <div class="moi-cart-item__details">
+            <p class="moi-cart-item__name">{{ item.product.title }}</p>
+            <p class="moi-cart-item__variant">{{ item.variant.title }}</p>
+            <p class="moi-cart-item__price">{{ item.final_line_price | money }}</p>
+          </div>
+          <a href="/cart/change?line={{ forloop.index }}&quantity=0" class="moi-cart-item__remove" aria-label="Remove item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          </a>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+  {% if cart.item_count > 0 %}
+    <div class="moi-cart-drawer__footer">
+      <div class="moi-cart-drawer__subtotal">
+        <span class="moi-cart-drawer__subtotal-label">Subtotal</span>
+        <span>{{ cart.total_price | money }}</span>
+      </div>
+      <a href="/checkout" class="moi-cart-drawer__checkout-btn">Checkout</a>
+      <p class="moi-cart-drawer__note">Shipping & taxes calculated at checkout</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Search Drawer -->
+<div class="moi-search-drawer__overlay" id="moi-search-overlay"></div>
+<div class="moi-search-drawer" id="moi-search-drawer" aria-label="Search">
+  <div class="moi-search-drawer__header">
+    <form action="/search" method="get" class="moi-search-drawer__input" style="display: flex; flex: 1; align-items: center;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      <input type="search" name="q" placeholder="Search products..." class="moi-search-drawer__input" style="margin-left: 12px;" aria-label="Search">
+    </form>
+    <button class="moi-search-drawer__close" id="moi-search-close" aria-label="Close search">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+    </button>
+  </div>
+  <div class="moi-search-drawer__results">
+    <p style="font-size: 12px; color: rgba(30, 24, 20, 0.45); letter-spacing: 0.1em; text-transform: uppercase; text-align: center;">Type to search products</p>
+  </div>
+</div>
 
 {% schema %}
 {

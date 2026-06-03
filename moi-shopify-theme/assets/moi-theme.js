@@ -1,6 +1,6 @@
 /**
  * MOI — Shopify Theme JavaScript
- * Handles: header scroll, drawers, cart, search, accordions, scroll animations
+ * 1:1 replica of React app interactions (pointer events, long-press, crossfade, dots)
  */
 
 (function() {
@@ -146,7 +146,6 @@
 
     fadeElements.forEach(el => observer.observe(el));
   } else {
-    // Fallback: show all
     fadeElements.forEach(el => el.classList.add('is-visible'));
   }
 
@@ -170,13 +169,6 @@
   if (productForm) {
     const variantIdInput = document.getElementById('variant-id');
     if (variantIdInput) {
-      // Update URL when variant changes
-      function syncVariantUrl(variantId) {
-        const url = new URL(window.location);
-        url.searchParams.set('variant', variantId);
-        window.history.replaceState({}, '', url);
-      }
-
       // Listen for variant changes from swatches
       const swatches = document.querySelectorAll('.moi-product-info__swatch');
       swatches.forEach(swatch => {
@@ -242,44 +234,133 @@
     });
   });
 
-  // ━━━ Mobile image swipe for product cards ━━━━━━━━━━━━━━━━
-  const cards = document.querySelectorAll('.moi-color-card');
-  cards.forEach(card => {
-    const imageContainer = card.querySelector('.moi-color-card__image');
-    if (!imageContainer) return;
+  // ━━━ Mobile image swipe + long-press for product cards ━━━
+  (function initColorCards() {
+    const cards = document.querySelectorAll('.moi-color-card');
+    cards.forEach(card => {
+      const imageContainer = card.querySelector('.moi-color-card__image');
+      if (!imageContainer) return;
 
-    let startX = 0;
-    let currentX = 0;
-    let images = [];
-    let currentIndex = 0;
+      // Collect all image sources for this card
+      const mainImg = imageContainer.querySelector('.moi-color-card__main-img');
+      const hoverImgEl = imageContainer.querySelector('.moi-color-card__image-hover img');
+      const images = [];
+      if (mainImg) images.push(mainImg.src);
+      if (hoverImgEl) images.push(hoverImgEl.src);
 
-    const mainImg = imageContainer.querySelector('img:not(.moi-color-card__image-hover img)');
-    const hoverImg = imageContainer.querySelector('.moi-color-card__image-hover img');
-    if (mainImg) images.push(mainImg.src);
-    if (hoverImg) images.push(hoverImg.src);
+      if (images.length < 2) return;
 
-    if (images.length < 2) return;
+      const dotsContainer = card.querySelector('.moi-color-card__dots');
+      const dots = dotsContainer ? dotsContainer.querySelectorAll('.moi-color-card__dot') : [];
+      let currentIndex = 0;
+      let startX = 0;
+      let lastX = 0;
+      let longPressTimer = null;
+      let longPressActivated = false;
+      let pressed = false;
 
-    imageContainer.addEventListener('touchstart', (e) => {
-      startX = e.touches[0].clientX;
-    }, { passive: true });
-
-    imageContainer.addEventListener('touchmove', (e) => {
-      currentX = e.touches[0].clientX;
-    }, { passive: true });
-
-    imageContainer.addEventListener('touchend', () => {
-      const diff = currentX - startX;
-      if (Math.abs(diff) > 40) {
-        if (diff < 0) {
-          currentIndex = (currentIndex + 1) % images.length;
-        } else {
-          currentIndex = (currentIndex - 1 + images.length) % images.length;
+      function updateImage(index) {
+        currentIndex = index;
+        if (mainImg) {
+          mainImg.style.opacity = '0';
+          setTimeout(() => {
+            mainImg.src = images[index];
+            mainImg.style.opacity = '1';
+          }, 50);
         }
-        if (mainImg) mainImg.src = images[currentIndex];
+        dots.forEach((dot, i) => {
+          dot.classList.toggle('is-active', i === index);
+        });
       }
-    }, { passive: true });
-  });
+
+      function swipeBy(dir) {
+        const newIndex = (currentIndex + dir + images.length) % images.length;
+        updateImage(newIndex);
+      }
+
+      function cancelLongPress() {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+      }
+
+      function setPressed(value) {
+        pressed = value;
+        const overlay = imageContainer.querySelector('.moi-color-card__press-overlay');
+        if (overlay) {
+          overlay.style.opacity = value ? '0.12' : '0';
+        }
+      }
+
+      // Pointer events for mobile (touch + mouse)
+      imageContainer.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse' && window.innerWidth >= 768) return;
+        e.preventDefault();
+        imageContainer.setPointerCapture(e.pointerId);
+        startX = e.clientX;
+        lastX = e.clientX;
+        longPressActivated = false;
+        setPressed(true);
+
+        longPressTimer = setTimeout(() => {
+          longPressActivated = true;
+          longPressTimer = null;
+          if (navigator.vibrate) navigator.vibrate(18);
+          // Quick preview would open here (not implemented in this theme)
+        }, 520);
+      });
+
+      imageContainer.addEventListener('pointermove', (e) => {
+        if (startX === 0) return;
+        lastX = e.clientX;
+        const delta = e.clientX - startX;
+        if (Math.abs(delta) > 10) {
+          cancelLongPress();
+          setPressed(false);
+        }
+      });
+
+      imageContainer.addEventListener('pointerup', (e) => {
+        cancelLongPress();
+        setPressed(false);
+        if (longPressActivated) {
+          startX = 0;
+          lastX = 0;
+          return;
+        }
+        if (startX === 0) return;
+        const delta = lastX - startX;
+        startX = 0;
+        lastX = 0;
+        if (Math.abs(delta) > 30) {
+          swipeBy(delta < 0 ? 1 : -1);
+        } else {
+          // Navigate to product page
+          const link = card.closest('a');
+          if (link) {
+            window.location.href = link.href;
+          }
+        }
+      });
+
+      imageContainer.addEventListener('pointercancel', () => {
+        cancelLongPress();
+        setPressed(false);
+        startX = 0;
+        lastX = 0;
+      });
+
+      // Dot click handlers
+      dots.forEach((dot, i) => {
+        dot.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          updateImage(i);
+        });
+      });
+    });
+  })();
 
   // ━━━ Escape key closes drawers ━━━━━━━━━━━━━━━━━━━━━━━━━━━
   document.addEventListener('keydown', (e) => {
