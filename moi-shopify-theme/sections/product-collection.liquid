@@ -17,7 +17,12 @@
 
     <div class="moi-product-grid">
       {% if product_collection != blank %}
-        {% for product in collections[product_collection].products %}
+        {% assign grid_products = collections[product_collection].products %}
+      {% else %}
+        {% assign grid_products = collections.all.products %}
+      {% endif %}
+      {% if grid_products.size > 0 %}
+        {% for product in grid_products %}
           {% assign current_variant = product.selected_or_first_available_variant %}
           {% assign color_option = product.options_with_values | where: 'name', 'Color' | first %}
           {% assign color_name = color_option.values[0] | default: '' %}
@@ -280,7 +285,6 @@
   "presets": [
     {
       "name": "Product Collection",
-      "category": "Collection",
       "blocks": [
         {
           "type": "product"
