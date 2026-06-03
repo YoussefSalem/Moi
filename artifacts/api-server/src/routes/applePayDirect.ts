@@ -23,14 +23,10 @@ const SHIPPING_EGP = 50;
  */
 router.post("/apple-pay/validate-merchant", async (req, res) => {
   const config = getPaymobConfig();
-  // Apple Pay REQUIRES a dedicated Apple Pay integration ID from Paymob.
-  // The regular card integration cannot process Apple Pay tokens, so never fall back to it.
-  if (!config.apiKey || !config.applePayIntegrationId) {
+  if (!config.apiKey || !config.integrationId) {
     res.status(503).json({ error: "Apple Pay is not configured." });
     return;
   }
-
-  const applePayIntegrationId = config.applePayIntegrationId;
 
   const body = req.body as {
     validationURL?: unknown;
@@ -140,7 +136,7 @@ router.post("/apple-pay/validate-merchant", async (req, res) => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               appleURL: body.validationURL,
-              integrationId: applePayIntegrationId,
+              integrationId: config.integrationId,
             }),
           },
         );
