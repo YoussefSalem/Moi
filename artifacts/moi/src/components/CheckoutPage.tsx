@@ -423,6 +423,9 @@ export function CheckoutPage() {
       supportedNetworks: ["visa", "masterCard", "amex", "mada"],
       merchantCapabilities: ["supports3DS"],
       requiredShippingContactFields: ["name", "email", "phone"],
+      lineItems: shippingAmt > 0
+        ? [{ label: "Shipping", amount: shippingAmt.toFixed(2), type: "final" }]
+        : [],
       total: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
     });
 

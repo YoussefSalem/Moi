@@ -22,6 +22,9 @@ On `onpaymentauthorized` success:
 ## Failure path
 `session.completePayment({ status: AP.STATUS_FAILURE })` → `setSubmitError(...)` → `setPaymentMethod("cod")`
 
+## Critical credential detail
+`applePayDirect.ts` MUST use `config.applePayIntegrationId` (not `config.integrationId`) for ALL three places: guard check, validate-merchant body, and intention `payment_methods`. The apple pay integration is the one tied to Shopify's Apple certificates via Paymob; using the card integration ID causes "Payment Not Completed".
+
 ## Backend endpoints (already complete)
 - `POST /api/apple-pay/validate-merchant` — proxies Paymob merchant session
 - `POST /api/apple-pay/authorize` — processes Apple Pay token via Paymob, creates Shopify order via `processPaymobSuccess`
