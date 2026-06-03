@@ -255,17 +255,23 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
     const firstName = nameParts[0] ?? proof.customerName;
     const lastName = nameParts.slice(1).join(" ") || firstName;
 
+    type ShopifyApproveLineItem = { title: string; variant_title: string | null; quantity: number };
+    let approveLineItems: ShopifyApproveLineItem[] = [];
     try {
       const orderRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=shipping_address`,
+        `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=shipping_address,line_items`,
         { headers: { "X-Shopify-Access-Token": adminToken! } },
       );
       if (orderRes.ok) {
         const orderData = await orderRes.json() as {
-          order: { shipping_address?: { city?: string; address1?: string } };
+          order: {
+            shipping_address?: { city?: string; address1?: string };
+            line_items?: ShopifyApproveLineItem[];
+          };
         };
         city = orderData.order.shipping_address?.city ?? city;
         address = orderData.order.shipping_address?.address1 ?? "";
+        approveLineItems = orderData.order.line_items ?? [];
       }
     } catch (err) {
       req.log.warn({ err }, "Could not fetch shipping address from Shopify on approve; using defaults");
@@ -280,6 +286,7 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
         city,
         orderReference: `#${orderNumber}`,
         codAmount: 0,
+        items: approveLineItems,
       });
 
       if (trackingNumber) {
@@ -597,21 +604,27 @@ router.post("/admin/card-orders/:id/dispatch", async (req, res) => {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
 
-  // Fetch shipping address from the confirmed Shopify order
+  // Fetch shipping address + line items from the confirmed Shopify order
   let address = customer.address;
   let city = customer.city ?? "Cairo";
+  type ShopifyDispatchLineItem = { title: string; variant_title: string | null; quantity: number };
+  let dispatchLineItems: ShopifyDispatchLineItem[] = [];
   if (storeDomain && adminToken) {
     try {
       const orderRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/orders/${shopifyOrderId}.json?fields=shipping_address`,
+        `https://${storeDomain}/admin/api/2024-04/orders/${shopifyOrderId}.json?fields=shipping_address,line_items`,
         { headers: { "X-Shopify-Access-Token": adminToken } },
       );
       if (orderRes.ok) {
         const orderData = await orderRes.json() as {
-          order: { shipping_address?: { address1?: string; city?: string } };
+          order: {
+            shipping_address?: { address1?: string; city?: string };
+            line_items?: ShopifyDispatchLineItem[];
+          };
         };
         address = orderData.order.shipping_address?.address1 ?? address;
         city = orderData.order.shipping_address?.city ?? city;
+        dispatchLineItems = orderData.order.line_items ?? [];
       }
     } catch (err) {
       req.log.warn({ err }, "card-orders dispatch: could not fetch Shopify address, using intent data");
@@ -629,6 +642,7 @@ router.post("/admin/card-orders/:id/dispatch", async (req, res) => {
       city,
       orderReference: orderRef,
       codAmount: 0,
+      items: dispatchLineItems,
     });
 
     if (!trackingNumber) {

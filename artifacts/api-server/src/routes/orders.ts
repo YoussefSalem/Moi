@@ -304,6 +304,7 @@ router.post("/orders/create", async (req, res) => {
       city: customer.city,
       orderReference: `#${orderNumber}`,
       codAmount: parseEGP(total),
+      items: lineItems,
     });
 
     if (trackingNumber) {

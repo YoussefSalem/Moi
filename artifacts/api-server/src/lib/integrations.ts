@@ -233,6 +233,7 @@ export async function createBostaShipment(params: {
   city: string;
   orderReference: string;
   codAmount?: number;
+  items?: { title: string; variant_title: string | null; quantity: number }[];
 }): Promise<string | null> {
   const apiKey = process.env.BOSTA_API_KEY;
   if (!apiKey) {
@@ -262,7 +263,12 @@ export async function createBostaShipment(params: {
           lastName: params.lastName,
           phone: formatted,
         },
-        notes: `Moi Order ${params.orderReference}`,
+        notes: [
+          `Moi Order ${params.orderReference}`,
+          ...(params.items && params.items.length > 0
+            ? [params.items.map((i) => `${i.variant_title ?? i.title} x${i.quantity}`).join(", ")]
+            : []),
+        ].join(" — "),
         ...(params.codAmount && params.codAmount > 0 ? { cod: params.codAmount } : {}),
       }),
     });
