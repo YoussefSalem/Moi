@@ -21,9 +21,9 @@ const SHIPPING_EGP = 50;
  */
 router.post("/apple-pay/validate-merchant", async (req, res) => {
   const config = getPaymobConfig();
-  // Apple Pay uses the dedicated applePayIntegrationId (tied to Shopify/Paymob Apple certificates),
-  // NOT the regular card integrationId.
-  if (!config.applePayIntegrationId) {
+  // Apple Pay uses the regular card integrationId for testing.
+  // The merchant validation endpoint works with the card integration ID.
+  if (!config.integrationId) {
     res.status(503).json({ error: "Apple Pay is not configured." });
     return;
   }
@@ -129,7 +129,7 @@ router.post("/apple-pay/validate-merchant", async (req, res) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           appleURL: body.validationURL,
-          integrationId: config.applePayIntegrationId,
+          integrationId: config.integrationId,
         }),
       },
     );
@@ -261,7 +261,7 @@ router.post("/apple-pay/authorize", async (req, res) => {
     const intentionBody: Record<string, unknown> = {
       amount: amountCents,
       currency: "EGP",
-      payment_methods: [parseInt(config.applePayIntegrationId, 10)],
+      payment_methods: [parseInt(config.integrationId, 10)],
       items: [{ name: "Moi Order", amount: amountCents, description: "Fashion order", quantity: 1 }],
       billing_data: {
         first_name: customer.firstName,
