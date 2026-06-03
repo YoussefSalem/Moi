@@ -1,35 +1,33 @@
 ---
-name: Apple Pay via Shopify checkout popup
-description: How Apple Pay is implemented — opens Shopify's hosted checkout in a popup window; no custom Apple Pay session or Paymob integration ID needed.
+name: Apple Pay — native ApplePaySession via Paymob
+description: Apple Pay now uses native ApplePaySession with Paymob backend (validate-merchant + authorize). The old Shopify popup approach is gone.
 ---
 
 ## The Rule
-Apple Pay button → `window.open(checkoutUrl, "shopify_checkout", popup_params)` in a centered 480×700 popup.
-Do NOT use native `ApplePaySession` on buy-moi.com (domain not registered).
-Do NOT use `PAYMOB_APPLE_PAY_INTEGRATION_ID` or Paymob Pixel SDK.
+Apple Pay uses **native `ApplePaySession`** — no popup, no Shopify checkout redirect.
+The flow is: `ApplePaySession.begin()` → `onvalidatemerchant` → `POST /api/apple-pay/validate-merchant` → `completeMerchantValidation` → `onpaymentauthorized` → `POST /api/apple-pay/authorize` → `setStep("cod-confirm")`.
 
-**Why:** Shopify's checkout domain (`checkout-moi.myshopify.com`) is already registered with Apple Pay via "Paymob — Native Checkout for Debit/Credit Cards" (shown in Shopify Admin > Payments). Opening that URL as a popup keeps the user on buy-moi.com while Shopify's checkout handles Apple Pay natively. No domain registration needed on our end.
+**Why:** The domain `buy-moi.com` was registered with Apple Pay via Paymob. The backend routes were already in place (`applePayDirect.ts`). The popup was a workaround; native session gives a better UX (no popup, Face ID/Touch ID inline).
 
-## Shared utility
-`artifacts/moi/src/lib/shopifyCheckout.ts` — `openShopifyCheckout(url: string): void`
-Opens a centered 480×700 popup. Named window "shopify_checkout" (reuses same popup if already open).
+**How to apply:** `triggerApplePayDirectInit` in `CheckoutPage.tsx` is a non-async `useCallback` — `session.begin()` MUST be called synchronously in the click handler. All async work (fetch calls) happens inside session event callbacks (`onvalidatemerchant`, `onpaymentauthorized`).
 
-## How it flows
+## Success path
+On `onpaymentauthorized` success:
+1. `session.completePayment({ status: AP.STATUS_SUCCESS })`
+2. Build `cartItemsSnapshot` from `shopifyCart` or `localItems`
+3. `setOrderResult({ orderNumber, shopifyOrderNumber, total, items })`
+4. `setStep("cod-confirm")` — reuses COD confirmation screen (shows order number)
+5. `clearCart()`
 
-### Product page (`ShopifyApplePayButton.tsx`)
-1. User taps Apple Pay button
-2. `addToCart({ variantId, quantity, ... })` → returns `checkoutUrl` (new or updated Shopify cart)
-3. `openShopifyCheckout(url)` — popup opens with Shopify checkout
+## Failure path
+`session.completePayment({ status: AP.STATUS_FAILURE })` → `setSubmitError(...)` → `setPaymentMethod("cod")`
 
-### Cart drawer (`ShopifyApplePayButton.tsx`, no variantId)
-1. Cart already has items; `checkoutUrl` from `useCart()` is set
-2. `openShopifyCheckout(checkoutUrl)` directly
+## Backend endpoints (already complete)
+- `POST /api/apple-pay/validate-merchant` — proxies Paymob merchant session
+- `POST /api/apple-pay/authorize` — processes Apple Pay token via Paymob, creates Shopify order via `processPaymobSuccess`
 
-### Checkout page (`CheckoutPage.tsx`)
-1. Apple Pay tile visible only when `checkoutUrl && ApplePaySession.canMakePayments()`
-2. tile onClick → `openShopifyCheckout(checkoutUrl)`
+## Domain association
+`app.ts` serves `/.well-known/apple-developer-merchantid-domain-association` from env var `APPLE_PAY_DOMAIN_ASSOCIATION`.
 
-## What's intentionally unused (but still present)
-- `triggerApplePayDirectInit` / `applePayData` in CheckoutPage — no longer triggered by the tile; leave in place, they don't cause errors
-- `PaymobApplePayButton` renders in CheckoutPage when `applePayData` is set — dead path now
-- `artifacts/api-server/src/routes/paymobApplePayInit.ts` — still callable but no longer called by frontend Apple Pay flow
+## Architecture gotcha
+`showOverlaySuccess` lives inside `PaymobIframe` component (line ~2785), NOT `CheckoutPage`. Do NOT try to wire Apple Pay success through `PaymobIframe`'s overlay — set React state directly in `CheckoutPage` instead.

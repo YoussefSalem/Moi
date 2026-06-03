@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 const BTN_CSS = `
   .ap-express-btn {
@@ -11,6 +11,52 @@ const BTN_CSS = `
   .ap-express-btn:disabled { opacity: 0.55; cursor: default; }
 `;
 
+// ── Minimal ApplePaySession types ────────────────────────────────────────────
+
+interface ApplePayPaymentRequest {
+  countryCode: string;
+  currencyCode: string;
+  supportedNetworks: string[];
+  merchantCapabilities: string[];
+  requiredShippingContactFields?: string[];
+  total: { label: string; amount: string };
+}
+interface ApplePayContact {
+  givenName?: string;
+  familyName?: string;
+  emailAddress?: string;
+  phoneNumber?: string;
+  addressLines?: string[];
+  locality?: string;
+  administrativeArea?: string;
+}
+interface ApplePayToken { paymentData: unknown }
+interface ApplePayPayment {
+  token: ApplePayToken;
+  shippingContact?: ApplePayContact;
+}
+interface APSession {
+  onvalidatemerchant: ((e: { validationURL: string }) => void) | null;
+  onpaymentauthorized: ((e: { payment: ApplePayPayment }) => void) | null;
+  oncancel: (() => void) | null;
+  completeMerchantValidation(sess: unknown): void;
+  completePayment(result: { status: number }): void;
+  abort(): void;
+  begin(): void;
+}
+interface APSessionCtor {
+  new(version: number, request: ApplePayPaymentRequest): APSession;
+  canMakePayments(): boolean;
+  STATUS_SUCCESS: number;
+  STATUS_FAILURE: number;
+}
+
+function getAP(): APSessionCtor | undefined {
+  return (window as unknown as { ApplePaySession?: APSessionCtor }).ApplePaySession;
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
+
 export interface ShopifyApplePayButtonProps {
   variantId?: string;
   quantity?: number;
@@ -20,13 +66,9 @@ export interface ShopifyApplePayButtonProps {
   disabled?: boolean;
   className?: string;
   style?: React.CSSProperties;
-  /** If provided, the checkout will be created with this discount code. */
   discountCode?: string;
-  /** Called when the user successfully completes Apple Pay in the popup. */
   onSuccess?: (orderNumber: number | null, total?: string) => void;
-  /** Called when the popup is closed without a successful payment. */
   onCancel?: () => void;
-  /** Called when the popup cannot be opened or creation fails. */
   onError?: (msg: string) => void;
 }
 
@@ -35,97 +77,127 @@ export function ShopifyApplePayButton({
   lines: cartLines, totalEGP,
   disabled = false, className, style,
   discountCode,
-  onSuccess,
-  onCancel,
-  onError,
+  onSuccess, onCancel, onError,
 }: ShopifyApplePayButtonProps) {
   const [available, setAvailable] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "loading" | "ready">("idle");
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const intentIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const AP = (window as unknown as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession;
+    const AP = getAP();
     setAvailable(!!(AP?.canMakePayments?.()));
   }, []);
 
-  const handlePay = useCallback(async () => {
-    if (phase !== "idle" || disabled) return;
+  // ── handlePay is intentionally synchronous ──────────────────────────────
+  // ApplePaySession.begin() MUST be called in the same synchronous call-stack
+  // as the user gesture (click). All async work happens inside session callbacks.
+  const handlePay = useCallback(() => {
+    if (busy || disabled) return;
 
     let lines: Array<{ variantId: string; quantity: number }>;
-    let totalAmountCents: number;
+    let totalCents: number;
+    let totalEGPVal: number;
 
     if (variantId && priceEGP != null) {
       lines = [{ variantId, quantity }];
-      totalAmountCents = Math.round((priceEGP * quantity) * 100);
+      totalEGPVal = priceEGP * quantity;
+      totalCents = Math.round(totalEGPVal * 100);
     } else if (cartLines && cartLines.length > 0 && totalEGP != null) {
       lines = cartLines;
-      totalAmountCents = Math.round(totalEGP * 100);
+      totalEGPVal = totalEGP;
+      totalCents = Math.round(totalEGP * 100);
     } else {
       return;
     }
 
-    setPhase("loading");
+    const AP = getAP();
+    if (!AP) return;
+
+    const session = new AP(3, {
+      countryCode: "EG",
+      currencyCode: "EGP",
+      supportedNetworks: ["visa", "masterCard", "amex", "mada"],
+      merchantCapabilities: ["supports3DS"],
+      requiredShippingContactFields: ["name", "email", "phone"],
+      total: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
+    });
+
+    intentIdRef.current = null;
+    setBusy(true);
     setError(null);
 
-    try {
-      const res = await fetch("/api/shopify-apple-pay/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lines,
-          totalAmountCents,
-          discountCode,
-        }),
-      });
-      const data = await res.json() as {
-        checkoutUrl?: string;
-        checkoutId?: string;
-        error?: string;
-      };
-      if (!res.ok || !data.checkoutUrl || !data.checkoutId) {
-        setError(data.error ?? "Apple Pay is unavailable. Please try another payment method.");
-        setPhase("idle");
-        onError?.(data.error ?? "Apple Pay is unavailable.");
-        return;
+    session.onvalidatemerchant = async ({ validationURL }) => {
+      try {
+        const res = await fetch("/api/apple-pay/validate-merchant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ validationURL, lines, totalAmountCents: totalCents, discountCode }),
+        });
+        const data = await res.json() as { merchantSession?: unknown; intentId?: string; error?: string };
+        if (!res.ok || !data.merchantSession) throw new Error(data.error ?? "Merchant validation failed");
+        intentIdRef.current = data.intentId ?? null;
+        session.completeMerchantValidation(data.merchantSession);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Apple Pay is unavailable.";
+        session.abort();
+        setError(msg);
+        setBusy(false);
+        onError?.(msg);
       }
+    };
 
-      // Open Shopify checkout in a popup. The popup URL contains the
-      // checkout_token which Shopify uses to route the Apple Pay session
-      // to the correct checkout. Shopify handles the Apple Pay merchant
-      // validation and payment sheet entirely within the popup.
-      const popup = openShopifyCheckoutPopup(data.checkoutUrl);
-      if (!popup) {
-        setError("Popup blocked. Please allow popups for this site.");
-        setPhase("idle");
-        onError?.("Popup blocked.");
-        return;
-      }
-
-      setPhase("ready");
-
-      // Poll until popup closes, then infer success/cancel by how long it was open.
-      // The Storefront API 2024-04 Cart type has no completedAt, so we use a
-      // time-based heuristic: > 8 s open = likely paid, otherwise cancelled.
-      const openedAt = Date.now();
-      const pollInterval = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(pollInterval);
-          const elapsed = Date.now() - openedAt;
-          const totalStr = totalEGP != null ? `${Math.round(totalEGP)} EGP` : undefined;
-          if (elapsed > 8000) {
-            onSuccess?.(null, totalStr);
-          } else {
-            onCancel?.();
-          }
-          setPhase("idle");
+    session.onpaymentauthorized = async ({ payment }) => {
+      try {
+        const sc = payment.shippingContact;
+        const res = await fetch("/api/apple-pay/authorize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentData: JSON.stringify(payment.token.paymentData),
+            intentId: intentIdRef.current,
+            shippingContact: sc ? {
+              firstName: sc.givenName,
+              lastName: sc.familyName,
+              email: sc.emailAddress,
+              phone: sc.phoneNumber,
+              address: sc.addressLines?.[0],
+              city: sc.locality,
+              governorate: sc.administrativeArea,
+            } : undefined,
+          }),
+        });
+        const data = await res.json() as {
+          success?: boolean;
+          error?: string;
+          shopifyOrderNumber?: number | null;
+          total?: string;
+        };
+        if (data.success) {
+          session.completePayment({ status: AP.STATUS_SUCCESS });
+          const totalStr = `${Math.round(totalEGPVal)} EGP`;
+          onSuccess?.(data.shopifyOrderNumber ?? null, totalStr);
+        } else {
+          session.completePayment({ status: AP.STATUS_FAILURE });
+          const msg = data.error ?? "Payment was declined. Please try another card.";
+          setError(msg);
+          onCancel?.();
         }
-      }, 800);
-    } catch {
-      setError("Network error. Please try again.");
-      setPhase("idle");
-      onError?.("Network error.");
-    }
-  }, [phase, disabled, variantId, quantity, priceEGP, cartLines, totalEGP, discountCode, onSuccess, onCancel, onError]);
+      } catch {
+        session.completePayment({ status: AP.STATUS_FAILURE });
+        setError("Payment failed. Please try again.");
+        onCancel?.();
+      }
+      setBusy(false);
+    };
+
+    session.oncancel = () => {
+      setBusy(false);
+      onCancel?.();
+    };
+
+    session.begin();
+  }, [busy, disabled, variantId, quantity, priceEGP, cartLines, totalEGP, discountCode, onSuccess, onCancel, onError]);
 
   if (!available || disabled) return null;
 
@@ -137,13 +209,13 @@ export function ShopifyApplePayButton({
         margin: "0 0 10px", fontSize: 13, color: "#6b7280",
         textAlign: "center", letterSpacing: "0.02em", fontFamily: "inherit",
       }}>
-        {phase === "loading" ? "Setting up Apple Pay\u2026" : "Express checkout"}
+        {busy ? "Processing\u2026" : "Express checkout"}
       </p>
       <button
         type="button"
         className="ap-express-btn"
-        onClick={() => { void handlePay(); }}
-        disabled={phase === "loading"}
+        onClick={handlePay}
+        disabled={busy}
         aria-label="Buy with Apple Pay"
       />
       {error && (
@@ -157,19 +229,3 @@ export function ShopifyApplePayButton({
     </div>
   );
 }
-
-// ── helpers ─────────────────────────────────────────────────────────────────
-
-function openShopifyCheckoutPopup(checkoutUrl: string): Window | null {
-  const width = Math.min(520, window.innerWidth - 20);
-  const height = Math.min(800, window.innerHeight - 40);
-  const left = Math.round((window.innerWidth - width) / 2);
-  const top = Math.round((window.innerHeight - height) / 2);
-
-  return window.open(
-    checkoutUrl,
-    "ShopifyApplePay",
-    `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`,
-  );
-}
-
