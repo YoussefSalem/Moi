@@ -284,6 +284,18 @@ router.post("/orders/create", async (req, res) => {
       `✅ Your Moi order #${orderNumber} has been placed!\n\nTotal: ${total} EGP (${whatsappShippingNote})\nPayment: Cash on Delivery\n\nOur team will contact you shortly. Thank you for shopping with Moi. 🖤`,
     );
 
+    // Immediately create a Shopify fulfillment (no tracking number yet) so the
+    // order shows as "fulfilled" before the Bosta Shopify App's orders/create
+    // webhook fires. If the App sees fulfillment_status:"fulfilled" it skips
+    // creating a competing Bosta shipment (which would have cod: 0 / "No Cash
+    // Collection"). We then call our own Bosta API and update with real tracking.
+    const earlyFulfillmentId = await createShopifyFulfillment(orderId);
+    if (earlyFulfillmentId) {
+      req.log.info({ orderId, orderNumber }, "COD early fulfillment created to block Bosta App duplicate");
+    } else {
+      req.log.warn({ orderId, orderNumber }, "COD early fulfillment failed — Bosta App may create duplicate shipment");
+    }
+
     const trackingNumber = await createBostaShipment({
       firstName: customer.firstName,
       lastName: customer.lastName,
@@ -299,13 +311,14 @@ router.post("/orders/create", async (req, res) => {
       void tagShopifyOrder(orderId, `bosta-${trackingNumber}`);
       req.log.info({ trackingNumber, orderNumber }, "Bosta COD shipment created");
 
-      // Create a Shopify fulfillment immediately so the Bosta Shopify App sees
-      // the order as already fulfilled and does NOT create a competing Bosta
-      // shipment (which would have cod: 0 / "No Cash Collection"). This mirrors
-      // the card-orders and instapay dispatch flows in admin.ts.
-      const fulfillmentId = await createShopifyFulfillment(orderId, trackingNumber);
-      if (fulfillmentId) {
-        void addShopifyFulfillmentEvent(orderId, fulfillmentId, "in_transit");
+      if (earlyFulfillmentId) {
+        void addShopifyFulfillmentEvent(orderId, earlyFulfillmentId, "in_transit");
+      } else {
+        // Fallback: create a new fulfillment with the real tracking number
+        const fulfillmentId = await createShopifyFulfillment(orderId, trackingNumber);
+        if (fulfillmentId) {
+          void addShopifyFulfillmentEvent(orderId, fulfillmentId, "in_transit");
+        }
       }
     }
 

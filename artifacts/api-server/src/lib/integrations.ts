@@ -437,13 +437,21 @@ export async function findOrderByTrackingNote(
 
 export async function createShopifyFulfillment(
   orderId: number,
-  trackingNumber: string,
+  trackingNumber?: string,
 ): Promise<number | null> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return null;
 
   try {
+    const fulfillmentBody: Record<string, unknown> = {
+      notify_customer: false,
+    };
+    if (trackingNumber) {
+      fulfillmentBody.tracking_number = trackingNumber;
+      fulfillmentBody.tracking_company = "Bosta";
+      fulfillmentBody.tracking_url = `https://app.bosta.co/track-order/${trackingNumber}`;
+    }
     const res = await fetch(
       `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/fulfillments.json`,
       {
@@ -452,14 +460,7 @@ export async function createShopifyFulfillment(
           "Content-Type": "application/json",
           "X-Shopify-Access-Token": adminToken,
         },
-        body: JSON.stringify({
-          fulfillment: {
-            tracking_number: trackingNumber,
-            tracking_company: "Bosta",
-            tracking_url: `https://app.bosta.co/track-order/${trackingNumber}`,
-            notify_customer: false,
-          },
-        }),
+        body: JSON.stringify({ fulfillment: fulfillmentBody }),
       },
     );
     if (!res.ok) return null;
