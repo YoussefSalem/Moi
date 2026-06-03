@@ -41,10 +41,9 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
 
   const iconColor = dark ? "#1e1814" : scrolled ? "#1e1814" : "#fff";
   const navLinks = [
-    { label: "Versa Top", href: "/versa-top", scrollTo: "moi-versa-top" },
-    { label: "Wavvy top", href: "/wavvy-top", scrollTo: "moi-wavvy" },
+    { label: "Clothing", href: "/", scrollTo: "collection", isHome: true },
     { label: "Accessories", href: "/accessories", scrollTo: "accessories" },
-    { label: "Become an Ambassador", href: "/ambassador", scrollTo: "ambassador" },
+    { label: "Ambassador", href: "/ambassador", scrollTo: "ambassador" },
   ];
   const displayName = customer?.firstName ?? customer?.email?.split("@")[0] ?? null;
   const extraTop = inAppBrowser ? 44 : 0;
@@ -188,7 +187,7 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
                         onClick={(e) => {
                           e.preventDefault();
                           setMenuOpen(false);
-                          if (link.scrollTo === "moi-versa-top" || link.scrollTo === "moi-wavvy") {
+                          if ((link as { isHome?: boolean }).isHome) {
                             onNavigate?.("home", link.scrollTo);
                           } else {
                             onNavigate?.(link.scrollTo as "home" | "accessories" | "ambassador");
