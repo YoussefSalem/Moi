@@ -172,6 +172,76 @@
         {% endif %}
       </div>
     </div>
+
+    <!-- You May Also Like -->
+    <div class="moi-product-recs">
+      <p class="moi-product-recs__label">You May Also Like</p>
+      <div class="moi-product-recs__wrap">
+        <button class="moi-product-recs__arrow" id="recs-prev" aria-label="Scroll left">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+        </button>
+        <div class="moi-product-recs__track" id="recs-track">
+          {% assign rec_products = '' %}
+          {% if product.handle contains 'versa' or product.handle contains 'wavvy' %}
+            {% if all_products['moi-versa-top'] != blank %}
+              {% for v in all_products['moi-versa-top'].variants limit: 5 %}
+                <a href="{{ v.url }}" class="moi-product-recs__item">
+                  <div class="moi-product-recs__img-wrap">
+                    {% if v.featured_image != blank %}
+                      <img src="{{ v.featured_image | image_url: width: 400 }}" alt="{{ v.product.title }} — {{ v.option1 }}" loading="lazy">
+                    {% else %}
+                      <img src="{{ all_products['moi-versa-top'].featured_image | image_url: width: 400 }}" alt="{{ all_products['moi-versa-top'].title }}" loading="lazy">
+                    {% endif %}
+                  </div>
+                  <div class="moi-product-recs__color-row">
+                    <span class="moi-product-recs__swatch" style="background-color: {{ v.option1 | handleize | replace: 'light-blue', '#a8c8d8' | replace: 'navy', '#3a5a7a' | replace: 'mint', '#98c8a8' | replace: 'white', '#f5f0e8' | replace: 'cashmere', '#d4c4b0' | replace: 'beige', '#c8b8a0' | replace: 'yellow', '#e8d080' | replace: 'teal', '#4a8a8a' | replace: 'ivory', '#e3d4cb' }};"></span>
+                    <span class="moi-product-recs__color">{{ v.option1 }}</span>
+                  </div>
+                  <p class="moi-product-recs__name">{{ all_products['moi-versa-top'].title }}</p>
+                  <p class="moi-product-recs__price">{{ v.price | money }}</p>
+                </a>
+              {% endfor %}
+            {% endif %}
+            {% if all_products['moi-wavvy'] != blank %}
+              {% for v in all_products['moi-wavvy'].variants limit: 3 %}
+                <a href="{{ v.url }}" class="moi-product-recs__item">
+                  <div class="moi-product-recs__img-wrap">
+                    {% if v.featured_image != blank %}
+                      <img src="{{ v.featured_image | image_url: width: 400 }}" alt="{{ v.product.title }} — {{ v.option1 }}" loading="lazy">
+                    {% else %}
+                      <img src="{{ all_products['moi-wavvy'].featured_image | image_url: width: 400 }}" alt="{{ all_products['moi-wavvy'].title }}" loading="lazy">
+                    {% endif %}
+                  </div>
+                  <div class="moi-product-recs__color-row">
+                    <span class="moi-product-recs__swatch" style="background-color: {{ v.option1 | handleize | replace: 'light-blue', '#a8c8d8' | replace: 'navy', '#3a5a7a' | replace: 'mint', '#98c8a8' | replace: 'white', '#f5f0e8' | replace: 'cashmere', '#d4c4b0' | replace: 'beige', '#c8b8a0' | replace: 'yellow', '#e8d080' | replace: 'teal', '#4a8a8a' | replace: 'ivory', '#e3d4cb' }};"></span>
+                    <span class="moi-product-recs__color">{{ v.option1 }}</span>
+                  </div>
+                  <p class="moi-product-recs__name">{{ all_products['moi-wavvy'].title }}</p>
+                  <p class="moi-product-recs__price">{{ v.price | money }}</p>
+                </a>
+              {% endfor %}
+            {% endif %}
+          {% else %}
+            {% for p in collections.all.products limit: 6 %}
+              {% unless p.handle == product.handle %}
+                <a href="{{ p.url }}" class="moi-product-recs__item">
+                  <div class="moi-product-recs__img-wrap">
+                    {% if p.featured_image != blank %}
+                      <img src="{{ p.featured_image | image_url: width: 400 }}" alt="{{ p.title }}" loading="lazy">
+                    {% endif %}
+                  </div>
+                  <p class="moi-product-recs__name">{{ p.title }}</p>
+                  <p class="moi-product-recs__price">{{ p.price_min | money }}</p>
+                </a>
+              {% endunless %}
+            {% endfor %}
+          {% endif %}
+        </div>
+        <button class="moi-product-recs__arrow" id="recs-next" aria-label="Scroll right">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 

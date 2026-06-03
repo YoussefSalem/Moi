@@ -399,5 +399,21 @@
     }
   })();
 
+  // ━━━ You May Also Like scroll arrows ━━━━━━━━━━━━━━━━━━━━━
+  (function initRecsScroll() {
+    const track = document.getElementById('recs-track');
+    const prev = document.getElementById('recs-prev');
+    const next = document.getElementById('recs-next');
+    if (!track || !prev || !next) return;
+
+    const SCROLL_AMOUNT = 160;
+    prev.addEventListener('click', () => {
+      track.scrollBy({ left: -SCROLL_AMOUNT, behavior: 'smooth' });
+    });
+    next.addEventListener('click', () => {
+      track.scrollBy({ left: SCROLL_AMOUNT, behavior: 'smooth' });
+    });
+  })();
+
   console.log('MOI theme initialized');
 })();
