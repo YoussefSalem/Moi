@@ -530,16 +530,21 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 .moi-product-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: clamp(16px, 3vw, 28px);
-  justify-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(16px, 3vw, 24px);
+}
+
+.moi-color-card {
+  flex: 0 0 calc(50% - 12px);
+  max-width: 280px;
 }
 @media (min-width: 768px) {
-  .moi-product-grid { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .moi-color-card { flex: 0 0 calc(33.333% - 16px); max-width: 300px; }
 }
 @media (min-width: 1024px) {
-  .moi-product-grid { grid-template-columns: repeat(4, 1fr); gap: 28px; }
+  .moi-color-card { flex: 0 0 calc(25% - 18px); max-width: 320px; }
 }
 
 .moi-grid-2 {

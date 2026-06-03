@@ -21,159 +21,143 @@
       {% else %}
         {% assign grid_products = collections.all.products %}
       {% endif %}
+
       {% if grid_products.size > 0 %}
         {% for product in grid_products %}
-          {% assign current_variant = product.selected_or_first_available_variant %}
-          {% assign color_option = product.options_with_values | where: 'name', 'Color' | first %}
-          {% assign color_name = color_option.values[0] | default: '' %}
-          {% assign is_sold_out = true %}
-          {% for v in product.variants %}
-            {% if v.available %}{% assign is_sold_out = false %}{% endif %}
-          {% endfor %}
-          {% assign low_stock = false %}
-          {% if current_variant.inventory_quantity > 0 and current_variant.inventory_quantity < 10 %}
-            {% assign low_stock = true %}
-          {% endif %}
-          {% assign selling_fast = false %}
-          {% if product.handle contains 'light-blue' or product.handle contains 'light_blue' %}
-            {% assign selling_fast = true %}
-          {% endif %}
+          {% for variant in product.variants %}
+            {% assign variant_image = variant.featured_image | default: product.featured_image %}
+            {% assign color_name = variant.option1 | default: '' %}
+            {% assign variant_is_available = variant.available %}
+            {% assign variant_low_stock = false %}
+            {% if variant.inventory_quantity > 0 and variant.inventory_quantity < 10 %}
+              {% assign variant_low_stock = true %}
+            {% endif %}
+            {% assign swatch_color = color_name | handleize | replace: 'light-blue', '#a8c8d8' | replace: 'navy', '#3a5a7a' | replace: 'mint', '#98c8a8' | replace: 'white', '#f5f0e8' | replace: 'cashmere', '#d4c4b0' | replace: 'beige', '#c8b8a0' | replace: 'yellow', '#e8d080' | replace: 'teal', '#4a8a8a' | replace: 'ivory', '#e3d4cb' | replace: 'blush', '#e8c4b8' | replace: 'sage', '#b0c4a8' | replace: 'sand', '#d4c4a8' | replace: 'rust', '#c87040' %}
 
-          <div class="moi-grid-2 flex justify-center">
-            <a href="{{ product.url }}" class="moi-color-card moi-fade-in">
+            <a href="{{ product.url }}?variant={{ variant.id }}" class="moi-color-card moi-fade-in">
               <div class="moi-color-card__image">
-                <img
-                  src="{{ product.featured_image | image_url: width: 600 }}"
-                  alt="{{ product.title }}{% if color_name != blank %} — {{ color_name }}{% endif %}"
-                  loading="lazy"
-                  decoding="async"
-                  class="moi-color-card__main-img"
-                >
-                {% if product.images[1] != blank %}
-                  <div class="moi-color-card__image-hover">
-                    <img
-                      src="{{ product.images[1] | image_url: width: 600 }}"
-                      alt="{{ product.title }} alternate"
-                      loading="lazy"
-                      decoding="async"
-                    >
-                  </div>
+                {% if variant_image != blank %}
+                  <img
+                    src="{{ variant_image | image_url: width: 600 }}"
+                    alt="{{ product.title }}{% if color_name != blank %} — {{ color_name }}{% endif %}"
+                    loading="lazy"
+                    decoding="async"
+                    class="moi-color-card__main-img"
+                  >
+                {% else %}
+                  <img
+                    src="{{ product.featured_image | image_url: width: 600 }}"
+                    alt="{{ product.title }}"
+                    loading="lazy"
+                    decoding="async"
+                    class="moi-color-card__main-img"
+                  >
                 {% endif %}
-                {% if is_sold_out %}
+                {% unless variant_is_available %}
                   <div class="moi-color-card__sold-out">
                     <span>Sold Out</span>
                   </div>
-                {% endif %}
+                {% endunless %}
               </div>
 
               <div class="moi-color-card__info">
                 <div class="moi-color-card__color-row">
-                  {% if product.metafields.custom.color_swatch %}
-                    <span class="moi-color-card__swatch" style="background-color: {{ product.metafields.custom.color_swatch }};"></span>
-                  {% endif %}
                   {% if color_name != blank %}
+                    <span class="moi-color-card__swatch" style="background-color: {{ swatch_color }};"></span>
                     <span class="moi-color-card__color-name">{{ color_name }}</span>
-                  {% endif %}
-                  {% if selling_fast %}
-                    <span class="moi-color-card__badge">
-                      <span class="moi-color-card__badge-dot"></span>
-                      <span class="moi-color-card__badge-text">Selling Fast</span>
-                    </span>
                   {% endif %}
                 </div>
 
                 <h3 class="moi-color-card__product-name">{{ product.title }}</h3>
 
-                {% unless is_sold_out %}
-                  {% if low_stock %}
-                    <span class="moi-color-card__stock">Only {{ current_variant.inventory_quantity }} left</span>
-                  {% endif %}
-                {% endunless %}
+                {% if variant_is_available and variant_low_stock %}
+                  <span class="moi-color-card__stock">Only {{ variant.inventory_quantity }} left</span>
+                {% endif %}
 
                 <div class="moi-color-card__price">
-                  {% if current_variant.compare_at_price > current_variant.price %}
-                    <span class="moi-color-card__compare">{{ current_variant.compare_at_price | money }}</span>
+                  {% if variant.compare_at_price > variant.price %}
+                    <span class="moi-color-card__compare">{{ variant.compare_at_price | money }}</span>
                   {% endif %}
-                  <span class="moi-color-card__current-price {% if current_variant.compare_at_price > current_variant.price %}moi-color-card__current-price--sale{% endif %}">
-                    {{ current_variant.price | money }}
+                  <span class="moi-color-card__current-price {% if variant.compare_at_price > variant.price %}moi-color-card__current-price--sale{% endif %}">
+                    {{ variant.price | money }}
                   </span>
                 </div>
 
-                {% if is_sold_out %}
-                  <span class="moi-color-card__btn moi-color-card__btn--sold-out">Sold Out</span>
-                {% else %}
+                {% if variant_is_available %}
                   <span class="moi-color-card__btn">Order Now</span>
+                {% else %}
+                  <span class="moi-color-card__btn moi-color-card__btn--sold-out">Sold Out</span>
                 {% endif %}
               </div>
             </a>
-          </div>
+          {% endfor %}
         {% endfor %}
       {% else %}
         {% for block in section.blocks %}
-          <div class="moi-grid-2 flex justify-center">
-            <a href="{{ block.settings.product_url }}" class="moi-color-card moi-fade-in">
-              <div class="moi-color-card__image">
-                <img
-                  src="{{ block.settings.product_image | image_url: width: 600 }}"
-                  alt="{{ block.settings.product_title }}"
-                  loading="lazy"
-                  decoding="async"
-                  class="moi-color-card__main-img"
-                >
-                {% if block.settings.hover_image != blank %}
-                  <div class="moi-color-card__image-hover">
-                    <img
-                      src="{{ block.settings.hover_image | image_url: width: 600 }}"
-                      alt="{{ block.settings.product_title }} alternate"
-                      loading="lazy"
-                      decoding="async"
-                    >
-                  </div>
-                {% endif %}
-                {% if block.settings.sold_out %}
-                  <div class="moi-color-card__sold-out">
-                    <span>Sold Out</span>
-                  </div>
-                {% endif %}
-              </div>
-
-              <div class="moi-color-card__info">
-                <div class="moi-color-card__color-row">
-                  {% if block.settings.swatch_color != blank %}
-                    <span class="moi-color-card__swatch" style="background-color: {{ block.settings.swatch_color }};"></span>
-                  {% endif %}
-                  <span class="moi-color-card__color-name">{{ block.settings.color_name }}</span>
-                  {% if block.settings.selling_fast %}
-                    <span class="moi-color-card__badge">
-                      <span class="moi-color-card__badge-dot"></span>
-                      <span class="moi-color-card__badge-text">Selling Fast</span>
-                    </span>
-                  {% endif %}
+          <a href="{{ block.settings.product_url }}" class="moi-color-card moi-fade-in">
+            <div class="moi-color-card__image">
+              <img
+                src="{{ block.settings.product_image | image_url: width: 600 }}"
+                alt="{{ block.settings.product_title }}"
+                loading="lazy"
+                decoding="async"
+                class="moi-color-card__main-img"
+              >
+              {% if block.settings.hover_image != blank %}
+                <div class="moi-color-card__image-hover">
+                  <img
+                    src="{{ block.settings.hover_image | image_url: width: 600 }}"
+                    alt="{{ block.settings.product_title }} alternate"
+                    loading="lazy"
+                    decoding="async"
+                  >
                 </div>
+              {% endif %}
+              {% if block.settings.sold_out %}
+                <div class="moi-color-card__sold-out">
+                  <span>Sold Out</span>
+                </div>
+              {% endif %}
+            </div>
 
-                <h3 class="moi-color-card__product-name">{{ block.settings.product_title }}</h3>
-
-                {% unless block.settings.sold_out %}
-                  <span class="moi-color-card__stock">Only {{ block.settings.stock_count }} left</span>
-                {% endunless %}
-
-                <div class="moi-color-card__price">
-                  {% if block.settings.compare_price > block.settings.price %}
-                    <span class="moi-color-card__compare">{{ block.settings.compare_price | money }}</span>
-                  {% endif %}
-                  <span class="moi-color-card__current-price {% if block.settings.compare_price > block.settings.price %}moi-color-card__current-price--sale{% endif %}">
-                    {{ block.settings.price | money }}
+            <div class="moi-color-card__info">
+              <div class="moi-color-card__color-row">
+                {% if block.settings.swatch_color != blank %}
+                  <span class="moi-color-card__swatch" style="background-color: {{ block.settings.swatch_color }};"></span>
+                {% endif %}
+                <span class="moi-color-card__color-name">{{ block.settings.color_name }}</span>
+                {% if block.settings.selling_fast %}
+                  <span class="moi-color-card__badge">
+                    <span class="moi-color-card__badge-dot"></span>
+                    <span class="moi-color-card__badge-text">Selling Fast</span>
                   </span>
-                </div>
-
-                {% if block.settings.sold_out %}
-                  <span class="moi-color-card__btn moi-color-card__btn--sold-out">Sold Out</span>
-                {% else %}
-                  <span class="moi-color-card__btn">Order Now</span>
                 {% endif %}
               </div>
-            </a>
-          </div>
+
+              <h3 class="moi-color-card__product-name">{{ block.settings.product_title }}</h3>
+
+              {% unless block.settings.sold_out %}
+                {% if block.settings.stock_count > 0 and block.settings.stock_count < 10 %}
+                  <span class="moi-color-card__stock">Only {{ block.settings.stock_count }} left</span>
+                {% endif %}
+              {% endunless %}
+
+              <div class="moi-color-card__price">
+                {% if block.settings.compare_price > block.settings.price %}
+                  <span class="moi-color-card__compare">{{ block.settings.compare_price | money }}</span>
+                {% endif %}
+                <span class="moi-color-card__current-price {% if block.settings.compare_price > block.settings.price %}moi-color-card__current-price--sale{% endif %}">
+                  {{ block.settings.price | money }}
+                </span>
+              </div>
+
+              {% if block.settings.sold_out %}
+                <span class="moi-color-card__btn moi-color-card__btn--sold-out">Sold Out</span>
+              {% else %}
+                <span class="moi-color-card__btn">Order Now</span>
+              {% endif %}
+            </div>
+          </a>
         {% endfor %}
       {% endif %}
     </div>
@@ -207,7 +191,7 @@
       "type": "collection",
       "id": "collection",
       "label": "Collection",
-      "info": "Optional: auto-populate from Shopify collection"
+      "info": "Select a collection to auto-show all its product variants as cards"
     },
     {
       "type": "checkbox",
@@ -219,7 +203,7 @@
   "blocks": [
     {
       "type": "product",
-      "name": "Product",
+      "name": "Product Card",
       "settings": [
         {
           "type": "text",
@@ -265,7 +249,7 @@
           "type": "number",
           "id": "stock_count",
           "label": "Stock Count",
-          "default": 5
+          "default": 0
         },
         {
           "type": "checkbox",
@@ -284,15 +268,7 @@
   ],
   "presets": [
     {
-      "name": "Product Collection",
-      "blocks": [
-        {
-          "type": "product"
-        },
-        {
-          "type": "product"
-        }
-      ]
+      "name": "Product Collection"
     }
   ]
 }
