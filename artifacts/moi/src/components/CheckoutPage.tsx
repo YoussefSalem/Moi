@@ -452,11 +452,12 @@ export function CheckoutPage() {
         return;
       }
 
-      // Poll the popup until it closes, then check if checkout completed
+      // Poll the popup until it closes; use openedAt for time-based success detection
+      const openedAt = Date.now();
       const pollInterval = setInterval(() => {
         if (popup.closed) {
           clearInterval(pollInterval);
-          void handleShopifyApplePayPopupClosed(data.checkoutId!, resolvedTotal, cartItemsSnapshot);
+          void handleShopifyApplePayPopupClosed(openedAt, resolvedTotal, cartItemsSnapshot);
         }
       }, 800);
     } catch {
@@ -3303,7 +3304,7 @@ function openShopifyCheckoutPopup(checkoutUrl: string): Window | null {
 }
 
 async function handleShopifyApplePayPopupClosed(
-  checkoutId: string,
+  openedAt: number,
   resolvedTotal: string,
   cartItemsSnapshot: Array<{
     id: string;
@@ -3314,52 +3315,43 @@ async function handleShopifyApplePayPopupClosed(
     price: string;
   }>,
 ) {
-  try {
-    const { pollCheckoutUntilComplete } = await import("@/lib/shopify");
-    const result = await pollCheckoutUntilComplete(checkoutId, 60000, 3000);
-    if (result.orderNumber) {
-      // Success — transition to confirmation screen
-      const orderNumber = result.orderNumber;
-      const totalVal = parseFloat(resolvedTotal.replace(/[^\d.]/g, "")) || 0;
-      // Track analytics
-      if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
-        (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "purchase", {
-          transaction_id: String(orderNumber),
-          value: totalVal,
-          currency: "EGP",
-          items: cartItemsSnapshot.map((i) => ({ item_id: i.id, quantity: i.quantity })),
-        });
-      }
-      // Track Meta CAPI (best-effort)
-      try {
-        const res = await fetch("/api/meta-capi/purchase", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventId: `shopify_ap_${Date.now()}`,
-            value: totalVal,
-            currency: "EGP",
-            contentIds: cartItemsSnapshot.map((i) => i.id),
-          }),
-        });
-        if (!res.ok) { /* ignore */ }
-      } catch { /* ignore */ }
-      // Show confirmation overlay
-      const event = new CustomEvent("shopify-apple-pay-success", {
-        detail: { orderNumber, total: resolvedTotal, items: cartItemsSnapshot },
-      });
-      window.dispatchEvent(event);
-    } else {
-      // Cancelled or still processing
-      const event = new CustomEvent("shopify-apple-pay-cancel", {
-        detail: { checkoutId },
-      });
-      window.dispatchEvent(event);
-    }
-  } catch {
-    const event = new CustomEvent("shopify-apple-pay-cancel", {
-      detail: { checkoutId },
-    });
+  // Storefront API 2024-04 Cart type has no completedAt, so we use a
+  // time-based heuristic: popup open > 8 s = likely completed payment.
+  const elapsed = Date.now() - openedAt;
+  if (elapsed < 8000) {
+    const event = new CustomEvent("shopify-apple-pay-cancel", { detail: {} });
     window.dispatchEvent(event);
+    return;
   }
+
+  const totalVal = parseFloat(resolvedTotal.replace(/[^\d.]/g, "")) || 0;
+
+  // Track analytics (best-effort, no order number available from Cart API)
+  if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
+    (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "purchase", {
+      transaction_id: `ap_${Date.now()}`,
+      value: totalVal,
+      currency: "EGP",
+      items: cartItemsSnapshot.map((i) => ({ item_id: i.id, quantity: i.quantity })),
+    });
+  }
+  // Track Meta CAPI (best-effort)
+  try {
+    await fetch("/api/meta-capi/purchase", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventId: `shopify_ap_${Date.now()}`,
+        value: totalVal,
+        currency: "EGP",
+        contentIds: cartItemsSnapshot.map((i) => i.id),
+      }),
+    });
+  } catch { /* ignore */ }
+
+  // Show confirmation overlay (order number is null — user will get Shopify email)
+  const event = new CustomEvent("shopify-apple-pay-success", {
+    detail: { orderNumber: null, total: resolvedTotal, items: cartItemsSnapshot },
+  });
+  window.dispatchEvent(event);
 }

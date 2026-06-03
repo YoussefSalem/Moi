@@ -103,11 +103,20 @@ export function ShopifyApplePayButton({
 
       setPhase("ready");
 
-      // Poll the popup periodically until it closes
+      // Poll until popup closes, then infer success/cancel by how long it was open.
+      // The Storefront API 2024-04 Cart type has no completedAt, so we use a
+      // time-based heuristic: > 8 s open = likely paid, otherwise cancelled.
+      const openedAt = Date.now();
       const pollInterval = setInterval(() => {
         if (popup.closed) {
           clearInterval(pollInterval);
-          void handlePopupClosed(data.checkoutId!, data.checkoutUrl!, totalEGP, onSuccess, onCancel);
+          const elapsed = Date.now() - openedAt;
+          const totalStr = totalEGP != null ? `${Math.round(totalEGP)} EGP` : undefined;
+          if (elapsed > 8000) {
+            onSuccess?.(null, totalStr);
+          } else {
+            onCancel?.();
+          }
           setPhase("idle");
         }
       }, 800);
@@ -164,34 +173,3 @@ function openShopifyCheckoutPopup(checkoutUrl: string): Window | null {
   );
 }
 
-async function handlePopupClosed(
-  checkoutId: string,
-  checkoutUrl: string,
-  totalEGP: number | undefined,
-  onSuccess?: (orderNumber: number | null, total?: string) => void,
-  onCancel?: () => void,
-) {
-  // Poll the Storefront API to see if the checkout was completed
-  try {
-    const { pollCheckoutUntilComplete } = await import("@/lib/shopify");
-    const result = await pollCheckoutUntilComplete(checkoutId, 60000, 3000);
-    if (result.orderNumber) {
-      const totalStr = totalEGP != null ? `${totalEGP.toFixed(0)} EGP` : undefined;
-      onSuccess?.(result.orderNumber, totalStr);
-    } else if (result.error) {
-      // Check once more after a short delay in case of race
-      await new Promise((r) => setTimeout(r, 3000));
-      const retry = await pollCheckoutUntilComplete(checkoutId, 15000, 2000);
-      if (retry.orderNumber) {
-        const totalStr = totalEGP != null ? `${totalEGP.toFixed(0)} EGP` : undefined;
-        onSuccess?.(retry.orderNumber, totalStr);
-      } else {
-        onCancel?.();
-      }
-    } else {
-      onCancel?.();
-    }
-  } catch {
-    onCancel?.();
-  }
-}
