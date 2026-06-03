@@ -32,7 +32,7 @@
             {% unless seen_colors contains color_key %}
               {% assign seen_colors = seen_colors | append: color_key %}
 
-              {% comment %} Aggregate stock + availability across all sizes for this color {% endcomment %}
+              {% comment %} Aggregate stock + availability across ALL sizes for this color {% endcomment %}
               {% assign color_stock = 0 %}
               {% assign color_available = false %}
               {% assign first_variant = nil %}
@@ -46,14 +46,12 @@
                 {% endif %}
               {% endfor %}
 
-              {% comment %} Pick image: variant image → product featured image {% endcomment %}
               {% if first_variant.featured_image != blank %}
                 {% assign card_image = first_variant.featured_image %}
               {% else %}
                 {% assign card_image = product.featured_image %}
               {% endif %}
 
-              {% comment %} Swatch color mapping {% endcomment %}
               {% assign color_lower = color_name | downcase %}
               {% if color_lower == 'light blue' %}{% assign swatch_hex = '#a8c8d8' %}
               {% elsif color_lower == 'navy' %}{% assign swatch_hex = '#3a5a7a' %}
@@ -64,18 +62,9 @@
               {% elsif color_lower == 'yellow' %}{% assign swatch_hex = '#e8d080' %}
               {% elsif color_lower == 'teal' %}{% assign swatch_hex = '#4a8a8a' %}
               {% elsif color_lower == 'ivory' %}{% assign swatch_hex = '#e3d4cb' %}
-              {% elsif color_lower == 'blush' %}{% assign swatch_hex = '#e8c4b8' %}
-              {% elsif color_lower == 'sage' %}{% assign swatch_hex = '#b0c4a8' %}
               {% else %}{% assign swatch_hex = '#c8b8a0' %}
               {% endif %}
 
-              {% comment %} Selling Fast: stock ≤ 5 and still available {% endcomment %}
-              {% assign selling_fast = false %}
-              {% if color_available and color_stock <= 5 and color_stock > 0 %}
-                {% assign selling_fast = true %}
-              {% endif %}
-
-              {% comment %} Low stock label threshold {% endcomment %}
               {% assign show_stock = false %}
               {% if color_available and color_stock > 0 and color_stock <= 10 %}
                 {% assign show_stock = true %}
@@ -87,8 +76,7 @@
                     <img
                       src="{{ card_image | image_url: width: 600 }}"
                       alt="{{ product.title }}{% if color_name != blank %} — {{ color_name }}{% endif %}"
-                      loading="lazy"
-                      decoding="async"
+                      loading="lazy" decoding="async"
                       class="moi-color-card__main-img"
                     >
                   {% endif %}
@@ -101,12 +89,6 @@
                   <div class="moi-color-card__color-row">
                     <span class="moi-color-card__swatch" style="background-color: {{ swatch_hex }};"></span>
                     <span class="moi-color-card__color-name">{{ color_name }}</span>
-                    {% if selling_fast %}
-                      <span class="moi-color-card__badge">
-                        <span class="moi-color-card__badge-dot"></span>
-                        <span class="moi-color-card__badge-text">Selling Fast</span>
-                      </span>
-                    {% endif %}
                   </div>
 
                   <div class="moi-color-card__name-row">
@@ -136,7 +118,6 @@
           {% endfor %}
         {% endfor %}
       {% else %}
-        {% comment %} Manual blocks fallback {% endcomment %}
         {% for block in section.blocks %}
           <a href="{{ block.settings.product_url }}" class="moi-color-card moi-fade-in">
             <div class="moi-color-card__image">
@@ -151,12 +132,6 @@
                   <span class="moi-color-card__swatch" style="background-color: {{ block.settings.swatch_color }};"></span>
                 {% endif %}
                 <span class="moi-color-card__color-name">{{ block.settings.color_name }}</span>
-                {% if block.settings.selling_fast %}
-                  <span class="moi-color-card__badge">
-                    <span class="moi-color-card__badge-dot"></span>
-                    <span class="moi-color-card__badge-text">Selling Fast</span>
-                  </span>
-                {% endif %}
               </div>
               <div class="moi-color-card__name-row">
                 <h3 class="moi-color-card__product-name">{{ block.settings.product_title }}</h3>
@@ -187,12 +162,12 @@
 
 {% schema %}
 {
-  "name": "MOI WAVVY Collection",
+  "name": "MOI VERSA TOP Collection",
   "settings": [
-    { "type": "text", "id": "section_id", "label": "Section ID", "default": "wavvy" },
-    { "type": "text", "id": "section_title", "label": "Section Title", "default": "MOI WAVVY" },
-    { "type": "text", "id": "section_subtitle", "label": "Section Subtitle", "default": "The ultimate throw-and-go. Light, breathable, and made for drifting." },
-    { "type": "collection", "id": "collection", "label": "Collection", "info": "Select MOI WAVVY collection" },
+    { "type": "text", "id": "section_id", "label": "Section ID", "default": "versa-top" },
+    { "type": "text", "id": "section_title", "label": "Section Title", "default": "MOI VERSA TOP" },
+    { "type": "text", "id": "section_subtitle", "label": "Section Subtitle", "default": "Effortlessly versatile. A silhouette that moves with you, in every shade of summer." },
+    { "type": "collection", "id": "collection", "label": "Collection", "info": "Select MOI VERSA TOP collection — each color shows as 1 card, size is selected on the product page" },
     { "type": "checkbox", "id": "dark_background", "label": "Dark Background", "default": false }
   ],
   "blocks": [
@@ -205,14 +180,13 @@
         { "type": "color", "id": "swatch_color", "label": "Swatch Color" },
         { "type": "image_picker", "id": "product_image", "label": "Product Image" },
         { "type": "url", "id": "product_url", "label": "Product URL" },
-        { "type": "number", "id": "price", "label": "Price (cents)", "default": 89900 },
-        { "type": "number", "id": "compare_price", "label": "Compare Price (cents)", "default": 150000 },
+        { "type": "number", "id": "price", "label": "Price (cents)", "default": 139900 },
+        { "type": "number", "id": "compare_price", "label": "Compare Price (cents)", "default": 180000 },
         { "type": "number", "id": "stock_count", "label": "Stock Count", "default": 0 },
-        { "type": "checkbox", "id": "sold_out", "label": "Sold Out", "default": false },
-        { "type": "checkbox", "id": "selling_fast", "label": "Selling Fast", "default": false }
+        { "type": "checkbox", "id": "sold_out", "label": "Sold Out", "default": false }
       ]
     }
   ],
-  "presets": [{ "name": "MOI WAVVY Collection" }]
+  "presets": [{ "name": "MOI VERSA TOP Collection" }]
 }
 {% endschema %}
