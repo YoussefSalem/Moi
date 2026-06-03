@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
 import { getPaymobConfig } from "../lib/paymobConfig";
-import { createApplePayPaymentKeyRaw } from "../lib/paymob";
 import { type OrderLine, type CustomerInfo, type OrderAttribution } from "../lib/shopifyOrder";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
@@ -17,13 +16,12 @@ const SHIPPING_EGP = 50;
  *
  * Called by the frontend's ApplePaySession.onvalidatemerchant callback.
  * 1. Creates a Paymob intent record in the DB.
- * 2. Obtains a Paymob legacy payment key (for Apple Pay integration).
- * 3. Proxies Apple Pay merchant validation to Paymob.
- * Returns { merchantSession, intentId, paymobPaymentKey, total }.
+ * 2. Calls Paymob's merchant validation endpoint (no auth required).
+ * Returns { merchantSession, intentId }.
  */
 router.post("/apple-pay/validate-merchant", async (req, res) => {
   const config = getPaymobConfig();
-  if (!config.apiKey || !config.integrationId) {
+  if (!config.integrationId) {
     res.status(503).json({ error: "Apple Pay is not configured." });
     return;
   }
@@ -72,7 +70,6 @@ router.post("/apple-pay/validate-merchant", async (req, res) => {
 
   const amountCents = clientTotalAmountCents;
   const total = (amountCents / 100).toFixed(2);
-
   const lines = body.lines as OrderLine[];
   const discountCode =
     typeof body.discountCode === "string" && body.discountCode.trim()
@@ -120,75 +117,64 @@ router.post("/apple-pay/validate-merchant", async (req, res) => {
     checkoutToken: null,
   });
 
-  req.log.info({ intentId, amountCents, total }, "Apple Pay direct: intent saved — creating payment key");
-
-  let paymobPaymentKey: string;
-  let merchantSession: unknown;
+  req.log.info({ intentId, amountCents, total }, "Apple Pay: intent saved — calling Paymob merchant validate");
 
   try {
-    const [keyResult, validationResult] = await Promise.all([
-      createApplePayPaymentKeyRaw({ amountCents, merchantOrderId: intentId }),
-      (async () => {
-        const validationRes = await fetch(
-          "https://accept.paymob.com/api/auth/merchant/validate",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              appleURL: body.validationURL,
-              integrationId: config.integrationId,
-            }),
-          },
-        );
-        // Paymob returns HTTP 400 even on success — check body instead of status
-        const text = await validationRes.text();
-        let data: { api_response?: unknown };
-        try {
-          data = JSON.parse(text) as { api_response?: unknown };
-        } catch {
-          throw new Error(`Paymob merchant validation returned non-JSON (${validationRes.status}): ${text}`);
-        }
-        if (!data.api_response) {
-          throw new Error(`Paymob merchant validation failed (${validationRes.status}): ${text}`);
-        }
-        return data.api_response;
-      })(),
-    ]);
+    const validationRes = await fetch(
+      "https://accept.paymob.com/api/auth/merchant/validate",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appleURL: body.validationURL,
+          integrationId: config.integrationId,
+        }),
+      },
+    );
 
-    paymobPaymentKey = keyResult.paymentToken;
-    merchantSession = validationResult;
+    // Paymob returns HTTP 400 even on success — check body instead of status
+    const text = await validationRes.text();
+    let data: { api_response?: unknown };
+    try {
+      data = JSON.parse(text) as { api_response?: unknown };
+    } catch {
+      throw new Error(`Paymob merchant validation returned non-JSON (${validationRes.status}): ${text}`);
+    }
+    if (!data.api_response) {
+      throw new Error(`Paymob merchant validation failed (${validationRes.status}): ${text}`);
+    }
+
+    req.log.info({ intentId }, "Apple Pay: merchant validation complete");
+
+    res.status(200).json({
+      merchantSession: data.api_response,
+      intentId,
+      total,
+      shippingEGP: SHIPPING_EGP,
+    });
   } catch (err) {
-    req.log.error({ err, intentId }, "Apple Pay direct: payment key or merchant validation failed");
+    req.log.error({ err, intentId }, "Apple Pay: merchant validation failed");
     await db.delete(paymobIntents).where(eq(paymobIntents.intentId, intentId));
     res.status(500).json({ error: "Apple Pay is unavailable right now. Please try another payment method." });
-    return;
   }
-
-  req.log.info({ intentId }, "Apple Pay direct: payment key and merchant validation complete");
-
-  res.status(200).json({
-    merchantSession,
-    intentId,
-    paymobPaymentKey,
-    total,
-    shippingEGP: SHIPPING_EGP,
-  });
 });
 
 /**
  * POST /api/apple-pay/authorize
  *
  * Called by the frontend's ApplePaySession.onpaymentauthorized callback.
- * 1. Updates the intent's customer info with the Apple Pay shippingContact data.
- * 2. Submits the Apple Pay token to Paymob's /api/acceptance/payments/pay.
- * 3. On success, calls processPaymobSuccess to create the Shopify order.
- * Returns { success, txnId, shopifyOrderId, shopifyOrderNumber, total }.
+ * 1. Updates the intent's customer info with Apple Pay shippingContact data.
+ * 2. Creates a Paymob Intention (v1, using secretKey) for the order amount.
+ * 3. Charges it immediately with the Apple Pay token via v1/payments/pay.
+ * 4. On success, calls processPaymobSuccess to create the Shopify order.
+ * Returns { success, txnId, shopifyOrderNumber, total }.
  */
 router.post("/apple-pay/authorize", async (req, res) => {
+  const config = getPaymobConfig();
+
   const body = req.body as {
     paymentData?: unknown;
     intentId?: unknown;
-    paymobPaymentKey?: unknown;
     shippingContact?: unknown;
   };
 
@@ -200,15 +186,10 @@ router.post("/apple-pay/authorize", async (req, res) => {
     res.status(400).json({ success: false, error: "intentId is required." });
     return;
   }
-  if (typeof body.paymobPaymentKey !== "string" || !body.paymobPaymentKey) {
-    res.status(400).json({ success: false, error: "paymobPaymentKey is required." });
-    return;
-  }
 
-  const { paymentData, intentId, paymobPaymentKey } = body as {
+  const { paymentData, intentId } = body as {
     paymentData: string;
     intentId: string;
-    paymobPaymentKey: string;
   };
 
   const sc = (body.shippingContact ?? {}) as {
@@ -257,21 +238,89 @@ router.post("/apple-pay/authorize", async (req, res) => {
     .set({ customer: customer as unknown as Record<string, unknown> })
     .where(eq(paymobIntents.intentId, intentId));
 
-  req.log.info({ intentId, amountCents }, "Apple Pay direct: submitting token to Paymob");
+  req.log.info({ intentId, amountCents }, "Apple Pay: creating Paymob intention");
 
+  // Step 1: Create a Paymob Intention (modern API, uses secretKey)
+  let clientSecret: string;
+  try {
+    const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
+    const notificationUrl = domain ? `https://${domain}/api/webhooks/paymob` : undefined;
+
+    const intentionBody: Record<string, unknown> = {
+      amount: amountCents,
+      currency: "EGP",
+      payment_methods: [parseInt(config.integrationId, 10)],
+      items: [{ name: "Moi Order", amount: amountCents, description: "Fashion order", quantity: 1 }],
+      billing_data: {
+        first_name: customer.firstName,
+        last_name: customer.lastName,
+        email: customer.email || "NA",
+        phone_number: customer.phone,
+        street: customer.address,
+        city: customer.city,
+        country: "EG",
+        state: "NA",
+        postal_code: "NA",
+        apartment: "NA",
+        floor: "NA",
+        building: "NA",
+      },
+      customer: {
+        first_name: customer.firstName,
+        last_name: customer.lastName,
+        email: customer.email || "NA",
+      },
+      extras: { merchant_order_id: intentId },
+      merchant_order_id: intentId,
+    };
+    if (notificationUrl) intentionBody["notification_url"] = notificationUrl;
+
+    const intentionRes = await fetch("https://accept.paymob.com/v1/intention/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Token ${config.secretKey}`,
+      },
+      body: JSON.stringify(intentionBody),
+    });
+
+    if (!intentionRes.ok) {
+      const text = await intentionRes.text();
+      req.log.error({ status: intentionRes.status, text, intentId }, "Apple Pay: Paymob intention creation failed");
+      res.status(500).json({ success: false, error: "Payment processing failed. Please try again." });
+      return;
+    }
+
+    const intentionData = await intentionRes.json() as { client_secret?: string };
+    if (!intentionData.client_secret) {
+      req.log.error({ intentionData, intentId }, "Apple Pay: Paymob intention returned no client_secret");
+      res.status(500).json({ success: false, error: "Payment processing failed. Please try again." });
+      return;
+    }
+    clientSecret = intentionData.client_secret;
+    req.log.info({ intentId }, "Apple Pay: Paymob intention created — charging with token");
+  } catch (err) {
+    req.log.error({ err, intentId }, "Apple Pay: intention creation threw");
+    res.status(500).json({ success: false, error: "Payment processing failed. Please try again." });
+    return;
+  }
+
+  // Step 2: Charge the intention with the Apple Pay token
   let paymobSuccess = false;
   let paymobTxnId: string | undefined;
-  let paymobDeclined = false;
 
   try {
-    const payRes = await fetch("https://accept.paymob.com/api/acceptance/payments/pay", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        source: { identifier: paymentData, subtype: "APPLE_PAY" },
-        payment_token: paymobPaymentKey,
-      }),
-    });
+    const payRes = await fetch(
+      `https://accept.paymob.com/v1/payments/pay/?publicKey=${encodeURIComponent(config.publicKey)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payment_token: clientSecret,
+          source: { identifier: paymentData, subtype: "APPLE_PAY" },
+        }),
+      },
+    );
 
     const payData = await payRes.json() as {
       success?: boolean | string;
@@ -282,22 +331,16 @@ router.post("/apple-pay/authorize", async (req, res) => {
 
     const txnId = String(payData.id ?? payData.obj?.id ?? "");
     paymobTxnId = txnId || undefined;
-
     const successVal = String(payData.success ?? payData.obj?.success ?? "false");
-    const pendingVal = String(payData.pending ?? "false");
-
-    if (payRes.status === 200 && successVal === "true") {
-      paymobSuccess = true;
-    } else if (payRes.status === 200 && successVal === "false" && pendingVal === "false") {
-      paymobDeclined = true;
-    }
 
     req.log.info(
-      { intentId, paymobSuccess, paymobDeclined, txnId, status: payRes.status },
-      "Apple Pay direct: Paymob payment response",
+      { intentId, paymobSuccess: successVal, txnId, status: payRes.status, payData },
+      "Apple Pay: Paymob pay response",
     );
+
+    if (successVal === "true") paymobSuccess = true;
   } catch (err) {
-    req.log.error({ err, intentId }, "Apple Pay direct: Paymob payment request failed");
+    req.log.error({ err, intentId }, "Apple Pay: Paymob pay request failed");
     res.status(500).json({ success: false, error: "Payment processing failed. Please try again." });
     return;
   }
@@ -307,11 +350,7 @@ router.post("/apple-pay/authorize", async (req, res) => {
       .update(paymobIntents)
       .set({ status: "failed" })
       .where(eq(paymobIntents.intentId, intentId));
-
-    const errorMsg = paymobDeclined
-      ? "Payment was declined. Please try another card."
-      : "Payment could not be processed. Please try again.";
-    res.status(200).json({ success: false, error: errorMsg });
+    res.status(200).json({ success: false, error: "Payment was declined. Please try another card." });
     return;
   }
 
@@ -323,31 +362,25 @@ router.post("/apple-pay/authorize", async (req, res) => {
       paymentChannel: "apple-pay",
     });
   } catch (err) {
-    req.log.error({ err, intentId }, "Apple Pay direct: processPaymobSuccess failed");
+    req.log.error({ err, intentId }, "Apple Pay: processPaymobSuccess failed");
   }
 
   const updated = await db
-    .select({
-      shopifyOrderId: paymobIntents.shopifyOrderId,
-      shopifyOrderNumber: paymobIntents.shopifyOrderNumber,
-    })
+    .select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
     .from(paymobIntents)
     .where(eq(paymobIntents.intentId, intentId))
     .limit(1);
 
-  const shopifyOrderId = updated[0]?.shopifyOrderId ?? undefined;
-  const shopifyOrderNumber = updated[0]?.shopifyOrderNumber ?? undefined;
-
   req.log.info(
-    { intentId, paymobTxnId, shopifyOrderId, shopifyOrderNumber },
-    "Apple Pay direct: payment complete",
+    { intentId, paymobTxnId, shopifyOrderNumber: updated[0]?.shopifyOrderNumber },
+    "Apple Pay: payment complete",
   );
 
   res.status(200).json({
     success: true,
     txnId: paymobTxnId,
-    shopifyOrderId: shopifyOrderId ?? null,
-    shopifyOrderNumber: shopifyOrderNumber ?? null,
+    shopifyOrderId: updated[0]?.shopifyOrderId ?? null,
+    shopifyOrderNumber: updated[0]?.shopifyOrderNumber ?? null,
     total,
   });
 });

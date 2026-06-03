@@ -111,7 +111,6 @@ export function ShopifyApplePayButton({
 
     /* Stored between onvalidatemerchant → onpaymentauthorized */
     let intentId: string | undefined;
-    let paymobPaymentKey: string | undefined;
 
     session.onvalidatemerchant = async ({ validationURL }) => {
       try {
@@ -121,8 +120,7 @@ export function ShopifyApplePayButton({
           body: JSON.stringify({ validationURL, lines, totalAmountCents }),
         });
         const data = await res.json() as {
-          merchantSession?: unknown; intentId?: string;
-          paymobPaymentKey?: string; error?: string;
+          merchantSession?: unknown; intentId?: string; error?: string;
         };
         if (!res.ok || !data.merchantSession) {
           session.abort();
@@ -130,7 +128,6 @@ export function ShopifyApplePayButton({
           return;
         }
         intentId = data.intentId;
-        paymobPaymentKey = data.paymobPaymentKey;
         session.completeMerchantValidation(data.merchantSession);
       } catch {
         session.abort();
@@ -147,7 +144,6 @@ export function ShopifyApplePayButton({
           body: JSON.stringify({
             paymentData: JSON.stringify(event.payment.token.paymentData),
             intentId: intentId ?? "",
-            paymobPaymentKey: paymobPaymentKey ?? "",
             shippingContact: {
               firstName: sc.givenName ?? "",
               lastName: sc.familyName ?? "",
