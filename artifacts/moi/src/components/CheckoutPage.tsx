@@ -2019,11 +2019,11 @@ export function CheckoutPage() {
                       </p>
                     </button>
                   ))}
-                  {/* Apple Pay tile — redirects to Shopify hosted checkout (handles Apple Pay via Paymob) */}
-                  {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && checkoutUrl && (
+                  {/* Apple Pay tile — triggers Paymob Pixel SDK (handles Apple Pay on Paymob's registered domain) */}
+                  {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
                     <button
                       type="button"
-                      onClick={() => { window.location.href = checkoutUrl; }}
+                      onClick={() => { if (!applePayData) void triggerApplePayDirectInit(); }}
                       className="text-left transition-all"
                       style={{
                         padding: "14px 12px",

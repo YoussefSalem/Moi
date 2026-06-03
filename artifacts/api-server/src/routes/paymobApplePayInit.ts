@@ -28,11 +28,11 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
     return;
   }
 
-  // Apple Pay REQUIRES a dedicated Apple Pay integration ID from Paymob.
-  // The regular card integration cannot process Apple Pay tokens, so never fall back to it.
-  const rawIntegrationId = config.applePayIntegrationId;
+  // Use Apple Pay integration if configured, otherwise fall back to the card integration.
+  // The Paymob Pixel SDK handles Apple Pay on Paymob's registered domain either way.
+  const rawIntegrationId = config.applePayIntegrationId || config.integrationId;
   if (!rawIntegrationId) {
-    res.status(503).json({ error: "Apple Pay is not configured. Please contact support." });
+    res.status(503).json({ error: "Payment gateway is not configured." });
     return;
   }
 
@@ -173,7 +173,7 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
     billing_data: {
       first_name: customer?.firstName?.trim() || "Apple",
       last_name: customer?.lastName?.trim() || "Pay",
-      email: customer?.email?.trim() || "NA",
+      email: customer?.email?.trim() || "guest@buy-moi.com",
       phone_number: customer?.phone?.trim() || "NA",
       street: customer?.address?.trim() || "NA",
       city: customer?.city?.trim() || "Cairo",
@@ -187,7 +187,7 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
     customer: {
       first_name: customer?.firstName?.trim() || "Apple",
       last_name: customer?.lastName?.trim() || "Pay",
-      email: customer?.email?.trim() || "NA",
+      email: customer?.email?.trim() || "guest@buy-moi.com",
     },
     extras: {
       merchant_order_id: intentId,
