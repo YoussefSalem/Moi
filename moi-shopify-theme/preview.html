@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MOI — Premium Versatile Tops & Fashion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/moi-theme.css">
+<style>
+/* ================================================
+   LOADING SCREEN — 1:1 from LoadingScreen.tsx
+   ================================================ */
+.moi-loader {
+  position:fixed;inset:0;z-index:100;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:#faf8f5;
+  transition:opacity .6s cubic-bezier(.22,1,.36,1),visibility .6s;
+}
+.moi-loader--hidden { opacity:0;visibility:hidden;pointer-events:none }
+.moi-loader__brand {
+  font-family:'Cormorant Garamond',Georgia,serif;
+  font-size:clamp(3.12rem,10vw,5.2rem);font-weight:300;letter-spacing:.12em;color:#1e1814;
+  animation:loaderBrand .8s cubic-bezier(.22,1,.36,1) forwards;
+  opacity:0;transform:translateY(8px);
+}
+.moi-loader__track {
+  margin-top:24px;width:80px;height:2px;border-radius:999px;
+  background:rgba(30,24,20,.08);overflow:hidden;
+}
+.moi-loader__shimmer {
+  width:24px;height:100%;border-radius:999px;
+  background:rgba(30,24,20,.28);
+  animation:loaderShimmer 1.8s ease-in-out infinite;
+}
+.moi-loader__text {
+  margin-top:20px;font-family:'Montserrat',sans-serif;
+  font-size:9px;letter-spacing:.35em;text-transform:uppercase;
+  color:rgba(30,24,20,.45);
+  animation:loaderText .8s ease-out .4s forwards;opacity:0;
+}
+@keyframes loaderBrand { to { opacity:1;transform:translateY(0) } }
+@keyframes loaderShimmer { 0%,100%{transform:translateX(-24px)} 50%{transform:translateX(80px)} }
+@keyframes loaderText { to { opacity:.35 } }
+
+/* ================================================
+   PAGE TRANSITIONS — 1:1 from App.tsx AnimatePresence
+   ================================================ */
+.moi-app { transition:opacity .3s ease; }
+.moi-app.is-exiting { opacity:0 }
+
+/* ================================================
+   CHECKOUT PAGE — Elegant card layout
+   ================================================ */
+.moi-checkout-page {
+  min-height:100vh;background:#efe6da;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:80px 24px;
+}
+.moi-checkout-card {
+  max-width:520px;width:100%;background:#faf8f5;border-radius:16px;
+  padding:48px 32px;text-align:center;
+  box-shadow:0 24px 80px rgba(20,16,12,.12);
+  border:1px solid rgba(180,160,140,.18);
+  animation:checkoutEnter .6s cubic-bezier(.22,1,.36,1) forwards;
+  opacity:0;transform:translateY(20px);
+}
+@keyframes checkoutEnter { to { opacity:1;transform:translateY(0) } }
+.moi-checkout-card__title {
+  font-family:'Cormorant Garamond',Georgia,serif;
+  font-size:clamp(1.8rem,5vw,2.8rem);font-weight:300;color:#1e1814;letter-spacing:.04em;margin-bottom:12px;
+}
+.moi-checkout-card__subtitle {
+  font-family:'Montserrat',sans-serif;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+  color:#8a7e74;margin-bottom:32px;
+}
+.moi-checkout-card__secure {
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:#7a6e74;margin-bottom:24px;
+}
+.moi-checkout-card__secure svg { width:14px;height:14px;opacity:.6 }
+.moi-checkout-card__btn {
+  display:inline-block;padding:16px 48px;
+  background:#1e1814;color:#faf8f5;
+  font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:.32em;text-transform:uppercase;
+  border-radius:6px;border:none;cursor:pointer;transition:all .3s ease;
+}
+.moi-checkout-card__btn:hover { background:#2d231c;transform:scale(1.02) }
+.moi-checkout-card__cards {
+  display:flex;gap:12px;justify-content:center;margin-top:28px;opacity:.5;
+}
+.moi-checkout-card__cards span {
+  font-family:'Montserrat',sans-serif;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#8a7e74;
+}
+
+/* ================================================
+   DEMO PAGE SWITCHER
+   ================================================ */
+.moi-demo-nav {
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:90;
+  display:flex;gap:8px;background:rgba(250,248,245,.92);backdrop-filter:blur(12px);
+  padding:8px 16px;border-radius:999px;
+  box-shadow:0 4px 20px rgba(20,16,12,.1);
+  border:1px solid rgba(180,160,140,.18);
+}
+.moi-demo-nav button {
+  font-family:'Montserrat',sans-serif;font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+  padding:8px 16px;border-radius:999px;background:transparent;color:#8a7e74;transition:all .2s ease;
+}
+.moi-demo-nav button.active { background:#1e1814;color:#faf8f5 }
+.moi-demo-nav button:hover:not(.active) { background:rgba(30,24,20,.06) }
+
+/* ================================================
+   CART TOAST
+   ================================================ */
+.moi-cart-toast {
+  position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:95;
+  background:#1e1814;color:#fff;font-family:'Montserrat',sans-serif;
+  font-size:11px;letter-spacing:.12em;padding:12px 24px;border-radius:6px;
+  animation:toastIn .3s ease,toastOut .3s ease 2.2s forwards;white-space:nowrap;
+}
+@keyframes toastIn { from { opacity:0;transform:translateX(-50%) translateY(-10px) } to { opacity:1;transform:translateX(-50%) translateY(0) } }
+@keyframes toastOut { from { opacity:1;transform:translateX(-50%) translateY(0) } to { opacity:0;transform:translateX(-50%) translateY(-10px) } }
+
+/* ================================================
+   LIGHTBOX
+   ================================================ */
+.moi-lightbox {
+  position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.92);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;visibility:hidden;transition:opacity .4s ease,visibility .4s ease;
+}
+.moi-lightbox.is-open { opacity:1;visibility:visible }
+.moi-lightbox__img { max-width:92vw;max-height:92vh;object-fit:contain;border-radius:4px;box-shadow:0 24px 80px rgba(0,0,0,.4);transform:scale(.95);transition:transform .4s cubic-bezier(.22,1,.36,1) }
+.moi-lightbox.is-open .moi-lightbox__img { transform:scale(1) }
+.moi-lightbox__close { position:absolute;top:24px;right:24px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s ease }
+.moi-lightbox__close:hover { background:rgba(255,255,255,.2) }
+.moi-lightbox__prev,.moi-lightbox__next { position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s ease }
+.moi-lightbox__prev:hover,.moi-lightbox__next:hover { background:rgba(255,255,255,.2) }
+.moi-lightbox__prev { left:24px } .moi-lightbox__next { right:24px }
+
+/* ================================================
+   PRODUCT PAGE STYLES
+   ================================================ */
+.moi-product-page__back { padding:80px 24px 12px }
+.moi-product-page__back button { display:flex;align-items:center;gap:6px;font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:#8a7e74;transition:color .3s;background:none;border:none;cursor:pointer }
+.moi-product-page__back button:hover { color:rgba(30,24,20,.85) }
+.moi-product-page__back button svg { width:14px;height:14px }
+.moi-product-page__layout { display:grid;grid-template-columns:1fr;max-width:1280px;margin:0 auto;padding:24px;gap:24px }
+@media(min-width:768px){ .moi-product-page__layout { grid-template-columns:1fr 1fr;gap:48px;padding:48px } }
+@media(min-width:1024px){ .moi-product-page__layout { gap:64px;padding:64px } }
+.moi-product-page__gallery { display:flex;flex-direction:column;gap:16px }
+.moi-product-page__gallery-main { position:relative;overflow:hidden;border-radius:12px;background:#fff;aspect-ratio:4/5;cursor:pointer }
+@media(min-width:768px){ .moi-product-page__gallery-main { aspect-ratio:3/4 } }
+.moi-product-page__gallery-main img { width:100%;height:100%;object-fit:cover;transition:opacity .4s ease }
+.moi-product-page__gallery-hint { position:absolute;bottom:12px;right:12px;font-family:'Montserrat',sans-serif;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:rgba(30,24,20,.35) }
+.moi-product-page__thumbs { display:flex;gap:8px;flex-wrap:wrap;justify-content:center }
+.moi-product-page__thumb { width:64px;height:80px;overflow:hidden;border-radius:4px;cursor:pointer;transition:all .2s ease;background:#fff;border:none;padding:0 }
+.moi-product-page__thumb img { width:100%;height:100%;object-fit:cover }
+
+/* Info */
+.moi-product-page__info { display:flex;flex-direction:column;gap:20px }
+.moi-product-page__name { font-family:'Cormorant Garamond',Georgia,serif;font-size:clamp(1.77rem,7vw,3.12rem);font-weight:300;color:#1e1814;letter-spacing:.04em;line-height:1.1 }
+.moi-product-page__stock { font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:.04em;color:#c83232;font-weight:500 }
+.moi-product-page__price { display:flex;flex-direction:column;gap:2px }
+.moi-product-page__price-current { font-family:'Montserrat',sans-serif;font-size:clamp(1.04rem,3vw,1.2rem);letter-spacing:.12em;color:#1e1814;font-weight:500;line-height:1.2 }
+.moi-product-page__divider { width:100%;height:1px;background:rgba(180,160,140,.3) }
+.moi-product-page__description { font-size:14px;line-height:1.75;color:#7a6e64;max-width:480px }
+.moi-product-page__description ul { list-style:none;padding:0;margin:0 }
+.moi-product-page__description li { display:flex;align-items:start;gap:12px;margin-bottom:8px }
+.moi-product-page__description li span { width:6px;height:6px;border-radius:50%;background:rgba(30,24,20,.18);border:1px solid rgba(30,24,20,.2);flex-shrink:0;margin-top:8px }
+.moi-product-page__color-label { font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#8a7e74;margin-bottom:12px }
+.moi-product-page__swatches { display:flex;gap:10px;flex-wrap:wrap }
+.moi-product-page__swatch { width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .3s ease;position:relative;flex-shrink:0 }
+.moi-product-page__swatch:hover { transform:scale(1.1) }
+.moi-product-page__swatch--active { border-color:#1e1814;box-shadow:0 0 0 2px rgba(30,24,20,.1) }
+.moi-product-page__swatch-check { position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#1e1814 }
+.moi-product-page__actions { display:flex;flex-direction:column;gap:12px }
+.moi-product-page__btn { width:100%;padding:16px;font-family:'Montserrat',sans-serif;font-size:11px;letter-spacing:.35em;text-transform:uppercase;font-weight:500;color:#fff;background:#1e1814;border:none;border-radius:6px;cursor:pointer;transition:background .3s ease }
+.moi-product-page__btn:hover { background:#2d231c }
+.moi-product-page__btn--outline { background:transparent;color:#1e1814;border:1px solid #1e1814 }
+.moi-product-page__btn--outline:hover { background:#1e1814;color:#fff }
+.moi-product-page__btn--sold-out { background:#f0ece8;color:#a89e97;cursor:not-allowed }
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div class="moi-loader" id="moi-loader">
+  <div class="moi-loader__brand">MOI</div>
+  <div class="moi-loader__track"><div class="moi-loader__shimmer"></div></div>
+  <p class="moi-loader__text">Loading</p>
+</div>
+
+<!-- CART DRAWER -->
+<div class="moi-cart-drawer__overlay" id="moi-cart-overlay" onclick="closeCart()"></div>
+<div class="moi-cart-drawer" id="moi-cart-drawer">
+  <div class="moi-cart-drawer__header">
+    <h3 class="moi-cart-drawer__title">Your Bag</h3>
+    <button class="moi-cart-drawer__close" onclick="closeCart()" aria-label="Close cart">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="moi-cart-drawer__items" id="moi-cart-items">
+    <div class="moi-cart-drawer__empty">
+      <svg class="moi-cart-drawer__empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      <p class="moi-cart-drawer__empty-text">Your bag is empty</p>
+    </div>
+  </div>
+  <div class="moi-cart-drawer__footer">
+    <div class="moi-cart-drawer__subtotal">
+      <span class="moi-cart-drawer__subtotal-label">Total</span>
+      <span id="moi-cart-total">0 EGP</span>
+    </div>
+    <button class="moi-cart-drawer__checkout-btn" onclick="goToCheckout()">Proceed to Checkout</button>
+    <p class="moi-cart-drawer__note">Shipping & taxes calculated at checkout</p>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="moi-lightbox" id="moi-lightbox" onclick="closeLightbox(event)">
+  <button class="moi-lightbox__close" onclick="closeLightbox(event)">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  </button>
+  <button class="moi-lightbox__prev" onclick="lightboxPrev(event)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <button class="moi-lightbox__next" onclick="lightboxNext(event)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+  </button>
+  <img class="moi-lightbox__img" id="moi-lightbox-img" src="" alt="">
+</div>
+
+<!-- MAIN APP -->
+<div id="moi-app" class="moi-app"></div>
+
+<!-- DEMO NAV -->
+<div class="moi-demo-nav">
+  <button class="active" onclick="switchPage('home')">Home</button>
+  <button onclick="switchPage('product')">Product</button>
+  <button onclick="switchPage('checkout')">Checkout</button>
+</div>
+
+<script>
+// ================================================
+// IMAGE ASSETS
+// ================================================
+const A={
+  hero:'../artifacts/moi/public/hero-image.jpeg',
+  white:'../artifacts/moi/public/images/white.jpg',
+  wA1:'../artifacts/moi/public/images/IMG_1996_1778613360425-opt.jpg',
+  wA2:'../artifacts/moi/public/images/IMG_1993_1778613360426-opt.jpg',
+  cashmere:'../artifacts/moi/public/images/cashmere-main-new.jpg',
+  cA1:'../artifacts/moi/public/images/cashmere-alt-1.jpg',
+  cA2:'../artifacts/moi/public/images/cashmere-alt-2.jpg',
+  cA3:'../artifacts/moi/public/images/cashmere-alt-3.jpg',
+  beige:'../artifacts/moi/public/images/beige.jpg',
+  bA1:'../artifacts/moi/public/images/beige-alt-1.jpg',
+  bA2:'../artifacts/moi/public/images/beige-alt-2.jpg',
+  bA3:'../artifacts/moi/public/images/beige-alt-3.jpg',
+  yellow:'../artifacts/moi/public/images/yellow.jpg',
+  yA1:'../artifacts/moi/public/images/yellow-alt-1.jpg',
+  yA2:'../artifacts/moi/public/images/yellow-alt-2.jpg',
+  teal:'../artifacts/moi/public/images/teal.jpg',
+  tA1:'../artifacts/moi/public/images/teal-alt-1.jpg',
+  tA2:'../artifacts/moi/public/images/teal-alt-2.jpg',
+  tA3:'../artifacts/moi/public/images/teal-alt-3.jpg',
+  lightBlue:'../artifacts/moi/public/images/light-blue.jpg',
+  lbA1:'../artifacts/moi/public/images/light-blue-alt-1.jpg',
+  lbA2:'../artifacts/moi/public/images/light-blue-alt-2.jpg',
+  navy:'../artifacts/moi/public/images/navi.jpg',
+  nA:'../artifacts/moi/public/images/navi-alt.jpg',
+  mint:'../artifacts/moi/public/images/mint.jpg',
+  mA1:'../artifacts/moi/public/images/mint-alt-1.jpg',
+  mA2:'../artifacts/moi/public/images/mint-alt-2.jpg',
+  bangles:'../artifacts/moi/public/images/bangles-main.jpg',
+  baA1:'../artifacts/moi/public/images/bangles-alt-1.jpg',
+  baA2:'../artifacts/moi/public/images/bangles-alt-2.jpg',
+  baA3:'../artifacts/moi/public/images/bangles-alt-3.jpg',
+  fsA:'../artifacts/moi/public/images/filmstrip-a.jpg',
+  fsB:'../artifacts/moi/public/images/filmstrip-b.jpg',
+  wL1:'../artifacts/moi/public/images/wavvy-look-1.jpg',
+  wL2:'../artifacts/moi/public/images/wavvy-look-2.jpg',
+  wL3:'../artifacts/moi/public/images/wavvy-look-3.jpg',
+  wL4:'../artifacts/moi/public/images/wavvy-look-4.jpg',
+  wL5:'../artifacts/moi/public/images/wavvy-look-5.jpg',
+};
+
+// ================================================
+// PRODUCTS
+// ================================================
+const P={
+  wavvy:{n:'MOI WAVVY',p:'899 EGP',d:'The ultimate throw-and-go. Effortless design, Wavy is light, breathable, and made for drifting.',db:['The ultimate throw-and-go piece.','Effortless design makes it easy to wear.','Wavy is light for all-day comfort.','Breathable fabric keeps you cool.','Made for drifting with ease.'],c:[
+    {name:'Light Blue',img:A.lightBlue,g:[A.lightBlue,A.lbA1,A.lbA2],s:'#a8c8d8',sf:true},
+    {name:'Navy',img:A.navy,g:[A.navy,A.nA],s:'#3a5a7a'},
+    {name:'Mint',img:A.mint,g:[A.mint,A.mA1,A.mA2],s:'#98c8a8',so:true}
+  ]},
+  versa:{n:'MOI VERSA TOP',p:'1.399 EGP',d:'The signature wrap silhouette. Designed to drape beautifully, the Versa Top transitions effortlessly from day to night.',db:['The signature wrap silhouette.','Designed to drape beautifully.','Transitions effortlessly from day to night.','Light and comfortable for all-day wear.','A polished piece that elevates every look.'],c:[
+    {name:'White',img:A.white,g:[A.white,A.wA1,A.wA2],s:'#f5f0e8'},
+    {name:'Cashmere',img:A.cashmere,g:[A.cashmere,A.cA1,A.cA2,A.cA3],s:'#d4c4b0'},
+    {name:'Beige',img:A.beige,g:[A.beige,A.bA1,A.bA2],s:'#c8b8a0'},
+    {name:'Yellow',img:A.yellow,g:[A.yellow,A.yA1,A.yA2],s:'#e8d080'},
+    {name:'Teal',img:A.teal,g:[A.teal,A.tA1,A.tA2,A.tA3],s:'#4a8a8a'}
+  ]},
+  bangles:{n:'Trio Bangles',p:'890 EGP',d:'Three slim stacking bangles in a polished finish — worn together or layered freely. Lightweight, adjustable, and crafted to accompany every look.',c:[
+    {name:'Ivory',img:A.bangles,g:[A.bangles,A.baA1,A.baA2,A.baA3],s:'#e3d4cb'}
+  ]}
+};
+
+let cart=[],currentPage='home',prodKey='wavvy',colorIdx=0,lbI=[],lbIdx=0;
+let loaderStart=Date.now();
+
+// ================================================
+// LOADER
+// ================================================
+function hideLoader(){
+  const l=document.getElementById('moi-loader');
+  if(l){l.classList.add('moi-loader--hidden');setTimeout(()=>l.remove(),600)}
+}
+setTimeout(hideLoader,3500); // hard cap
+function onHeroLoad(){
+  const elapsed=Date.now()-loaderStart;
+  setTimeout(hideLoader,Math.max(0,800-elapsed));
+}
+
+// ================================================
+// PAGE SWITCH
+// ================================================
+function switchPage(page,pk,ci){
+  const app=document.getElementById('moi-app');
+  app.classList.add('is-exiting');
+  setTimeout(()=>{
+    currentPage=page;
+    if(pk)prodKey=pk;
+    if(ci!==undefined)colorIdx=ci;
+    window.scrollTo(0,0);
+    if(page==='home') app.innerHTML=renderHome();
+    else if(page==='product') app.innerHTML=renderProduct();
+    else if(page==='checkout') app.innerHTML=renderCheckout();
+    app.classList.remove('is-exiting');
+    document.querySelectorAll('.moi-demo-nav button').forEach((b,i)=>b.classList.toggle('active',i===(page==='home'?0:page==='product'?1:2)));
+    initHeader();
+    initFadeIn();
+  },300);
+}
+
+// ================================================
+// HEADER
+// ================================================
+function initHeader(){
+  const h=document.getElementById('moi-header');
+  if(!h)return;
+  function update(){
+    const s=window.scrollY>60;
+    h.classList.toggle('moi-header--scrolled',s);
+    h.classList.toggle('moi-header--transparent',!s);
+  }
+  window.addEventListener('scroll',update,{passive:true});
+  update();
+}
+
+// ================================================
+// FADE IN ON SCROLL
+// ================================================
+function initFadeIn(){
+  const els=document.querySelectorAll('.moi-fade-in');
+  const io=new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('is-visible');io.unobserve(e.target)}});
+  },{threshold:0.1,rootMargin:'-40px'});
+  els.forEach(el=>io.observe(el));
+}
+
+// ================================================
+// RENDER HEADER
+// ================================================
+function renderHeader(){
+  const dark=currentPage==='product'||currentPage==='checkout';
+  return `<header class="moi-header ${dark?'moi-header--dark':'moi-header--transparent'}" id="moi-header">
+    <div class="moi-header__inner">
+      <button class="moi-header__hamburger" onclick="toggleMenu()" aria-label="Open menu">
+        <span class="moi-header__line"></span>
+        <span class="moi-header__line moi-header__line--short"></span>
+      </button>
+      <a href="#" class="moi-header__logo" onclick="switchPage('home');return false;" style="color:${dark?'#1e1814':'#fff'}">MOI</a>
+      <div class="moi-header__icons">
+        <button class="moi-header__icon-btn" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></button>
+        <button class="moi-header__icon-btn" aria-label="Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
+        <button class="moi-header__icon-btn moi-header__icon-btn--cart" onclick="openCart()" aria-label="Cart">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          <span class="moi-header__cart-badge" id="moi-cart-badge" style="display:none">0</span>
+        </button>
+      </div>
+    </div>
+  </header>`;
+}
+
+// ================================================
+// RENDER HOME
+// ================================================
+function renderHome(){
+  return renderHeader()+`<main>
+  <section class="moi-hero" id="hero">
+    <div class="moi-hero__ambient"></div>
+    <div class="moi-hero__media">
+      <img src="${A.hero}" alt="Moi premium fashion" class="hero-breathe" style="object-position:center 22%" loading="eager" decoding="async" fetchpriority="high" onload="onHeroLoad()">
+    </div>
+    <div class="moi-hero__gradient"></div>
+    <div class="moi-hero__vignette"></div>
+    <div class="moi-hero__content">
+      <p class="moi-hero__label">New Drop</p>
+      <h1 class="moi-hero__title">MOI</h1>
+      <p class="moi-hero__headline">Summer Collection — Exclusive Drop</p>
+      <p class="moi-hero__subheadline">New pieces just launched. Fresh arrivals.</p>
+      <button class="moi-hero__cta" onclick="document.getElementById('collection').scrollIntoView({behavior:'smooth'})">Shop Now</button>
+      <p class="moi-hero__urgency">Delivery in Egypt: 2–4 days</p>
+    </div>
+    <div class="moi-hero__scroll-cue"><div class="moi-hero__scroll-line"></div></div>
+  </section>
+  <div class="moi-trust-bar">
+    <div class="moi-trust-bar__item"><span class="moi-trust-bar__emoji">☀️</span><span class="moi-trust-bar__text">New summer drop</span></div>
+    <div class="moi-trust-bar__item"><span class="moi-trust-bar__emoji">⚡</span><span class="moi-trust-bar__text">Fast delivery across Egypt</span></div>
+    <div class="moi-trust-bar__item"><span class="moi-trust-bar__emoji">🔥</span><span class="moi-trust-bar__text">Limited stock available</span></div>
+  </div>
+  <div id="collection">${renderProdSec('wavvy',false)}</div>
+  <section class="moi-editorial">
+    <div class="moi-editorial__glow"></div>
+    <div class="moi-editorial__content">
+      <p class="moi-editorial__label">The Moi Philosophy</p>
+      <div class="moi-editorial__words">
+        <span class="moi-editorial__word">Effortless</span>
+        <span class="moi-editorial__word moi-editorial__word--center">Versatile</span>
+        <span class="moi-editorial__word">Yours</span>
+      </div>
+      <div class="moi-editorial__divider"></div>
+    </div>
+  </section>
+  ${renderProdSec('versa',true)}
+  ${renderTikTok()}
+  ${renderFooter()}
+  </main>`;
+}
+
+function renderProdSec(key,dark){
+  const p=P[key];
+  return `<section class="moi-product-section ${dark?'moi-product-section--warm':'moi-product-section--light'}" id="${key==='wavvy'?'moi-wavvy':key==='versa'?'moi-versa-top':'trio-bangles'}">
+    <div class="moi-container">
+      <div class="moi-section-header moi-fade-in">
+        <p class="moi-section-header__label">Collections</p>
+        <h2 class="moi-section-header__title">${p.n}</h2>
+        <p class="moi-section-header__subtitle">${p.d}</p>
+        <div class="moi-section-header__divider"></div>
+      </div>
+      <div class="moi-product-grid">
+        ${p.c.map((c,i)=>`<div class="moi-grid-2 flex justify-center">
+          <div class="moi-color-card moi-fade-in" onclick="switchPage('product','${key}',${i})" style="cursor:pointer">
+            <div class="moi-color-card__image">
+              <img src="${c.img}" alt="${p.n} — ${c.name}" class="moi-color-card__main-img" loading="lazy" decoding="async">
+              ${c.g[1]?`<div class="moi-color-card__image-hover"><img src="${c.g[1]}" alt="${p.n} — ${c.name} alternate" loading="lazy" decoding="async"></div>`:''}
+              ${c.so?`<div class="moi-color-card__sold-out"><span>Sold Out</span></div>`:''}
+            </div>
+            <div class="moi-color-card__info">
+              <div class="moi-color-card__color-row">
+                <span class="moi-color-card__swatch" style="background-color:${c.s};"></span>
+                <span class="moi-color-card__color-name">${c.name}</span>
+                ${c.sf?`<span class="moi-color-card__badge"><span class="moi-color-card__badge-dot"></span><span class="moi-color-card__badge-text">Selling Fast</span></span>`:''}
+              </div>
+              <h3 class="moi-color-card__product-name">${p.n}</h3>
+              ${!c.so?`<span class="moi-color-card__stock">Only 5 left</span>`:''}
+              <div class="moi-color-card__price"><span class="moi-color-card__current-price">${p.p}</span></div>
+              ${c.so?`<span class="moi-color-card__btn moi-color-card__btn--sold-out">Sold Out</span>`:`<button class="moi-color-card__btn" onclick="event.stopPropagation();addToCart('${key}',${i})">Order Now</button>`}
+            </div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </section>`;
+}
+
+function renderTikTok(){
+  const v=[
+    {t:"How brands under 1000 EGP actually look on 👀💸",h:"@etharrdiabb",c:"Real styling review — affordable local fashion that actually delivers."},
+    {t:"New Moi piece just dropped 🔥",h:"@etharrdiabb",c:"First look at the latest Moi drop — fit, fabric, and how it wears."},
+    {t:"Get ready with me",h:"@thatsalmarocks",c:"Morning routine & outfit check — effortless day-to-night dressing."},
+    {t:"Outfit of the day",h:"@shopmoi_",c:"Styling picks that feel polished and easy to recreate."},
+    {t:"Everyday outfit inspo",h:"@thatsalmarocks",c:"Real, wearable outfits that translate from screen to wardrobe."}
+  ];
+  return `<section class="moi-tiktok">
+    <div class="moi-tiktok__header">
+      <p class="moi-tiktok__label">TikTok social proof</p>
+      <h2 class="moi-tiktok__title">Styled by you</h2>
+      <p class="moi-tiktok__desc">Real people. Real outfits. See how Moi moves in the wild.</p>
+    </div>
+    <div class="moi-tiktok__grid-container">
+      <div class="moi-tiktok__grid-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
+        <p>TikTok social proof</p>
+      </div>
+      <div class="moi-tiktok__grid">
+        ${v.map(x=>`<div class="moi-tiktok__card">
+          <p class="moi-tiktok__card-title">${x.t}</p>
+          <a class="moi-tiktok__card-handle" href="https://www.tiktok.com/${x.h}" target="_blank" rel="noopener">${x.h}</a>
+          <p class="moi-tiktok__card-caption">${x.c}</p>
+          <div class="moi-tiktok__card-video">
+            <div class="moi-tiktok__card-placeholder">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
+              <p class="moi-tiktok__card-placeholder-text">Coming soon</p>
+              <div style="width:48px;height:1px;background:rgba(255,255,255,.1);margin-top:16px"></div>
+            </div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </section>`;
+}
+
+function renderFooter(){
+  return `<footer class="moi-footer">
+    <div class="moi-footer__inner">
+      <div class="moi-footer__links">
+        <a class="moi-footer__link" href="#" onclick="switchPage('home');return false;">Versa Top</a>
+        <a class="moi-footer__link" href="#" onclick="switchPage('home');return false;">Wavvy top</a>
+        <a class="moi-footer__link" href="#" onclick="alert('Coming soon');return false;">Accessories</a>
+        <a class="moi-footer__link" href="#" onclick="alert('Coming soon');return false;">Ambassador</a>
+      </div>
+      <div class="moi-footer__social">
+        <a class="moi-footer__social-link" href="https://www.instagram.com/shopmoi/" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          <span>Follow us on Instagram</span>
+        </a>
+        <div class="moi-footer__social-divider"></div>
+        <a class="moi-footer__social-link" href="https://www.tiktok.com/@shopmoi_" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
+          <span>Follow us on TikTok</span>
+        </a>
+      </div>
+      <div class="moi-footer__about">
+        <div>
+          <p class="moi-footer__about-label">Moi</p>
+          <p class="moi-footer__about-text">Shop versatile tops, elegant clothing, and curated fashion accessories designed for effortless everyday style.</p>
+        </div>
+      </div>
+      <div class="moi-footer__accordion">
+        ${[
+          {t:'Care instructions',d:'Handle each piece with care to preserve fit, texture, and finish over time.',b:'We recommend gentle cleaning, low heat drying, and storing garments away from direct sunlight. For more delicate pieces, professional care is best.'},
+          {t:'Return policy',d:'Simple returns within the policy window for eligible items.',b:'Please keep items unworn, with original packaging and tags attached. If you need help with an exchange or return, contact us and we will guide you through the process.'},
+          {t:'Shipping',d:'Fast, tracked delivery with clear timing by region.',b:'Delivery times vary by location. Orders in Cairo and Giza typically arrive within 3 to 4 days, while governorates may take 5 to 6 working days. Tracking details are shared once your order is processed.'},
+          {t:'Contact us',d:'Reach the team for product, order, or policy questions.',b:'For more inquiries, email Hello@buy-moi.com or use the contact option in the footer menu. We aim to reply as quickly as possible.'}
+        ].map(x=>`<div class="moi-footer__accordion-item">
+          <button class="moi-footer__accordion-trigger" onclick="toggleAccordion(this)">
+            <div>
+              <p class="moi-footer__accordion-title">${x.t}</p>
+              <p class="moi-footer__accordion-desc">${x.d}</p>
+            </div>
+            <svg class="moi-footer__accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="moi-footer__accordion-body">
+            <div class="moi-footer__accordion-content">${x.b}</div>
+          </div>
+        </div>`).join('')}
+      </div>
+      <section class="moi-newsletter-section">
+        <div class="moi-newsletter-section__top-gradient"></div>
+        <div class="moi-container">
+          <div class="moi-newsletter-card">
+            <div class="moi-newsletter-card__gradient-1"></div>
+            <div class="moi-newsletter-card__label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3l1.5 3.5L17 8l-3.5 1.5L12 13l-1.5-3.5L7 8l3.5-1.5z"/><path d="M5 16l-1 4 4-1 9-9-3-3-9 9z"/></svg>
+              Moi Newsletter
+            </div>
+            <p class="moi-newsletter-card__headline">Stay in Moi-tion.</p>
+            <p class="moi-newsletter-card__desc">Be the first to discover new versatile tops, fashion drops, and exclusive pieces — delivered straight to your inbox.</p>
+            <form class="moi-newsletter-card__form" onsubmit="event.preventDefault();this.querySelector('.moi-newsletter-card__submit span').textContent='Subscribed';alert('Subscribed!');">
+              <div class="moi-newsletter-card__input-wrap">
+                <div class="moi-newsletter-card__input-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  <div>
+                    <p>Email address</p>
+                    <input type="email" placeholder="Email address" required autocomplete="email">
+                  </div>
+                </div>
+              </div>
+              <button type="submit" class="moi-newsletter-card__submit">
+                <span>Subscribe</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+      <div class="moi-footer__bottom">
+        <div class="moi-footer__policies">
+          <a class="moi-footer__policy" href="#" onclick="alert('Coming soon');return false;">Privacy Policy</a>
+          <a class="moi-footer__policy" href="#" onclick="alert('Coming soon');return false;">Refund Policy</a>
+          <a class="moi-footer__policy" href="#" onclick="alert('Coming soon');return false;">Return Policy</a>
+          <a class="moi-footer__policy" href="#" onclick="alert('Coming soon');return false;">Delivery Policy</a>
+        </div>
+        <div class="moi-footer__contact">
+          <a href="mailto:hello@buy-moi.com">hello@buy-moi.com</a>
+          <span class="moi-footer__contact-divider">|</span>
+          <a href="tel:+201200520083">+20 120 052 0083</a>
+          <span class="moi-footer__contact-divider">|</span>
+          <span>58 Sotar Street, Azarita, Bab Sharq, Alexandria, Egypt</span>
+        </div>
+        <div class="moi-footer__copyright">
+          <p class="moi-footer__copyright-text">© 2026 Moi. All rights reserved.</p>
+          <p class="moi-footer__copyright-text">Smooth, elegant, minimal.</p>
+        </div>
+      </div>
+    </div>
+  </footer>`;
+}
+
+// ================================================
+// RENDER PRODUCT PAGE
+// ================================================
+function renderProduct(){
+  const p=P[prodKey];const c=p.c[colorIdx];lbI=c.g;lbIdx=0;
+  return renderHeader()+`<main>
+    <div class="moi-product-page__back">
+      <button onclick="switchPage('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back
+      </button>
+    </div>
+    <div class="moi-product-page__layout">
+      <div class="moi-product-page__gallery">
+        <div class="moi-product-page__gallery-main" onclick="openLightbox(0)">
+          <img id="moi-gallery-main" src="${c.g[0]}" alt="${p.n} — ${c.name}" loading="eager" decoding="async">
+          <div class="moi-product-page__gallery-hint">tap to zoom</div>
+        </div>
+        ${c.g.length>1?`<div class="moi-product-page__thumbs">
+          ${c.g.map((src,i)=>`<button class="moi-product-page__thumb ${i===0?'moi-product-page__thumb--active':''}" onclick="setGallery(${i})">
+            <img src="${src}" alt="View ${i+1}" loading="lazy">
+          </button>`).join('')}
+        </div>`:''}
+      </div>
+      <div class="moi-product-page__info">
+        <h1 class="moi-product-page__name">${p.n} — ${c.name}</h1>
+        ${!c.so?`<div class="moi-product-page__stock">Only 5 left</div>`:''}
+        <div class="moi-product-page__price">
+          <span class="moi-product-page__price-current">${p.p}</span>
+        </div>
+        <div class="moi-product-page__divider"></div>
+        <div class="moi-product-page__description">
+          <p>${p.d}</p>
+          ${p.db?`<ul>${p.db.map(b=>`<li><span></span>${b}</li>`).join('')}</ul>`:''}
+        </div>
+        <div class="moi-product-page__divider"></div>
+        <div>
+          <p class="moi-product-page__color-label">Color</p>
+          <div class="moi-product-page__swatches">
+            ${p.c.map((cc,i)=>`<button class="moi-product-page__swatch ${i===colorIdx?'moi-product-page__swatch--active':''}" onclick="switchPage('product','${prodKey}',${i})" style="background-color:${cc.s}" title="${cc.name}">
+              ${i===colorIdx?`<span class="moi-product-page__swatch-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>`:''}
+            </button>`).join('')}
+          </div>
+        </div>
+        <div class="moi-product-page__actions">
+          ${c.so
+            ?`<button class="moi-product-page__btn moi-product-page__btn--sold-out" disabled>Sold Out</button>`
+            :`<button class="moi-product-page__btn" onclick="addToCart('${prodKey}',${colorIdx})">Add to Bag</button>`
+          }
+          ${!c.so?`<button class="moi-product-page__btn moi-product-page__btn--outline" onclick="buyNow('${prodKey}',${colorIdx})">Buy Now</button>`:''}
+        </div>
+      </div>
+    </div>
+    ${renderFooter()}
+  </main>`;
+}
+
+let gIdx=0;
+function setGallery(i){
+  gIdx=i;
+  const m=document.getElementById('moi-gallery-main');
+  if(m){m.style.opacity='0';setTimeout(()=>{m.src=lbI[i];m.style.opacity='1'},200)}
+  document.querySelectorAll('.moi-product-page__thumb').forEach((t,idx)=>{
+    t.style.border=idx===i?'1.5px solid #1e1814':'1.5px solid rgba(30,24,20,.12)';
+    t.style.opacity=idx===i?'1':'0.65';
+  });
+}
+
+// ================================================
+// RENDER CHECKOUT
+// ================================================
+function renderCheckout(){
+  const total=cart.reduce((s,it)=>s+parseInt(it.p.replace(/\D/g,'')),0);
+  return renderHeader()+`<main>
+    <div class="moi-checkout-page">
+      <div class="moi-checkout-card">
+        <h1 class="moi-checkout-card__title">Secure Checkout</h1>
+        <p class="moi-checkout-card__subtitle">Complete your order with confidence</p>
+        <div class="moi-checkout-card__secure">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          SSL Encrypted & Secure
+        </div>
+        <div style="margin-bottom:24px">
+          ${cart.map(it=>`<div style="display:flex;gap:16px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(180,160,140,.12)">
+            <img src="${it.img}" alt="${it.n}" style="width:60px;height:75px;object-fit:cover;border-radius:4px">
+            <div style="flex:1">
+              <p style="font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:300;color:#1e1814;margin:0">${it.n}</p>
+              <p style="font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8a7e74;margin-top:4px">${it.c}</p>
+            </div>
+            <p style="font-family:'Montserrat',sans-serif;font-size:13px;letter-spacing:.08em;color:#1e1814;font-weight:500">${it.p}</p>
+          </div>`).join('')}
+        </div>
+        <div style="border-top:1px solid rgba(180,160,140,.18);padding-top:16px;margin-bottom:24px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-family:'Montserrat',sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8a7e74">Total</span>
+            <strong style="font-family:'Montserrat',sans-serif;font-size:16px;letter-spacing:.08em;color:#1e1814;font-weight:500">${total.toLocaleString()} EGP</strong>
+          </div>
+        </div>
+        <button class="moi-checkout-card__btn" onclick="alert('Redirecting to Shopify checkout...')">Continue to Payment</button>
+        <div class="moi-checkout-card__cards">
+          <span>Visa</span><span>Mastercard</span><span>Paymob</span><span>Cash on Delivery</span>
+        </div>
+      </div>
+    </div>
+  </main>`;
+}
+
+// ================================================
+// CART
+// ================================================
+function addToCart(pk,ci){
+  const p=P[pk],c=p.c[ci];
+  if(c.so)return;
+  cart.push({n:p.n,c:c.name,p:p.p,img:c.img});
+  updateCart();
+  showToast('Added to bag');
+}
+function buyNow(pk,ci){cart=[];addToCart(pk,ci);switchPage('checkout')}
+function removeCart(i){cart.splice(i,1);updateCart()}
+function updateCart(){
+  const el=document.getElementById('moi-cart-items');
+  const total=cart.reduce((s,it)=>s+parseInt(it.p.replace(/\D/g,'')),0);
+  if(cart.length===0){
+    el.innerHTML=`<div class="moi-cart-drawer__empty">
+      <svg class="moi-cart-drawer__empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      <p class="moi-cart-drawer__empty-text">Your bag is empty</p>
+    </div>`;
+  } else {
+    el.innerHTML=cart.map((it,i)=>`<div class="moi-cart-item">
+      <div class="moi-cart-item__image"><img src="${it.img}" alt="${it.n}"></div>
+      <div class="moi-cart-item__details">
+        <p class="moi-cart-item__name">${it.n}</p>
+        <p class="moi-cart-item__variant">${it.c}</p>
+        <p class="moi-cart-item__price">${it.p}</p>
+      </div>
+      <button class="moi-cart-item__remove" onclick="removeCart(${i})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>`).join('');
+  }
+  document.getElementById('moi-cart-total').textContent=total.toLocaleString()+' EGP';
+  const b=document.getElementById('moi-cart-badge');
+  if(b){b.textContent=cart.length;b.style.display=cart.length>0?'flex':'none'}
+}
+function openCart(){document.getElementById('moi-cart-drawer').classList.add('is-open');document.getElementById('moi-cart-overlay').classList.add('is-open');document.body.style.overflow='hidden'}
+function closeCart(){document.getElementById('moi-cart-drawer').classList.remove('is-open');document.getElementById('moi-cart-overlay').classList.remove('is-open');document.body.style.overflow=''}
+function goToCheckout(){closeCart();switchPage('checkout')}
+function showToast(msg){
+  const t=document.createElement('div');t.className='moi-cart-toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);
+}
+
+// ================================================
+// LIGHTBOX
+// ================================================
+function openLightbox(i){lbIdx=i;document.getElementById('moi-lightbox-img').src=lbI[i];document.getElementById('moi-lightbox').classList.add('is-open');document.body.style.overflow='hidden'}
+function closeLightbox(e){if(e&&e.target!==e.currentTarget&&!e.target.closest('.moi-lightbox__close'))return;document.getElementById('moi-lightbox').classList.remove('is-open');document.body.style.overflow=''}
+function lightboxPrev(e){e.stopPropagation();lbIdx=(lbIdx-1+lbI.length)%lbI.length;document.getElementById('moi-lightbox-img').src=lbI[lbIdx]}
+function lightboxNext(e){e.stopPropagation();lbIdx=(lbIdx+1)%lbI.length;document.getElementById('moi-lightbox-img').src=lbI[lbIdx]}
+
+// ================================================
+// ACCORDION
+// ================================================
+function toggleAccordion(btn){
+  const item=btn.closest('.moi-footer__accordion-item');
+  const wasOpen=item.classList.contains('is-open');
+  document.querySelectorAll('.moi-footer__accordion-item').forEach(i=>i.classList.remove('is-open'));
+  if(!wasOpen)item.classList.add('is-open');
+}
+
+// ================================================
+// MENU
+// ================================================
+function toggleMenu(){alert('Menu would open here — demo only')}
+
+// ================================================
+// INIT
+// ================================================
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('moi-app').innerHTML=renderHome();
+  initHeader();initFadeIn();
+});
+</script>
+</body>
+</html>
