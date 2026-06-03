@@ -47,11 +47,16 @@
               {% endif %}
             {% endfor %}
 
-            {% comment %} Image: variant image → product featured image {% endcomment %}
+            {% comment %} Image: variant image → product image → theme asset fallback {% endcomment %}
+            {% assign card_image_url = nil %}
             {% if first_variant.featured_image != blank %}
-              {% assign card_image = first_variant.featured_image %}
+              {% assign card_image_url = first_variant.featured_image | image_url: width: 600 %}
+            {% elsif target_product.featured_image != blank %}
+              {% assign card_image_url = target_product.featured_image | image_url: width: 600 %}
             {% else %}
-              {% assign card_image = target_product.featured_image %}
+              {% assign img_prefix = section.settings.image_prefix | default: 'wavvy' %}
+              {% assign asset_name = img_prefix | append: '-' | append: color_key | remove: '|' | append: 'main.jpg' %}
+              {% assign card_image_url = asset_name | asset_url %}
             {% endif %}
 
             {% comment %} Swatch hex {% endcomment %}
@@ -80,8 +85,8 @@
 
             <a href="{{ target_product.url }}?variant={{ first_variant.id }}" class="moi-color-card moi-fade-in">
               <div class="moi-color-card__image">
-                {% if card_image != blank %}
-                  <img src="{{ card_image | image_url: width: 600 }}"
+                {% if card_image_url != blank %}
+                  <img src="{{ card_image_url }}"
                        alt="{{ target_product.title }} — {{ color_name }}"
                        loading="lazy" decoding="async"
                        class="moi-color-card__main-img">
@@ -190,7 +195,14 @@
       "id": "product_handle",
       "label": "Product Handle",
       "default": "moi-wavvy",
-      "info": "Shopify product handle (from the product URL). This section will show ONLY this product's colour variants."
+      "info": "Shopify product handle (from the product URL). This section shows ONLY this product's colour variants."
+    },
+    {
+      "type": "text",
+      "id": "image_prefix",
+      "label": "Image Prefix",
+      "default": "wavvy",
+      "info": "Used to auto-load images from theme assets. 'wavvy' loads wavvy-light-blue-main.jpg, wavvy-navy-main.jpg, etc."
     },
     { "type": "text", "id": "section_id", "label": "Section ID", "default": "wavvy" },
     { "type": "text", "id": "section_title", "label": "Section Title", "default": "MOI WAVVY" },
