@@ -101,10 +101,10 @@
     <!-- Footer Bottom -->
     <div class="moi-footer__bottom">
       <div class="moi-footer__policies">
-        <a href="/pages/privacy-policy" class="moi-footer__policy">Privacy Policy</a>
-        <a href="/pages/refund-policy" class="moi-footer__policy">Refund Policy</a>
-        <a href="/pages/return-policy" class="moi-footer__policy">Return Policy</a>
-        <a href="/pages/delivery-policy" class="moi-footer__policy">Delivery Policy</a>
+        <a href="{{ shop.privacy_policy.url | default: '/policies/privacy-policy' }}" class="moi-footer__policy">Privacy Policy</a>
+        <a href="{{ shop.refund_policy.url | default: '/policies/refund-policy' }}" class="moi-footer__policy">Refund Policy</a>
+        <a href="{{ shop.refund_policy.url | default: '/policies/refund-policy' }}" class="moi-footer__policy">Return Policy</a>
+        <a href="{{ shop.shipping_policy.url | default: '/policies/shipping-policy' }}" class="moi-footer__policy">Delivery Policy</a>
       </div>
       <div class="moi-footer__contact">
         <a href="mailto:hello@buy-moi.com">hello@buy-moi.com</a>
