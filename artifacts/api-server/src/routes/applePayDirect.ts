@@ -254,7 +254,7 @@ router.post("/apple-pay/authorize", async (req, res) => {
       billing_data: {
         first_name: customer.firstName,
         last_name: customer.lastName,
-        email: customer.email || "NA",
+        email: customer.email || "guest@buy-moi.com",
         phone_number: customer.phone,
         street: customer.address,
         city: customer.city,
@@ -268,7 +268,7 @@ router.post("/apple-pay/authorize", async (req, res) => {
       customer: {
         first_name: customer.firstName,
         last_name: customer.lastName,
-        email: customer.email || "NA",
+        email: customer.email || "guest@buy-moi.com",
       },
       extras: { merchant_order_id: intentId },
       merchant_order_id: intentId,
