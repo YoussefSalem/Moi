@@ -270,7 +270,7 @@ export async function createApplePayPaymentKeyRaw(params: {
   const paymentToken = pkData.token;
   if (!paymentToken) throw new Error("Paymob Apple Pay payment key returned no token");
 
-  logger.info({ hasToken: true, integrationId: rawIntegrationId }, "Paymob Apple Pay payment key obtained");
+  logger.info({ hasToken: true, integrationId: integrationIdNum }, "Paymob Apple Pay payment key obtained");
   return { paymentToken };
 }
 
