@@ -1,0 +1,85 @@
+<section class="relative overflow-hidden px-6 pb-20 md:pb-28 pt-10 md:pt-14" style="background-color: #28211d;">
+  <div class="pointer-events-none absolute inset-x-0 top-0 h-24 md:h-36" style="background: linear-gradient(to bottom, rgba(40,33,29,0), rgba(40,33,29,0.22), rgba(40,33,29,0.5));"></div>
+  <div class="moi-container relative">
+    <div class="absolute inset-x-8 -top-10 h-24 rounded-full blur-3xl opacity-70" style="background: radial-gradient(circle, rgba(255,255,255,0.26), transparent 70%);"></div>
+
+    <div class="relative overflow-hidden border rounded-3xl p-6 md:p-8 md:py-14" style="background: linear-gradient(135deg, rgba(251,247,241,0.96) 0%, rgba(242,235,226,0.93) 52%, rgba(233,223,210,0.9) 100%); border-color: rgba(255,255,255,0.06); box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 24px 80px rgba(20,16,12,0.12);">
+      <div class="absolute inset-0" style="background: radial-gradient(circle at top left, rgba(30,24,20,0.08), transparent 36%), radial-gradient(circle at bottom right, rgba(122,110,100,0.18), transparent 34%);"></div>
+
+      <div class="relative flex flex-col gap-8 md:gap-10">
+        <div class="flex items-center gap-3 text-[10px] tracking-[0.35em] uppercase" style="color: #7a6e64;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.806.806 0 0 1 0-1.962L8.5 8.937A2 2 0 0 0 9.937 7.5l1.582-6.135a.806.806 0 0 1 1.962 0L15.063 7.5A2 2 0 0 0 16.5 8.937l6.135 1.582a.806.806 0 0 1 0 1.962L16.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.806.806 0 0 1-1.962 0z"></path></svg>
+          {{ section.settings.label | default: 'Moi Newsletter' }}
+        </div>
+
+        <div class="max-w-3xl flex flex-col gap-4">
+          <p class="font-serif" style="font-size: clamp(2rem, 5vw, 4.5rem); line-height: 0.92; letter-spacing: -0.04em; font-weight: 600; color: #1e1814;">
+            {{ section.settings.headline | default: 'Stay in Moi-tion.' }}
+          </p>
+          <p class="max-w-2xl text-sm md:text-base leading-relaxed font-light" style="color: #5a5048;">
+            {{ section.settings.description | default: 'Be the first to discover new versatile tops, fashion drops, and exclusive pieces — delivered straight to your inbox.' }}
+          </p>
+        </div>
+
+        {% form 'customer', id: 'moi-newsletter-form' %}
+          <div class="max-w-2xl flex flex-col gap-4 md:flex-row md:items-center">
+            <div class="flex-1 px-4 py-4 border" style="border-color: rgba(30,24,20,0.12); background: rgba(255,255,255,0.25); backdrop-filter: blur(4px);">
+              <div class="flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: #1e1814;"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                <div class="min-w-0 flex-1">
+                  <p class="text-[10px] tracking-[0.28em] uppercase" style="color: #7a6e64;">Email address</p>
+                  <input
+                    type="email"
+                    name="contact[email]"
+                    required
+                    placeholder="Email address"
+                    class="mt-1 w-full bg-transparent text-sm md:text-base font-light outline-none"
+                    style="color: #1e1814;"
+                  >
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="relative isolate inline-flex items-center justify-center gap-2 overflow-hidden px-6 py-4 text-[11px] tracking-[0.28em] uppercase font-medium text-white transition-transform duration-300 hover:scale-[1.01]" style="background-color: #1e1814; box-shadow: 0 12px 28px rgba(30,24,20,0.2), inset 0 1px 0 rgba(255,255,255,0.12);">
+              <span class="relative z-10 flex items-center gap-2">
+                Subscribe
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+              </span>
+            </button>
+          </div>
+        {% endform %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Newsletter",
+  "settings": [
+    {
+      "type": "text",
+      "id": "label",
+      "label": "Label",
+      "default": "Moi Newsletter"
+    },
+    {
+      "type": "text",
+      "id": "headline",
+      "label": "Headline",
+      "default": "Stay in Moi-tion."
+    },
+    {
+      "type": "textarea",
+      "id": "description",
+      "label": "Description",
+      "default": "Be the first to discover new versatile tops, fashion drops, and exclusive pieces — delivered straight to your inbox."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Newsletter",
+      "category": "Email"
+    }
+  ]
+}
+{% endschema %}

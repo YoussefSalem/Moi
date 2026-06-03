@@ -29,3 +29,9 @@ id = "l0kyFHkIkqipyIdnwltMm"
 uri = "file://private-certs/moi-apple-pay-csrs.tar.gz"
 type = "unspecified"
 title = "Apple Pay CSR files (upload to Apple Developer Portal)"
+
+[[outputs]]
+id = "KLOtmpf10AMQEjSuEYrCx"
+uri = "file://moi-shopify-theme.zip"
+type = "unspecified"
+title = "Moi Shopify Theme (ready to upload)"

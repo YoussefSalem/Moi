@@ -1,0 +1,70 @@
+{% assign current_path = request.path %}
+{% assign is_dark = false %}
+{% if current_path contains '/products/' or current_path contains '/accessories' or current_path contains '/ambassador' %}
+  {% assign is_dark = true %}
+{% endif %}
+
+<header class="moi-header {% unless is_dark %}moi-header--transparent{% endunless %} moi-header--dark{% if is_dark %} moi-header--dark{% endif %}" id="moi-header" data-scrolled-class="{% if is_dark %}moi-header--dark{% else %}moi-header--scrolled{% endif %}">
+  <div class="moi-header__inner">
+    <button class="moi-header__hamburger" aria-label="Open menu" id="moi-drawer-toggle">
+      <span style="background-color: {% if is_dark %}#1e1814{% else %}#fff{% endif %};"></span>
+      <span style="background-color: {% if is_dark %}#1e1814{% else %}#fff{% endif %};"></span>
+    </button>
+
+    <a href="/" class="moi-header__logo" style="color: {% if is_dark %}#1e1814{% else %}#fff{% endif %};">MOI</a>
+
+    <div class="moi-header__nav">
+      <a href="/search" class="moi-header__icon-btn" aria-label="Search" id="moi-search-toggle">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      </a>
+      <a href="{% if customer %}/account{% else %}/account/login{% endif %}" class="moi-header__icon-btn" aria-label="{% if customer %}My Account{% else %}Sign In{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      </a>
+      <button class="moi-header__icon-btn" aria-label="Cart" id="moi-cart-toggle" style="position: relative;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        <span class="moi-header__cart-badge" id="moi-cart-badge" style="display: none;">0</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile Navigation Drawer -->
+<div class="moi-drawer__overlay" id="moi-drawer-overlay"></div>
+<nav class="moi-drawer" id="moi-drawer" aria-label="Mobile navigation">
+  <div class="moi-drawer__header">
+    <span class="font-serif" style="font-size: 1.25rem; letter-spacing: 0.3em; color: #1e1814;">MOI</span>
+    <button class="moi-drawer__close" id="moi-drawer-close" aria-label="Close menu" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; transition: opacity 0.3s; margin-right: -8px;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+    </button>
+  </div>
+  <div class="moi-drawer__nav">
+    <ul style="list-style: none; padding: 0;">
+      <li style="margin-bottom: 32px;"><a href="/collections/versa-top" class="moi-drawer__nav-item">Versa Top</a></li>
+      <li style="margin-bottom: 32px;"><a href="/collections/wavvy-top" class="moi-drawer__nav-item">Wavvy Top</a></li>
+      <li style="margin-bottom: 32px;"><a href="/collections/accessories" class="moi-drawer__nav-item">Accessories</a></li>
+      <li style="margin-bottom: 32px;"><a href="/pages/ambassador" class="moi-drawer__nav-item">Become an Ambassador</a></li>
+    </ul>
+  </div>
+  <div class="moi-drawer__footer">
+    {% if customer %}
+      <a href="/account" class="block" style="font-size: 14px; font-weight: 300; color: #1e1814; margin-bottom: 16px; display: block;">
+        {{ customer.first_name }} {{ customer.last_name }}
+      </a>
+      <a href="/account/logout" class="block" style="font-size: 14px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e64;">Sign Out</a>
+    {% else %}
+      <a href="/account/login" class="block" style="font-size: 14px; letter-spacing: 0.15em; text-transform: uppercase; color: #7a6e64;">Sign In</a>
+    {% endif %}
+  </div>
+</nav>
+
+{% schema %}
+{
+  "name": "Header",
+  "settings": [],
+  "presets": [
+    {
+      "name": "Header"
+    }
+  ]
+}
+{% endschema %}

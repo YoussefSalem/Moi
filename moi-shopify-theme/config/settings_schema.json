@@ -1,0 +1,88 @@
+[
+  {
+    "name": "Colors",
+    "settings": [
+      {
+        "type": "color",
+        "id": "background_color",
+        "label": "Background Color",
+        "default": "#faf8f5"
+      },
+      {
+        "type": "color",
+        "id": "text_color",
+        "label": "Text Color",
+        "default": "#1e1814"
+      },
+      {
+        "type": "color",
+        "id": "accent_color",
+        "label": "Accent Color",
+        "default": "#c83232"
+      },
+      {
+        "type": "color",
+        "id": "footer_bg",
+        "label": "Footer Background",
+        "default": "#28211d"
+      }
+    ]
+  },
+  {
+    "name": "Typography",
+    "settings": [
+      {
+        "type": "font_picker",
+        "id": "heading_font",
+        "label": "Heading Font",
+        "default": "cormorant_garamond_n4"
+      },
+      {
+        "type": "font_picker",
+        "id": "body_font",
+        "label": "Body Font",
+        "default": "montserrat_n4"
+      }
+    ]
+  },
+  {
+    "name": "Social Media",
+    "settings": [
+      {
+        "type": "text",
+        "id": "instagram_url",
+        "label": "Instagram URL",
+        "default": "https://www.instagram.com/shopmoi/"
+      },
+      {
+        "type": "text",
+        "id": "tiktok_url",
+        "label": "TikTok URL",
+        "default": "https://www.tiktok.com/@shopmoi_"
+      }
+    ]
+  },
+  {
+    "name": "Contact",
+    "settings": [
+      {
+        "type": "text",
+        "id": "contact_email",
+        "label": "Contact Email",
+        "default": "hello@buy-moi.com"
+      },
+      {
+        "type": "text",
+        "id": "contact_phone",
+        "label": "Contact Phone",
+        "default": "+20 120 052 0083"
+      },
+      {
+        "type": "text",
+        "id": "contact_address",
+        "label": "Address",
+        "default": "58 Sotar Street, Azarita, Bab Sharq, Alexandria, Egypt"
+      }
+    ]
+  }
+]

@@ -1,0 +1,296 @@
+{% assign product_collection = section.settings.collection %}
+{% assign section_title = section.settings.section_title %}
+{% assign section_subtitle = section.settings.section_subtitle %}
+{% assign is_dark = section.settings.dark_background %}
+{% assign section_id = section.settings.section_id %}
+
+<section id="{{ section_id }}" class="moi-product-section {% if is_dark %}moi-product-section--warm{% else %}moi-product-section--light{% endif %}">
+  <div class="moi-container">
+    <div class="moi-section-header moi-fade-in">
+      <p class="moi-section-header__label">Collections</p>
+      <h2 class="moi-section-header__title">{{ section_title }}</h2>
+      {% if section_subtitle != blank %}
+        <p class="moi-section-header__subtitle">{{ section_subtitle }}</p>
+      {% endif %}
+      <div class="moi-section-header__divider"></div>
+    </div>
+
+    <div class="moi-product-grid">
+      {% if product_collection != blank %}
+        {% for product in collections[product_collection].products %}
+          {% for variant in product.variants %}
+            {% assign color_option = variant.option1 %}
+            {% if color_option == blank %}
+              {% assign color_option = product.options_with_values[0].values[0] %}
+            {% endif %}
+            {% assign color_handle = color_option | handleize %}
+            {% assign product_handle = product.handle | append: '-' | append: color_handle %}
+            {% assign variant_image = variant.image | default: product.featured_image %}
+            {% assign compare_at_price = variant.compare_at_price %}
+            {% assign price = variant.price %}
+            {% assign is_sold_out = false %}
+            {% if variant.available == false %}
+              {% assign is_sold_out = true %}
+            {% endif %}
+
+            {% if forloop.first == true %}
+              <div class="moi-grid-2 flex justify-center">
+                <a href="{{ product.url | append: '?variant=' | append: variant.id }}" class="moi-color-card moi-fade-in">
+                  <div class="moi-color-card__image">
+                    <img
+                      src="{{ variant_image | image_url: width: 600 }}"
+                      alt="{{ product.title }} — {{ color_option }}"
+                      loading="lazy"
+                      decoding="async"
+                      class="moi-color-card__main-img"
+                    >
+                    {% if product.images[1] != blank %}
+                      <div class="moi-color-card__image-hover">
+                        <img
+                          src="{{ product.images[1] | image_url: width: 600 }}"
+                          alt="{{ product.title }} — {{ color_option }} alternate"
+                          loading="lazy"
+                          decoding="async"
+                        >
+                      </div>
+                    {% endif %}
+                    {% if is_sold_out %}
+                      <div class="moi-color-card__sold-out">
+                        <span>Sold Out</span>
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="moi-color-card__info">
+                    <div class="moi-color-card__color-row">
+                      {% if product.metafields.custom.color_swatch %}
+                        <span class="moi-color-card__swatch" style="background-color: {{ product.metafields.custom.color_swatch }};"></span>
+                      {% endif %}
+                      <span class="moi-color-card__color-name">{{ color_option }}</span>
+                      {% if product_handle contains 'light-blue' %}
+                        <span class="moi-color-card__badge">
+                          <span class="moi-color-card__badge-dot"></span>
+                          <span class="moi-color-card__badge-text">Selling Fast</span>
+                        </span>
+                      {% endif %}
+                    </div>
+
+                    <h3 class="moi-color-card__product-name">{{ product.title }}</h3>
+
+                    {% unless is_sold_out %}
+                      <span class="moi-color-card__stock">
+                        {% if variant.inventory_quantity > 0 and variant.inventory_quantity < 10 %}
+                          Only {{ variant.inventory_quantity }} left
+                        {% endif %}
+                      </span>
+                    {% endunless %}
+
+                    <div class="moi-color-card__price">
+                      {% if compare_at_price > price %}
+                        <span class="moi-color-card__compare">{{ compare_at_price | money }}</span>
+                      {% endif %}
+                      <span class="moi-color-card__current-price {% if compare_at_price > price %}moi-color-card__current-price--sale{% endif %}">
+                        {{ price | money }}
+                      </span>
+                    </div>
+
+                    {% if is_sold_out %}
+                      <span class="moi-color-card__btn moi-color-card__btn--sold-out">Sold Out</span>
+                    {% else %}
+                      <span class="moi-color-card__btn">Order Now</span>
+                    {% endif %}
+                  </div>
+                </a>
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      {% else %}
+        {% for block in section.blocks %}
+          <div class="moi-grid-2 flex justify-center">
+            <a href="{{ block.settings.product_url }}" class="moi-color-card moi-fade-in">
+              <div class="moi-color-card__image">
+                <img
+                  src="{{ block.settings.product_image | image_url: width: 600 }}"
+                  alt="{{ block.settings.product_title }}"
+                  loading="lazy"
+                  decoding="async"
+                >
+                {% if block.settings.hover_image != blank %}
+                  <div class="moi-color-card__image-hover">
+                    <img
+                      src="{{ block.settings.hover_image | image_url: width: 600 }}"
+                      alt="{{ block.settings.product_title }} alternate"
+                      loading="lazy"
+                      decoding="async"
+                    >
+                  </div>
+                {% endif %}
+                {% if block.settings.sold_out %}
+                  <div class="moi-color-card__sold-out">
+                    <span>Sold Out</span>
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="moi-color-card__info">
+                <div class="moi-color-card__color-row">
+                  {% if block.settings.swatch_color != blank %}
+                    <span class="moi-color-card__swatch" style="background-color: {{ block.settings.swatch_color }};"></span>
+                  {% endif %}
+                  <span class="moi-color-card__color-name">{{ block.settings.color_name }}</span>
+                  {% if block.settings.selling_fast %}
+                    <span class="moi-color-card__badge">
+                      <span class="moi-color-card__badge-dot"></span>
+                      <span class="moi-color-card__badge-text">Selling Fast</span>
+                    </span>
+                  {% endif %}
+                </div>
+
+                <h3 class="moi-color-card__product-name">{{ block.settings.product_title }}</h3>
+
+                {% unless block.settings.sold_out %}
+                  <span class="moi-color-card__stock">Only {{ block.settings.stock_count }} left</span>
+                {% endunless %}
+
+                <div class="moi-color-card__price">
+                  {% if block.settings.compare_price > block.settings.price %}
+                    <span class="moi-color-card__compare">{{ block.settings.compare_price | money }}</span>
+                  {% endif %}
+                  <span class="moi-color-card__current-price {% if block.settings.compare_price > block.settings.price %}moi-color-card__current-price--sale{% endif %}">
+                    {{ block.settings.price | money }}
+                  </span>
+                </div>
+
+                {% if block.settings.sold_out %}
+                  <span class="moi-color-card__btn moi-color-card__btn--sold-out">Sold Out</span>
+                {% else %}
+                  <span class="moi-color-card__btn">Order Now</span>
+                {% endif %}
+              </div>
+            </a>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Product Collection",
+  "settings": [
+    {
+      "type": "text",
+      "id": "section_id",
+      "label": "Section ID",
+      "default": "collection",
+      "info": "Used for anchor links"
+    },
+    {
+      "type": "text",
+      "id": "section_title",
+      "label": "Section Title",
+      "default": "MOI VERSA TOP"
+    },
+    {
+      "type": "text",
+      "id": "section_subtitle",
+      "label": "Section Subtitle",
+      "default": "Effortlessly versatile. A silhouette that moves with you, in every shade of summer."
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection",
+      "info": "Optional: auto-populate from Shopify collection"
+    },
+    {
+      "type": "checkbox",
+      "id": "dark_background",
+      "label": "Dark Background",
+      "default": false
+    }
+  ],
+  "blocks": [
+    {
+      "type": "product",
+      "name": "Product",
+      "settings": [
+        {
+          "type": "text",
+          "id": "product_title",
+          "label": "Product Title"
+        },
+        {
+          "type": "text",
+          "id": "color_name",
+          "label": "Color Name"
+        },
+        {
+          "type": "color",
+          "id": "swatch_color",
+          "label": "Swatch Color"
+        },
+        {
+          "type": "image_picker",
+          "id": "product_image",
+          "label": "Product Image"
+        },
+        {
+          "type": "image_picker",
+          "id": "hover_image",
+          "label": "Hover Image"
+        },
+        {
+          "type": "url",
+          "id": "product_url",
+          "label": "Product URL"
+        },
+        {
+          "type": "number",
+          "id": "price",
+          "label": "Price (cents)"
+        },
+        {
+          "type": "number",
+          "id": "compare_price",
+          "label": "Compare Price (cents)"
+        },
+        {
+          "type": "number",
+          "id": "stock_count",
+          "label": "Stock Count",
+          "default": 5
+        },
+        {
+          "type": "checkbox",
+          "id": "sold_out",
+          "label": "Sold Out",
+          "default": false
+        },
+        {
+          "type": "checkbox",
+          "id": "selling_fast",
+          "label": "Selling Fast",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product Collection",
+      "category": "Collection",
+      "blocks": [
+        {
+          "type": "product"
+        },
+        {
+          "type": "product"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

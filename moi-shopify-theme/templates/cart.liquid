@@ -1,0 +1,45 @@
+<div class="moi-page">
+  <div class="moi-page__inner">
+    <h1 class="moi-page__title">Your Cart</h1>
+
+    {% if cart.item_count > 0 %}
+      <form action="/cart" method="post" novalidate>
+        <div class="moi-cart-drawer__items" style="max-width: 100%;">
+          {% for item in cart.items %}
+            <div class="moi-cart-item">
+              <div class="moi-cart-item__image">
+                <img src="{{ item.image | image_url: width: 200 }}" alt="{{ item.title }}">
+              </div>
+              <div class="moi-cart-item__details">
+                <p class="moi-cart-item__name">{{ item.product.title }}</p>
+                <p class="moi-cart-item__variant">{{ item.variant.title }}</p>
+                <p class="moi-cart-item__price">{{ item.final_line_price | money }}</p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <input type="number" name="updates[]" value="{{ item.quantity }}" min="0" style="width: 60px; padding: 8px; font-size: 14px; text-align: center; border: 1px solid rgba(180,160,140,0.3); border-radius: 4px;">
+                <a href="/cart/change?line={{ forloop.index }}&quantity=0" class="moi-cart-item__remove" aria-label="Remove item">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                </a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="moi-cart-drawer__footer" style="margin-top: 24px;">
+          <div class="moi-cart-drawer__subtotal">
+            <span class="moi-cart-drawer__subtotal-label">Subtotal</span>
+            <span>{{ cart.total_price | money }}</span>
+          </div>
+          <button type="submit" name="checkout" class="moi-cart-drawer__checkout-btn">Proceed to Checkout</button>
+          <button type="submit" name="update" class="moi-cart-drawer__checkout-btn" style="background: transparent; color: #1e1814; border: 1px solid #1e1814; margin-top: 8px;">Update Cart</button>
+        </div>
+      </form>
+    {% else %}
+      <div class="moi-cart-drawer__empty" style="min-height: 400px;">
+        <svg class="moi-cart-drawer__empty-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        <p class="moi-cart-drawer__empty-text">Your bag is empty</p>
+        <a href="/" class="moi-color-card__btn" style="margin-top: 16px; display: inline-block;">Continue Shopping</a>
+      </div>
+    {% endif %}
+  </div>
+</div>

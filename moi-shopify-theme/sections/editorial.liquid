@@ -1,0 +1,50 @@
+<section class="moi-editorial">
+  <div class="moi-editorial__glow"></div>
+  <div class="moi-editorial__content">
+    <p class="moi-editorial__label">The Moi Philosophy</p>
+    <div class="moi-editorial__words">
+      <span class="moi-editorial__word">Effortless</span>
+      <span class="moi-editorial__word moi-editorial__word--center">Versatile</span>
+      <span class="moi-editorial__word">Yours</span>
+    </div>
+    <div class="moi-editorial__divider"></div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Editorial Strip",
+  "settings": [
+    {
+      "type": "text",
+      "id": "label",
+      "label": "Label",
+      "default": "The Moi Philosophy"
+    },
+    {
+      "type": "text",
+      "id": "word_1",
+      "label": "Word 1",
+      "default": "Effortless"
+    },
+    {
+      "type": "text",
+      "id": "word_2",
+      "label": "Word 2 (Center/Highlighted)",
+      "default": "Versatile"
+    },
+    {
+      "type": "text",
+      "id": "word_3",
+      "label": "Word 3",
+      "default": "Yours"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Editorial Strip",
+      "category": "Text"
+    }
+  ]
+}
+{% endschema %}
