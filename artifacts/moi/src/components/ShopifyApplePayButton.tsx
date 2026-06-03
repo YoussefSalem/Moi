@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useCart } from "@/context/CartContext";
-import {
-  openShopifyCheckoutBlank,
-  navigateShopifyCheckout,
-  openShopifyCheckout,
-} from "@/lib/shopifyCheckout";
+import { PaymobApplePayButton } from "./PaymobApplePayButton";
 
 const BTN_CSS = `
   .ap-express-btn {
@@ -21,6 +16,8 @@ export interface ShopifyApplePayButtonProps {
   variantId?: string;
   quantity?: number;
   priceEGP?: number;
+  lines?: Array<{ variantId: string; quantity: number }>;
+  totalEGP?: number;
   disabled?: boolean;
   className?: string;
   style?: React.CSSProperties;
@@ -28,11 +25,13 @@ export interface ShopifyApplePayButtonProps {
 
 export function ShopifyApplePayButton({
   variantId, quantity = 1, priceEGP,
+  lines: cartLines, totalEGP,
   disabled = false, className, style,
 }: ShopifyApplePayButtonProps) {
   const [available, setAvailable] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const { buyNowCheckoutUrl, checkoutUrl } = useCart();
+  const [phase, setPhase] = useState<"idle" | "loading" | "ready">("idle");
+  const [paymentData, setPaymentData] = useState<{ clientSecret: string; publicKey: string; intentId: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const AP = (window as unknown as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession;
@@ -40,52 +39,95 @@ export function ShopifyApplePayButton({
   }, []);
 
   const handlePay = useCallback(async () => {
-    if (loading || disabled) return;
-    setLoading(true);
+    if (phase !== "idle" || disabled) return;
+
+    let lines: Array<{ variantId: string; quantity: number }>;
+    let totalAmountCents: number;
 
     if (variantId && priceEGP != null) {
-      // Product-page express checkout: create an ephemeral cart (won't open bag).
-      // Open the popup BEFORE the await so the browser doesn't block it.
-      const popup = openShopifyCheckoutBlank();
-      try {
-        const url = await buyNowCheckoutUrl(variantId, quantity);
-        navigateShopifyCheckout(popup, url);
-      } catch {
-        popup?.close();
-      } finally {
-        setLoading(false);
-      }
-    } else if (checkoutUrl) {
-      // Cart-drawer mode: items already in cart, URL is ready — open synchronously.
-      openShopifyCheckout(checkoutUrl);
-      setLoading(false);
+      lines = [{ variantId, quantity }];
+      totalAmountCents = Math.round((priceEGP * quantity) * 100);
+    } else if (cartLines && cartLines.length > 0 && totalEGP != null) {
+      lines = cartLines;
+      totalAmountCents = Math.round(totalEGP * 100);
     } else {
-      setLoading(false);
+      return;
     }
-  }, [loading, disabled, variantId, quantity, priceEGP, buyNowCheckoutUrl, checkoutUrl]);
 
-  const isProductMode = !!variantId && priceEGP != null;
-  const isCartMode = !isProductMode && !!checkoutUrl;
-  const canPay = available && !disabled && (isProductMode || isCartMode);
+    setPhase("loading");
+    setError(null);
 
-  if (!canPay) return null;
+    try {
+      const res = await fetch("/api/orders/paymob-apple-pay-init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lines, totalAmountCents }),
+      });
+      const data = await res.json() as {
+        clientSecret?: string; publicKey?: string; intentId?: string; error?: string;
+      };
+      if (!res.ok || !data.clientSecret || !data.publicKey || !data.intentId) {
+        setError(data.error ?? "Apple Pay is unavailable. Please try another payment method.");
+        setPhase("idle");
+        return;
+      }
+      setPaymentData({ clientSecret: data.clientSecret, publicKey: data.publicKey, intentId: data.intentId });
+      setPhase("ready");
+    } catch {
+      setError("Network error. Please try again.");
+      setPhase("idle");
+    }
+  }, [phase, disabled, variantId, quantity, priceEGP, cartLines, totalEGP]);
+
+  const handleSuccess = useCallback((_txnId: string) => {
+    setTimeout(() => { window.location.href = "/?paid=1"; }, 800);
+  }, []);
+
+  const handleFail = useCallback(() => {
+    setPaymentData(null);
+    setPhase("idle");
+    setError("Payment was declined or cancelled. Please try again.");
+  }, []);
+
+  if (!available || disabled) return null;
 
   return (
     <div className={className} style={{ width: "100%", ...style }}>
       <style dangerouslySetInnerHTML={{ __html: BTN_CSS }} />
-      <p style={{
-        margin: "0 0 10px", fontSize: 13, color: "#6b7280",
-        textAlign: "center", letterSpacing: "0.02em", fontFamily: "inherit",
-      }}>
-        {loading ? "Opening checkout…" : "Express checkout"}
-      </p>
-      <button
-        type="button"
-        className="ap-express-btn"
-        onClick={() => { void handlePay(); }}
-        disabled={loading}
-        aria-label="Buy with Apple Pay"
-      />
+
+      {phase === "ready" && paymentData ? (
+        <PaymobApplePayButton
+          clientSecret={paymentData.clientSecret}
+          publicKey={paymentData.publicKey}
+          intentId={paymentData.intentId}
+          onSuccess={handleSuccess}
+          onFail={handleFail}
+        />
+      ) : (
+        <>
+          <p style={{
+            margin: "0 0 10px", fontSize: 13, color: "#6b7280",
+            textAlign: "center", letterSpacing: "0.02em", fontFamily: "inherit",
+          }}>
+            {phase === "loading" ? "Setting up Apple Pay…" : "Express checkout"}
+          </p>
+          <button
+            type="button"
+            className="ap-express-btn"
+            onClick={() => { void handlePay(); }}
+            disabled={phase === "loading"}
+            aria-label="Buy with Apple Pay"
+          />
+          {error && (
+            <p style={{
+              marginTop: 8, fontSize: 11, color: "rgba(30,24,20,0.6)",
+              textAlign: "center", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.03em",
+            }}>
+              {error}
+            </p>
+          )}
+        </>
+      )}
     </div>
   );
 }

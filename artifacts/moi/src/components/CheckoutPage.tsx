@@ -12,7 +12,6 @@ import { trackTikTokPurchase } from "@/lib/tiktokPixel";
 import { trackShopifyPurchase } from "@/lib/shopifyAnalytics";
 import { getAttribution } from "@/lib/adAttribution";
 import { trackCheckoutStep, trackCheckoutStepTime } from "@/lib/analytics";
-import { openShopifyCheckout } from "@/lib/shopifyCheckout";
 import type { ShopifyCartLine } from "@/lib/shopify";
 
 const PRODUCT_COLOR_MAP: Record<string, string> = {};
@@ -2020,11 +2019,11 @@ export function CheckoutPage() {
                       </p>
                     </button>
                   ))}
-                  {/* Apple Pay tile — opens Shopify checkout (Paymob Native Checkout has Apple Pay enabled) */}
-                  {ENABLE_APPLE_PAY && !!checkoutUrl && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
+                  {/* Apple Pay tile — triggers Paymob Pixel SDK which shows native Face ID / Touch ID sheet */}
+                  {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
                     <button
                       type="button"
-                      onClick={() => { openShopifyCheckout(checkoutUrl); }}
+                      onClick={() => { if (!applePayData) void triggerApplePayDirectInit(); }}
                       className="text-left transition-all"
                       style={{
                         padding: "14px 12px",
