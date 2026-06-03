@@ -709,12 +709,11 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     Buy It Now
                   </motion.button>
 
-                  {/* Apple Pay quick-buy — opens native payment sheet via Paymob */}
+                  {/* Apple Pay quick-buy — redirects to Shopify native checkout */}
                   {ENABLE_APPLE_PAY && (
                     <ShopifyApplePayButton
                       variantId={selectedVariant?.id ?? product.variantId ?? ""}
                       quantity={1}
-                      priceEGP={parseEGP(String(effectivePrice)) || 0}
                       disabled={isOutOfStock}
                       style={{ width: "100%" }}
                     />

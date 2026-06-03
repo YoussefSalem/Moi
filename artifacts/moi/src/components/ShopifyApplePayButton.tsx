@@ -1,37 +1,5 @@
-import { useState, useEffect } from "react";
-
-const SHIPPING_EGP = 50;
-
-/* ApplePaySession minimal type stubs — avoids needing @types/apple-pay-js */
-type APSession = {
-  onvalidatemerchant: ((e: { validationURL: string }) => void) | null;
-  onpaymentauthorized: ((e: APAuthorizedEvent) => void) | null;
-  oncancel: (() => void) | null;
-  completeMerchantValidation(session: unknown): void;
-  completePayment(status: number): void;
-  abort(): void;
-  begin(): void;
-};
-type APCtor = {
-  new (version: number, request: object): APSession;
-  canMakePayments(): boolean;
-  STATUS_SUCCESS: number;
-  STATUS_FAILURE: number;
-};
-type APAuthorizedEvent = {
-  payment: {
-    token: { paymentData: unknown };
-    shippingContact?: {
-      givenName?: string; familyName?: string; emailAddress?: string;
-      phoneNumber?: string; addressLines?: string[];
-      locality?: string; administrativeArea?: string;
-    };
-  };
-};
-
-function getAP(): APCtor | null {
-  return (window as unknown as { ApplePaySession?: APCtor }).ApplePaySession ?? null;
-}
+import { useState, useEffect, useCallback } from "react";
+import { useCart } from "@/context/CartContext";
 
 /* CSS via <style> so -apple-pay-button-type/style custom props reach -webkit-appearance */
 const BTN_CSS = `
@@ -46,139 +14,57 @@ const BTN_CSS = `
 `;
 
 export interface ShopifyApplePayButtonProps {
-  /** Product-page express buy (single item). */
+  /** Product-page express buy: creates a fresh single-item Shopify checkout. */
   variantId?: string;
   quantity?: number;
-  priceEGP?: number;
 
-  /** Cart / checkout: all items + pre-shipping total. */
-  lines?: Array<{ variantId: string; quantity: number }>;
-  totalEGP?: number;
+  /** Cart / drawer: use the existing Shopify cart's checkout URL directly. */
+  checkoutUrl?: string | null;
 
   disabled?: boolean;
   className?: string;
   style?: React.CSSProperties;
 }
 
+/**
+ * Apple Pay express-checkout button.
+ *
+ * On click, it redirects to the Shopify-hosted checkout page, which handles
+ * Apple Pay natively using Shopify's own merchant certificate.  No Paymob or
+ * custom ApplePaySession is involved — identical to the "Buy It Now" / checkout
+ * button approach.
+ *
+ * Visibility: only rendered when ApplePaySession.canMakePayments() returns true
+ * (i.e. Safari on an Apple device with a card set up).
+ */
 export function ShopifyApplePayButton({
-  variantId, quantity = 1, priceEGP,
-  lines: cartLines, totalEGP,
+  variantId, quantity = 1, checkoutUrl,
   disabled = false, className, style,
 }: ShopifyApplePayButtonProps) {
   const [available, setAvailable] = useState(false);
-  const [processing, setProcessing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { buyNowCheckoutUrl } = useCart();
 
   useEffect(() => {
-    const AP = getAP();
+    const AP = (window as unknown as { ApplePaySession?: { canMakePayments(): boolean } }).ApplePaySession;
     setAvailable(!!(AP?.canMakePayments()));
   }, []);
 
-  /* ApplePaySession.begin() MUST be called synchronously inside the click handler.
-     All async work goes into session callbacks (onvalidatemerchant / onpaymentauthorized). */
-  const handlePay = () => {
-    const AP = getAP();
-    if (!AP || processing) return;
-
-    let lines: Array<{ variantId: string; quantity: number }>;
-    let total: number;
-
-    if (variantId && priceEGP != null) {
-      lines = [{ variantId, quantity }];
-      total = priceEGP * quantity + SHIPPING_EGP;
-    } else if (cartLines && cartLines.length > 0 && totalEGP != null) {
-      lines = cartLines;
-      total = totalEGP + SHIPPING_EGP;
-    } else {
-      return;
+  const handlePay = useCallback(async () => {
+    if (loading || disabled) return;
+    setLoading(true);
+    try {
+      let url: string | null = checkoutUrl ?? null;
+      if (!url && variantId) {
+        url = await buyNowCheckoutUrl(variantId, quantity);
+      }
+      if (url) {
+        window.location.href = url;
+      }
+    } finally {
+      setLoading(false);
     }
-
-    const totalAmountCents = Math.round(total * 100);
-
-    const paymentRequest = {
-      countryCode: "EG",
-      currencyCode: "EGP",
-      merchantCapabilities: ["supports3DS"],
-      supportedNetworks: ["visa", "masterCard"],
-      total: { label: "Moi", amount: total.toFixed(2) },
-      lineItems: [
-        { label: "Subtotal", amount: (total - SHIPPING_EGP).toFixed(2) },
-        { label: "Shipping", amount: SHIPPING_EGP.toFixed(2) },
-      ],
-      requiredShippingContactFields: ["email", "phone", "postalAddress", "name"],
-    };
-
-    const session = new AP(3, paymentRequest);
-
-    /* Stored between onvalidatemerchant → onpaymentauthorized */
-    let intentId: string | undefined;
-    let paymobPaymentKey: string | undefined;
-
-    session.onvalidatemerchant = async ({ validationURL }) => {
-      try {
-        const res = await fetch("/api/apple-pay/validate-merchant", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ validationURL, lines, totalAmountCents }),
-        });
-        const data = await res.json() as {
-          merchantSession?: unknown; intentId?: string;
-          paymobPaymentKey?: string; error?: string;
-        };
-        if (!res.ok || !data.merchantSession) {
-          session.abort();
-          setProcessing(false);
-          return;
-        }
-        intentId = data.intentId;
-        paymobPaymentKey = data.paymobPaymentKey;
-        session.completeMerchantValidation(data.merchantSession);
-      } catch {
-        session.abort();
-        setProcessing(false);
-      }
-    };
-
-    session.onpaymentauthorized = async (event) => {
-      try {
-        const sc = event.payment.shippingContact ?? {};
-        const res = await fetch("/api/apple-pay/authorize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            paymentData: JSON.stringify(event.payment.token.paymentData),
-            intentId: intentId ?? "",
-            paymobPaymentKey: paymobPaymentKey ?? "",
-            shippingContact: {
-              firstName: sc.givenName ?? "",
-              lastName: sc.familyName ?? "",
-              email: sc.emailAddress ?? "",
-              phone: sc.phoneNumber ?? "",
-              address: (sc.addressLines ?? []).join(", "),
-              city: sc.locality ?? "Cairo",
-              governorate: sc.administrativeArea ?? "",
-            },
-          }),
-        });
-        const result = await res.json() as { success?: boolean; error?: string };
-        session.completePayment(result.success ? AP.STATUS_SUCCESS : AP.STATUS_FAILURE);
-        if (result.success) {
-          /* Brief delay lets the system sheet animate out before navigating */
-          setTimeout(() => { window.location.href = "/?paid=1"; }, 800);
-        }
-      } catch (err) {
-        console.error("[ApplePay] authorize fetch failed:", err);
-        session.completePayment(AP.STATUS_FAILURE);
-      } finally {
-        setProcessing(false);
-      }
-    };
-
-    session.oncancel = () => setProcessing(false);
-
-    /* begin() must be synchronous in click handler — above callbacks are async-safe */
-    session.begin();
-    setProcessing(true);
-  };
+  }, [checkoutUrl, variantId, quantity, buyNowCheckoutUrl, loading, disabled]);
 
   if (!available || disabled) return null;
 
@@ -195,7 +81,7 @@ export function ShopifyApplePayButton({
         type="button"
         className="ap-express-btn"
         onClick={handlePay}
-        disabled={processing}
+        disabled={loading}
         aria-label="Buy with Apple Pay"
       />
     </div>
