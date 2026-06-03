@@ -1,0 +1,33 @@
+My website frontend is hosted on Replit, while Shopify handles the backend, product catalog, inventory, and order management through the Shopify Storefront API.
+
+Currently, I offer four payment methods:
+
+* Cash on Delivery (COD)
+* InstaPay (instant bank transfer)
+* Credit/Debit Cards via Paymob API
+* Apple Pay
+
+The issue is that Apple Pay is not working on my custom Replit storefront, while it works perfectly on Shopify's native checkout page.
+
+Since I am using Shopify's Storefront API and have full administrative access as the store owner, I would like to implement Shopify's native accelerated Apple Pay checkout directly within my custom storefront, without redirecting customers to the Shopify checkout page or exposing any Shopify checkout URLs.
+
+I found Shopify's Accelerated Checkouts documentation:
+
+https://shopify.dev/docs/storefronts/mobile/checkout-kit/accelerated-checkouts?extension=swift
+
+The goal is to:
+
+1. Display Shopify's native Apple Pay sheet/drawer directly within my custom storefront.
+2. Use the products, pricing, taxes, discounts, and checkout data already managed by Shopify.
+3. Create and process orders directly in Shopify after successful Apple Pay authorization.
+4. Keep the entire checkout experience within the custom storefront without redirecting users to Shopify's hosted checkout page.
+5. Preserve the current payment setup already configured in Shopify.
+
+Important notes:
+
+* Apple Pay is already fully configured, approved, and operational through Paymob's Shopify payment integration.
+* No additional Apple Pay merchant approval should be required because Shopify and Paymob are already handling the Apple Pay payment processing.
+* No separate Apple Pay token management should be necessary beyond the native Shopify accelerated checkout implementation.
+* The objective is simply to enable the same Apple Pay functionality available on Shopify's native checkout page within the custom Storefront API-based frontend.
+
+Please make the necessary frontend and backend changes required to integrate Shopify Accelerated Checkouts so that Apple Pay works correctly from the custom Replit storefront while continuing to create and manage orders through Shopify.
