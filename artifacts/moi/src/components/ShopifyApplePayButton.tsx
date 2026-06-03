@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { useCart } from "@/context/CartContext";
-import { openShopifyCheckout } from "@/lib/shopifyCheckout";
+import {
+  openShopifyCheckoutBlank,
+  navigateShopifyCheckout,
+  openShopifyCheckout,
+} from "@/lib/shopifyCheckout";
 
 const BTN_CSS = `
   .ap-express-btn {
@@ -28,7 +32,7 @@ export function ShopifyApplePayButton({
 }: ShopifyApplePayButtonProps) {
   const [available, setAvailable] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { addToCart, checkoutUrl } = useCart();
+  const { buyNowCheckoutUrl, checkoutUrl } = useCart();
 
   useEffect(() => {
     const AP = (window as unknown as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession;
@@ -38,27 +42,31 @@ export function ShopifyApplePayButton({
   const handlePay = useCallback(async () => {
     if (loading || disabled) return;
     setLoading(true);
-    try {
-      if (variantId && priceEGP != null) {
-        const url = await addToCart({
-          variantId,
-          quantity,
-          price: `${priceEGP} EGP`,
-          priceAmount: priceEGP,
-          currencyCode: "EGP",
-        });
-        if (url) openShopifyCheckout(url);
-      } else if (checkoutUrl) {
-        openShopifyCheckout(checkoutUrl);
+
+    if (variantId && priceEGP != null) {
+      // Product-page express checkout: create an ephemeral cart (won't open bag).
+      // Open the popup BEFORE the await so the browser doesn't block it.
+      const popup = openShopifyCheckoutBlank();
+      try {
+        const url = await buyNowCheckoutUrl(variantId, quantity);
+        navigateShopifyCheckout(popup, url);
+      } catch {
+        popup?.close();
+      } finally {
+        setLoading(false);
       }
-    } finally {
+    } else if (checkoutUrl) {
+      // Cart-drawer mode: items already in cart, URL is ready — open synchronously.
+      openShopifyCheckout(checkoutUrl);
+      setLoading(false);
+    } else {
       setLoading(false);
     }
-  }, [loading, disabled, variantId, quantity, priceEGP, addToCart, checkoutUrl]);
+  }, [loading, disabled, variantId, quantity, priceEGP, buyNowCheckoutUrl, checkoutUrl]);
 
-  const canPay = available && !disabled && (
-    (variantId != null && priceEGP != null) || !!checkoutUrl
-  );
+  const isProductMode = !!variantId && priceEGP != null;
+  const isCartMode = !isProductMode && !!checkoutUrl;
+  const canPay = available && !disabled && (isProductMode || isCartMode);
 
   if (!canPay) return null;
 
