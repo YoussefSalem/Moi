@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { PaymobApplePayButton } from "./PaymobApplePayButton";
-
-const SHIPPING_EGP = 50;
+import { useCart } from "@/context/CartContext";
+import { openShopifyCheckout } from "@/lib/shopifyCheckout";
 
 const BTN_CSS = `
   .ap-express-btn {
@@ -18,8 +17,6 @@ export interface ShopifyApplePayButtonProps {
   variantId?: string;
   quantity?: number;
   priceEGP?: number;
-  lines?: Array<{ variantId: string; quantity: number }>;
-  totalEGP?: number;
   disabled?: boolean;
   className?: string;
   style?: React.CSSProperties;
@@ -27,13 +24,11 @@ export interface ShopifyApplePayButtonProps {
 
 export function ShopifyApplePayButton({
   variantId, quantity = 1, priceEGP,
-  lines: cartLines, totalEGP,
   disabled = false, className, style,
 }: ShopifyApplePayButtonProps) {
   const [available, setAvailable] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "loading" | "ready">("idle");
-  const [paymentData, setPaymentData] = useState<{ clientSecret: string; publicKey: string; intentId: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const { addToCart, checkoutUrl } = useCart();
 
   useEffect(() => {
     const AP = (window as unknown as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession;
@@ -41,95 +36,48 @@ export function ShopifyApplePayButton({
   }, []);
 
   const handlePay = useCallback(async () => {
-    if (phase !== "idle" || disabled) return;
-
-    let lines: Array<{ variantId: string; quantity: number }>;
-    let totalAmountCents: number;
-
-    if (variantId && priceEGP != null) {
-      lines = [{ variantId, quantity }];
-      totalAmountCents = Math.round((priceEGP * quantity + SHIPPING_EGP) * 100);
-    } else if (cartLines && cartLines.length > 0 && totalEGP != null) {
-      lines = cartLines;
-      totalAmountCents = Math.round((totalEGP + SHIPPING_EGP) * 100);
-    } else {
-      return;
-    }
-
-    setPhase("loading");
-    setError(null);
-
+    if (loading || disabled) return;
+    setLoading(true);
     try {
-      const res = await fetch("/api/orders/paymob-apple-pay-init", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lines, totalAmountCents }),
-      });
-      const data = await res.json() as {
-        clientSecret?: string; publicKey?: string; intentId?: string; error?: string;
-      };
-      if (!res.ok || !data.clientSecret || !data.publicKey || !data.intentId) {
-        setError(data.error ?? "Apple Pay is unavailable. Please try another payment method.");
-        setPhase("idle");
-        return;
+      if (variantId && priceEGP != null) {
+        const url = await addToCart({
+          variantId,
+          quantity,
+          price: `${priceEGP} EGP`,
+          priceAmount: priceEGP,
+          currencyCode: "EGP",
+        });
+        if (url) openShopifyCheckout(url);
+      } else if (checkoutUrl) {
+        openShopifyCheckout(checkoutUrl);
       }
-      setPaymentData({ clientSecret: data.clientSecret, publicKey: data.publicKey, intentId: data.intentId });
-      setPhase("ready");
-    } catch {
-      setError("Network error. Please try again.");
-      setPhase("idle");
+    } finally {
+      setLoading(false);
     }
-  }, [phase, disabled, variantId, quantity, priceEGP, cartLines, totalEGP]);
+  }, [loading, disabled, variantId, quantity, priceEGP, addToCart, checkoutUrl]);
 
-  const handleSuccess = useCallback((_txnId: string) => {
-    setTimeout(() => { window.location.href = "/?paid=1"; }, 800);
-  }, []);
+  const canPay = available && !disabled && (
+    (variantId != null && priceEGP != null) || !!checkoutUrl
+  );
 
-  const handleFail = useCallback(() => {
-    setPaymentData(null);
-    setPhase("idle");
-    setError("Payment was declined or cancelled. Please try again.");
-  }, []);
-
-  if (!available || disabled) return null;
+  if (!canPay) return null;
 
   return (
     <div className={className} style={{ width: "100%", ...style }}>
       <style dangerouslySetInnerHTML={{ __html: BTN_CSS }} />
-
-      {phase === "ready" && paymentData ? (
-        <PaymobApplePayButton
-          clientSecret={paymentData.clientSecret}
-          publicKey={paymentData.publicKey}
-          intentId={paymentData.intentId}
-          onSuccess={handleSuccess}
-          onFail={handleFail}
-        />
-      ) : (
-        <>
-          <p style={{
-            margin: "0 0 10px", fontSize: 13, color: "#6b7280",
-            textAlign: "center", letterSpacing: "0.02em", fontFamily: "inherit",
-          }}>
-            {phase === "loading" ? "Setting up Apple Pay…" : "Express checkout"}
-          </p>
-          <button
-            type="button"
-            className="ap-express-btn"
-            onClick={() => { void handlePay(); }}
-            disabled={phase === "loading"}
-            aria-label="Buy with Apple Pay"
-          />
-          {error && (
-            <p style={{
-              marginTop: 8, fontSize: 11, color: "rgba(30,24,20,0.6)",
-              textAlign: "center", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.03em",
-            }}>
-              {error}
-            </p>
-          )}
-        </>
-      )}
+      <p style={{
+        margin: "0 0 10px", fontSize: 13, color: "#6b7280",
+        textAlign: "center", letterSpacing: "0.02em", fontFamily: "inherit",
+      }}>
+        {loading ? "Opening checkout…" : "Express checkout"}
+      </p>
+      <button
+        type="button"
+        className="ap-express-btn"
+        onClick={() => { void handlePay(); }}
+        disabled={loading}
+        aria-label="Buy with Apple Pay"
+      />
     </div>
   );
 }
