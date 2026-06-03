@@ -709,7 +709,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     Buy It Now
                   </motion.button>
 
-                  {/* Apple Pay quick-buy — opens native payment sheet via Paymob */}
+                  {/* Apple Pay quick-buy — opens Shopify checkout popup where Apple Pay is handled natively */}
                   {ENABLE_APPLE_PAY && (
                     <ShopifyApplePayButton
                       variantId={selectedVariant?.id ?? product.variantId ?? ""}
@@ -717,6 +717,15 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       priceEGP={parseEGP(String(effectivePrice)) || 0}
                       disabled={isOutOfStock}
                       style={{ width: "100%" }}
+                      onSuccess={(orderNumber, total) => {
+                        toast.success(
+                          `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
+                          { duration: 5000 },
+                        );
+                      }}
+                      onError={(msg) => {
+                        toast.error(msg, { duration: 4000 });
+                      }}
                     />
                   )}
                 </div>

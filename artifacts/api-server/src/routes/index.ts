@@ -24,10 +24,12 @@ import metaCapiRouter from "./metaCapi";
 import paymobApplePayInitRouter from "./paymobApplePayInit";
 import applePayDirectRouter from "./applePayDirect";
 import shopifyApplePayRouter from "./shopifyApplePay";
+import shopifyApplePayCheckoutRouter from "./shopifyApplePayCheckout";
 
 const router: IRouter = Router();
 
 router.use(shopifyApplePayRouter);
+router.use(shopifyApplePayCheckoutRouter);
 router.use(healthRouter);
 router.use(contactRouter);
 router.use(newsletterRouter);

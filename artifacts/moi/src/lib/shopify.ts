@@ -553,6 +553,71 @@ export async function pollCheckoutPayment(
   return { orderNumber: null, error: "Payment confirmation timed out — check your email for confirmation" };
 }
 
+/**
+ * Extract the Shopify checkout global ID from a checkout URL.
+ * Shopify cart/checkout URLs are of the form:
+ *   https://shop.example.com/checkouts/c/abc123
+ * The checkout token (abc123) is used to construct the global ID.
+ */
+export function extractCheckoutId(checkoutUrl: string): string | null {
+  try {
+    const url = new URL(checkoutUrl);
+    const parts = url.pathname.split("/").filter(Boolean);
+    // Expected: ['checkouts', 'c', 'token'] or ['checkouts', 'cn', 'token']
+    if (parts.length >= 3 && parts[0] === "checkouts") {
+      const token = parts[parts.length - 1];
+      if (token && token.length > 0) {
+        return `gid://shopify/Checkout/${token}`;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+/**
+ * Poll a Shopify checkout until it is completed (or times out).
+ * Uses the Storefront API `node` query to check `completedAt`.
+ * Polls every `intervalMs` for up to `maxMs` total.
+ */
+export async function pollCheckoutUntilComplete(
+  checkoutId: string,
+  maxMs = 120000,
+  intervalMs = 3000,
+): Promise<{ orderNumber: number | null; error: string | null }> {
+  const deadline = Date.now() + maxMs;
+  while (Date.now() < deadline) {
+    try {
+      const data = await shopifyFetch<{
+        node: {
+          id: string;
+          completedAt: string | null;
+          order: { id: string; orderNumber: number; name: string } | null;
+        } | null;
+      }>(`
+        query CheckoutStatus($id: ID!) {
+          node(id: $id) {
+            ... on Checkout {
+              id completedAt
+              order { id orderNumber name }
+            }
+          }
+        }
+      `, { id: checkoutId });
+
+      const c = data.node;
+      if (c?.completedAt) {
+        return { orderNumber: c.order?.orderNumber ?? null, error: null };
+      }
+    } catch {
+      // Network error — keep polling
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  return { orderNumber: null, error: "Payment confirmation timed out — check your email for confirmation" };
+}
+
 export function formatMoney(amount: string, currencyCode: string): string {
   const num = parseFloat(amount);
   const whole = Math.floor(num);

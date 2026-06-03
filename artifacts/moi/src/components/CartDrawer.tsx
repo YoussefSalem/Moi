@@ -533,6 +533,15 @@ export function CartDrawer() {
                           }, 0)
                     }
                     disabled={loading}
+                    onSuccess={(orderNumber, total) => {
+                      toast.success(
+                        `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
+                        { duration: 5000 },
+                      );
+                    }}
+                    onError={(msg) => {
+                      toast.error(msg, { duration: 4000 });
+                    }}
                   />
                 )}
                 <button
