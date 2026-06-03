@@ -139,11 +139,6 @@ export function ShopifyApplePayButton({
     };
 
     session.onpaymentauthorized = async (event) => {
-      if (!intentId || !paymobPaymentKey) {
-        session.completePayment(AP.STATUS_FAILURE);
-        setProcessing(false);
-        return;
-      }
       try {
         const sc = event.payment.shippingContact ?? {};
         const res = await fetch("/api/apple-pay/authorize", {
@@ -151,8 +146,8 @@ export function ShopifyApplePayButton({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             paymentData: JSON.stringify(event.payment.token.paymentData),
-            intentId,
-            paymobPaymentKey,
+            intentId: intentId ?? "",
+            paymobPaymentKey: paymobPaymentKey ?? "",
             shippingContact: {
               firstName: sc.givenName ?? "",
               lastName: sc.familyName ?? "",
@@ -170,7 +165,8 @@ export function ShopifyApplePayButton({
           /* Brief delay lets the system sheet animate out before navigating */
           setTimeout(() => { window.location.href = "/?paid=1"; }, 800);
         }
-      } catch {
+      } catch (err) {
+        console.error("[ApplePay] authorize fetch failed:", err);
         session.completePayment(AP.STATUS_FAILURE);
       } finally {
         setProcessing(false);
