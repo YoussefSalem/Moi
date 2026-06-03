@@ -3,12 +3,25 @@
 
   <div class="moi-hero__media">
     {% if section.settings.hero_video != blank %}
-      <video autoplay loop muted playsinline poster="{{ section.settings.hero_image | image_url: width: 1920 }}">
+      {% if section.settings.hero_image != blank %}
+        {% assign hero_poster = section.settings.hero_image | image_url: width: 1920 %}
+      {% else %}
+        {% assign hero_poster = 'moi-hero.jpg' | asset_url %}
+      {% endif %}
+      <video autoplay loop muted playsinline poster="{{ hero_poster }}">
         <source src="{{ section.settings.hero_video }}" type="video/mp4">
       </video>
-    {% else %}
+    {% elsif section.settings.hero_image != blank %}
       <img
         src="{{ section.settings.hero_image | image_url: width: 1920 }}"
+        alt="{{ shop.name }} — Premium fashion collection"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      >
+    {% else %}
+      <img
+        src="{{ 'moi-hero.jpg' | asset_url }}"
         alt="{{ shop.name }} — Premium fashion collection"
         loading="eager"
         decoding="async"

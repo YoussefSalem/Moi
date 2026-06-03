@@ -34,10 +34,16 @@ title = "Apple Pay CSR files (upload to Apple Developer Portal)"
 id = "KLOtmpf10AMQEjSuEYrCx"
 uri = "file://moi-shopify-theme.zip"
 type = "unspecified"
-title = "moi-shopify-theme.zip"
+title = "moi-shopify-theme.zip — Updated theme (hero auto-loads moi-hero.jpg)"
 
 [[outputs]]
 id = "75If9yBtyJsavm34tO03v"
 uri = "file://moi-shopify-theme.tar.gz"
 type = "unspecified"
 title = "Moi Shopify Theme Archive"
+
+[[outputs]]
+id = "0wRlOwHXhTdhNga9NorZH"
+uri = "file://moi-images.zip"
+type = "unspecified"
+title = "moi-images.zip — All 39 images, clearly named"
