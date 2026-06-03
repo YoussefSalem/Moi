@@ -21,6 +21,7 @@ moi-shopify-theme/
 │   ├── collection.liquid      ── Collection page
 │   ├── cart.liquid            ── Cart page
 │   ├── page.liquid            ── Static pages
+│   ├── page.ambassador.liquid ── Ambassador application
 │   ├── search.liquid          ── Search results
 │   └── 404.liquid            ── 404 page
 ├── sections/
@@ -54,6 +55,7 @@ moi-shopify-theme/
 - **TikTok social proof**: Embedded video grid
 - **Newsletter**: Elegant gradient card with email capture
 - **Footer**: Accordion FAQs, newsletter, social links
+- **Ambassador page**: Form application with API integration
 - **Cart drawer**: Slide-out cart with item management
 - **Search drawer**: Overlay search with product suggestions
 - **Responsive**: Fully mobile-optimized

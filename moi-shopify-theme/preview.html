@@ -480,11 +480,11 @@ function renderProdSec(key,dark){
 
 function renderTikTok(){
   const v=[
-    {t:"How brands under 1000 EGP actually look on 👀💸",h:"@etharrdiabb",c:"Real styling review — affordable local fashion that actually delivers."},
-    {t:"New Moi piece just dropped 🔥",h:"@etharrdiabb",c:"First look at the latest Moi drop — fit, fabric, and how it wears."},
-    {t:"Get ready with me",h:"@thatsalmarocks",c:"Morning routine & outfit check — effortless day-to-night dressing."},
-    {t:"Outfit of the day",h:"@shopmoi_",c:"Styling picks that feel polished and easy to recreate."},
-    {t:"Everyday outfit inspo",h:"@thatsalmarocks",c:"Real, wearable outfits that translate from screen to wardrobe."}
+    {t:"How brands under 1000 EGP actually look on 👀💸",h:"@etharrdiabb",c:"Real styling review — affordable local fashion that actually delivers.",u:"https://www.tiktok.com/embed/v2/7642745763021262098"},
+    {t:"New Moi piece just dropped 🔥",h:"@etharrdiabb",c:"First look at the latest Moi drop — fit, fabric, and how it wears.",u:"https://www.tiktok.com/embed/v2/7643440266891840776"},
+    {t:"Get ready with me",h:"@thatsalmarocks",c:"Morning routine & outfit check — effortless day-to-night dressing.",u:"https://www.tiktok.com/embed/v2/7639398570302377223"},
+    {t:"Outfit of the day",h:"@shopmoi_",c:"Styling picks that feel polished and easy to recreate.",u:"https://www.tiktok.com/embed/v2/7639352601947016455"},
+    {t:"Everyday outfit inspo",h:"@thatsalmarocks",c:"Real, wearable outfits that translate from screen to wardrobe.",u:"https://www.tiktok.com/embed/v2/7641637259661430024"}
   ];
   return `<section class="moi-tiktok">
     <div class="moi-tiktok__header">
@@ -503,11 +503,7 @@ function renderTikTok(){
           <a class="moi-tiktok__card-handle" href="https://www.tiktok.com/${x.h}" target="_blank" rel="noopener">${x.h}</a>
           <p class="moi-tiktok__card-caption">${x.c}</p>
           <div class="moi-tiktok__card-video">
-            <div class="moi-tiktok__card-placeholder">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
-              <p class="moi-tiktok__card-placeholder-text">Coming soon</p>
-              <div style="width:48px;height:1px;background:rgba(255,255,255,.1);margin-top:16px"></div>
-            </div>
+            <iframe title="${x.t}" src="${x.u}" style="width:100%;aspect-ratio:9/16;border:none;" allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture; autoplay" scrolling="no" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms"></iframe>
           </div>
         </div>`).join('')}
       </div>
