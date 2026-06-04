@@ -386,6 +386,7 @@ export function CheckoutPage() {
               };
             };
           }) => void) | null;
+          onshippingmethodselected: ((e: { shippingMethod: { amount: string } }) => void) | null;
           oncancel: (() => void) | null;
           completeMerchantValidation(s: unknown): void;
           completePayment(r: { status: number }): void;
@@ -502,6 +503,8 @@ export function CheckoutPage() {
           success?: boolean;
           error?: string;
           shopifyOrderNumber?: number | null;
+          shopifyOrderId?: number | null;
+          total?: string;
         };
         if (data.success) {
           session.completePayment({ status: AP.STATUS_SUCCESS });
@@ -525,10 +528,11 @@ export function CheckoutPage() {
           setOrderResult({
             orderNumber: String(data.shopifyOrderNumber ?? ""),
             shopifyOrderNumber: data.shopifyOrderNumber ?? undefined,
-            total: `${Math.round(totalEGP)} EGP`,
+            shopifyOrderId: data.shopifyOrderId ?? null,
+            total: data.total ? `${Math.round(parseFloat(data.total))} EGP` : `${Math.round(totalEGP)} EGP`,
             items: cartItemsSnapshot.length > 0 ? cartItemsSnapshot : undefined,
           });
-          setStep("cod-confirm");
+          setStep("card-confirm");
           clearCart();
         } else {
           session.completePayment({ status: AP.STATUS_FAILURE });
@@ -3053,11 +3057,13 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   useEffect(() => {
     const ownOrigin = window.location.origin;
     const paymobOrigin = "https://accept.paymob.com";
+    const paymobUcOrigin = "https://uapi.paymob.com";
 
     function handleMessage(event: MessageEvent) {
       const isOwn = event.origin === ownOrigin;
       const isPaymob = event.origin === paymobOrigin;
-      if (!isOwn && !isPaymob) return;
+      const isPaymobUc = event.origin === paymobUcOrigin;
+      if (!isOwn && !isPaymob && !isPaymobUc) return;
 
       // Paymob legacy v1 iframe sends postMessage as a JSON *string*; Unified Checkout
       // and our own relay page send an object. Handle both forms.
@@ -3115,9 +3121,9 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
         return;
       }
 
-      // Paymob inline postMessage — legacy v1 sends success as a string ("true"/"false"),
-      // Unified Checkout sends a boolean. Accept both.
-      if (isPaymob && ("success" in data)) {
+      // Paymob inline postMessage — legacy v1 (accept.paymob.com) sends success as a string
+      // ("true"/"false"); Unified Checkout (uapi.paymob.com) sends a boolean. Accept both.
+      if ((isPaymob || isPaymobUc) && ("success" in data)) {
         const rawSuccess = data["success"];
         const isSuccess = rawSuccess === true || rawSuccess === "true";
         const isFail = rawSuccess === false || rawSuccess === "false";

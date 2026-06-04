@@ -26,6 +26,9 @@ interface ApplePayPaymentRequest {
   supportedNetworks: string[];
   merchantCapabilities: string[];
   requiredShippingContactFields?: string[];
+  shippingType?: string;
+  shippingMethods?: Array<{ label: string; detail: string; amount: string; identifier: string }>;
+  lineItems?: Array<{ label: string; amount: string; type?: string }>;
   total: { label: string; amount: string };
 }
 interface ApplePayContact {
@@ -46,6 +49,7 @@ interface APSession {
   onvalidatemerchant: ((e: { validationURL: string }) => void) | null;
   onpaymentauthorized: ((e: { payment: ApplePayPayment }) => void) | null;
   onshippingmethodselected: ((e: { shippingMethod: { amount: string } }) => void) | null;
+  onshippingcontactselected: ((e: { shippingContact: ApplePayContact }) => void) | null;
   oncancel: (() => void) | null;
   completeMerchantValidation(sess: unknown): void;
   completePayment(result: { status: number }): void;
