@@ -29,9 +29,10 @@ interface ProductCardProps {
   product: ProductConfig;
   onLookView: (product: ProductConfig) => void;
   onNavigateToProduct?: (handle: string) => void;
+  hideLookView?: boolean;
 }
 
-export function ProductCard({ product, onLookView, onNavigateToProduct }: ProductCardProps) {
+export function ProductCard({ product, onLookView, onNavigateToProduct, hideLookView }: ProductCardProps) {
   const { addToCart } = useCart();
   const { customer } = useCustomer();
   const [addedFeedback, setAddedFeedback] = useState(false);
@@ -400,6 +401,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
               {/* Image tap / swipe area */}
               <div className="relative w-full mx-auto">
                 {/* See the Look — desktop, above image */}
+                {!hideLookView && (
                 <motion.button
                   type="button"
                   onClick={() => {
@@ -418,6 +420,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   </span>
                   <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
                 </motion.button>
+                )}
 
                 {/* Desktop: image + side arrows in a row — Mobile: swipe only */}
                 <div className="hidden md:flex items-center justify-center gap-4">
@@ -481,6 +484,8 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                       setDraggingGallery(false);
                       if (shouldSwipe) {
                         jumpGallery(delta < 0 ? 1 : -1);
+                      } else if (hideLookView && onNavigateToProduct) {
+                        onNavigateToProduct(product.slug);
                       } else {
                         onLookView(product);
                       }
@@ -557,6 +562,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 </div>
 
                 {/* Mobile: just image, no arrows */}
+                {!hideLookView && (
                 <motion.button
                   type="button"
                   onClick={() => {
@@ -575,6 +581,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   </span>
                   <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
                 </motion.button>
+                )}
                 <div
                   className="md:hidden relative w-full mx-auto"
                   onPointerDown={(e) => {
@@ -614,6 +621,8 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     setDraggingGallery(false);
                     if (shouldSwipe) {
                       jumpGallery(delta < 0 ? 1 : -1);
+                    } else if (hideLookView && onNavigateToProduct) {
+                      onNavigateToProduct(product.slug);
                     } else {
                       onLookView(product);
                     }
