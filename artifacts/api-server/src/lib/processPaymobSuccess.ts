@@ -9,6 +9,7 @@ import {
 import {
   createShopifyDirectOrder,
   recordDiscountCodeUse,
+  validateStockAvailability,
   type OrderLine,
   type CustomerInfo,
   type ShopifyLineItem,
@@ -97,6 +98,17 @@ export async function processPaymobSuccess(params: {
   } : undefined;
 
   logger.info({ intentId, paymobTxnId, amount, isApplePay, hasAttribution: !!attribution }, "processPaymobSuccess: creating Shopify order");
+
+  // Backend stock enforcement — items may have gone out of stock between init and payment
+  const stockCheck = await validateStockAvailability(lines);
+  if (!stockCheck.ok) {
+    logger.warn({ intentId, unavailableVariantIds: stockCheck.unavailableVariantIds }, "processPaymobSuccess: stock check failed");
+    await db
+      .update(paymobIntents)
+      .set({ status: "failed" })
+      .where(eq(paymobIntents.intentId, intentId));
+    return { alreadyClaimed: false };
+  }
 
   let shopifyOrderId: number;
   let shopifyOrderNumber: number;

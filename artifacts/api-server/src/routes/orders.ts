@@ -9,6 +9,7 @@ import {
   extractVariantId,
   lookupDiscountCode,
   recordDiscountCodeUse,
+  validateStockAvailability,
   type OrderLine,
   type CustomerInfo,
   type OrderAttribution,
@@ -114,6 +115,13 @@ router.post("/orders/instapay-init", async (req, res) => {
     return;
   }
 
+  const stockCheck = await validateStockAvailability(lines);
+  if (!stockCheck.ok) {
+    req.log.warn({ unavailableVariantIds: stockCheck.unavailableVariantIds }, "Instapay init — stock check failed");
+    res.status(422).json({ error: "One or more items are out of stock." });
+    return;
+  }
+
   const cartId =
     typeof body.cartId === "string" && body.cartId.trim()
       ? body.cartId.trim()
@@ -200,6 +208,13 @@ router.post("/orders/create", async (req, res) => {
   const customer = validateCustomer(body.customer);
   if (!customer) {
     res.status(400).json({ error: "All customer fields are required." });
+    return;
+  }
+
+  const stockCheck = await validateStockAvailability(lines);
+  if (!stockCheck.ok) {
+    req.log.warn({ unavailableVariantIds: stockCheck.unavailableVariantIds }, "COD order — stock check failed");
+    res.status(422).json({ error: "One or more items are out of stock." });
     return;
   }
 

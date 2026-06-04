@@ -8,6 +8,7 @@ import { addShopifyOrderNote, tagShopifyOrder, sendWhatsApp, getShopifyAdminToke
 import { sendEmail, buildInstapayPendingEmail, buildInstapayAdminReferenceEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 import { parseEGP } from "@workspace/utils";
+import { validateStockAvailability } from "../lib/shopifyOrder";
 
 const router: IRouter = Router();
 
@@ -103,6 +104,7 @@ router.post(
             draft_order?: {
               total_price?: string;
               email?: string;
+              line_items?: { variant_id: number; quantity: number }[];
               applied_discount?: { title?: string; amount?: string } | null;
               note_attributes?: { name: string; value: string }[];
               shipping_line?: { price?: string } | null;
@@ -116,6 +118,19 @@ router.post(
             if (d.applied_discount?.amount) draftDiscountAmount = parseFloat(d.applied_discount.amount);
             if (d.shipping_line?.price !== undefined && d.shipping_line.price !== null) {
               draftShippingAmount = d.shipping_line.price;
+            }
+            // Stock check before accepting proof — items may have gone out of stock since init
+            if (d.line_items && d.line_items.length > 0) {
+              const lines = d.line_items.map((li) => ({
+                variantId: `gid://shopify/ProductVariant/${li.variant_id}`,
+                quantity: li.quantity,
+              }));
+              const stockCheck = await validateStockAvailability(lines);
+              if (!stockCheck.ok) {
+                logger.warn({ draftOrderId, unavailableVariantIds: stockCheck.unavailableVariantIds }, "Instapay proof — stock check failed on draft order");
+                res.status(422).json({ error: "One or more items in your order are now out of stock." });
+                return;
+              }
             }
           }
         }
