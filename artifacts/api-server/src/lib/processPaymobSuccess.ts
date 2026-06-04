@@ -2,10 +2,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
 import { parseEGP } from "@workspace/utils";
-import {
-  sendWhatsApp,
-  completeShopifyCheckout,
-} from "./integrations";
+import { sendWhatsApp, completeShopifyCheckout } from "./integrations";
 import {
   createShopifyDirectOrder,
   recordDiscountCodeUse,
@@ -19,21 +16,15 @@ import { sendEmail, buildOrderConfirmationEmail, buildAdminPaymentNotificationEm
 import { logger } from "./logger";
 
 /**
- * Atomically claims a pending Paymob intent and processes the successful payment:
- * creates a Shopify order (draft → complete → paid), sends confirmation email,
- * fires WhatsApp message, and marks the intent completed.
+ * Atomically claims a pending Paymob intent and creates a Shopify order.
+ * Idempotent — if the intent is already claimed returns { alreadyClaimed: true }.
  *
- * Idempotent — if the intent is already claimed (status !== "pending") the function
- * returns `{ alreadyClaimed: true }` and does nothing.
- *
- * Called from the webhook handler, the status polling fallback, and directly
- * from the Apple Pay authorize endpoint.
+ * Called by the webhook handler, paymob-sync, and the status polling fallback.
  */
 export async function processPaymobSuccess(params: {
   intentId: string;
   paymobTxnId: string;
   amountCents: number;
-  /** "apple-pay" for Paymob Apple Pay orders; defaults to "card" */
   paymentChannel?: "card" | "apple-pay";
 }): Promise<{ alreadyClaimed: boolean }> {
   const { intentId, paymobTxnId, amountCents } = params;
@@ -57,14 +48,13 @@ export async function processPaymobSuccess(params: {
     });
 
   if (claimed.length === 0) {
-    logger.info({ intentId, paymobTxnId }, "processPaymobSuccess: intent already claimed or not found (idempotent)");
+    logger.info({ intentId, paymobTxnId }, "processPaymobSuccess: intent already claimed (idempotent)");
     return { alreadyClaimed: true };
   }
 
   const intent = claimed[0];
 
-  // Null-safe customer — Apple Pay Pixel SDK intents may have a placeholder or null
-  // until billing_data is fetched from Paymob (updated in paymobSync before this call).
+  // Normalize customer — Apple Pay intents may have placeholder until billing_data is fetched
   const rawCustomer = intent.customer as CustomerInfo | null;
   const customer: CustomerInfo = rawCustomer ? {
     firstName: rawCustomer.firstName || "NA",
@@ -75,12 +65,8 @@ export async function processPaymobSuccess(params: {
     city: rawCustomer.city || "Cairo",
     governorate: rawCustomer.governorate || "NA",
   } : {
-    firstName: "NA",
-    lastName: "NA",
-    phone: "NA",
-    address: "NA",
-    city: "Cairo",
-    governorate: "NA",
+    firstName: "NA", lastName: "NA", phone: "NA",
+    address: "NA", city: "Cairo", governorate: "NA",
   };
 
   const lines = intent.lines as OrderLine[];
@@ -97,18 +83,15 @@ export async function processPaymobSuccess(params: {
       : {}),
   } : undefined;
 
-  logger.info({ intentId, paymobTxnId, amount, isApplePay, hasAttribution: !!attribution }, "processPaymobSuccess: creating Shopify order");
-
-  // Backend stock enforcement — items may have gone out of stock between init and payment
+  // Backend stock enforcement
   const stockCheck = await validateStockAvailability(lines);
   if (!stockCheck.ok) {
-    logger.warn({ intentId, unavailableVariantIds: stockCheck.unavailableVariantIds }, "processPaymobSuccess: stock check failed");
-    await db
-      .update(paymobIntents)
-      .set({ status: "failed" })
-      .where(eq(paymobIntents.intentId, intentId));
+    logger.warn({ intentId, unavailableVariantIds: stockCheck.unavailableVariantIds }, "processPaymobSuccess: stock unavailable");
+    await db.update(paymobIntents).set({ status: "failed" }).where(eq(paymobIntents.intentId, intentId));
     return { alreadyClaimed: false };
   }
+
+  logger.info({ intentId, paymobTxnId, amount, isApplePay }, "processPaymobSuccess: creating Shopify order");
 
   let shopifyOrderId: number;
   let shopifyOrderNumber: number;
@@ -137,28 +120,25 @@ export async function processPaymobSuccess(params: {
     shopifyDiscountAmount = result.discountAmount;
     shopifyDiscountCode = result.discountCode;
   } catch (err) {
-    logger.error({ err, intentId }, "processPaymobSuccess: Shopify order creation failed — marking intent failed");
-    await db
-      .update(paymobIntents)
-      .set({ status: "failed" })
-      .where(eq(paymobIntents.intentId, intentId));
+    logger.error({ err, intentId }, "processPaymobSuccess: Shopify order creation failed");
+    await db.update(paymobIntents).set({ status: "failed" }).where(eq(paymobIntents.intentId, intentId));
     return { alreadyClaimed: false };
   }
 
-  // Mark completed and auto-approved — no manual admin review needed for card/Apple Pay orders
+  // Mark completed and auto-approved
   await db
     .update(paymobIntents)
     .set({
       status: "completed",
-      shopifyOrderId: shopifyOrderId,
+      shopifyOrderId,
       shopifyConfirmedOrderId: shopifyOrderId,
-      shopifyOrderNumber: shopifyOrderNumber,
+      shopifyOrderNumber,
       adminApproved: true,
       adminApprovedAt: new Date(),
     })
     .where(eq(paymobIntents.intentId, intentId));
 
-  logger.info({ intentId, shopifyOrderId, shopifyOrderNumber, paymobTxnId, isApplePay }, "processPaymobSuccess: Shopify order created and auto-approved");
+  logger.info({ intentId, shopifyOrderId, shopifyOrderNumber, paymobTxnId, isApplePay }, "processPaymobSuccess: order created and auto-approved");
 
   // Fire-and-forget side effects
   if (intent.checkoutToken) {
@@ -171,6 +151,7 @@ export async function processPaymobSuccess(params: {
 
   const paymentMethodLabel = isApplePay ? "Apple Pay (Paymob)" : "Credit/Debit Card (Paymob)";
 
+  // Customer confirmation email
   if (customer.email) {
     const shippingPrice = parseEGP(amount) >= 2000 ? "0.00" : "50.00";
     const { html, text } = buildOrderConfirmationEmail({
@@ -193,7 +174,7 @@ export async function processPaymobSuccess(params: {
       text,
     })
       .then(() => logger.info({ email: customer.email, shopifyOrderId }, "processPaymobSuccess: confirmation email sent"))
-      .catch((err) => logger.warn({ err, email: customer.email }, "processPaymobSuccess: confirmation email failed"));
+      .catch((err) => logger.warn({ err }, "processPaymobSuccess: confirmation email failed"));
   }
 
   // Admin notification email
@@ -218,9 +199,10 @@ export async function processPaymobSuccess(params: {
       text: adminText,
     })
       .then(() => logger.info({ adminEmail, shopifyOrderId }, "processPaymobSuccess: admin notification sent"))
-      .catch((err) => logger.warn({ err, adminEmail }, "processPaymobSuccess: admin notification failed"));
+      .catch((err) => logger.warn({ err }, "processPaymobSuccess: admin notification failed"));
   }
 
+  // WhatsApp confirmation
   const phone = customer.phone ?? "";
   if (phone && phone !== "NA") {
     void sendWhatsApp(
@@ -235,9 +217,6 @@ Your order is being prepared and will be dispatched soon. Thank you for shopping
     );
   }
 
-  // NOTE: Bosta dispatch is intentionally skipped. The Bosta Shopify app
-  // automatically syncs all orders that enter Shopify — no manual API call needed.
-
-  logger.info({ shopifyOrderId, shopifyOrderNumber, paymobTxnId, amount, isApplePay }, "processPaymobSuccess: order fully processed and auto-approved");
+  logger.info({ shopifyOrderId, shopifyOrderNumber, paymobTxnId, amount, isApplePay }, "processPaymobSuccess: completed");
   return { alreadyClaimed: false };
 }

@@ -1,12 +1,11 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
-import { createPaymobPaymentKey } from "../lib/paymob";
+import { createPaymobCardPaymentKey } from "../lib/paymob";
 import { fetchStorefrontCart, type OrderLine, type CustomerInfo, type OrderAttribution } from "../lib/shopifyOrder";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
 
 const router: IRouter = Router();
-
 const SHIPPING_EGP = 50;
 
 router.post("/orders/paymob-init", async (req, res) => {
@@ -19,11 +18,11 @@ router.post("/orders/paymob-init", async (req, res) => {
     checkoutToken?: unknown;
   };
 
+  // Validate line items
   if (!Array.isArray(body.lines) || body.lines.length === 0) {
     res.status(400).json({ error: "No items in order." });
     return;
   }
-
   for (const raw of body.lines as unknown[]) {
     const l = raw as Record<string, unknown>;
     if (typeof l.variantId !== "string" || !/^gid:\/\/shopify\/ProductVariant\/\d+$/.test(l.variantId)) {
@@ -36,6 +35,7 @@ router.post("/orders/paymob-init", async (req, res) => {
     }
   }
 
+  // Validate customer
   const customer = body.customer as CustomerInfo | undefined;
   if (
     !customer?.firstName?.trim() || !customer?.lastName?.trim() ||
@@ -47,11 +47,19 @@ router.post("/orders/paymob-init", async (req, res) => {
   }
 
   const lines = body.lines as OrderLine[];
-  const discountCode = typeof body.discountCode === "string" && body.discountCode.trim() ? body.discountCode.trim() : undefined;
-  const cartId = typeof body.cartId === "string" && body.cartId.trim() ? body.cartId.trim() : undefined;
-  const checkoutToken = typeof body.checkoutToken === "string" && body.checkoutToken.trim() ? body.checkoutToken.trim() : null;
+  const discountCode = typeof body.discountCode === "string" && body.discountCode.trim()
+    ? body.discountCode.trim() : undefined;
+  const cartId = typeof body.cartId === "string" && body.cartId.trim()
+    ? body.cartId.trim() : undefined;
+  const checkoutToken = typeof body.checkoutToken === "string" && body.checkoutToken.trim()
+    ? body.checkoutToken.trim() : null;
 
-  // Extract attribution from request body
+  if (!cartId) {
+    res.status(400).json({ error: "Cart ID is required for card payments." });
+    return;
+  }
+
+  // Parse attribution
   let attribution: OrderAttribution | undefined;
   if (body.attribution && typeof body.attribution === "object") {
     const a = body.attribution as Record<string, unknown>;
@@ -70,13 +78,8 @@ router.post("/orders/paymob-init", async (req, res) => {
     if (Object.keys(attribution).length === 0) attribution = undefined;
   }
 
-  if (!cartId) {
-    res.status(400).json({ error: "Cart ID is required for card payments." });
-    return;
-  }
-
-  req.log.info({ lineCount: lines.length }, "Paymob init — computing total from Storefront cart");
-
+  // Compute total from live Shopify cart
+  req.log.info({ lineCount: lines.length }, "paymob-init: fetching Storefront cart for total");
   const cart = await fetchStorefrontCart(cartId);
   if (!cart) {
     res.status(400).json({ error: "Could not load your cart. Please try again." });
@@ -98,6 +101,7 @@ router.post("/orders/paymob-init", async (req, res) => {
 
   const intentId = randomUUID();
 
+  // Persist intent so we can look it up when payment completes
   await db.insert(paymobIntents).values({
     intentId,
     lines: lines as unknown as Record<string, unknown>[],
@@ -111,18 +115,15 @@ router.post("/orders/paymob-init", async (req, res) => {
     checkoutToken,
   });
 
-  req.log.info({ intentId, amountCents, total }, "Paymob intent saved — creating legacy payment key");
+  req.log.info({ intentId, amountCents, total }, "paymob-init: intent saved — creating payment key");
 
-  // Build callback and redirection URLs from the first configured domain.
-  // callback_url  = server-to-server transaction notification (POST from Paymob servers)
-  // redirection_url = where the browser/iframe navigates after payment completes
   const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
   const callbackUrl = domain ? `https://${domain}/api/webhooks/paymob` : undefined;
   const redirectionUrl = domain ? `https://${domain}/paymob-relay.html` : undefined;
 
-  let result: { iframeUrl: string };
+  let iframeUrl: string;
   try {
-    result = await createPaymobPaymentKey({
+    const result = await createPaymobCardPaymentKey({
       amountCents,
       merchantOrderId: intentId,
       customer: {
@@ -136,19 +137,15 @@ router.post("/orders/paymob-init", async (req, res) => {
       callbackUrl,
       redirectionUrl,
     });
+    iframeUrl = result.iframeUrl;
   } catch (err) {
-    req.log.error({ err, intentId }, "Paymob payment key creation failed");
+    req.log.error({ err, intentId }, "paymob-init: payment key creation failed");
     res.status(500).json({ error: "Payment gateway unavailable. Please try again." });
     return;
   }
 
-  req.log.info({ intentId }, "Paymob legacy payment key created successfully");
-
-  res.status(200).json({
-    iframeUrl: result.iframeUrl,
-    intentId,
-    total,
-  });
+  req.log.info({ intentId }, "paymob-init: payment key created");
+  res.status(200).json({ iframeUrl, intentId, total });
 });
 
 export default router;

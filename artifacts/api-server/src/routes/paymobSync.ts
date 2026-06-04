@@ -10,18 +10,9 @@ const router: IRouter = Router();
 /**
  * POST /api/orders/paymob-sync
  *
- * Called by the frontend the moment it receives a "success" postMessage from the
- * Paymob iframe. This is the primary trigger for draft order creation when the
- * server-to-server webhook has not arrived (e.g. Paymob cannot reach the callback
- * URL, or the webhook fires after the frontend polling has already stopped).
- *
- * Security: does NOT trust the client's claimed paymobTxnId blindly —
- * it first attempts to verify the transaction via the Paymob API.
- * When the Paymob API is unreachable (e.g. auth issues), it falls back to
- * accepting the txnId with a log warning — the admin approval step provides
- * a human review gate before the draft is converted to a real Shopify order.
- *
- * Idempotent: if the intent is already claimed it returns the current status.
+ * Called by the frontend the moment it receives the Paymob postMessage confirming
+ * payment. Verifies the transaction with the Paymob API before creating a Shopify
+ * order. Idempotent — safe to call multiple times for the same intent.
  */
 router.post("/orders/paymob-sync", async (req, res) => {
   const body = req.body as { intentId?: unknown; paymobTxnId?: unknown };
@@ -34,11 +25,7 @@ router.post("/orders/paymob-sync", async (req, res) => {
   }
 
   const rows = await db
-    .select({
-      status: paymobIntents.status,
-      paymobTxnId: paymobIntents.paymobTxnId,
-      amountCents: paymobIntents.amountCents,
-    })
+    .select({ status: paymobIntents.status, paymobTxnId: paymobIntents.paymobTxnId, amountCents: paymobIntents.amountCents })
     .from(paymobIntents)
     .where(eq(paymobIntents.intentId, intentId))
     .limit(1);
@@ -51,133 +38,98 @@ router.post("/orders/paymob-sync", async (req, res) => {
   const { status, paymobTxnId, amountCents } = rows[0];
   res.setHeader("Cache-Control", "no-store");
 
-  // Already resolved — return current state without touching Paymob.
   if (status !== "pending") {
     req.log.info({ intentId, status }, "paymob-sync: intent already resolved (idempotent)");
     res.json({ status, alreadyClaimed: true, paymobTxnId: paymobTxnId ?? null });
     return;
   }
 
-  // Strategy 1: If the client provided a txnId, try to verify it directly via
-  // Paymob's transaction endpoint (more reliable than the order-level query).
+  // Strategy 1: verify via the specific transaction ID the client received from Paymob
   if (clientTxnId) {
     const verified = await verifyPaymobTransactionById(clientTxnId, intentId).catch(() => null);
     if (verified !== null) {
       if (!verified.success) {
-        req.log.info({ intentId, txnId: verified.txnId }, "paymob-sync: Paymob reports failed/declined (via txnId verify)");
+        req.log.info({ intentId, txnId: verified.txnId }, "paymob-sync: Paymob reports failed (txnId verify)");
         await db
           .update(paymobIntents)
           .set({ status: "declined", paymobTxnId: verified.txnId })
           .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "pending")))
-          .catch((err: unknown) =>
-            req.log.error({ err, intentId }, "paymob-sync: failed to mark intent declined"),
-          );
+          .catch((err: unknown) => req.log.error({ err, intentId }, "paymob-sync: failed to mark declined"));
         res.json({ status: "declined", paymobTxnId: verified.txnId });
         return;
       }
-      req.log.info(
-        { intentId, txnId: verified.txnId, amountCents: verified.amountCents },
-        "paymob-sync: verified via txnId — processing order",
-      );
-      // Update customer from Apple Pay billing_data (shippingContact) before order creation
+
+      // Update customer from billing_data (Apple Pay shippingContact)
       if (verified.billingData) {
-        const applePayCustomer = mapPaymobBillingToCustomer(verified.billingData);
+        const customer = mapPaymobBillingToCustomer(verified.billingData);
         await db.update(paymobIntents)
-          .set({ customer: applePayCustomer as unknown as Record<string, unknown> })
+          .set({ customer: customer as unknown as Record<string, unknown> })
           .where(eq(paymobIntents.intentId, intentId))
-          .catch((err: unknown) => req.log.warn({ err, intentId }, "paymob-sync: failed to update customer from billing_data"));
+          .catch((err: unknown) => req.log.warn({ err, intentId }, "paymob-sync: failed to update customer"));
       }
-      const paymentChannelTxn = verified.sourceDataSubType?.toUpperCase() === "APPLE_PAY" ? "apple-pay" as const : "card" as const;
-      // Trigger order creation; then read the intent to get the Shopify order details
-      await processPaymobSuccess({
-        intentId,
-        paymobTxnId: verified.txnId,
-        amountCents: verified.amountCents,
-        paymentChannel: paymentChannelTxn,
-      }).catch((err: unknown) =>
-        req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error"),
-      );
-      const updatedRows = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
+
+      req.log.info({ intentId, txnId: verified.txnId }, "paymob-sync: verified via txnId — creating order");
+      const channel = verified.sourceDataSubType?.toUpperCase() === "APPLE_PAY" ? "apple-pay" as const : "card" as const;
+      await processPaymobSuccess({ intentId, paymobTxnId: verified.txnId, amountCents: verified.amountCents, paymentChannel: channel })
+        .catch((err: unknown) => req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error"));
+
+      const updated = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
         .from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
-      const updated = updatedRows[0];
-      res.json({ status: "completed", paymobTxnId: verified.txnId, shopifyOrderId: updated?.shopifyOrderId ?? null, shopifyOrderNumber: updated?.shopifyOrderNumber ?? null });
+      const row = updated[0];
+      res.json({ status: "completed", paymobTxnId: verified.txnId, shopifyOrderId: row?.shopifyOrderId ?? null, shopifyOrderNumber: row?.shopifyOrderNumber ?? null });
       return;
     }
     req.log.info({ intentId, clientTxnId }, "paymob-sync: txnId verify returned null — falling through to order query");
   }
 
-  // Strategy 2: Query Paymob directly by merchant_order_id.
+  // Strategy 2: query Paymob by merchant_order_id
   const result = await queryPaymobByMerchantOrderId(intentId).catch(() => null);
-
   if (result !== null) {
     if (!result.success) {
-      req.log.info({ intentId, txnId: result.txnId }, "paymob-sync: Paymob reports failed/declined");
+      req.log.info({ intentId, txnId: result.txnId }, "paymob-sync: Paymob reports failed (order query)");
       await db
         .update(paymobIntents)
         .set({ status: "declined", paymobTxnId: result.txnId })
         .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "pending")))
-        .catch((err: unknown) =>
-          req.log.error({ err, intentId }, "paymob-sync: failed to mark intent declined"),
-        );
+        .catch((err: unknown) => req.log.error({ err, intentId }, "paymob-sync: failed to mark declined"));
       res.json({ status: "declined", paymobTxnId: result.txnId });
       return;
     }
 
-    req.log.info(
-      { intentId, txnId: result.txnId, amountCents: result.amountCents },
-      "paymob-sync: verified via order query — processing order",
-    );
-    // Update customer from Apple Pay billing_data if available
     if (result.billingData) {
-      const applePayCustomer = mapPaymobBillingToCustomer(result.billingData);
+      const customer = mapPaymobBillingToCustomer(result.billingData);
       await db.update(paymobIntents)
-        .set({ customer: applePayCustomer as unknown as Record<string, unknown> })
+        .set({ customer: customer as unknown as Record<string, unknown> })
         .where(eq(paymobIntents.intentId, intentId))
-        .catch((err: unknown) => req.log.warn({ err, intentId }, "paymob-sync: failed to update customer from billing_data"));
+        .catch((err: unknown) => req.log.warn({ err, intentId }, "paymob-sync: failed to update customer"));
     }
-    const paymentChannelOrder = result.sourceDataSubType?.toUpperCase() === "APPLE_PAY" ? "apple-pay" as const : "card" as const;
-    await processPaymobSuccess({
-      intentId,
-      paymobTxnId: result.txnId,
-      amountCents: result.amountCents,
-      paymentChannel: paymentChannelOrder,
-    }).catch((err: unknown) =>
-      req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error"),
-    );
-    // After processPaymobSuccess completes, read the intent to get the Shopify order details
-    const updatedRows = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
+
+    req.log.info({ intentId, txnId: result.txnId }, "paymob-sync: verified via order query — creating order");
+    const channel = result.sourceDataSubType?.toUpperCase() === "APPLE_PAY" ? "apple-pay" as const : "card" as const;
+    await processPaymobSuccess({ intentId, paymobTxnId: result.txnId, amountCents: result.amountCents, paymentChannel: channel })
+      .catch((err: unknown) => req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error"));
+
+    const updated = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
       .from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
-    const updated = updatedRows[0];
-    res.json({ status: "completed", paymobTxnId: result.txnId, shopifyOrderId: updated?.shopifyOrderId ?? null, shopifyOrderNumber: updated?.shopifyOrderNumber ?? null });
+    const row = updated[0];
+    res.json({ status: "completed", paymobTxnId: result.txnId, shopifyOrderId: row?.shopifyOrderId ?? null, shopifyOrderNumber: row?.shopifyOrderNumber ?? null });
     return;
   }
 
-  // Strategy 3: Paymob API is unavailable. If the client provided a txnId (from
-  // the relay page, which only runs after Paymob redirects post-payment), use it
-  // as a best-effort fallback. The draft order will require admin approval before
-  // converting to a real Shopify order, which acts as the human review gate.
+  // Strategy 3: Paymob API unavailable — use client-provided txnId as best-effort fallback
   if (clientTxnId) {
-    req.log.warn(
-      { intentId, clientTxnId, storedAmountCents: amountCents },
-      "paymob-sync: Paymob API unavailable — processing with client-provided txnId (admin review required)",
-    );
-    await processPaymobSuccess({
-      intentId,
-      paymobTxnId: clientTxnId,
-      amountCents,
-    }).catch((err: unknown) =>
-      req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error (fallback)"),
-    );
-    // After processPaymobSuccess completes, read the intent to get the Shopify order details
-    const updatedRows = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
+    req.log.warn({ intentId, clientTxnId }, "paymob-sync: Paymob API unavailable — using client txnId as fallback");
+    await processPaymobSuccess({ intentId, paymobTxnId: clientTxnId, amountCents })
+      .catch((err: unknown) => req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error (fallback)"));
+
+    const updated = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
       .from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
-    const updated = updatedRows[0];
-    res.json({ status: "completed", paymobTxnId: clientTxnId, shopifyOrderId: updated?.shopifyOrderId ?? null, shopifyOrderNumber: updated?.shopifyOrderNumber ?? null });
+    const row = updated[0];
+    res.json({ status: "completed", paymobTxnId: clientTxnId, shopifyOrderId: row?.shopifyOrderId ?? null, shopifyOrderNumber: row?.shopifyOrderNumber ?? null });
     return;
   }
 
-  // No txnId and Paymob API unavailable — payment may still be processing.
-  req.log.info({ intentId }, "paymob-sync: Paymob query returned nothing — retrying later");
+  req.log.info({ intentId }, "paymob-sync: no transaction found yet — payment may still be processing");
   res.json({ status: "pending" });
 });
 

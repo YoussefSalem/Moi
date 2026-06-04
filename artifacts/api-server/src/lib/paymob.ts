@@ -60,12 +60,18 @@ export interface PaymobPaymentKeyResult {
 }
 
 /**
- * Legacy Paymob 3-step payment key flow:
+ * Paymob 3-step card payment key flow:
  * 1. POST /api/auth/tokens → auth_token
  * 2. POST /api/ecommerce/orders → paymob_order_id
  * 3. POST /api/acceptance/payment_keys → payment_token
  * 4. Embed iframe: accept.paymob.com/api/acceptance/iframes/{iframeId}?payment_token={token}
  */
+export async function createPaymobCardPaymentKey(
+  params: CreatePaymentKeyParams,
+): Promise<PaymobPaymentKeyResult> {
+  return createPaymobPaymentKey(params);
+}
+
 export async function createPaymobPaymentKey(
   params: CreatePaymentKeyParams,
 ): Promise<PaymobPaymentKeyResult> {

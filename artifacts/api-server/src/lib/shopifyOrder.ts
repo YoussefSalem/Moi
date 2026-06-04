@@ -743,12 +743,14 @@ export async function createDraftOrder(params: {
     return { orderNumber: draftId, orderId: draftId, total: draftTotal, lineItems: [], draftOrderId: draftId, discountAmount: cartDiscountAmount > 0.01 ? cartDiscountAmount : undefined, discountCode: cartDiscountCode || undefined, shippingAmount: shippingPrice };
   }
 
-  // For COD orders, pass payment_pending=true so Shopify creates the order
-  // with financial_status:"pending" and does NOT auto-create a pending payment
-  // transaction. Without this, stores with automatic payment capture enabled
-  // would capture the auto-created pending transaction and mark the order as
-  // "paid" immediately — incorrect for Cash on Delivery.
-  const paymentPendingParam = params.paymentMethod === "cod" ? "&payment_pending=true" : "";
+  // Always use payment_pending=true so Shopify creates the order with
+  // financial_status:"pending" and does NOT auto-create a pending payment
+  // transaction. Without this:
+  //   - COD: stores with auto-capture enabled would mark the COD order "paid" immediately.
+  //   - Card/Apple Pay: Shopify auto-creates a pending transaction with no real gateway,
+  //     causing "Order has no shopify_payment" when we later try to capture it.
+  // For card/apple-pay we then POST a kind:"sale" transaction to mark the order paid.
+  const paymentPendingParam = "&payment_pending=true";
   const completeRes = await fetch(
     `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?send_receipt=true&send_fulfillment_receipt=false${paymentPendingParam}`,
     {
@@ -804,17 +806,20 @@ export async function createDraftOrder(params: {
  *
  * IMPORTANT: Shopify's REST API does NOT allow setting financial_status via
  * PUT /orders/{id}.json — that field is read-only and computed from
- * transactions.  The only supported way to mark an order as paid is to POST
+ * transactions. The only supported way to mark an order as paid is to POST
  * a transaction with kind:"sale" and status:"success".
  *
- * Without this step the order stays "pending" and Bosta (and Shopify) treat
- * it as Cash on Delivery.
+ * We always use kind:"sale" (not "capture") because:
+ *   - Draft orders are now completed with payment_pending=true, so Shopify does
+ *     NOT auto-create a pending transaction to capture.
+ *   - Attempting kind:"capture" on a draft-order-created order (which has no
+ *     real payment gateway) causes the Shopify error "Order has no shopify_payment".
  *
  * Throws on failure so callers can retry.
  */
 export async function recordShopifyPaymentTransaction(params: {
   orderId: number;
-  amount: string;   // total order amount as a string (e.g. "949.00")
+  amount: string;
   paymobTxnId?: string | null;
   storeDomain: string;
   adminToken: string;
@@ -824,28 +829,15 @@ export async function recordShopifyPaymentTransaction(params: {
   const baseUrl = `https://${storeDomain}/admin/api/2024-04/orders/${orderId}`;
   const now = new Date().toISOString();
 
-  // Completing a draft order creates a "pending" transaction automatically.
-  // Shopify rejects kind:"sale" if any transaction already exists.
-  // Solution: if a pending transaction exists, capture it; otherwise post a sale.
-  let pendingTxnId: number | null = null;
-  const txnListRes = await fetch(`${baseUrl}/transactions.json?fields=id,kind,status`, { headers });
-  if (txnListRes.ok) {
-    const txnData = await txnListRes.json() as { transactions?: { id: number; kind: string; status: string }[] };
-    const pending = (txnData.transactions ?? []).find(
-      (t) => t.kind === "pending" && t.status === "success",
-    );
-    if (pending) pendingTxnId = pending.id;
-  }
-
   const body: Record<string, unknown> = {
-    kind: pendingTxnId ? "capture" : "sale",
+    kind: "sale",
     status: "success",
     gateway: "Paymob",
     amount,
     currency: "EGP",
     processed_at: now,
-    ...(pendingTxnId ? { parent_id: pendingTxnId } : {}),
   };
+
   if (paymobTxnId) {
     body.authorization = paymobTxnId;
     body.receipt = {
@@ -859,7 +851,7 @@ export async function recordShopifyPaymentTransaction(params: {
     };
   }
 
-  logger.info({ orderId, kind: body.kind, pendingTxnId }, "recordShopifyPaymentTransaction: posting transaction");
+  logger.info({ orderId }, "recordShopifyPaymentTransaction: posting sale transaction");
   const res = await fetch(`${baseUrl}/transactions.json`, {
     method: "POST",
     headers,
@@ -869,7 +861,7 @@ export async function recordShopifyPaymentTransaction(params: {
     const text = await res.text();
     throw new Error(`recordShopifyPaymentTransaction: Shopify returned ${res.status}: ${text}`);
   }
-  logger.info({ orderId, paymobTxnId, amount, kind: body.kind }, "recordShopifyPaymentTransaction: transaction posted — order marked paid");
+  logger.info({ orderId, paymobTxnId, amount }, "recordShopifyPaymentTransaction: order marked paid");
 }
 
 /**
