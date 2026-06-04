@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, Upload, X, Tag, ShoppingBag, Smartphone, Truck, CreditCard, Lock } from "lucide-react";
+import { PixelCheckoutPanel } from "./PixelCheckoutPanel";
 import { useCart } from "@/context/CartContext";
 import { useCustomer } from "@/context/CustomerContext";
 import { SHOPIFY_CONFIGURED, cartBuyerIdentityUpdate } from "@/lib/shopify";
@@ -104,7 +105,7 @@ function resolveEmailImage(line: ShopifyCartLine, localItems?: { variantId: stri
 
 type PaymentMethod = "cod" | "instapay" | "card";
 const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = ["cod", "instapay", "card"];
-type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-pending" | "card-confirm";
+type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-pending" | "card-pixel" | "card-confirm";
 type InstapaySubStep = "instructions" | "upload" | "review";
 
 interface OrderResult {
@@ -270,6 +271,7 @@ export function CheckoutPage() {
   const [breakdownSnapshot, setBreakdownSnapshot] = useState<{ subtotal: number; savings: number; shippingCost: number; freeShipping: boolean } | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
+  const [pixelData, setPixelData] = useState<{ publicKey: string; clientSecret: string; checkoutToken: string } | null>(null);
   const isApplyingRef = useRef(false);
   const instapayTrackedRef = useRef(false);
   const codTrackedRef = useRef(false);
@@ -479,17 +481,13 @@ export function CheckoutPage() {
           submittingRef.current = false;
           return;
         }
-        sessionStorage.setItem("moi_paymob_token", data.checkoutToken);
-        sessionStorage.setItem("moi_paymob_snapshot", JSON.stringify({
-          subtotal: subtotalAmount,
-          savings,
-          shippingCost,
-          freeShipping,
-          total: fmt(totalAmount),
-          customerName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
-          customerPhone: form.phone.trim(),
-        }));
-        window.location.href = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(data.publicKey)}&clientSecret=${encodeURIComponent(data.clientSecret)}`;
+        setPixelData({
+          publicKey: data.publicKey,
+          clientSecret: data.clientSecret,
+          checkoutToken: data.checkoutToken,
+        });
+        setBreakdownSnapshot({ subtotal: subtotalAmount, savings, shippingCost, freeShipping });
+        setStep("card-pixel");
       } catch {
         setStep("form");
         setSubmitError("Network error. Please check your connection and try again.");
@@ -994,6 +992,32 @@ export function CheckoutPage() {
                     <div className="w-12 h-12 border-2 border-[#1e1814] border-t-transparent rounded-full animate-spin mb-6" />
                     <p style={{ fontSize: "16px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>Verifying your payment…</p>
                     <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", marginTop: "12px" }}>Please do not close this page</p>
+                  </motion.div>
+                )}
+
+                {step === "card-pixel" && pixelData && (
+                  <motion.div key="card-pixel" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.35 }} className="relative z-10">
+                    <PixelCheckoutPanel
+                      publicKey={pixelData.publicKey}
+                      clientSecret={pixelData.clientSecret}
+                      checkoutToken={pixelData.checkoutToken}
+                      onSuccess={(result) => {
+                        clearCart();
+                        setOrderResult({
+                          orderNumber: result.orderNumber,
+                          total: result.total,
+                          shopifyOrderId: result.shopifyOrderId,
+                          shopifyOrderNumber: result.orderNumber,
+                        });
+                        setStep("card-confirm");
+                        markAbandonedCartRecovered();
+                      }}
+                      onBack={() => {
+                        setStep("form");
+                        submittingRef.current = false;
+                        setPixelData(null);
+                      }}
+                    />
                   </motion.div>
                 )}
 

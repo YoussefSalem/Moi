@@ -207,3 +207,61 @@ export function getPaymobCheckoutUrl(clientSecret: string): string {
   const { publicKey } = getPaymobConfig();
   return `${PAYMOB_BASE}/unifiedcheckout/?publicKey=${encodeURIComponent(publicKey)}&clientSecret=${encodeURIComponent(clientSecret)}`;
 }
+
+/**
+ * Obtains a short-lived Paymob auth token using the legacy API key.
+ * Required for transaction inquiry and other non-Intentions endpoints.
+ */
+async function getPaymobAuthToken(): Promise<string> {
+  const apiKey = process.env.PAYMOB_API_KEY ?? "";
+  if (!apiKey) throw new Error("PAYMOB_API_KEY not configured");
+
+  const res = await fetch(`${PAYMOB_BASE}/api/auth/tokens`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ api_key: apiKey }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Paymob auth failed (${res.status}): ${text}`);
+  }
+
+  const data = await res.json() as { token?: string };
+  if (!data.token) throw new Error("No token in Paymob auth response");
+  return data.token;
+}
+
+/**
+ * Queries Paymob transactions by merchant_order_id (our checkoutToken / special_reference).
+ * Returns the first successful, non-pending transaction, or null if none found.
+ *
+ * Used by the Pixel verify-payment flow where the frontend calls back after
+ * afterPaymentComplete fires, instead of waiting for the webhook.
+ */
+export async function findSuccessfulPaymobTransaction(
+  merchantOrderId: string,
+): Promise<PaymobTransaction | null> {
+  const token = await getPaymobAuthToken();
+
+  const url = `${PAYMOB_BASE}/api/acceptance/transactions/?merchant_order_id=${encodeURIComponent(merchantOrderId)}&page_size=10`;
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    logger.error({ status: res.status, text, merchantOrderId }, "Paymob transaction inquiry failed");
+    return null;
+  }
+
+  const data = await res.json() as { results?: PaymobTransaction[] } | PaymobTransaction[];
+  const results: PaymobTransaction[] = Array.isArray(data)
+    ? data
+    : (data as { results?: PaymobTransaction[] }).results ?? [];
+
+  logger.info({ merchantOrderId, count: results.length }, "Paymob transaction inquiry results");
+
+  return results.find((t) => t.success && !t.pending) ?? null;
+}

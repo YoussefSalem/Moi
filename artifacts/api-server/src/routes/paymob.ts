@@ -4,6 +4,7 @@ import {
   createPaymobIntention,
   verifyPaymobHmac,
   getPaymobConfig,
+  findSuccessfulPaymobTransaction,
   type PaymobTransaction,
 } from "../lib/paymob";
 import {
@@ -427,6 +428,179 @@ router.post("/paymob/webhook", async (req, res) => {
     const shippingNote = shippingNum === 0
       ? "Complimentary shipping"
       : `Includes ${shippingNum.toFixed(0)} EGP shipping`;
+    void sendWhatsApp(
+      customer.phone,
+      `✅ Your Moi order #${orderNumber} is confirmed!\n\nTotal: ${total} EGP (${shippingNote})\nPayment: Card — confirmed\n\nYour order is now being prepared. You'll receive a tracking update when it ships. Thank you for shopping with Moi. 🖤`,
+    );
+  }
+});
+
+/**
+ * POST /api/paymob/verify-payment
+ *
+ * Called by the frontend after the Pixel SDK fires afterPaymentComplete.
+ * Queries Paymob's transaction API to confirm the payment is real and successful,
+ * then completes the Shopify draft order and sends confirmation email/WhatsApp.
+ *
+ * Idempotent: if the order was already confirmed (e.g. by a concurrent webhook),
+ * returns the cached result immediately.
+ */
+router.post("/paymob/verify-payment", async (req, res) => {
+  const body = req.body as { checkoutToken?: unknown };
+  const checkoutToken =
+    typeof body.checkoutToken === "string" ? body.checkoutToken.trim() : "";
+
+  if (!checkoutToken) {
+    res.status(400).json({ error: "Missing checkoutToken" });
+    return;
+  }
+
+  let intent;
+  try {
+    intent = await findPaymobIntentByCheckoutToken(checkoutToken);
+  } catch (err) {
+    req.log.error({ err, checkoutToken }, "verify-payment: DB lookup failed");
+    res.status(500).json({ error: "Could not look up payment." });
+    return;
+  }
+
+  if (!intent) {
+    res.status(404).json({ error: "Payment session not found." });
+    return;
+  }
+
+  // Idempotency — already processed (webhook beat us to it, or duplicate call)
+  if (intent.shopifyConfirmedOrderId && intent.shopifyOrderNumber) {
+    req.log.info(
+      { intentId: intent.id, orderNumber: intent.shopifyOrderNumber },
+      "verify-payment: already completed — returning cached result",
+    );
+    res.json({
+      success: true,
+      orderNumber: intent.shopifyOrderNumber,
+      total: intent.total,
+      shopifyOrderId: intent.shopifyConfirmedOrderId,
+    });
+    return;
+  }
+
+  // Query Paymob to confirm a real successful transaction exists
+  let txn;
+  try {
+    txn = await findSuccessfulPaymobTransaction(checkoutToken);
+  } catch (err) {
+    req.log.error({ err, checkoutToken }, "verify-payment: Paymob inquiry threw");
+    res.status(502).json({ error: "Could not verify payment with provider. Please try again." });
+    return;
+  }
+
+  if (!txn) {
+    req.log.warn({ checkoutToken }, "verify-payment: no successful transaction found");
+    res.status(402).json({
+      success: false,
+      error: "Payment was not completed. Please try again or use a different card.",
+    });
+    return;
+  }
+
+  // Sanity-check amount to detect replay attacks
+  if (txn.amount_cents !== intent.amountCents) {
+    req.log.error(
+      { txnAmount: txn.amount_cents, intentAmount: intent.amountCents },
+      "verify-payment: amount mismatch — possible tampering",
+    );
+    res.status(422).json({ error: "Payment amount mismatch. Please contact support." });
+    return;
+  }
+
+  const paymobTxnId = String(txn.id);
+
+  await updatePaymobIntent(intent.id, { status: "paid", paymobTxnId }).catch((err) =>
+    req.log.error({ err }, "verify-payment: failed to mark intent as paid"),
+  );
+
+  if (!intent.shopifyOrderId) {
+    req.log.error({ intentId: intent.id }, "verify-payment: no shopifyOrderId to complete");
+    res.status(500).json({ error: "Order data missing. Please contact support." });
+    return;
+  }
+
+  const shopifyResult = await completeShopifyDraftOrder(intent.shopifyOrderId).catch((err) => {
+    req.log.error({ err, draftOrderId: intent.shopifyOrderId }, "verify-payment: Shopify completion failed");
+    return null;
+  });
+
+  if (!shopifyResult) {
+    res.status(500).json({ error: "Could not finalize order. Please contact support." });
+    return;
+  }
+
+  const { orderId: confirmedOrderId, orderNumber, total, lineItems, discountAmount, discountCode } = shopifyResult;
+
+  await updatePaymobIntent(intent.id, {
+    shopifyConfirmedOrderId: confirmedOrderId,
+    shopifyOrderNumber: orderNumber,
+  }).catch((err) => req.log.error({ err }, "verify-payment: failed to update confirmed order IDs"));
+
+  req.log.info(
+    { confirmedOrderId, orderNumber, intentId: intent.id, paymobTxnId },
+    "verify-payment: Shopify order completed successfully",
+  );
+
+  // Respond immediately so the frontend can show confirmation
+  res.json({ success: true, orderNumber, total, shopifyOrderId: confirmedOrderId });
+
+  // Async side-effects — don't block the response
+  const paymobNote = [
+    `Paymob Transaction ID: ${paymobTxnId}`,
+    `Payment Method: Card (Pixel embedded)`,
+    `Paymob Order ID: ${txn.order?.id ?? "N/A"}`,
+    `Payment Status: Paid`,
+  ].join("\n");
+
+  void addShopifyOrderNote(confirmedOrderId, paymobNote).catch((err) =>
+    req.log.warn({ err, confirmedOrderId }, "verify-payment: failed to add Shopify note"),
+  );
+
+  if (intent.discountCode && discountAmount) {
+    void recordDiscountCodeUse(intent.discountCode, confirmedOrderId, orderNumber, "card");
+  }
+
+  const customer = intent.customer as CustomerInfo;
+  const shippingPrice = parseEGP(total) > 2000 ? "0.00" : "50.00";
+
+  if (customer?.email) {
+    const { html, text } = buildOrderConfirmationEmail({
+      orderNumber,
+      customerName: customer.firstName ?? "",
+      total,
+      paymentMethod: "Credit / Debit Card",
+      address: customer.address ?? "",
+      governorate: customer.governorate ?? "",
+      city: customer.city ?? "",
+      lineItems,
+      discountAmount: discountAmount ? discountAmount.toFixed(2) : undefined,
+      discountCode: discountCode || undefined,
+      shippingAmount: shippingPrice,
+    });
+    void sendEmail({
+      to: customer.email,
+      subject: `Your Moi order #${orderNumber} is confirmed`,
+      html,
+      text,
+    })
+      .then(() =>
+        req.log.info({ email: customer.email, orderNumber }, "verify-payment: confirmation email sent"),
+      )
+      .catch((err) =>
+        req.log.warn({ err, email: customer.email }, "verify-payment: confirmation email failed"),
+      );
+  }
+
+  if (customer?.phone) {
+    const shippingNum = parseFloat(shippingPrice);
+    const shippingNote =
+      shippingNum === 0 ? "Complimentary shipping" : `Includes ${shippingNum.toFixed(0)} EGP shipping`;
     void sendWhatsApp(
       customer.phone,
       `✅ Your Moi order #${orderNumber} is confirmed!\n\nTotal: ${total} EGP (${shippingNote})\nPayment: Card — confirmed\n\nYour order is now being prepared. You'll receive a tracking update when it ships. Thank you for shopping with Moi. 🖤`,
