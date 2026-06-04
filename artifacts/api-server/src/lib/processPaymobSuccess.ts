@@ -5,11 +5,6 @@ import { parseEGP } from "@workspace/utils";
 import {
   sendWhatsApp,
   completeShopifyCheckout,
-  createBostaShipment,
-  addShopifyOrderNote,
-  tagShopifyOrder,
-  createShopifyFulfillment,
-  addShopifyFulfillmentEvent,
 } from "./integrations";
 import {
   createShopifyDirectOrder,
@@ -228,50 +223,8 @@ Your order is being prepared and will be dispatched soon. Thank you for shopping
     );
   }
 
-  // Auto-dispatch to Bosta — these orders are already paid, so COD = 0.
-  // Runs fire-and-forget; failure does not affect payment confirmation.
-  void (async () => {
-    if (
-      !customer.firstName || customer.firstName === "NA" ||
-      !customer.phone || customer.phone === "NA" ||
-      !customer.address || customer.address === "NA"
-    ) {
-      logger.warn({ intentId }, "processPaymobSuccess: missing customer data for Bosta auto-dispatch — skipping");
-      return;
-    }
-    try {
-      const trackingNumber = await createBostaShipment({
-        firstName: customer.firstName,
-        lastName: customer.lastName ?? customer.firstName,
-        phone: customer.phone,
-        address: customer.address,
-        city: customer.city ?? "Cairo",
-        orderReference: `#${paymobTxnId}`,
-        codAmount: 0,
-      });
-
-      if (!trackingNumber) {
-        logger.warn({ intentId, shopifyOrderId }, "processPaymobSuccess: Bosta dispatch returned no tracking number");
-        return;
-      }
-
-      await db
-        .update(paymobIntents)
-        .set({ bostaDispatched: true, bostaTrackingNumber: trackingNumber, bostaDispatchedAt: new Date() })
-        .where(eq(paymobIntents.intentId, intentId));
-
-      void addShopifyOrderNote(shopifyOrderId, `Bosta tracking: ${trackingNumber}\nPayment: ${isApplePay ? "Apple Pay (Paymob)" : "Paymob Card"} (paid — auto-dispatched)`);
-      void tagShopifyOrder(shopifyOrderId, `bosta-${trackingNumber}`);
-      const fulfillmentId = await createShopifyFulfillment(shopifyOrderId, trackingNumber);
-      if (fulfillmentId) {
-        void addShopifyFulfillmentEvent(shopifyOrderId, fulfillmentId, "in_transit");
-      }
-
-      logger.info({ intentId, shopifyOrderId, trackingNumber }, "processPaymobSuccess: auto-dispatched to Bosta (0 COD)");
-    } catch (err) {
-      logger.error({ err, intentId, shopifyOrderId }, "processPaymobSuccess: Bosta auto-dispatch failed");
-    }
-  })();
+  // NOTE: Bosta dispatch is intentionally skipped. The Bosta Shopify app
+  // automatically syncs all orders that enter Shopify — no manual API call needed.
 
   logger.info({ shopifyOrderId, shopifyOrderNumber, paymobTxnId, amount, isApplePay }, "processPaymobSuccess: order fully processed and auto-approved");
   return { alreadyClaimed: false };
