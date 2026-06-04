@@ -92,7 +92,9 @@ router.post("/orders/paymob-init", async (req, res) => {
   }
 
   const cartTotalEGP = cart.totalAmount;
-  const totalEGP = cartTotalEGP + SHIPPING_EGP;
+  const isFreeShipping = cartTotalEGP >= 2000;
+  const shippingEGP = isFreeShipping ? 0 : SHIPPING_EGP;
+  const totalEGP = cartTotalEGP + shippingEGP;
   const amountCents = Math.round(totalEGP * 100);
   const total = totalEGP.toFixed(2);
 
