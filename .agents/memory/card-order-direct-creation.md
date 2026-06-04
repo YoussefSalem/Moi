@@ -1,31 +1,34 @@
 ---
-name: Card order direct creation — June 2nd working approach
-description: The only approach that avoids "Order has no shopify_payment." on Shopify Payments stores is draft-complete (no payment_pending) → capture the auto-created pending transaction.
+name: Card order via draft on Shopify Payments stores
+description: The correct approach for marking card/apple-pay orders as paid on Shopify Payments stores. The previous entry was wrong — completing WITHOUT payment_pending causes the error.
 ---
 
 ## Rule
-For card/apple-pay Paymob payments, use the **draft → complete → capture** flow:
+For card/apple-pay Paymob payments, use **draft → complete WITH payment_pending=true → POST kind:"sale"**:
 
-1. `createDraftOrder(complete: true)` **WITHOUT** `payment_pending=true` (COD-only gets payment_pending)
-2. Shopify auto-creates a `kind:"pending"` transaction on the completed order
-3. `recordShopifyPaymentTransaction` checks for that pending transaction and posts `kind:"capture"` with `parent_id` to mark the order paid
+1. `createDraftOrder(complete: true)` WITH `payment_pending=true` for ALL payment methods (card, apple-pay, COD)
+2. For card/apple-pay: immediately POST `kind:"sale"`, `gateway:"Paymob"` via `recordShopifyPaymentTransaction`
+3. Order becomes `financial_status:"paid"`
 
-**Why:** On Shopify Payments stores, ANY attempt to add a transaction to a Shopify-Payments-linked order via `POST /transactions.json` with `kind:"sale"` fails with `{"message":"Order has no shopify_payment."}`. But capturing an authorization Shopify itself created works fine — Shopify created that pending transaction through its own Payments infrastructure.
+**Why payment_pending=true is required for card/apple-pay:**
+Completing a draft order WITHOUT `payment_pending=true` causes Shopify to auto-create a pending authorization with `gateway:"shopify_payments"`. The Admin API **cannot capture a Shopify Payments authorization** — it returns `{"message":"Order has no shopify_payment."}`. So we must prevent Shopify from creating that authorization by always passing `payment_pending=true`, leaving the order with no existing transaction, then posting our own `kind:"sale"` transaction.
 
-**Why `payment_pending=true` only for COD:**
-- COD: `payment_pending=true` prevents Shopify's auto-capture from marking it "paid" immediately on stores with automatic capture enabled.
-- Card/Apple Pay: `payment_pending=true` would suppress the auto-created pending authorization, leaving nothing to capture, causing the same error.
+**Why:** Admin API `kind:"sale"` succeeds on a `payment_pending=true`-completed order because it has no Shopify Payments record. It fails when Shopify auto-created an authorization (which it did when we completed WITHOUT `payment_pending=true`).
 
-## What does NOT work (do not revert to these)
-- `financial_status: "paid"` at any level of `POST /orders.json` → "Order has no shopify_payment"
-- `POST /orders.json` with embedded `transactions: [{ kind: "sale" }]` → same error
-- `POST /orders/{id}/transactions.json` with `kind: "sale"` after draft completion → same error
-- `POST /orders/{id}/transactions.json` with `source_name: "external"` → same error
+## The error timeline
+- Previous (wrong) approach: complete WITHOUT `payment_pending` → Shopify creates `kind:"pending"`, `gateway:"shopify_payments"` auth → capture it → `"Order has no shopify_payment."` (Admin API can't capture Shopify Payments auth)
+- OR: timing miss → no auth found yet → try `kind:"sale"` → same error (auth was just created)
+- **Correct**: complete WITH `payment_pending=true` → no Shopify Payments record → `kind:"sale"` succeeds
+
+## What does NOT work
+- `kind:"capture"` with `parent_id` against a Shopify Payments auto-authorization → "Order has no shopify_payment."
+- `kind:"sale"` after completing WITHOUT `payment_pending=true` → same error
+- `financial_status:"paid"` in `POST /orders.json` → same error
+- `POST /orders.json` embedded transactions → same error
 - GraphQL `orderMarkAsPaid` → fails on Shopify Payments stores
-- `POST /orders.json` embedded-transaction approach (was `createDirectPaidCardOrder`, now deleted) → do NOT re-introduce. A doc comment in shopifyOrder.ts once claimed it was "the only reliable approach" — that comment was wrong and caused a regression; the proven approach is draft→complete→capture.
 
-## Capturable transaction match (recordShopifyPaymentTransaction)
-The Shopify auto-created authorization is usually `kind:"pending", status:"success"` but can be `kind:"authorization"` on some stores. Match must accept either, else it falls back to `kind:"sale"` and fails. When no capturable txn is found it logs the full transaction list — read that log to diagnose.
+## COD
+`payment_pending=true` also used for COD — order stays `financial_status:"pending"` (no transaction posted), correct for cash on delivery.
 
-## payment_pending in `completeDraftOrder` (InstaPay)
-`completeDraftOrder` (used for InstaPay admin approval) keeps `payment_pending=true` because InstaPay orders are approved later via the admin panel, not auto-captured. These orders remain `financial_status: "pending"` in Shopify.
+## InstaPay
+`completeShopifyDraftOrder` (InstaPay admin approval) also uses `payment_pending=true` — remains pending until manually approved.
