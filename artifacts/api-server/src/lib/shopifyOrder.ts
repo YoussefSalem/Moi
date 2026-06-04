@@ -797,17 +797,21 @@ export async function createDraftOrder(params: {
 }
 
 /**
- * Mark a Shopify order as paid using the Admin GraphQL `orderMarkAsPaid` mutation.
+ * Mark a Shopify order as paid after a successful Paymob transaction.
  *
- * WHY GraphQL instead of REST transactions:
- *   - The REST `POST /orders/{id}/transactions.json` API requires the store's
- *     payment gateway to support manual captures. Stores using Shopify Payments
- *     respond with {"message":"Order has no shopify_payment."} for any transaction
- *     kind (sale, capture, etc.) on API-created orders.
- *   - The GraphQL `orderMarkAsPaid` mutation bypasses this restriction and works
- *     unconditionally regardless of the store's payment provider configuration.
+ * Strategy:
+ *   1. REST POST /orders/{id}/transactions.json with source_name:"external"
+ *      This is the preferred path — it creates a real Shopify transaction record
+ *      linked to the Paymob gateway and transaction ID so the order shows the
+ *      correct payment method and is fully reconcilable.
+ *      source_name:"external" signals to Shopify that this payment was captured
+ *      outside of Shopify Payments, bypassing the "shopify_payment" gateway check.
  *
- * Throws on failure so callers can retry.
+ *   2. GraphQL orderMarkAsPaid mutation (fallback)
+ *      Used only when REST fails (e.g. on stores where REST is fully blocked).
+ *      Marks the order as paid without detailed transaction metadata.
+ *
+ * Throws if both strategies fail so callers can retry.
  */
 export async function recordShopifyPaymentTransaction(params: {
   orderId: number;
@@ -816,9 +820,43 @@ export async function recordShopifyPaymentTransaction(params: {
   storeDomain: string;
   adminToken: string;
 }): Promise<void> {
-  const { orderId, storeDomain, adminToken } = params;
-  const orderGid = `gid://shopify/Order/${orderId}`;
+  const { orderId, amount, paymobTxnId, storeDomain, adminToken } = params;
+  const headers = { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken };
+  const now = new Date().toISOString();
 
+  // ── Strategy 1: REST transactions API with source_name:"external" ──────────
+  // source_name:"external" tells Shopify this was processed by an external
+  // payment provider (Paymob), not Shopify Payments — bypassing the gateway check.
+  const restBody: Record<string, unknown> = {
+    kind: "sale",
+    status: "success",
+    gateway: "paymob",
+    source_name: "external",
+    amount,
+    currency: "EGP",
+    processed_at: now,
+  };
+  if (paymobTxnId) {
+    restBody.authorization = paymobTxnId;
+  }
+
+  logger.info({ orderId, paymobTxnId }, "recordShopifyPaymentTransaction: posting REST sale transaction (source_name:external)");
+
+  const restRes = await fetch(
+    `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/transactions.json`,
+    { method: "POST", headers, body: JSON.stringify({ transaction: restBody }) },
+  );
+
+  if (restRes.ok) {
+    const restData = await restRes.json() as { transaction?: { id: number; status: string; kind: string } };
+    logger.info({ orderId, paymobTxnId, txnId: restData.transaction?.id, status: restData.transaction?.status }, "recordShopifyPaymentTransaction: REST succeeded — order marked paid");
+    return;
+  }
+
+  const restError = await restRes.text();
+  logger.warn({ orderId, paymobTxnId, restStatus: restRes.status, restBody: restError }, "recordShopifyPaymentTransaction: REST failed — falling back to GraphQL orderMarkAsPaid");
+
+  // ── Strategy 2: GraphQL orderMarkAsPaid (fallback) ────────────────────────
   const mutation = `
     mutation orderMarkAsPaid($input: OrderMarkAsPaidInput!) {
       orderMarkAsPaid(input: $input) {
@@ -828,26 +866,25 @@ export async function recordShopifyPaymentTransaction(params: {
     }
   `;
 
-  logger.info({ orderId }, "recordShopifyPaymentTransaction: marking order paid via GraphQL");
-
-  const res = await fetch(`https://${storeDomain}/admin/api/2024-04/graphql.json`, {
+  const gqlRes = await fetch(`https://${storeDomain}/admin/api/2024-04/graphql.json`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Shopify-Access-Token": adminToken,
-    },
+    headers,
     body: JSON.stringify({
       query: mutation,
-      variables: { input: { id: orderGid } },
+      variables: { input: { id: `gid://shopify/Order/${orderId}` } },
     }),
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`recordShopifyPaymentTransaction: GraphQL request failed (${res.status}): ${text}`);
+  if (!gqlRes.ok) {
+    const gqlError = await gqlRes.text();
+    throw new Error(
+      `recordShopifyPaymentTransaction: both strategies failed.\n` +
+      `  REST (${restRes.status}): ${restError}\n` +
+      `  GraphQL (${gqlRes.status}): ${gqlError}`,
+    );
   }
 
-  const data = await res.json() as {
+  const gqlData = await gqlRes.json() as {
     data?: {
       orderMarkAsPaid?: {
         order?: { id: string; displayFinancialStatus: string };
@@ -857,24 +894,19 @@ export async function recordShopifyPaymentTransaction(params: {
     errors?: { message: string }[];
   };
 
-  const gqlErrors = data.errors;
+  const gqlErrors = gqlData.errors;
   if (gqlErrors && gqlErrors.length > 0) {
     throw new Error(`recordShopifyPaymentTransaction: GraphQL errors: ${JSON.stringify(gqlErrors)}`);
   }
 
-  const userErrors = data.data?.orderMarkAsPaid?.userErrors ?? [];
-  if (userErrors.length > 0) {
-    // "Order is already paid" is not a real error — idempotent success
-    const realErrors = userErrors.filter((e) => !e.message.toLowerCase().includes("already paid"));
-    if (realErrors.length > 0) {
-      throw new Error(`recordShopifyPaymentTransaction: userErrors: ${JSON.stringify(realErrors)}`);
-    }
-    logger.info({ orderId }, "recordShopifyPaymentTransaction: order already paid (idempotent)");
-    return;
+  const userErrors = gqlData.data?.orderMarkAsPaid?.userErrors ?? [];
+  const realErrors = userErrors.filter((e) => !e.message.toLowerCase().includes("already paid"));
+  if (realErrors.length > 0) {
+    throw new Error(`recordShopifyPaymentTransaction: GraphQL userErrors: ${JSON.stringify(realErrors)}`);
   }
 
-  const status = data.data?.orderMarkAsPaid?.order?.displayFinancialStatus ?? "unknown";
-  logger.info({ orderId, status }, "recordShopifyPaymentTransaction: order marked paid");
+  const financialStatus = gqlData.data?.orderMarkAsPaid?.order?.displayFinancialStatus ?? "unknown";
+  logger.info({ orderId, paymobTxnId, financialStatus }, "recordShopifyPaymentTransaction: GraphQL orderMarkAsPaid succeeded");
 }
 
 /**
