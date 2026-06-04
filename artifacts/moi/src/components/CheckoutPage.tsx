@@ -739,7 +739,7 @@ export function CheckoutPage() {
                               backgroundColor: paymentMethod === "cod" ? "rgba(30,24,20,0.02)" : "transparent",
                             }}
                           >
-                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>Cash on Delivery</p>
+                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>🚚 Cash on Delivery</p>
                             <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Pay when you receive your order</p>
                           </motion.button>
                           <motion.button
@@ -751,7 +751,7 @@ export function CheckoutPage() {
                               backgroundColor: paymentMethod === "instapay" ? "rgba(30,24,20,0.02)" : "transparent",
                             }}
                           >
-                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>Instapay</p>
+                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>💳 Instapay</p>
                             <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Instant bank transfer (Requires proof)</p>
                           </motion.button>
                         </div>
@@ -910,6 +910,11 @@ export function CheckoutPage() {
                           <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Subtotal</span>
                           <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(subtotalAmount)}</span>
                         </div>
+                        {!freeShipping && (
+                          <div>
+                            <span style={{ fontSize: "11px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>{Math.round(2000 - discountedSubtotal).toLocaleString()} EGP AWAY FROM FREE DELIVERY</span>
+                          </div>
+                        )}
                         {savings > 0 && (
                           <div className="flex justify-between">
                             <span style={{ fontSize: "13px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif" }}>Discount</span>
