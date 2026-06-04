@@ -3057,13 +3057,11 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   useEffect(() => {
     const ownOrigin = window.location.origin;
     const paymobOrigin = "https://accept.paymob.com";
-    const paymobUcOrigin = "https://uapi.paymob.com";
 
     function handleMessage(event: MessageEvent) {
       const isOwn = event.origin === ownOrigin;
       const isPaymob = event.origin === paymobOrigin;
-      const isPaymobUc = event.origin === paymobUcOrigin;
-      if (!isOwn && !isPaymob && !isPaymobUc) return;
+      if (!isOwn && !isPaymob) return;
 
       // Paymob legacy v1 iframe sends postMessage as a JSON *string*; Unified Checkout
       // and our own relay page send an object. Handle both forms.
@@ -3121,9 +3119,9 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
         return;
       }
 
-      // Paymob inline postMessage — legacy v1 (accept.paymob.com) sends success as a string
-      // ("true"/"false"); Unified Checkout (uapi.paymob.com) sends a boolean. Accept both.
-      if ((isPaymob || isPaymobUc) && ("success" in data)) {
+      // Paymob inline postMessage — legacy v1 sends success as a string ("true"/"false"),
+      // Unified Checkout (also on accept.paymob.com) sends a boolean. Accept both.
+      if (isPaymob && ("success" in data)) {
         const rawSuccess = data["success"];
         const isSuccess = rawSuccess === true || rawSuccess === "true";
         const isFail = rawSuccess === false || rawSuccess === "false";

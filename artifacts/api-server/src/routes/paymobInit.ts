@@ -220,7 +220,8 @@ router.post("/orders/paymob-init", async (req, res) => {
   // Build the Paymob Unified Checkout iframe URL using the client secret.
   // This embeds the UC widget (handles card form + 3DS internally) instead of
   // the legacy iframe which triggers mpgs_secure_callback on Shopify-type integrations.
-  const iframeUrl = `https://uapi.paymob.com/uapi/checkout/?publicKey=${encodeURIComponent(config.publicKey)}&clientSecret=${encodeURIComponent(clientSecret)}`;
+  // Hosted at accept.paymob.com/unifiedcheckout/ — NOT uapi.paymob.com (which doesn't exist).
+  const iframeUrl = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(config.publicKey)}&clientSecret=${encodeURIComponent(clientSecret)}`;
 
   req.log.info({ intentId }, "Paymob card intention created successfully — UC iframe ready");
 
