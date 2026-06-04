@@ -285,7 +285,10 @@ router.post("/paymob/webhook", async (req, res) => {
 
   const txn = payload.obj;
 
-  const receivedHmac = txn.hmac ?? "";
+  // VPC/MIGS integrations send HMAC as a query param; UIG sends it inside txn.hmac
+  const queryHmac = typeof req.query.hmac === "string" ? req.query.hmac : "";
+  const receivedHmac = queryHmac || txn.hmac || "";
+  req.log.info({ txnId: txn.id, hmacSource: queryHmac ? "query" : txn.hmac ? "body" : "none" }, "Paymob webhook: HMAC source");
   if (!receivedHmac) {
     req.log.warn({ txnId: txn.id }, "Paymob webhook: missing hmac field — rejecting");
     res.status(401).json({ error: "Missing HMAC" });
