@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+button {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+img {
+  image-rendering: auto;
+  backface-visibility: hidden;
+}
+
+@keyframes heroBreathe {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.055); }
+}
+
+.hero-breathe {
+  animation: heroBreathe 18s ease-in-out infinite;
+  transform-origin: center 22%;
+}
+
+header[class*="fixed"] {
+  isolation: isolate;
+}
+
+section {
+  contain: layout style;
+}
+
+@keyframes shimmer-sweep {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, rgba(250,248,245,0) 0%, rgba(250,248,245,0.72) 50%, rgba(250,248,245,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer-sweep 0.9s ease-in-out infinite;
+}
+
+@keyframes lookImgFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.look-img-fade {
+  animation: lookImgFade 0.22s ease-out forwards;
+}
+
+@keyframes moi-shine {
+  0% { transform: translateX(-140%); opacity: 0; }
+  18% { opacity: 0.65; }
+  50% { transform: translateX(140%); opacity: 0; }
+  100% { transform: translateX(140%); opacity: 0; }
+}
+
+@keyframes moi-skeleton-shimmer {
+  0% { transform: translateX(-110%); }
+  50% { transform: translateX(110%); }
+  100% { transform: translateX(110%); }
+}
+
+@keyframes moi-skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.85; }
+}
+
+@keyframes moi-shimmer {
+  0% { transform: translateX(-120%); }
+  50% { transform: translateX(120%); }
+  100% { transform: translateX(120%); }
+}
+
+:root {
+  --background: 30 20% 98%;
+  --foreground: 20 10% 12%;
+  --border: 30 15% 86%;
+  --muted-foreground: 20 8% 48%;
+
+  --app-font-sans: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --app-font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+
+  --color-bg-primary: #faf8f5;
+  --color-fg-primary: #1e1814;
+  --color-accent-warm: #7a6e64;
+  --color-accent-muted: #b0a090;
+  --color-red-sale: #c83232;
+}
+
+@layer base {
+  body {
+    font-family: var(--app-font-sans);
+    background-color: var(--color-bg-primary);
+    color: var(--color-fg-primary);
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  body::-webkit-scrollbar {
+    display: none;
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer utilities {
+  .font-serif {
+    font-family: var(--app-font-serif);
+    letter-spacing: 0.02em;
+  }
+
+  .tracking-widest-luxury {
+    letter-spacing: 0.25em;
+  }
+
+  .tracking-wide-luxury {
+    letter-spacing: 0.15em;
+  }
+
+  .checkout-input:-webkit-autofill,
+  .checkout-input:-webkit-autofill:hover,
+  .checkout-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #1e1814;
+    caret-color: #1e1814;
+    -webkit-box-shadow: 0 0 0 1000px transparent inset;
+    transition: background-color 9999s ease-out 0s;
+    background-color: transparent;
+  }
+
+  .checkout-input::placeholder {
+    color: rgba(30,24,20,0.42);
+    opacity: 1;
+    font-weight: 500;
+  }
+}
+
+[data-sonner-toaster] [data-description] {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
