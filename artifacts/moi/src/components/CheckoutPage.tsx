@@ -3021,6 +3021,13 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   // prematurely unmount the iframe or show the "Payment Failed" screen while
   // the user is completing their 3DS challenge.
   const threeDsActiveRef = useRef(false);
+  // Counts iframe loads that occur after the 3DS redirect is triggered.
+  // Load #1 = MPGS challenge page (show to user). Load #2+ = 3DS complete
+  // → reset iframe to original payment form so it fires the result postMessage.
+  const threeDsLoadCountRef = useRef(0);
+  // Stable ref to the original payment form URL so handleIframeLoad can read
+  // it without capturing it as a closure dep (avoids unnecessary re-renders).
+  const urlRef = useRef(url);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const blurDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollStartRef = useRef<number>(Date.now());
@@ -3130,6 +3137,17 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       tempOverlayRef.current = false;
       if (overlayRef.current) {
         overlayRef.current.style.display = "none";
+      }
+    }
+    // 3DS load tracking:
+    // Load #1 (threeDsLoadCountRef === 1) = the MPGS challenge page — visible to user.
+    // Load #2+ = MPGS finished redirecting → reset the iframe to the original Paymob
+    // payment form URL. When the form reloads with a completed transaction token it
+    // immediately fires its success/fail postMessage back to the parent window.
+    if (threeDsActiveRef.current && !resolvedRef.current) {
+      threeDsLoadCountRef.current += 1;
+      if (threeDsLoadCountRef.current >= 2 && iframeRef.current) {
+        iframeRef.current.src = urlRef.current;
       }
     }
   }, []);
@@ -3338,6 +3356,8 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
             if (!threeDsActiveRef.current) {
               // Mark 3DS as active — suppresses polling timeout and blur debounce.
               threeDsActiveRef.current = true;
+              // Reset load counter so we can detect when MPGS challenge is done.
+              threeDsLoadCountRef.current = 0;
               // Undo any timeout-induced resolution so handleIframeLoad can clear overlay.
               resolvedRef.current = false;
               // Cancel any pending blur-debounce timer — 3DS is underway, not a failure.
