@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
 import { getPaymobConfig } from "../lib/paymobConfig";
+import { createPaymobPaymentKey } from "../lib/paymob";
 import { fetchStorefrontCart, type OrderLine, type CustomerInfo, type OrderAttribution } from "../lib/shopifyOrder";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
@@ -12,29 +13,24 @@ const SHIPPING_EGP = 50;
 /**
  * POST /api/orders/paymob-init
  *
- * Creates a Paymob Intention (Unified Checkout v1) for card payments.
- * Uses the Intention API instead of the legacy 3-step flow so that 3DS is
- * handled internally by the Paymob UC widget — avoiding the Shopify-type
- * integration's mpgs_secure_callback error.
+ * Creates a Paymob payment key (legacy 3-step flow) for card payments.
+ * Uses the iframe at accept.paymob.com/api/acceptance/iframes/{iframeId}.
  *
- * Returns { iframeUrl, intentId, total } — same shape as before so the
- * frontend PaymobIframe component requires no changes.
+ * Returns { iframeUrl, intentId, total }.
  */
 router.post("/orders/paymob-init", async (req, res) => {
   const config = getPaymobConfig();
 
-  if (!config.secretKey) {
+  if (!config.apiKey) {
     res.status(503).json({ error: "Payment gateway is not configured." });
     return;
   }
-  if (!config.publicKey) {
-    res.status(503).json({ error: "Payment gateway public key is not configured." });
+  if (!config.integrationId) {
+    res.status(503).json({ error: "Payment gateway integration is not configured." });
     return;
   }
-
-  const cardIntegrationIdNum = parseInt(config.integrationId, 10);
-  if (isNaN(cardIntegrationIdNum) || cardIntegrationIdNum <= 0) {
-    res.status(503).json({ error: "Payment gateway integration is not configured." });
+  if (!config.iframeId) {
+    res.status(503).json({ error: "Payment gateway iframe is not configured." });
     return;
   }
 
@@ -140,90 +136,34 @@ router.post("/orders/paymob-init", async (req, res) => {
     checkoutToken,
   });
 
-  req.log.info({ intentId, amountCents, total }, "Paymob card intent saved — creating Unified Checkout intention");
+  req.log.info({ intentId, amountCents, total }, "Paymob card intent saved — creating legacy payment key");
 
   const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
   const redirectionUrl = domain ? `https://${domain}/paymob-relay.html` : undefined;
-  const notificationUrl = domain ? `https://${domain}/api/webhooks/paymob` : undefined;
 
-  const intentionBody: Record<string, unknown> = {
-    amount: amountCents,
-    currency: "EGP",
-    payment_methods: [cardIntegrationIdNum],
-    items: [
-      {
-        name: "Moi Order",
-        amount: amountCents,
-        description: "Fashion order",
-        quantity: 1,
-      },
-    ],
-    billing_data: {
-      first_name: customer.firstName.trim(),
-      last_name: customer.lastName.trim(),
-      email: customer.email?.trim() || "guest@buy-moi.com",
-      phone_number: customer.phone.trim(),
-      street: customer.address.trim(),
-      city: customer.city.trim(),
-      country: "EG",
-      state: customer.governorate.trim(),
-      postal_code: "NA",
-      apartment: "NA",
-      floor: "NA",
-      building: "NA",
-    },
-    customer: {
-      first_name: customer.firstName.trim(),
-      last_name: customer.lastName.trim(),
-      email: customer.email?.trim() || "guest@buy-moi.com",
-    },
-    extras: {
-      merchant_order_id: intentId,
-    },
-    merchant_order_id: intentId,
-  };
-
-  if (redirectionUrl) intentionBody["redirection_url"] = redirectionUrl;
-  if (notificationUrl) intentionBody["notification_url"] = notificationUrl;
-
-  let clientSecret: string;
+  let iframeUrl: string;
   try {
-    const intentionRes = await fetch("https://accept.paymob.com/v1/intention/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Token ${config.secretKey}`,
+    const result = await createPaymobPaymentKey({
+      amountCents,
+      merchantOrderId: intentId,
+      customer: {
+        firstName: customer.firstName.trim(),
+        lastName: customer.lastName.trim(),
+        email: customer.email?.trim(),
+        phone: customer.phone.trim(),
+        address: customer.address.trim(),
+        city: customer.city.trim(),
       },
-      body: JSON.stringify(intentionBody),
+      redirectionUrl,
     });
-
-    if (!intentionRes.ok) {
-      const text = await intentionRes.text();
-      req.log.error({ status: intentionRes.status, text, intentId }, "Paymob Intentions API failed for card payment");
-      res.status(500).json({ error: "Payment gateway unavailable. Please try again." });
-      return;
-    }
-
-    const intentionData = await intentionRes.json() as { client_secret?: string };
-    if (!intentionData.client_secret) {
-      req.log.error({ intentionData, intentId }, "Paymob Intentions API returned no client_secret for card payment");
-      res.status(500).json({ error: "Payment gateway unavailable. Please try again." });
-      return;
-    }
-    clientSecret = intentionData.client_secret;
+    iframeUrl = result.iframeUrl;
   } catch (err) {
-    req.log.error({ err, intentId }, "Paymob card intention creation failed");
+    req.log.error({ err, intentId }, "Paymob card payment key creation failed");
     res.status(500).json({ error: "Payment gateway unavailable. Please try again." });
     return;
   }
 
-  // Build the Paymob Unified Checkout iframe URL using the client secret.
-  // This embeds the UC widget (handles card form + 3DS internally) instead of
-  // the legacy iframe which triggers mpgs_secure_callback on Shopify-type integrations.
-  // Hosted at accept.paymob.com/unifiedcheckout/ — NOT uapi.paymob.com (which doesn't exist).
-  const iframeUrl = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(config.publicKey)}&clientSecret=${encodeURIComponent(clientSecret)}`;
-
-  req.log.info({ intentId }, "Paymob card intention created successfully — UC iframe ready");
+  req.log.info({ intentId, iframeUrl }, "Paymob card payment key created — iframe ready");
 
   res.status(200).json({
     iframeUrl,
