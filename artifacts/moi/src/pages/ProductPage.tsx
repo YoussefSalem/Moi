@@ -709,24 +709,26 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     Buy It Now
                   </motion.button>
 
-                  {/* Apple Pay quick-buy — opens Shopify checkout popup where Apple Pay is handled natively */}
+                  {/* Apple Pay — Buy with Apple Pay */}
                   {ENABLE_APPLE_PAY && (
-                    <ShopifyApplePayButton
-                      variantId={selectedVariant?.id ?? product.variantId ?? ""}
-                      quantity={1}
-                      priceEGP={parseEGP(String(effectivePrice)) || 0}
-                      disabled={isOutOfStock}
-                      style={{ width: "100%" }}
-                      onSuccess={(orderNumber, total) => {
-                        toast.success(
-                          `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
-                          { duration: 5000 },
-                        );
-                      }}
-                      onError={(msg) => {
-                        toast.error(msg, { duration: 4000 });
-                      }}
-                    />
+                    <div style={{ width: "100%", marginTop: 12 }}>
+                      <ShopifyApplePayButton
+                        variantId={selectedVariant?.id ?? product.variantId ?? ""}
+                        quantity={1}
+                        priceEGP={parseEGP(String(effectivePrice)) || 0}
+                        disabled={isOutOfStock}
+                        style={{ width: "100%" }}
+                        onSuccess={(orderNumber, total) => {
+                          toast.success(
+                            `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
+                            { duration: 5000 },
+                          );
+                        }}
+                        onError={(msg) => {
+                          toast.error(msg, { duration: 4000 });
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
               )}

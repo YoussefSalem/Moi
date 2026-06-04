@@ -5,8 +5,15 @@ const BTN_CSS = `
     -webkit-appearance: -apple-pay-button;
     -apple-pay-button-type: buy;
     -apple-pay-button-style: black;
-    display: block; width: 100%; height: 56px;
-    border: none; cursor: pointer; border-radius: 10px;
+    -apple-pay-button-color: black;
+    display: block;
+    width: 100%;
+    height: 48px;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 0;
+    margin: 0;
   }
   .ap-express-btn:disabled { opacity: 0.55; cursor: default; }
 `;
@@ -267,13 +274,6 @@ export function ShopifyApplePayButton({
   return (
     <div className={className} style={{ width: "100%", ...style }}>
       <style dangerouslySetInnerHTML={{ __html: BTN_CSS }} />
-
-      <p style={{
-        margin: "0 0 10px", fontSize: 13, color: "#6b7280",
-        textAlign: "center", letterSpacing: "0.02em", fontFamily: "inherit",
-      }}>
-        {busy ? "Processing\u2026" : "Express checkout"}
-      </p>
       <button
         type="button"
         className="ap-express-btn"
