@@ -333,8 +333,13 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
   // That caused discounts to be lost (frontend showed discounted price, Shopify showed
   // full price). We already track usage_count ourselves via recordDiscountCodeUse(),
   // so draft completion is the correct path.
+  //
+  // payment_pending=true prevents Shopify from auto-creating a pending payment
+  // transaction. Without this, Shopify may auto-create a kind:"pending" transaction
+  // which blocks subsequent kind:"sale" posts ("Order has no shopify_payment.").
+  // We mark the order paid manually via recordShopifyPaymentTransaction(kind:"sale").
   const completeRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false`,
+    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false&payment_pending=true`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
@@ -670,8 +675,10 @@ export async function createDraftOrder(params: {
     return { orderNumber: draftId, orderId: draftId, total: draftTotal, lineItems: [], draftOrderId: draftId, discountAmount: cartDiscountAmount > 0.01 ? cartDiscountAmount : undefined, discountCode: cartDiscountCode || undefined, shippingAmount: shippingPrice };
   }
 
+  // payment_pending=true prevents Shopify from auto-creating a pending transaction.
+  // We manually post kind:"sale" for card orders afterwards.
   const completeRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?send_receipt=true&send_fulfillment_receipt=false`,
+    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?send_receipt=true&send_fulfillment_receipt=false&payment_pending=true`,
     {
       method: "PUT",
       headers: {
