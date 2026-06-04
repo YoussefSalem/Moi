@@ -1,0 +1,44 @@
+name: Deploy to Shopify Oxygen
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  deployments: write
+  pull-requests: write
+
+jobs:
+  deploy:
+    name: Deploy to Oxygen
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref_name == 'main' && 'Production' || 'Preview' }}
+      url: ${{ steps.deploy.outputs.deployment-url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: artifacts/hydrogen-moi
+
+      - name: Build & Deploy to Oxygen
+        id: deploy
+        uses: shopify/hydrogen-deploy@v1
+        with:
+          path: artifacts/hydrogen-moi
+          token: ${{ secrets.OXYGEN_DEPLOYMENT_TOKEN }}
+          metadata-description: ${{ github.event.head_commit.message || github.event.pull_request.title }}
+          metadata-url: ${{ github.event.pull_request.html_url }}
+          metadata-user: ${{ github.actor }}
+          metadata-version: ${{ github.sha }}
