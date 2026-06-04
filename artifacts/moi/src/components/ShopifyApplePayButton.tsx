@@ -38,9 +38,11 @@ interface ApplePayPayment {
 interface APSession {
   onvalidatemerchant: ((e: { validationURL: string }) => void) | null;
   onpaymentauthorized: ((e: { payment: ApplePayPayment }) => void) | null;
+  onshippingmethodselected: ((e: { shippingMethod: { amount: string } }) => void) | null;
   oncancel: (() => void) | null;
   completeMerchantValidation(sess: unknown): void;
   completePayment(result: { status: number }): void;
+  completeShippingMethodSelection(result: { status: number; newTotal: unknown; newLineItems: unknown[] }): void;
   abort(): void;
   begin(): void;
 }
@@ -83,6 +85,7 @@ export function ShopifyApplePayButton({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const intentIdRef = useRef<string | null>(null);
+  const shippingContactRef = useRef<{ firstName?: string; lastName?: string; email?: string; phone?: string; address?: string; city?: string; governorate?: string } | undefined>(undefined);
 
   useEffect(() => {
     const AP = getAP();
@@ -114,25 +117,85 @@ export function ShopifyApplePayButton({
     const AP = getAP();
     if (!AP) return;
 
+    const shippingEGP = totalEGPVal >= 2000 ? 0 : 50;
+    const shippingCents = Math.round(shippingEGP * 100);
+    const totalWithShippingCents = totalCents + shippingCents;
+
     const session = new AP(3, {
       countryCode: "EG",
       currencyCode: "EGP",
       supportedNetworks: ["visa", "masterCard", "amex", "mada"],
       merchantCapabilities: ["supports3DS"],
-      requiredShippingContactFields: ["name", "email", "phone"],
-      total: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
+      requiredShippingContactFields: ["postalAddress", "name", "email", "phone"],
+      shippingType: "shipping",
+      shippingMethods: [{
+        label: "Standard",
+        detail: shippingEGP === 0 ? "Free shipping on orders over 2,000 EGP" : "Delivery within 2-4 days",
+        amount: shippingEGP.toFixed(2),
+        identifier: "standard-shipping",
+      }],
+      lineItems: [
+        { label: "Subtotal", amount: totalEGPVal.toFixed(2), type: "final" },
+        { label: "Shipping", amount: shippingEGP.toFixed(2), type: "final" },
+      ],
+      total: { label: "Moi", amount: (totalWithShippingCents / 100).toFixed(2) },
     });
 
     intentIdRef.current = null;
     setBusy(true);
     setError(null);
 
+    session.onshippingmethodselected = ({ shippingMethod }) => {
+      session.completeShippingMethodSelection({
+        status: AP.STATUS_SUCCESS,
+        newTotal: { label: "Moi", amount: (totalWithShippingCents / 100).toFixed(2) },
+        newLineItems: [
+          { label: "Subtotal", amount: totalEGPVal.toFixed(2), type: "final" },
+          { label: "Shipping", amount: shippingMethod.amount, type: "final" },
+        ],
+      });
+    };
+
+    session.onshippingcontactselected = async ({ shippingContact }) => {
+      const contact = (shippingContact as {
+        addressLines?: string[]; locality?: string; administrativeArea?: string;
+        givenName?: string; familyName?: string; emailAddress?: string; phoneNumber?: string;
+      }) ?? undefined;
+      shippingContactRef.current = contact ? {
+        firstName: contact.givenName,
+        lastName: contact.familyName,
+        email: contact.emailAddress,
+        phone: contact.phoneNumber,
+        address: contact.addressLines?.[0],
+        city: contact.locality,
+        governorate: contact.administrativeArea,
+      } : undefined;
+      const shippingDetail = totalEGPVal >= 2000 ? "Free shipping on orders over 2,000 EGP" : "Delivery within 2-4 days";
+      const shippingAmt = totalEGPVal >= 2000 ? 0 : 50;
+      const newTotalCents = Math.round(totalEGPVal * 100) + Math.round(shippingAmt * 100);
+      (session as unknown as {
+        completeShippingContactSelection(result: {
+          status: number; newShippingMethods: unknown[]; newTotal: unknown; newLineItems: unknown[];
+        }): void;
+      }).completeShippingContactSelection({
+        status: AP.STATUS_SUCCESS,
+        newShippingMethods: [{
+          label: "Standard", detail: shippingDetail, amount: shippingAmt.toFixed(2), identifier: "standard-shipping",
+        }],
+        newTotal: { label: "Moi", amount: (newTotalCents / 100).toFixed(2) },
+        newLineItems: [
+          { label: "Subtotal", amount: totalEGPVal.toFixed(2), type: "final" },
+          { label: "Shipping", amount: shippingAmt.toFixed(2), type: "final" },
+        ],
+      });
+    };
+
     session.onvalidatemerchant = async ({ validationURL }) => {
       try {
         const res = await fetch("/api/apple-pay/validate-merchant", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ validationURL, lines, totalAmountCents: totalCents, discountCode }),
+          body: JSON.stringify({ validationURL, lines, totalAmountCents: totalWithShippingCents, discountCode }),
         });
         const data = await res.json() as { merchantSession?: unknown; intentId?: string; error?: string };
         if (!res.ok || !data.merchantSession) throw new Error(data.error ?? "Merchant validation failed");
@@ -156,7 +219,7 @@ export function ShopifyApplePayButton({
           body: JSON.stringify({
             paymentData: JSON.stringify(payment.token.paymentData),
             intentId: intentIdRef.current,
-            shippingContact: sc ? {
+            shippingContact: shippingContactRef.current ?? (sc ? {
               firstName: sc.givenName,
               lastName: sc.familyName,
               email: sc.emailAddress,
@@ -164,7 +227,7 @@ export function ShopifyApplePayButton({
               address: sc.addressLines?.[0],
               city: sc.locality,
               governorate: sc.administrativeArea,
-            } : undefined,
+            } : undefined),
           }),
         });
         const data = await res.json() as {
@@ -175,7 +238,7 @@ export function ShopifyApplePayButton({
         };
         if (data.success) {
           session.completePayment({ status: AP.STATUS_SUCCESS });
-          const totalStr = `${Math.round(totalEGPVal)} EGP`;
+          const totalStr = data.total ?? `${Math.round(totalEGPVal + (totalEGPVal >= 2000 ? 0 : 50))} EGP`;
           onSuccess?.(data.shopifyOrderNumber ?? null, totalStr);
         } else {
           session.completePayment({ status: AP.STATUS_FAILURE });

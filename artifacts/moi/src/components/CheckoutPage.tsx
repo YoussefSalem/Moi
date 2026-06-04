@@ -422,16 +422,37 @@ export function CheckoutPage() {
       currencyCode: "EGP",
       supportedNetworks: ["visa", "masterCard", "amex", "mada"],
       merchantCapabilities: ["supports3DS"],
-      requiredShippingContactFields: ["name", "email", "phone"],
-      lineItems: shippingAmt > 0
-        ? [{ label: "Shipping", amount: shippingAmt.toFixed(2), type: "final" }]
-        : [],
+      requiredShippingContactFields: ["postalAddress", "name", "email", "phone"],
+      shippingType: "shipping",
+      shippingMethods: [{
+        label: "Standard",
+        detail: isFreeShipping ? "Free shipping on orders over 2,000 EGP" : "Delivery within 2-4 days",
+        amount: shippingAmt.toFixed(2),
+        identifier: "standard-shipping",
+      }],
+      lineItems: [
+        { label: "Subtotal", amount: discSubtotal.toFixed(2), type: "final" },
+        ...(savingsAmt > 0 ? [{ label: "Discount", amount: `-${savingsAmt.toFixed(2)}`, type: "final" }] : []),
+        { label: "Shipping", amount: shippingAmt.toFixed(2), type: "final" },
+      ],
       total: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
     });
 
     applePayIntentIdRef.current = null;
     setPaymentMethod("apple-pay");
     setSubmitError("");
+
+    session.onshippingmethodselected = ({ shippingMethod }) => {
+      (session as unknown as { completeShippingMethodSelection(s: unknown): void }).completeShippingMethodSelection({
+        status: AP.STATUS_SUCCESS,
+        newTotal: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
+        newLineItems: [
+          { label: "Subtotal", amount: discSubtotal.toFixed(2), type: "final" },
+          ...(savingsAmt > 0 ? [{ label: "Discount", amount: `-${savingsAmt.toFixed(2)}`, type: "final" }] : []),
+          { label: "Shipping", amount: shippingMethod.amount, type: "final" },
+        ],
+      });
+    };
 
     session.onvalidatemerchant = async ({ validationURL }) => {
       try {
