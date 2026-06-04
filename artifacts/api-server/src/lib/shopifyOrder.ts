@@ -333,8 +333,13 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
   // That caused discounts to be lost (frontend showed discounted price, Shopify showed
   // full price). We already track usage_count ourselves via recordDiscountCodeUse(),
   // so draft completion is the correct path.
+  //
+  // payment_pending=false marks the order as "paid" at completion time.
+  // Paymob is an external gateway — Shopify does NOT create shopify_payment or
+  // Shopify Payments transaction objects. We track payment status in our own DB
+  // and store Paymob details as order metafields.
   const completeRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false`,
+    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false&payment_pending=false`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
@@ -360,12 +365,13 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
     lineItems = (orderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
   }
 
-  // Completed order defaults to "pending" — mark it paid so Bosta doesn't treat as COD.
-  // NOTE: PUT /orders/{id}.json with financial_status is silently ignored by Shopify.
-  // The only way to change financial_status is to POST a transaction with kind:"sale".
-  try {
-    await recordShopifyPaymentTransaction({ orderId, amount: total, storeDomain, adminToken });
-  } catch { /* ignore */ }
+  // Store Paymob payment data as order metafields if a transaction ID was found.
+  // Paymob is an external gateway — financial_status is set to "paid" via
+  // payment_pending=false at completion time (see complete URL above).
+  const paymobTxnIdFromNote = noteAttrs.find((n) => n.name === "Transaction ID")?.value;
+  if (paymobTxnIdFromNote && storeDomain && adminToken) {
+    void setShopifyOrderPaymobMetafields({ orderId, paymobTxnId: paymobTxnIdFromNote, storeDomain, adminToken });
+  }
 
   // Re-apply referring_site / landing_site (Shopify strips them during completion)
   if (attributionRaw) {
@@ -663,8 +669,11 @@ export async function createDraftOrder(params: {
     return { orderNumber: draftId, orderId: draftId, total: draftTotal, lineItems: [], draftOrderId: draftId, discountAmount: cartDiscountAmount > 0.01 ? cartDiscountAmount : undefined, discountCode: cartDiscountCode || undefined, shippingAmount: shippingPrice };
   }
 
+  // payment_pending=false marks non-COD orders as "paid" at completion time.
+  // Paymob is an external gateway — no Shopify Payments transaction objects are created.
+  const paymentPending = params.paymentMethod === "cod" ? "true" : "false";
   const completeRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?send_receipt=true&send_fulfillment_receipt=false`,
+    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?send_receipt=true&send_fulfillment_receipt=false&payment_pending=${paymentPending}`,
     {
       method: "PUT",
       headers: {
@@ -713,68 +722,48 @@ export async function createDraftOrder(params: {
 }
 
 /**
- * Record a Paymob payment transaction on a Shopify order so the order's
- * financial_status becomes "paid".
+ * Store Paymob payment details on a Shopify order as metafields.
  *
- * IMPORTANT: Shopify's REST API does NOT allow setting financial_status via
- * PUT /orders/{id}.json — that field is read-only and computed from
- * transactions.  The only supported way to mark an order as paid is to POST
- * a transaction with kind:"sale" and status:"success".
+ * Paymob is an external payment gateway — Shopify does NOT create shopify_payment
+ * or Shopify Payments transaction objects. Orders are marked paid via
+ * payment_pending=false at draft-completion time. This function stores the
+ * Paymob transaction ID, payment status, and gateway name on the Shopify order
+ * for reconciliation and reporting.
  *
- * Without this step the order stays "pending" and Bosta (and Shopify) treat
- * it as Cash on Delivery.
- *
- * Throws on failure so callers can retry.
+ * Errors are logged but never thrown — metafield storage is best-effort.
  */
-export async function recordShopifyPaymentTransaction(params: {
+export async function setShopifyOrderPaymobMetafields(params: {
   orderId: number;
-  amount: string;   // total order amount as a string (e.g. "949.00")
-  paymobTxnId?: string | null;
+  paymobTxnId: string;
+  amountCents?: number;
   storeDomain: string;
   adminToken: string;
 }): Promise<void> {
-  const { orderId, amount, paymobTxnId, storeDomain, adminToken } = params;
-  const headers = { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken };
-  const baseUrl = `https://${storeDomain}/admin/api/2024-04/orders/${orderId}`;
-  const now = new Date().toISOString();
-
-  // Always post kind:"sale" for custom gateways (Paymob).
-  // Draft order completion auto-creates a kind:"pending" transaction, but
-  // kind:"capture" only works for Shopify Payments authorizations — using it
-  // on a custom-gateway pending transaction returns "Order has no shopify_payment."
-  // Shopify correctly accepts kind:"sale" even when a pending transaction exists.
-  const body: Record<string, unknown> = {
-    kind: "sale",
-    status: "success",
-    gateway: "Paymob",
-    amount,
-    currency: "EGP",
-    processed_at: now,
-  };
-  if (paymobTxnId) {
-    body.authorization = paymobTxnId;
-    body.receipt = {
-      paymob_txn_id: paymobTxnId,
-      payment_method: "Credit/Debit Card",
-      transaction_type: "Payment",
-      payment_source: "Paymob Application",
-      status: "Successful",
-      date_created: now,
-      last_updated: now,
-    };
+  const { orderId, paymobTxnId, amountCents, storeDomain, adminToken } = params;
+  const metafields: Array<{ namespace: string; key: string; value: string; type: string }> = [
+    { namespace: "paymob", key: "transaction_id", value: paymobTxnId, type: "single_line_text_field" },
+    { namespace: "paymob", key: "payment_status", value: "paid", type: "single_line_text_field" },
+    { namespace: "paymob", key: "gateway", value: "Paymob", type: "single_line_text_field" },
+  ];
+  if (amountCents !== undefined) {
+    metafields.push({ namespace: "paymob", key: "amount_cents", value: String(amountCents), type: "single_line_text_field" });
   }
 
-  logger.info({ orderId, kind: body.kind }, "recordShopifyPaymentTransaction: posting transaction");
-  const res = await fetch(`${baseUrl}/transactions.json`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ transaction: body }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`recordShopifyPaymentTransaction: Shopify returned ${res.status}: ${text}`);
+  try {
+    const res = await fetch(`https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+      body: JSON.stringify({ order: { id: orderId, metafields } }),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      logger.warn({ orderId, paymobTxnId, status: res.status, text }, "setShopifyOrderPaymobMetafields: failed");
+      return;
+    }
+    logger.info({ orderId, paymobTxnId }, "setShopifyOrderPaymobMetafields: Paymob data stored on order");
+  } catch (err) {
+    logger.warn({ err, orderId, paymobTxnId }, "setShopifyOrderPaymobMetafields: exception — metafields not stored");
   }
-  logger.info({ orderId, paymobTxnId, amount, kind: body.kind }, "recordShopifyPaymentTransaction: transaction posted — order marked paid");
 }
 
 /**
@@ -787,10 +776,10 @@ export async function recordShopifyPaymentTransaction(params: {
  * with applied_discount (which correctly reduces the total) and complete it
  * immediately. Discount usage is tracked ourselves via recordDiscountCodeUse().
  *
- * For card orders, after completion we POST a transaction (kind:sale) so that
- * Shopify computes financial_status as "paid". PUT /orders/{id}.json with
- * financial_status is silently ignored by Shopify — transactions are the only
- * supported mechanism.
+ * Paymob is an external payment gateway — Shopify does NOT create shopify_payment
+ * or Shopify Payments transaction objects. Card orders are marked paid via
+ * payment_pending=false at draft-completion time (see createDraftOrder). Paymob
+ * transaction details are stored on the order as metafields and in our own DB.
  */
 export async function createShopifyDirectOrder(params: {
   lines: OrderLine[];
@@ -801,7 +790,7 @@ export async function createShopifyDirectOrder(params: {
   extraTags?: string;
   attribution?: OrderAttribution;
   financialStatus?: "pending" | "paid";
-  /** Paymob transaction ID — used as the transaction receipt and for note traceability */
+  /** Paymob transaction ID — stored as metafield and in note_attributes for traceability */
   paymobTxnId?: string;
   /** Full Paymob transaction details — stored in order note_attributes for reconciliation */
   paymobDetails?: { txnId: string; amountCents: number; intentId?: string };
@@ -818,39 +807,19 @@ export async function createShopifyDirectOrder(params: {
     paymobDetails: params.paymobDetails,
   });
 
-  // Mark the order as paid by posting a payment transaction.
-  // financial_status is a computed field in Shopify — PUT /orders/{id}.json
-  // cannot change it. The only correct mechanism is POST transactions.json
-  // with kind:"sale" and status:"success".
-  // Retries once after 3 s if the first attempt fails.
-  if (params.paymentMethod === "card" && params.financialStatus === "paid") {
+  // Store Paymob data as order metafields — fire-and-forget, never blocks order creation.
+  // financial_status is already "paid" via payment_pending=false at draft completion.
+  if (params.paymentMethod === "card" && params.paymobTxnId) {
     const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
     const adminToken = await getShopifyAdminToken();
     if (storeDomain && adminToken) {
-      let lastErr: unknown;
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        try {
-          await recordShopifyPaymentTransaction({
-            orderId: result.orderId,
-            amount: result.total,
-            paymobTxnId: params.paymobTxnId,
-            storeDomain,
-            adminToken,
-          });
-          lastErr = undefined;
-          break; // success — exit retry loop
-        } catch (err) {
-          lastErr = err;
-          logger.warn({ err, orderId: result.orderId, attempt }, "createShopifyDirectOrder: payment transaction attempt failed");
-          if (attempt < 2) {
-            await new Promise((r) => setTimeout(r, 3000));
-          }
-        }
-      }
-      if (lastErr) {
-        // Both attempts failed — log loudly so it surfaces for manual fix via admin panel
-        logger.error({ err: lastErr, orderId: result.orderId, paymobTxnId: params.paymobTxnId }, "createShopifyDirectOrder: payment transaction failed after 2 attempts — order will remain Payment Pending; use admin Record Payment button");
-      }
+      void setShopifyOrderPaymobMetafields({
+        orderId: result.orderId,
+        paymobTxnId: params.paymobTxnId,
+        amountCents: params.paymobDetails?.amountCents,
+        storeDomain,
+        adminToken,
+      });
     }
   }
 

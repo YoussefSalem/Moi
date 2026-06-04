@@ -17,7 +17,7 @@ import { getMaskedConfig, savePaymobConfig, type PaymobConfig } from "../lib/pay
 import { listDiscountCodeUses } from "@workspace/db";
 import { sendEmail, buildAbandonedCartEmail, buildInstapayConfirmedEmail, buildInstapayRejectedEmail } from "../lib/email";
 import { getSiteUrl } from "../lib/siteUrl";
-import { completeShopifyDraftOrder, recordShopifyPaymentTransaction } from "../lib/shopifyOrder";
+import { completeShopifyDraftOrder, setShopifyOrderPaymobMetafields } from "../lib/shopifyOrder";
 import { parseEGP } from "@workspace/utils";
 
 const router: IRouter = Router();
@@ -667,9 +667,10 @@ router.get("/admin/transactions", async (req, res) => {
   }
 });
 
-// POST /admin/fix-payment-transaction/:id — re-post a Shopify payment transaction
-// for a completed Paymob intent. Use when a card payment succeeded in Paymob but
-// the Shopify order still shows as Payment Pending (e.g. if the first attempt failed).
+// POST /admin/fix-payment-transaction/:id — store Paymob payment details as Shopify
+// order metafields for a completed Paymob intent. Paymob is an external gateway —
+// no Shopify Payments transaction objects are created. Use this when the order
+// metafields are missing or need refreshing.
 router.post("/admin/fix-payment-transaction/:id", async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
@@ -679,7 +680,7 @@ router.post("/admin/fix-payment-transaction/:id", async (req, res) => {
   if (!intent) { res.status(404).json({ error: "Not found" }); return; }
   if (intent.status !== "completed") { res.status(409).json({ error: "Intent must be in completed state" }); return; }
   if (!intent.shopifyOrderId || !intent.paymobTxnId) {
-    res.status(409).json({ error: "Missing shopifyOrderId or paymobTxnId — cannot record transaction" });
+    res.status(409).json({ error: "Missing shopifyOrderId or paymobTxnId — cannot set metafields" });
     return;
   }
 
@@ -687,20 +688,14 @@ router.post("/admin/fix-payment-transaction/:id", async (req, res) => {
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) { res.status(503).json({ error: "Shopify not configured" }); return; }
 
-  try {
-    await recordShopifyPaymentTransaction({
-      orderId: intent.shopifyOrderId,
-      amount: intent.total,
-      paymobTxnId: intent.paymobTxnId,
-      storeDomain,
-      adminToken,
-    });
-    req.log.info({ id, shopifyOrderId: intent.shopifyOrderId, paymobTxnId: intent.paymobTxnId }, "fix-payment-transaction: transaction re-posted to Shopify");
-    res.status(200).json({ ok: true });
-  } catch (err) {
-    req.log.error({ err, id }, "fix-payment-transaction: failed");
-    res.status(500).json({ error: "Failed to post transaction to Shopify" });
-  }
+  await setShopifyOrderPaymobMetafields({
+    orderId: intent.shopifyOrderId,
+    paymobTxnId: intent.paymobTxnId,
+    storeDomain,
+    adminToken,
+  });
+  req.log.info({ id, shopifyOrderId: intent.shopifyOrderId, paymobTxnId: intent.paymobTxnId }, "fix-payment-transaction: Paymob metafields set on Shopify order");
+  res.status(200).json({ ok: true });
 });
 
 /**
