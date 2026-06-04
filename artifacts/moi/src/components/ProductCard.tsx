@@ -733,12 +733,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 <motion.button
                   type="button"
                   variants={itemVariants}
-                  onClick={() => {
-                    const handle = displayColors.length > 0
-                      ? `${product.slug}-${slugify(selectedColor)}`
-                      : product.slug;
-                    onNavigateToProduct(handle);
-                  }}
+                  onClick={() => onNavigateToProduct(`${product.slug}-${slugify(selectedColor)}`)}
                   className="flex items-center gap-1.5 mb-2 transition-opacity duration-200 hover:opacity-55"
                   style={{
                     fontFamily: "'Montserrat', sans-serif",

@@ -319,14 +319,6 @@ export const IMAGES = {
     outer: "Material: Brass with gold-tone plating",
     lining: "Set of 3 bangles",
     ref: "ACC/001/TRB",
-    variantId: "gid://shopify/ProductVariant/40655896985741",
-    variants: [
-      { id: "gid://shopify/ProductVariant/40655896985741", title: "One Size", availableForSale: false, inventoryQuantity: 0, price: "890 EGP", selectedOptions: [{ name: "Size", value: "One Size" }] },
-    ],
-    defaultInventory: {
-      ivory: { "One Size": 0 },
-      beige: { "One Size": 0 },
-    },
   },
 } as const;
 

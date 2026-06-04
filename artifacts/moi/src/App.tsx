@@ -372,7 +372,7 @@ function AppContent() {
           ) : page === "accessories" ? (
             <div>
               <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
-                <AccessoriesPage onLookView={setLookProduct} onNavigateToProduct={navigateToProduct} />
+                <AccessoriesPage onLookView={setLookProduct} />
                 <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
               </Suspense>
             </div>

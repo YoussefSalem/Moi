@@ -27,38 +27,7 @@ export function useShopifyProductByHandle(
       .then((shopifyProduct) => {
         if (cancelled) return;
         if (shopifyProduct) {
-          let mapped = mapProductToConfig(shopifyProduct, fallback);
-          // Respect fallback out-of-stock flags. If ALL fallback variants are
-          // unavailable, force all Shopify variants as unavailable (covers the case
-          // where the product is intentionally disabled in the frontend config).
-          // If only some variants are unavailable, match by variant ID.
-          if (mapped.variants) {
-            const fallbackVariants = fallback.variants ?? [];
-            const allFallbackUnavailable = fallbackVariants.length > 0 && fallbackVariants.every((v) => !v.availableForSale);
-            if (allFallbackUnavailable) {
-              mapped = {
-                ...mapped,
-                variants: mapped.variants.map((v) => ({ ...v, availableForSale: false })),
-              };
-            } else {
-              const fallbackUnavailableIds = new Set(
-                fallbackVariants
-                  .filter((v) => !v.availableForSale)
-                  .map((v) => v.id),
-              );
-              if (fallbackUnavailableIds.size > 0) {
-                mapped = {
-                  ...mapped,
-                  variants: mapped.variants.map((v) =>
-                    fallbackUnavailableIds.has(v.id)
-                      ? { ...v, availableForSale: false }
-                      : v,
-                  ),
-                };
-              }
-            }
-          }
-          setProduct(mapped);
+          setProduct(mapProductToConfig(shopifyProduct, fallback));
         }
         setLoading(false);
       })
