@@ -242,8 +242,11 @@ export async function queryTransactionByMerchantOrderId(merchantOrderId: string)
 }
 
 /**
- * Verifies a Paymob HMAC-SHA512 webhook signature.
- * Handles both v1 (top-level fields) and v2 (fields under `obj`) formats.
+ * Verifies a Paymob HMAC-SHA512 signature for the server-to-server
+ * Transaction Processed (POST) callback. That payload nests transaction data
+ * under `obj`, with the order as `obj.order.id` and card details under
+ * `obj.source_data.*`. The `obj` unwrap also tolerates a top-level shape, but
+ * the field traversal (`order.id`, `source_data.*`) is tuned to the POST format.
  */
 export function verifyPaymobHmac(payload: Record<string, unknown>, signature: string): boolean {
   const config = getPaymobConfig();
@@ -253,11 +256,15 @@ export function verifyPaymobHmac(payload: Record<string, unknown>, signature: st
     ? (payload.obj as Record<string, unknown>)
     : payload;
 
+  // Field order per Paymob's official HMAC spec (Transaction Processed callback).
+  // The transaction id and order id are nested objects in the POST payload, so
+  // they must be read as `obj.id` (here `id` after unwrapping `obj`) and `order.id`.
+  // Using the bare `order` object would stringify to "" and break verification.
   const HMAC_FIELDS = [
     "amount_cents", "created_at", "currency", "error_occured",
     "has_parent_transaction", "id", "integration_id", "is_3d_secure",
     "is_auth", "is_capture", "is_refunded", "is_standalone_payment",
-    "is_voided", "order", "owner", "pending",
+    "is_voided", "order.id", "owner", "pending",
     "source_data.pan", "source_data.sub_type", "source_data.type", "success",
   ];
 
