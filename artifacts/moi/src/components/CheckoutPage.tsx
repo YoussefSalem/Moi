@@ -159,21 +159,21 @@ const inputStyle: React.CSSProperties = {
 };
 
 const optionListStyle: React.CSSProperties = {
-  maxHeight: "240px",
+  maxHeight: "220px",
   overflowY: "auto",
-  border: "1px solid rgba(30,24,20,0.16)",
-  backgroundColor: "#efe6da",
-  boxShadow: "0 18px 40px rgba(30,24,20,0.12)",
+  border: "1px solid rgba(30,24,20,0.14)",
+  backgroundColor: "#faf8f5",
+  boxShadow: "0 12px 32px rgba(30,24,20,0.10)",
 };
 
 const optionStyle: React.CSSProperties = {
   width: "100%",
   display: "block",
-  padding: "12px 14px",
+  padding: "9px 14px",
   textAlign: "left",
   fontFamily: "'Montserrat', sans-serif",
-  fontSize: "14px",
-  letterSpacing: "0.02em",
+  fontSize: "12px",
+  letterSpacing: "0.06em",
   color: "#1e1814",
 };
 
@@ -843,7 +843,7 @@ export function CheckoutPage() {
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-12 lg:gap-20">
               <AnimatePresence mode="wait">
                 {step === "form" && (
-                  <motion.div key="form" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.35 }}>
+                  <motion.div key="form" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.35 }} className="relative z-10">
                     <div className="space-y-12">
                       <section>
                         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "28px", fontWeight: 500, color: "#1e1814", marginBottom: "32px" }}>Payment Method</h2>
