@@ -12,7 +12,7 @@ export interface PaymobConfig {
 
 export function getPaymobConfig(): PaymobConfig {
   return {
-    secretKey: process.env.PAYMOB_API_KEY ?? "",
+    secretKey: process.env.PAYMOB_SECRET_KEY ?? "",
     publicKey: process.env.PAYMOB_PUBLIC_KEY ?? "",
     integrationId: process.env.PAYMOB_INTEGRATION_ID ?? "",
     hmacSecret: process.env.PAYMOB_HMAC_SECRET ?? "",
