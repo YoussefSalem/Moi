@@ -737,14 +737,16 @@ export async function createDraftOrder(params: {
     return { orderNumber: draftId, orderId: draftId, total: draftTotal, lineItems: [], draftOrderId: draftId, discountAmount: cartDiscountAmount > 0.01 ? cartDiscountAmount : undefined, discountCode: cartDiscountCode || undefined, shippingAmount: shippingPrice };
   }
 
-  // Always use payment_pending=true so Shopify creates the order with
+  // For COD orders, pass payment_pending=true so Shopify creates the order with
   // financial_status:"pending" and does NOT auto-create a pending payment
-  // transaction. Without this:
-  //   - COD: stores with auto-capture enabled would mark the COD order "paid" immediately.
-  //   - Card/Apple Pay: Shopify auto-creates a pending transaction with no real gateway,
-  //     causing "Order has no shopify_payment" when we later try to capture it.
-  // For card/apple-pay we then POST a kind:"sale" transaction to mark the order paid.
-  const paymentPendingParam = "&payment_pending=true";
+  // transaction. Without this, stores with automatic payment capture enabled
+  // would capture the auto-created pending transaction and mark the COD order
+  // as "paid" immediately — incorrect for Cash on Delivery.
+  //
+  // For card/apple-pay: do NOT use payment_pending=true. Shopify auto-creates
+  // a pending authorization transaction which we then capture via
+  // recordShopifyPaymentTransaction (kind:"capture" with parent_id).
+  const paymentPendingParam = params.paymentMethod === "cod" ? "&payment_pending=true" : "";
   const completeRes = await fetch(
     `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftId}/complete.json?send_receipt=true&send_fulfillment_receipt=false${paymentPendingParam}`,
     {
@@ -820,91 +822,56 @@ export async function recordShopifyPaymentTransaction(params: {
 }): Promise<void> {
   const { orderId, amount, paymobTxnId, storeDomain, adminToken } = params;
   const headers = { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken };
+  const baseUrl = `https://${storeDomain}/admin/api/2024-04/orders/${orderId}`;
   const now = new Date().toISOString();
 
-  // ── Strategy 1: REST transactions API with source_name:"external" ──────────
-  // source_name:"external" tells Shopify this was processed by an external
-  // payment provider (Paymob), not Shopify Payments — bypassing the gateway check.
-  const restBody: Record<string, unknown> = {
-    kind: "sale",
+  // Completing a draft order without payment_pending=true causes Shopify to
+  // auto-create a "pending" authorization transaction (kind:"pending", status:"success").
+  // Shopify rejects kind:"sale" if any transaction already exists — so we must
+  // check first and capture the pending transaction if present.
+  let pendingTxnId: number | null = null;
+  const txnListRes = await fetch(`${baseUrl}/transactions.json?fields=id,kind,status`, { headers });
+  if (txnListRes.ok) {
+    const txnData = await txnListRes.json() as { transactions?: { id: number; kind: string; status: string }[] };
+    const pending = (txnData.transactions ?? []).find(
+      (t) => t.kind === "pending" && t.status === "success",
+    );
+    if (pending) pendingTxnId = pending.id;
+  }
+
+  const body: Record<string, unknown> = {
+    kind: pendingTxnId ? "capture" : "sale",
     status: "success",
-    gateway: "paymob",
-    source_name: "external",
+    gateway: "Paymob",
     amount,
     currency: "EGP",
     processed_at: now,
+    ...(pendingTxnId ? { parent_id: pendingTxnId } : {}),
   };
   if (paymobTxnId) {
-    restBody.authorization = paymobTxnId;
+    body.authorization = paymobTxnId;
+    body.receipt = {
+      paymob_txn_id: paymobTxnId,
+      payment_method: "Credit/Debit Card",
+      transaction_type: "Payment",
+      payment_source: "Paymob Application",
+      status: "Successful",
+      date_created: now,
+      last_updated: now,
+    };
   }
 
-  logger.info({ orderId, paymobTxnId }, "recordShopifyPaymentTransaction: posting REST sale transaction (source_name:external)");
-
-  const restRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/transactions.json`,
-    { method: "POST", headers, body: JSON.stringify({ transaction: restBody }) },
-  );
-
-  if (restRes.ok) {
-    const restData = await restRes.json() as { transaction?: { id: number; status: string; kind: string } };
-    logger.info({ orderId, paymobTxnId, txnId: restData.transaction?.id, status: restData.transaction?.status }, "recordShopifyPaymentTransaction: REST succeeded — order marked paid");
-    return;
-  }
-
-  const restError = await restRes.text();
-  logger.warn({ orderId, paymobTxnId, restStatus: restRes.status, restBody: restError }, "recordShopifyPaymentTransaction: REST failed — falling back to GraphQL orderMarkAsPaid");
-
-  // ── Strategy 2: GraphQL orderMarkAsPaid (fallback) ────────────────────────
-  const mutation = `
-    mutation orderMarkAsPaid($input: OrderMarkAsPaidInput!) {
-      orderMarkAsPaid(input: $input) {
-        order { id displayFinancialStatus }
-        userErrors { field message }
-      }
-    }
-  `;
-
-  const gqlRes = await fetch(`https://${storeDomain}/admin/api/2024-04/graphql.json`, {
+  logger.info({ orderId, kind: body.kind, pendingTxnId }, "recordShopifyPaymentTransaction: posting transaction");
+  const res = await fetch(`${baseUrl}/transactions.json`, {
     method: "POST",
     headers,
-    body: JSON.stringify({
-      query: mutation,
-      variables: { input: { id: `gid://shopify/Order/${orderId}` } },
-    }),
+    body: JSON.stringify({ transaction: body }),
   });
-
-  if (!gqlRes.ok) {
-    const gqlError = await gqlRes.text();
-    throw new Error(
-      `recordShopifyPaymentTransaction: both strategies failed.\n` +
-      `  REST (${restRes.status}): ${restError}\n` +
-      `  GraphQL (${gqlRes.status}): ${gqlError}`,
-    );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`recordShopifyPaymentTransaction: Shopify returned ${res.status}: ${text}`);
   }
-
-  const gqlData = await gqlRes.json() as {
-    data?: {
-      orderMarkAsPaid?: {
-        order?: { id: string; displayFinancialStatus: string };
-        userErrors?: { field: string; message: string }[];
-      };
-    };
-    errors?: { message: string }[];
-  };
-
-  const gqlErrors = gqlData.errors;
-  if (gqlErrors && gqlErrors.length > 0) {
-    throw new Error(`recordShopifyPaymentTransaction: GraphQL errors: ${JSON.stringify(gqlErrors)}`);
-  }
-
-  const userErrors = gqlData.data?.orderMarkAsPaid?.userErrors ?? [];
-  const realErrors = userErrors.filter((e) => !e.message.toLowerCase().includes("already paid"));
-  if (realErrors.length > 0) {
-    throw new Error(`recordShopifyPaymentTransaction: GraphQL userErrors: ${JSON.stringify(realErrors)}`);
-  }
-
-  const financialStatus = gqlData.data?.orderMarkAsPaid?.order?.displayFinancialStatus ?? "unknown";
-  logger.info({ orderId, paymobTxnId, financialStatus }, "recordShopifyPaymentTransaction: GraphQL orderMarkAsPaid succeeded");
+  logger.info({ orderId, paymobTxnId, amount, kind: body.kind }, "recordShopifyPaymentTransaction: transaction posted — order marked paid");
 }
 
 /**
@@ -1106,13 +1073,14 @@ async function createDirectPaidCardOrder(params: {
  * Creates a Shopify order for an already-verified Paymob / COD payment.
  *
  * Card / Apple Pay ("paid"):
- *   Delegates to createDirectPaidCardOrder which uses POST /orders.json with the
- *   payment transaction embedded in the creation payload. This is the only approach
- *   that reliably works on Shopify Payments stores — adding a transaction after
- *   draft-order completion always fails with "Order has no shopify_payment."
+ *   Draft order → complete (without payment_pending=true) → Shopify auto-creates
+ *   a pending authorization → capture it via recordShopifyPaymentTransaction
+ *   (kind:"capture" with parent_id). This is the approach that worked reliably on
+ *   June 2nd and avoids the "Order has no shopify_payment." error on Shopify
+ *   Payments stores.
  *
  * COD:
- *   Uses the draft order → complete flow with payment_pending=true.
+ *   Draft order → complete with payment_pending=true (no transaction posted).
  */
 export async function createShopifyDirectOrder(params: {
   lines: OrderLine[];
@@ -1128,22 +1096,6 @@ export async function createShopifyDirectOrder(params: {
   /** Full Paymob transaction details — stored in order note_attributes */
   paymobDetails?: { txnId: string; amountCents: number; intentId?: string };
 }): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string; shippingAmount?: string }> {
-  // Card / Apple Pay paid via Paymob — create order directly with embedded transaction
-  if ((params.paymentMethod === "card" || params.paymentMethod === "apple-pay") && params.financialStatus === "paid") {
-    return createDirectPaidCardOrder({
-      lines: params.lines,
-      customer: params.customer,
-      paymentMethod: params.paymentMethod,
-      cartId: params.cartId,
-      discountCode: params.discountCode,
-      extraTags: params.extraTags,
-      attribution: params.attribution,
-      paymobTxnId: params.paymobTxnId,
-      paymobDetails: params.paymobDetails,
-    });
-  }
-
-  // COD — draft order → complete with payment_pending=true
   const result = await createDraftOrder({
     lines: params.lines,
     customer: params.customer,
@@ -1155,6 +1107,36 @@ export async function createShopifyDirectOrder(params: {
     attribution: params.attribution,
     paymobDetails: params.paymobDetails,
   });
+
+  // Card / Apple Pay — capture the Shopify-auto-created pending authorization
+  // so the order's financial_status becomes "paid".
+  if ((params.paymentMethod === "card" || params.paymentMethod === "apple-pay") && params.financialStatus === "paid") {
+    const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+    const adminToken = await getShopifyAdminToken();
+    if (storeDomain && adminToken) {
+      let lastErr: unknown;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          await recordShopifyPaymentTransaction({
+            orderId: result.orderId,
+            amount: result.total,
+            paymobTxnId: params.paymobTxnId,
+            storeDomain,
+            adminToken,
+          });
+          lastErr = undefined;
+          break;
+        } catch (err) {
+          lastErr = err;
+          logger.warn({ err, orderId: result.orderId, attempt }, "createShopifyDirectOrder: payment transaction attempt failed");
+          if (attempt < 2) await new Promise((r) => setTimeout(r, 3000));
+        }
+      }
+      if (lastErr) {
+        logger.error({ err: lastErr, orderId: result.orderId, paymobTxnId: params.paymobTxnId }, "createShopifyDirectOrder: payment transaction failed after 2 attempts — order will remain Payment Pending; use admin Record Payment button");
+      }
+    }
+  }
 
   return {
     orderNumber: result.orderNumber,
