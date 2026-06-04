@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const BTN_CSS = `
   .ap-express-btn {
     -webkit-appearance: -apple-pay-button;
-    -apple-pay-button-type: plain;
+    -apple-pay-button-type: buy;
     -apple-pay-button-style: black;
     display: block; width: 100%; height: 56px;
     border: none; cursor: pointer; border-radius: 10px;
