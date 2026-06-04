@@ -402,14 +402,10 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
   }
 
   // Complete the draft order — applied_discount is preserved in the real order total.
-  // NOTE: We used to cancel the draft and recreate via POST /orders.json with
-  // discount_codes to increment Shopify's usage_count. However, Shopify's Orders API
-  // accepts discount_codes only for tracking — it does NOT reduce the order total.
-  // That caused discounts to be lost (frontend showed discounted price, Shopify showed
-  // full price). We already track usage_count ourselves via recordDiscountCodeUse(),
-  // so draft completion is the correct path.
+  // payment_pending=true prevents Shopify from auto-creating a pending transaction which
+  // would later block the GraphQL orderMarkAsPaid mutation.
   const completeRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false`,
+    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false&payment_pending=true`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
@@ -801,19 +797,15 @@ export async function createDraftOrder(params: {
 }
 
 /**
- * Record a Paymob payment transaction on a Shopify order so the order's
- * financial_status becomes "paid".
+ * Mark a Shopify order as paid using the Admin GraphQL `orderMarkAsPaid` mutation.
  *
- * IMPORTANT: Shopify's REST API does NOT allow setting financial_status via
- * PUT /orders/{id}.json — that field is read-only and computed from
- * transactions. The only supported way to mark an order as paid is to POST
- * a transaction with kind:"sale" and status:"success".
- *
- * We always use kind:"sale" (not "capture") because:
- *   - Draft orders are now completed with payment_pending=true, so Shopify does
- *     NOT auto-create a pending transaction to capture.
- *   - Attempting kind:"capture" on a draft-order-created order (which has no
- *     real payment gateway) causes the Shopify error "Order has no shopify_payment".
+ * WHY GraphQL instead of REST transactions:
+ *   - The REST `POST /orders/{id}/transactions.json` API requires the store's
+ *     payment gateway to support manual captures. Stores using Shopify Payments
+ *     respond with {"message":"Order has no shopify_payment."} for any transaction
+ *     kind (sale, capture, etc.) on API-created orders.
+ *   - The GraphQL `orderMarkAsPaid` mutation bypasses this restriction and works
+ *     unconditionally regardless of the store's payment provider configuration.
  *
  * Throws on failure so callers can retry.
  */
@@ -824,44 +816,65 @@ export async function recordShopifyPaymentTransaction(params: {
   storeDomain: string;
   adminToken: string;
 }): Promise<void> {
-  const { orderId, amount, paymobTxnId, storeDomain, adminToken } = params;
-  const headers = { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken };
-  const baseUrl = `https://${storeDomain}/admin/api/2024-04/orders/${orderId}`;
-  const now = new Date().toISOString();
+  const { orderId, storeDomain, adminToken } = params;
+  const orderGid = `gid://shopify/Order/${orderId}`;
 
-  const body: Record<string, unknown> = {
-    kind: "sale",
-    status: "success",
-    gateway: "Paymob",
-    amount,
-    currency: "EGP",
-    processed_at: now,
-  };
+  const mutation = `
+    mutation orderMarkAsPaid($input: OrderMarkAsPaidInput!) {
+      orderMarkAsPaid(input: $input) {
+        order { id displayFinancialStatus }
+        userErrors { field message }
+      }
+    }
+  `;
 
-  if (paymobTxnId) {
-    body.authorization = paymobTxnId;
-    body.receipt = {
-      paymob_txn_id: paymobTxnId,
-      payment_method: "Credit/Debit Card",
-      transaction_type: "Payment",
-      payment_source: "Paymob Application",
-      status: "Successful",
-      date_created: now,
-      last_updated: now,
-    };
-  }
+  logger.info({ orderId }, "recordShopifyPaymentTransaction: marking order paid via GraphQL");
 
-  logger.info({ orderId }, "recordShopifyPaymentTransaction: posting sale transaction");
-  const res = await fetch(`${baseUrl}/transactions.json`, {
+  const res = await fetch(`https://${storeDomain}/admin/api/2024-04/graphql.json`, {
     method: "POST",
-    headers,
-    body: JSON.stringify({ transaction: body }),
+    headers: {
+      "Content-Type": "application/json",
+      "X-Shopify-Access-Token": adminToken,
+    },
+    body: JSON.stringify({
+      query: mutation,
+      variables: { input: { id: orderGid } },
+    }),
   });
+
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`recordShopifyPaymentTransaction: Shopify returned ${res.status}: ${text}`);
+    throw new Error(`recordShopifyPaymentTransaction: GraphQL request failed (${res.status}): ${text}`);
   }
-  logger.info({ orderId, paymobTxnId, amount }, "recordShopifyPaymentTransaction: order marked paid");
+
+  const data = await res.json() as {
+    data?: {
+      orderMarkAsPaid?: {
+        order?: { id: string; displayFinancialStatus: string };
+        userErrors?: { field: string; message: string }[];
+      };
+    };
+    errors?: { message: string }[];
+  };
+
+  const gqlErrors = data.errors;
+  if (gqlErrors && gqlErrors.length > 0) {
+    throw new Error(`recordShopifyPaymentTransaction: GraphQL errors: ${JSON.stringify(gqlErrors)}`);
+  }
+
+  const userErrors = data.data?.orderMarkAsPaid?.userErrors ?? [];
+  if (userErrors.length > 0) {
+    // "Order is already paid" is not a real error — idempotent success
+    const realErrors = userErrors.filter((e) => !e.message.toLowerCase().includes("already paid"));
+    if (realErrors.length > 0) {
+      throw new Error(`recordShopifyPaymentTransaction: userErrors: ${JSON.stringify(realErrors)}`);
+    }
+    logger.info({ orderId }, "recordShopifyPaymentTransaction: order already paid (idempotent)");
+    return;
+  }
+
+  const status = data.data?.orderMarkAsPaid?.order?.displayFinancialStatus ?? "unknown";
+  logger.info({ orderId, status }, "recordShopifyPaymentTransaction: order marked paid");
 }
 
 /**
