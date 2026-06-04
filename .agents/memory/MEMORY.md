@@ -3,3 +3,4 @@
 - [Paymob API auth 401 fix](paymob-api-auth.md) — orders/transactions endpoints return 401 with auth_token query param; must try Bearer header first, then query param, then secret key Bearer.
 - [Card payments auto-approved](card-payments-auto-approved.md) — card payments create real Shopify orders immediately (no draft, no admin approval); shopifyOrderNumber now persisted to paymobIntents; admin panel has Transactions tab with Record Payment button for retroactive Shopify payment fixes.
 - [Paymob Apple Pay direct ApplePaySession](paymob-apple-pay-direct.md) — single-tap native sheet: create ApplePaySession synchronously in click handler, all async work (intent+key+merchant validation) runs inside onvalidatemerchant callback.
+- [Shopify payment transaction for custom gateways](shopify-payment-transaction.md) — always use kind:"sale" for Paymob; kind:"capture" returns "Order has no shopify_payment." on custom-gateway pending txns.

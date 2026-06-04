@@ -738,27 +738,18 @@ export async function recordShopifyPaymentTransaction(params: {
   const baseUrl = `https://${storeDomain}/admin/api/2024-04/orders/${orderId}`;
   const now = new Date().toISOString();
 
-  // Completing a draft order creates a "pending" transaction automatically.
-  // Shopify rejects kind:"sale" if any transaction already exists.
-  // Solution: if a pending transaction exists, capture it; otherwise post a sale.
-  let pendingTxnId: number | null = null;
-  const txnListRes = await fetch(`${baseUrl}/transactions.json?fields=id,kind,status`, { headers });
-  if (txnListRes.ok) {
-    const txnData = await txnListRes.json() as { transactions?: { id: number; kind: string; status: string }[] };
-    const pending = (txnData.transactions ?? []).find(
-      (t) => t.kind === "pending" && t.status === "success",
-    );
-    if (pending) pendingTxnId = pending.id;
-  }
-
+  // Always post kind:"sale" for custom gateways (Paymob).
+  // Draft order completion auto-creates a kind:"pending" transaction, but
+  // kind:"capture" only works for Shopify Payments authorizations — using it
+  // on a custom-gateway pending transaction returns "Order has no shopify_payment."
+  // Shopify correctly accepts kind:"sale" even when a pending transaction exists.
   const body: Record<string, unknown> = {
-    kind: pendingTxnId ? "capture" : "sale",
+    kind: "sale",
     status: "success",
     gateway: "Paymob",
     amount,
     currency: "EGP",
     processed_at: now,
-    ...(pendingTxnId ? { parent_id: pendingTxnId } : {}),
   };
   if (paymobTxnId) {
     body.authorization = paymobTxnId;
@@ -773,7 +764,7 @@ export async function recordShopifyPaymentTransaction(params: {
     };
   }
 
-  logger.info({ orderId, kind: body.kind, pendingTxnId }, "recordShopifyPaymentTransaction: posting transaction");
+  logger.info({ orderId, kind: body.kind }, "recordShopifyPaymentTransaction: posting transaction");
   const res = await fetch(`${baseUrl}/transactions.json`, {
     method: "POST",
     headers,
