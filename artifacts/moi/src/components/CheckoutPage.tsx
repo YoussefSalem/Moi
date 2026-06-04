@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, ChevronDown, Upload, X, Tag, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Upload, X, Tag, ShoppingBag, Smartphone } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useCustomer } from "@/context/CustomerContext";
 import { SHOPIFY_CONFIGURED, cartBuyerIdentityUpdate } from "@/lib/shopify";
 import { IMAGES } from "@/config/images";
 import { parseEGP } from "@/lib/price";
@@ -255,6 +256,8 @@ export function CheckoutPage() {
     prefilledEmail,
   } = useCart();
 
+  const { customer } = useCustomer();
+
   const [step, setStep] = useState<Step>("form");
   const [emailError, setEmailError] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
@@ -295,13 +298,20 @@ export function CheckoutPage() {
   }, [checkoutOpen, closeCheckout]);
 
   useEffect(() => {
-    if (checkoutOpen && prefilledEmail) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (emailRegex.test(prefilledEmail.trim())) {
-        setForm((f) => ({ ...f, email: prefilledEmail }));
+    if (!checkoutOpen) return;
+    setForm((f) => {
+      const next = { ...f };
+      if (!next.email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const email = customer?.email ?? prefilledEmail ?? "";
+        if (emailRegex.test(email.trim())) next.email = email.trim();
       }
-    }
-  }, [checkoutOpen, prefilledEmail]);
+      if (!next.firstName && customer?.firstName) next.firstName = customer.firstName;
+      if (!next.lastName && customer?.lastName) next.lastName = customer.lastName;
+      if (!next.phone && customer?.phone) next.phone = customer.phone;
+      return next;
+    });
+  }, [checkoutOpen, prefilledEmail, customer]);
 
   useEffect(() => {
     if (prevStepRef.current) {
@@ -859,7 +869,7 @@ export function CheckoutPage() {
                               backgroundColor: paymentMethod === "instapay" ? "rgba(30,24,20,0.02)" : "transparent",
                             }}
                           >
-                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>💳 Instapay</p>
+                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}><Smartphone size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "6px", marginBottom: "2px" }} />Instapay</p>
                             <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Instant bank transfer (Requires proof)</p>
                           </motion.button>
                           <motion.button
@@ -908,7 +918,7 @@ export function CheckoutPage() {
                             </button>
                             <AnimatePresence>
                               {governorateOpen && (
-                                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute left-0 right-0 top-full z-20 mt-1" style={optionListStyle}>
+                                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute left-0 right-0 top-full z-[500] mt-1" style={optionListStyle}>
                                   {GOVERNORATES.map((g) => (
                                     <button key={g} onClick={() => { setForm({ ...form, governorate: g }); setGovernorateOpen(false); }} className="hover:bg-[rgba(30,24,20,0.04)] transition-colors" style={optionStyle}>{g}</button>
                                   ))}
@@ -1053,7 +1063,11 @@ export function CheckoutPage() {
                           <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Subtotal</span>
                           <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(subtotalAmount)}</span>
                         </div>
-                        {!freeShipping && (
+                        {freeShipping ? (
+                          <div className="flex items-center gap-2 py-2 px-3 bg-[rgba(90,122,90,0.06)] border border-[rgba(90,122,90,0.15)]">
+                            <span style={{ fontSize: "11px", color: "#5a7a5a", fontWeight: 600, letterSpacing: "0.1em", fontFamily: "'Montserrat', sans-serif" }}>🎉 FREE SHIPPING UNLOCKED!</span>
+                          </div>
+                        ) : discountedSubtotal > 0 && (
                           <div>
                             <span style={{ fontSize: "11px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>{Math.round(2000 - discountedSubtotal).toLocaleString()} EGP AWAY FROM FREE DELIVERY</span>
                           </div>
