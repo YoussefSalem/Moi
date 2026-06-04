@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import pg from "pg";
 import * as schema from "./schema";
 import { discountCodeUses } from "./schema/discountCodeUses";
+import { paymobIntents, type InsertPaymobIntent, type PaymobIntent } from "./schema/paymobIntents";
 
 const { Pool } = pg;
 
@@ -21,6 +22,65 @@ export const pool = new Pool({
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";
+
+// ─── Paymob Intents ───────────────────────────────────────────────────────────
+
+export async function insertPaymobIntent(
+  data: InsertPaymobIntent,
+): Promise<{ id: number }> {
+  const rows = await db
+    .insert(paymobIntents)
+    .values(data)
+    .returning({ id: paymobIntents.id });
+  const row = rows[0];
+  if (!row) throw new Error("insertPaymobIntent: no row returned");
+  return { id: row.id };
+}
+
+export async function findPaymobIntentByCheckoutToken(
+  token: string,
+): Promise<PaymobIntent | null> {
+  const rows = await db
+    .select()
+    .from(paymobIntents)
+    .where(eq(paymobIntents.checkoutToken, token))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function findPaymobIntentByIntentId(
+  intentId: string,
+): Promise<PaymobIntent | null> {
+  const rows = await db
+    .select()
+    .from(paymobIntents)
+    .where(eq(paymobIntents.intentId, intentId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function updatePaymobIntent(
+  id: number,
+  updates: Partial<
+    Pick<
+      PaymobIntent,
+      | "status"
+      | "shopifyConfirmedOrderId"
+      | "shopifyOrderNumber"
+      | "paymobTxnId"
+      | "bostaDispatched"
+      | "bostaTrackingNumber"
+      | "bostaDispatchedAt"
+    >
+  >,
+): Promise<void> {
+  await db
+    .update(paymobIntents)
+    .set(updates)
+    .where(eq(paymobIntents.id, id));
+}
+
+// ─── Discount Code Uses ───────────────────────────────────────────────────────
 
 /**
  * Count how many times a discount code has been used via API-created orders.

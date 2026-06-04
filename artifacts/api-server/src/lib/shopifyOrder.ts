@@ -488,7 +488,7 @@ async function fetchVariantLineSubtotal(
 export async function createDraftOrder(params: {
   lines: OrderLine[];
   customer: CustomerInfo;
-  paymentMethod: "cod" | "instapay";
+  paymentMethod: "cod" | "instapay" | "card";
   cartId?: string;
   discountCode?: string;
   extraTags?: string;
@@ -508,13 +508,17 @@ export async function createDraftOrder(params: {
   const baseTags =
     params.paymentMethod === "cod"
       ? "cod,moi-checkout"
-      : "instapay,moi-checkout";
+      : params.paymentMethod === "card"
+        ? "card,moi-checkout"
+        : "instapay,moi-checkout";
   const tags = params.extraTags ? `${baseTags},${params.extraTags}` : baseTags;
 
   const noteText =
     params.paymentMethod === "cod"
       ? "Cash on Delivery"
-      : "Instapay Transfer";
+      : params.paymentMethod === "card"
+        ? "Card Payment (Paymob)"
+        : "Instapay Transfer";
 
   // Determine shipping based on cart total: free over 2,000 EGP
   let shippingPrice = "50.00";
