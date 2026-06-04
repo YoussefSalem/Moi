@@ -800,7 +800,7 @@ export function CheckoutPage() {
           body: JSON.stringify({
             lines: orderLines,
             customer: customerPayload,
-            amountCents: Math.round(totalAmount * 100),
+            cartId: shopifyCart?.id ?? null,
             discountCode: promoApplied?.code ?? null,
             attribution: buildOrderAttribution(),
             checkoutToken: shopifyCheckoutToken ?? null,
@@ -1261,7 +1261,7 @@ export function CheckoutPage() {
         body: JSON.stringify({
           lines: orderLines,
           customer: customerPayload,
-          amountCents: Math.round(totalAmount * 100),
+          cartId: shopifyCart?.id ?? null,
           discountCode: promoApplied?.code ?? null,
           attribution: buildOrderAttribution(),
           checkoutToken: shopifyCheckoutToken ?? null,

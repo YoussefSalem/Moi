@@ -1,46 +1,19 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
-import { getPaymobConfig } from "../lib/paymobConfig";
 import { createPaymobPaymentKey } from "../lib/paymob";
-import { type OrderLine, type CustomerInfo, type OrderAttribution } from "../lib/shopifyOrder";
+import { fetchStorefrontCart, type OrderLine, type CustomerInfo, type OrderAttribution } from "../lib/shopifyOrder";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
 
 const router: IRouter = Router();
 
-/**
- * POST /api/orders/paymob-init
- *
- * Creates a Paymob payment key (legacy 3-step flow) for card payments.
- * Uses the iframe at accept.paymob.com/api/acceptance/iframes/{iframeId}.
- *
- * The total is provided by the client as `amountCents` (already computed from
- * cart prices + discount + shipping). No Shopify Storefront API call is made
- * here; the Shopify order is created via Admin API after payment confirmation.
- *
- * Returns { iframeUrl, intentId, total }.
- */
+const SHIPPING_EGP = 50;
+
 router.post("/orders/paymob-init", async (req, res) => {
-  const config = getPaymobConfig();
-
-  if (!config.apiKey) {
-    res.status(503).json({ error: "Payment gateway is not configured." });
-    return;
-  }
-  if (!config.integrationId) {
-    res.status(503).json({ error: "Payment gateway integration is not configured." });
-    return;
-  }
-  if (!config.iframeId) {
-    res.status(503).json({ error: "Payment gateway iframe is not configured." });
-    return;
-  }
-
   const body = req.body as {
     lines?: unknown;
     customer?: unknown;
     cartId?: unknown;
-    amountCents?: unknown;
     discountCode?: unknown;
     attribution?: unknown;
     checkoutToken?: unknown;
@@ -73,18 +46,12 @@ router.post("/orders/paymob-init", async (req, res) => {
     return;
   }
 
-  if (typeof body.amountCents !== "number" || !Number.isInteger(body.amountCents) || body.amountCents < 100) {
-    res.status(400).json({ error: "Invalid order amount." });
-    return;
-  }
-
   const lines = body.lines as OrderLine[];
-  const amountCents = body.amountCents;
-  const total = (amountCents / 100).toFixed(2);
   const discountCode = typeof body.discountCode === "string" && body.discountCode.trim() ? body.discountCode.trim() : undefined;
-  const cartId = typeof body.cartId === "string" && body.cartId.trim() ? body.cartId.trim() : null;
+  const cartId = typeof body.cartId === "string" && body.cartId.trim() ? body.cartId.trim() : undefined;
   const checkoutToken = typeof body.checkoutToken === "string" && body.checkoutToken.trim() ? body.checkoutToken.trim() : null;
 
+  // Extract attribution from request body
   let attribution: OrderAttribution | undefined;
   if (body.attribution && typeof body.attribution === "object") {
     const a = body.attribution as Record<string, unknown>;
@@ -103,6 +70,32 @@ router.post("/orders/paymob-init", async (req, res) => {
     if (Object.keys(attribution).length === 0) attribution = undefined;
   }
 
+  if (!cartId) {
+    res.status(400).json({ error: "Cart ID is required for card payments." });
+    return;
+  }
+
+  req.log.info({ lineCount: lines.length }, "Paymob init — computing total from Storefront cart");
+
+  const cart = await fetchStorefrontCart(cartId);
+  if (!cart) {
+    res.status(400).json({ error: "Could not load your cart. Please try again." });
+    return;
+  }
+
+  if (discountCode && cart.discountCodes.length > 0) {
+    const applicable = cart.discountCodes.find((d) => d.applicable);
+    if (!applicable) {
+      res.status(422).json({ error: `Discount code "${discountCode}" is not applicable to this order.` });
+      return;
+    }
+  }
+
+  const cartTotalEGP = cart.totalAmount;
+  const totalEGP = cartTotalEGP + SHIPPING_EGP;
+  const amountCents = Math.round(totalEGP * 100);
+  const total = totalEGP.toFixed(2);
+
   const intentId = randomUUID();
 
   await db.insert(paymobIntents).values({
@@ -118,39 +111,41 @@ router.post("/orders/paymob-init", async (req, res) => {
     checkoutToken,
   });
 
-  req.log.info({ intentId, amountCents, total }, "Paymob card intent saved — creating legacy payment key");
+  req.log.info({ intentId, amountCents, total }, "Paymob intent saved — creating legacy payment key");
 
+  // Build callback and redirection URLs from the first configured domain.
+  // callback_url  = server-to-server transaction notification (POST from Paymob servers)
+  // redirection_url = where the browser/iframe navigates after payment completes
   const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
-  const redirectionUrl = domain ? `https://${domain}/paymob-relay.html` : undefined;
   const callbackUrl = domain ? `https://${domain}/api/webhooks/paymob` : undefined;
+  const redirectionUrl = domain ? `https://${domain}/paymob-relay.html` : undefined;
 
-  let iframeUrl: string;
+  let result: { iframeUrl: string };
   try {
-    const result = await createPaymobPaymentKey({
+    result = await createPaymobPaymentKey({
       amountCents,
       merchantOrderId: intentId,
       customer: {
-        firstName: customer.firstName.trim(),
-        lastName: customer.lastName.trim(),
-        email: customer.email?.trim(),
-        phone: customer.phone.trim(),
-        address: customer.address.trim(),
-        city: customer.city.trim(),
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        phone: customer.phone,
+        address: customer.address,
+        city: customer.city,
       },
-      redirectionUrl,
       callbackUrl,
+      redirectionUrl,
     });
-    iframeUrl = result.iframeUrl;
   } catch (err) {
-    req.log.error({ err, intentId }, "Paymob card payment key creation failed");
+    req.log.error({ err, intentId }, "Paymob payment key creation failed");
     res.status(500).json({ error: "Payment gateway unavailable. Please try again." });
     return;
   }
 
-  req.log.info({ intentId, iframeUrl }, "Paymob card payment key created — iframe ready");
+  req.log.info({ intentId }, "Paymob legacy payment key created successfully");
 
   res.status(200).json({
-    iframeUrl,
+    iframeUrl: result.iframeUrl,
     intentId,
     total,
   });
