@@ -7,7 +7,7 @@ import restockRouter from "./restock";
 import ordersRouter from "./orders";
 import webhooksRouter from "./webhooks";
 import paymobWebhookRouter from "./paymobWebhook";
-// import paymobInitRouter from "./paymobInit"; // disabled — card payments off
+import paymobInitRouter from "./paymobInit";
 import paymobReturnRouter from "./paymobReturn";
 import paymobStatusRouter from "./paymobStatus";
 import paymobSyncRouter from "./paymobSync";
@@ -22,10 +22,10 @@ import checkoutsRouter from "./checkouts";
 import abandonedCartsRouter from "./abandonedCarts";
 import metaCapiRouter from "./metaCapi";
 import anthropicRouter from "./anthropic/index";
-// import paymobApplePayInitRouter from "./paymobApplePayInit"; // disabled — Apple Pay off
-// import applePayDirectRouter from "./applePayDirect"; // disabled — Apple Pay off
-// import shopifyApplePayRouter from "./shopifyApplePay"; // disabled — Apple Pay off
-// import shopifyApplePayCheckoutRouter from "./shopifyApplePayCheckout"; // disabled — Apple Pay off
+// import paymobApplePayInitRouter from "./paymobApplePayInit"; // unused legacy route
+import applePayDirectRouter from "./applePayDirect";
+// import shopifyApplePayRouter from "./shopifyApplePay"; // unused legacy route
+// import shopifyApplePayCheckoutRouter from "./shopifyApplePayCheckout"; // unused legacy route
 
 const router: IRouter = Router();
 
@@ -37,7 +37,7 @@ router.use(newsletterRouter);
 router.use(ambassadorRouter);
 router.use(restockRouter);
 router.use(ordersRouter);
-// router.use(paymobInitRouter); // disabled — card payments off
+router.use(paymobInitRouter);
 router.use(paymobReturnRouter);
 router.use(paymobStatusRouter);
 router.use(paymobSyncRouter);
@@ -54,7 +54,7 @@ router.use(checkoutsRouter);
 router.use(abandonedCartsRouter);
 router.use(metaCapiRouter);
 router.use(anthropicRouter);
-// router.use(paymobApplePayInitRouter); // disabled — Apple Pay off
-// router.use(applePayDirectRouter); // disabled — Apple Pay off
+// router.use(paymobApplePayInitRouter); // unused legacy route
+router.use(applePayDirectRouter);
 
 export default router;
