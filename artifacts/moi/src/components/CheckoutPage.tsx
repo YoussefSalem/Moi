@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, ChevronDown, Upload, X, Tag, ShoppingBag, Smartphone } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Upload, X, Tag, ShoppingBag, Smartphone, Truck, CreditCard, Lock } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useCustomer } from "@/context/CustomerContext";
 import { SHOPIFY_CONFIGURED, cartBuyerIdentityUpdate } from "@/lib/shopify";
@@ -187,12 +187,13 @@ const governorateInputStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: "block",
-  fontSize: "15px",
-  letterSpacing: "0.24em",
+  fontSize: "10px",
+  letterSpacing: "0.3em",
   textTransform: "uppercase" as const,
-  color: "rgba(30,24,20,0.92)",
-  marginBottom: "2px",
+  color: "rgba(30,24,20,0.55)",
+  marginBottom: "8px",
   fontFamily: "'Montserrat', sans-serif",
+  fontWeight: 600,
 };
 
 async function compressImage(file: File, maxPx = 1400, quality = 0.82): Promise<Blob> {
@@ -844,52 +845,59 @@ export function CheckoutPage() {
               <AnimatePresence mode="wait">
                 {step === "form" && (
                   <motion.div key="form" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.35 }} className="relative z-10">
-                    <div className="space-y-12">
+                    <div className="space-y-14">
                       <section>
-                        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "28px", fontWeight: 500, color: "#1e1814", marginBottom: "32px" }}>Payment Method</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <motion.button
-                            onClick={() => setPaymentMethod("cod")}
-                            whileTap={{ scale: 0.98 }}
-                            style={{
-                              padding: "24px", textAlign: "left", border: "1px solid", transition: "all 0.2s",
-                              borderColor: paymentMethod === "cod" ? "#1e1814" : "rgba(30,24,20,0.12)",
-                              backgroundColor: paymentMethod === "cod" ? "rgba(30,24,20,0.02)" : "transparent",
-                            }}
-                          >
-                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>🚚 Cash on Delivery</p>
-                            <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Pay when you receive your order</p>
-                          </motion.button>
-                          <motion.button
-                            onClick={() => setPaymentMethod("instapay")}
-                            whileTap={{ scale: 0.98 }}
-                            style={{
-                              padding: "24px", textAlign: "left", border: "1px solid", transition: "all 0.2s",
-                              borderColor: paymentMethod === "instapay" ? "#1e1814" : "rgba(30,24,20,0.12)",
-                              backgroundColor: paymentMethod === "instapay" ? "rgba(30,24,20,0.02)" : "transparent",
-                            }}
-                          >
-                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}><Smartphone size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "6px", marginBottom: "2px" }} />Instapay</p>
-                            <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Instant bank transfer (Requires proof)</p>
-                          </motion.button>
-                          <motion.button
-                            onClick={() => setPaymentMethod("card")}
-                            whileTap={{ scale: 0.98 }}
-                            style={{
-                              padding: "24px", textAlign: "left", border: "1px solid", transition: "all 0.2s",
-                              borderColor: paymentMethod === "card" ? "#1e1814" : "rgba(30,24,20,0.12)",
-                              backgroundColor: paymentMethod === "card" ? "rgba(30,24,20,0.02)" : "transparent",
-                            }}
-                          >
-                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>💳 Credit / Debit Card</p>
-                            <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Visa, Mastercard — secure checkout</p>
-                          </motion.button>
+                        <div className="flex items-baseline gap-3 mb-8">
+                          <span style={{ fontSize: "10px", letterSpacing: "0.3em", fontFamily: "'Montserrat', sans-serif", color: "rgba(30,24,20,0.35)", fontWeight: 600 }}>01</span>
+                          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "26px", fontWeight: 400, color: "#1e1814", letterSpacing: "0.01em" }}>Payment Method</h2>
                         </div>
+                        <div className="flex flex-col gap-2">
+                          {([ 
+                            { id: "cod" as PaymentMethod, icon: <Truck size={15} />, label: "Cash on Delivery", sub: "Pay when your order arrives" },
+                            { id: "instapay" as PaymentMethod, icon: <Smartphone size={15} />, label: "Instapay", sub: "Instant transfer — screenshot required" },
+                            { id: "card" as PaymentMethod, icon: <CreditCard size={15} />, label: "Credit / Debit Card", sub: "Visa & Mastercard via secure checkout" },
+                          ] as const).map(({ id, icon, label, sub }) => (
+                            <motion.button
+                              key={id}
+                              onClick={() => setPaymentMethod(id)}
+                              whileTap={{ scale: 0.99 }}
+                              style={{
+                                display: "flex", alignItems: "center", gap: "16px",
+                                padding: "16px 20px", textAlign: "left",
+                                border: "1px solid",
+                                borderColor: paymentMethod === id ? "#1e1814" : "rgba(30,24,20,0.1)",
+                                backgroundColor: paymentMethod === id ? "rgba(30,24,20,0.025)" : "transparent",
+                                transition: "all 0.2s", position: "relative",
+                              }}
+                            >
+                              {paymentMethod === id && (
+                                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "2px", backgroundColor: "#1e1814" }} />
+                              )}
+                              <span style={{ color: paymentMethod === id ? "#1e1814" : "rgba(30,24,20,0.4)", flexShrink: 0, transition: "color 0.2s" }}>{icon}</span>
+                              <div style={{ flex: 1 }}>
+                                <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", marginBottom: "2px" }}>{label}</p>
+                                <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.02em" }}>{sub}</p>
+                              </div>
+                              <div style={{ width: 18, height: 18, borderRadius: "50%", border: `1.5px solid ${paymentMethod === id ? "#1e1814" : "rgba(30,24,20,0.2)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, backgroundColor: paymentMethod === id ? "#1e1814" : "transparent", transition: "all 0.2s" }}>
+                                {paymentMethod === id && <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#faf8f5" }} />}
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+                        {paymentMethod === "card" && (
+                          <div className="flex items-center gap-2 mt-3" style={{ padding: "10px 14px", backgroundColor: "rgba(30,24,20,0.02)", border: "1px solid rgba(30,24,20,0.06)" }}>
+                            <Lock size={11} style={{ color: "rgba(30,24,20,0.4)", flexShrink: 0 }} />
+                            <p style={{ fontSize: "10px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Your payment is encrypted and processed securely by Paymob</p>
+                          </div>
+                        )}
                       </section>
 
                       <section>
-                        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "28px", fontWeight: 500, color: "#1e1814", marginBottom: "32px" }}>Delivery Information</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
+                        <div className="flex items-baseline gap-3 mb-8">
+                          <span style={{ fontSize: "10px", letterSpacing: "0.3em", fontFamily: "'Montserrat', sans-serif", color: "rgba(30,24,20,0.35)", fontWeight: 600 }}>02</span>
+                          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "26px", fontWeight: 400, color: "#1e1814", letterSpacing: "0.01em" }}>Delivery Information</h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
                           <div className="space-y-2">
                             <label style={labelStyle}>First Name</label>
                             <input type="text" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} style={inputStyle} className="checkout-input" />
@@ -1006,10 +1014,10 @@ export function CheckoutPage() {
               </AnimatePresence>
 
               <aside>
-                <div className="sticky top-32 space-y-10">
-                  <section>
-                    <h2 style={{ fontSize: "12px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", marginBottom: "24px" }}>Order Summary</h2>
-                    <div className="space-y-6">
+                <div className="sticky top-32">
+                  <div style={{ borderTop: "2px solid #1e1814", paddingTop: "24px" }}>
+                    <h2 style={{ fontSize: "10px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, marginBottom: "24px" }}>Order Summary</h2>
+                    <div className="space-y-5">
                       {(shopifyCart?.lines.nodes || localItems).map((line: any) => {
                         const isShopifyLine = "merchandise" in line;
                         const id = isShopifyLine ? line.id : line.id;
@@ -1020,87 +1028,86 @@ export function CheckoutPage() {
                         const img = isShopifyLine ? resolveLineImage(line, localItems) : line.image;
                         return (
                           <div key={id} className="flex gap-4">
-                            <div className="w-16 h-20 bg-[rgba(30,24,20,0.04)] flex-shrink-0 overflow-hidden">
+                            <div className="flex-shrink-0 overflow-hidden" style={{ width: 68, height: 88, backgroundColor: "rgba(30,24,20,0.04)" }}>
                               {img && <img src={img} alt={title} className="w-full h-full object-cover" />}
                             </div>
-                            <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                            <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                               <div>
-                                <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, lineHeight: 1.4 }}>{title}</p>
-                                {variantTitle && <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", marginTop: "2px" }}>{variantTitle}</p>}
+                                <p style={{ fontSize: "12px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.4, letterSpacing: "0.04em" }}>{title}</p>
+                                {variantTitle && <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", marginTop: "3px", letterSpacing: "0.03em" }}>{variantTitle}</p>}
                               </div>
                               <div className="flex justify-between items-end">
-                                <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Qty {qty}</span>
-                                <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>{price}</span>
+                                <span style={{ fontSize: "11px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.06em" }}>QTY {qty}</span>
+                                <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>{price}</span>
                               </div>
                             </div>
                           </div>
                         );
                       })}
                     </div>
-                  </section>
 
-                  <section className="pt-8 border-t border-[rgba(30,24,20,0.1)]">
-                    <div className="space-y-4">
+                    <div className="mt-8 pt-6 border-t border-[rgba(30,24,20,0.08)]">
                       <div className="flex flex-col gap-3">
                         <div className="flex gap-2">
                           <div className="relative flex-1">
-                            <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[rgba(30,24,20,0.4)]" />
-                            <input type="text" value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} placeholder="PROMO CODE" style={{ ...inputStyle, paddingLeft: "36px", borderBottom: "1px solid rgba(30,24,20,0.12)" }} />
+                            <Tag size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[rgba(30,24,20,0.35)]" />
+                            <input type="text" value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} placeholder="PROMO CODE" style={{ ...inputStyle, fontSize: "11px", letterSpacing: "0.1em", paddingLeft: "32px", borderBottom: "1px solid rgba(30,24,20,0.12)" }} />
                           </div>
-                          <button onClick={handleApplyPromo} disabled={promoLoading || !promoInput.trim()} style={{ padding: "0 20px", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", backgroundColor: "#1e1814", color: "#fff", fontWeight: 600 }}>{promoLoading ? "..." : "Apply"}</button>
+                          <button onClick={handleApplyPromo} disabled={promoLoading || !promoInput.trim()} style={{ padding: "0 16px", fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", backgroundColor: "#1e1814", color: "#fff", fontWeight: 700, flexShrink: 0 }}>{promoLoading ? "…" : "Apply"}</button>
                         </div>
-                        {promoError && <p style={{ fontSize: "11px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.02em" }}>{promoError}</p>}
+                        {promoError && <p style={{ fontSize: "10px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em" }}>{promoError}</p>}
                         {promoApplied && (
                           <div className="flex items-center justify-between py-2 px-3 bg-[rgba(90,122,90,0.06)] border border-[rgba(90,122,90,0.15)]">
-                            <span style={{ fontSize: "11px", color: "#5a7a5a", fontWeight: 600, letterSpacing: "0.1em" }}>{promoApplied.code} APPLIED</span>
-                            <button onClick={handleRemovePromo} className="p-1 hover:opacity-50"><X size={14} className="text-[#5a7a5a]" /></button>
+                            <span style={{ fontSize: "10px", color: "#5a7a5a", fontWeight: 700, letterSpacing: "0.15em", fontFamily: "'Montserrat', sans-serif" }}>{promoApplied.code} — APPLIED</span>
+                            <button onClick={handleRemovePromo} className="p-1 hover:opacity-50"><X size={12} className="text-[#5a7a5a]" /></button>
                           </div>
                         )}
                       </div>
 
-                      <div className="space-y-3 pt-2">
+                      <div className="mt-5 space-y-2.5">
                         <div className="flex justify-between">
-                          <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Subtotal</span>
-                          <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(subtotalAmount)}</span>
+                          <span style={{ fontSize: "12px", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif" }}>Subtotal</span>
+                          <span style={{ fontSize: "12px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(subtotalAmount)}</span>
                         </div>
                         {freeShipping ? (
-                          <div className="flex items-center gap-2 py-2 px-3 bg-[rgba(90,122,90,0.06)] border border-[rgba(90,122,90,0.15)]">
-                            <span style={{ fontSize: "11px", color: "#5a7a5a", fontWeight: 600, letterSpacing: "0.1em", fontFamily: "'Montserrat', sans-serif" }}>🎉 FREE SHIPPING UNLOCKED!</span>
+                          <div className="flex items-center gap-2 py-1.5 px-3 bg-[rgba(90,122,90,0.06)] border border-[rgba(90,122,90,0.15)]">
+                            <span style={{ fontSize: "10px", color: "#5a7a5a", fontWeight: 700, letterSpacing: "0.12em", fontFamily: "'Montserrat', sans-serif" }}>FREE SHIPPING UNLOCKED</span>
                           </div>
                         ) : discountedSubtotal > 0 && (
-                          <div>
-                            <span style={{ fontSize: "11px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>{Math.round(2000 - discountedSubtotal).toLocaleString()} EGP AWAY FROM FREE DELIVERY</span>
-                          </div>
+                          <p style={{ fontSize: "10px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", textTransform: "uppercase" }}>{Math.round(2000 - discountedSubtotal).toLocaleString()} EGP away from free delivery</p>
                         )}
                         {savings > 0 && (
                           <div className="flex justify-between">
-                            <span style={{ fontSize: "13px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif" }}>Discount</span>
-                            <span style={{ fontSize: "13px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif" }}>−{fmt(savings)}</span>
+                            <span style={{ fontSize: "12px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif" }}>Discount</span>
+                            <span style={{ fontSize: "12px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif" }}>−{fmt(savings)}</span>
                           </div>
                         )}
                         <div className="flex justify-between">
-                          <span style={{ fontSize: "13px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Shipping</span>
-                          <span style={{ fontSize: "13px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{freeShipping ? "Free" : fmt(SHIPPING_EGP)}</span>
+                          <span style={{ fontSize: "12px", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif" }}>Shipping</span>
+                          <span style={{ fontSize: "12px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{freeShipping ? "Free" : fmt(SHIPPING_EGP)}</span>
                         </div>
-                        <div className="flex justify-between pt-4 border-t border-[rgba(30,24,20,0.1)]">
-                          <span style={{ fontSize: "14px", fontWeight: 700, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>Total</span>
-                          <span style={{ fontSize: "18px", fontWeight: 700, color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(totalAmount)}</span>
+                        <div className="flex justify-between items-baseline pt-5 border-t border-[rgba(30,24,20,0.1)]">
+                          <span style={{ fontSize: "10px", fontWeight: 700, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.25em", textTransform: "uppercase" }}>Total</span>
+                          <span style={{ fontSize: "22px", fontWeight: 400, color: "#1e1814", fontFamily: "'Cormorant Garamond', serif" }}>{fmt(totalAmount)}</span>
                         </div>
                       </div>
 
                       {step === "form" && (
-                        <button
+                        <motion.button
                           onClick={handleSubmit}
                           disabled={submittingRef.current}
-                          className="w-full py-5 mt-6 transition-all hover:opacity-90 disabled:opacity-50"
-                          style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "14px", fontWeight: 700, letterSpacing: "0.3em", textTransform: "uppercase" }}
+                          whileTap={{ scale: 0.99 }}
+                          className="w-full mt-6 transition-opacity disabled:opacity-40"
+                          style={{ backgroundColor: "#1e1814", color: "#faf8f5", fontSize: "11px", fontWeight: 700, letterSpacing: "0.3em", textTransform: "uppercase", padding: "18px 24px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}
                         >
-                          {submittingRef.current ? "Processing…" : "Complete Order"}
-                        </button>
+                          {submittingRef.current ? "Processing…" : paymentMethod === "card" ? (
+                            <><Lock size={12} />Pay Securely</>
+                          ) : "Place Order"}
+                        </motion.button>
                       )}
-                      {submitError && <p className="mt-4 text-center" style={{ fontSize: "13px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{submitError}</p>}
+                      {submitError && <p className="mt-3 text-center" style={{ fontSize: "11px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.02em" }}>{submitError}</p>}
                     </div>
-                  </section>
+                  </div>
                 </div>
               </aside>
             </div>
