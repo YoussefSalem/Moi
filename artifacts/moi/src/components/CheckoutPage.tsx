@@ -826,7 +826,7 @@ export function CheckoutPage() {
           className="fixed inset-0 z-[120] overflow-y-auto"
           style={{ backgroundColor: "#efe6da" }}
         >
-          <div className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5" style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}>
+          <div className="sticky top-0 z-30 flex items-center justify-between px-6 md:px-10 py-5" style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}>
             <button
               onClick={isSuccessStep ? handleSuccessDone : isConfirmStep ? handleDone : closeCheckout}
               className="flex items-center gap-2 transition-opacity hover:opacity-50"
