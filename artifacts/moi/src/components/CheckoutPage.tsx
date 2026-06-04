@@ -101,9 +101,9 @@ function resolveEmailImage(line: ShopifyCartLine, localItems?: { variantId: stri
   return null;
 }
 
-type PaymentMethod = "cod" | "instapay";
-const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = ["cod", "instapay"];
-type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm";
+type PaymentMethod = "cod" | "instapay" | "card";
+const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = ["cod", "instapay", "card"];
+type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-pending" | "card-confirm";
 type InstapaySubStep = "instructions" | "upload" | "review";
 
 interface OrderResult {
@@ -443,6 +443,50 @@ export function CheckoutPage() {
       city: form.city.trim(),
     };
 
+    if (paymentMethod === "card") {
+      try {
+        const res = await fetch("/api/paymob/create-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lines: orderLines,
+            customer: customerPayload,
+            cartId: shopifyCart?.id ?? null,
+            discountCode: promoApplied?.code ?? null,
+            attribution: buildOrderAttribution(),
+          }),
+        });
+        const data = await res.json() as {
+          clientSecret?: string;
+          publicKey?: string;
+          checkoutToken?: string;
+          error?: string;
+        };
+        if (!res.ok || !data.clientSecret || !data.publicKey || !data.checkoutToken) {
+          setStep("form");
+          setSubmitError(data.error ?? "Could not initiate payment. Please try again.");
+          submittingRef.current = false;
+          return;
+        }
+        sessionStorage.setItem("moi_paymob_token", data.checkoutToken);
+        sessionStorage.setItem("moi_paymob_snapshot", JSON.stringify({
+          subtotal: subtotalAmount,
+          savings,
+          shippingCost,
+          freeShipping,
+          total: fmt(totalAmount),
+          customerName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+          customerPhone: form.phone.trim(),
+        }));
+        window.location.href = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(data.publicKey)}&clientSecret=${encodeURIComponent(data.clientSecret)}`;
+      } catch {
+        setStep("form");
+        setSubmitError("Network error. Please check your connection and try again.");
+      }
+      submittingRef.current = false;
+      return;
+    }
+
     if (paymentMethod === "instapay") {
       try {
         const cartItemsSnapshot = isShopify && shopifyCart
@@ -691,9 +735,73 @@ export function CheckoutPage() {
     }
   }, []);
 
-  const isSuccessStep = step === "cod-confirm";
+  useEffect(() => {
+    if (window.location.pathname !== "/payment/return") return;
+    const token = sessionStorage.getItem("moi_paymob_token");
+    if (!token) return;
+    openCheckout();
+    setStep("card-pending");
+    window.history.replaceState({}, "", "/");
+    let attempts = 0;
+    const MAX_ATTEMPTS = 30;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/paymob/status?token=${encodeURIComponent(token)}`);
+        const data = await res.json() as {
+          status?: string;
+          shopifyOrderNumber?: number | null;
+          shopifyOrderId?: number | null;
+          total?: string;
+        };
+        if (data.status === "paid") {
+          const snapshotRaw = sessionStorage.getItem("moi_paymob_snapshot");
+          type Snap = { subtotal: number; savings: number; shippingCost: number; freeShipping: boolean; total: string; customerName: string; customerPhone: string };
+          const snap = snapshotRaw ? JSON.parse(snapshotRaw) as Snap : null;
+          sessionStorage.removeItem("moi_paymob_token");
+          sessionStorage.removeItem("moi_paymob_snapshot");
+          setOrderResult({
+            orderNumber: data.shopifyOrderNumber ?? "",
+            total: data.total ?? snap?.total ?? "",
+            shopifyOrderId: data.shopifyOrderId ?? undefined,
+            shopifyOrderNumber: data.shopifyOrderNumber ?? undefined,
+            customerName: snap?.customerName ?? "",
+            customerPhone: snap?.customerPhone ?? "",
+          });
+          if (snap) setBreakdownSnapshot({ subtotal: snap.subtotal, savings: snap.savings, shippingCost: snap.shippingCost, freeShipping: snap.freeShipping });
+          clearCart();
+          setStep("card-confirm");
+          return;
+        }
+        if (data.status === "failed") {
+          sessionStorage.removeItem("moi_paymob_token");
+          sessionStorage.removeItem("moi_paymob_snapshot");
+          setStep("form");
+          setSubmitError("Payment was not completed. Please try again.");
+          return;
+        }
+        attempts++;
+        if (attempts >= MAX_ATTEMPTS) {
+          setStep("form");
+          setSubmitError("Payment verification timed out. If your card was charged, please contact us.");
+          return;
+        }
+        setTimeout(() => { void poll(); }, 2000);
+      } catch {
+        attempts++;
+        if (attempts >= MAX_ATTEMPTS) {
+          setStep("form");
+          setSubmitError("Could not verify payment. If charged, please contact us.");
+          return;
+        }
+        setTimeout(() => { void poll(); }, 2000);
+      }
+    };
+    void poll();
+  }, []);
+
+  const isSuccessStep = step === "cod-confirm" || step === "card-confirm";
   const isConfirmStep = isSuccessStep || step === "instapay-confirm";
-  const loadingText = "Placing your order…";
+  const loadingText = step === "card-pending" ? "Verifying your payment…" : "Placing your order…";
 
   return (
     <AnimatePresence>
@@ -729,7 +837,7 @@ export function CheckoutPage() {
                     <div className="space-y-12">
                       <section>
                         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "28px", fontWeight: 500, color: "#1e1814", marginBottom: "32px" }}>Payment Method</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <motion.button
                             onClick={() => setPaymentMethod("cod")}
                             whileTap={{ scale: 0.98 }}
@@ -753,6 +861,18 @@ export function CheckoutPage() {
                           >
                             <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>💳 Instapay</p>
                             <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Instant bank transfer (Requires proof)</p>
+                          </motion.button>
+                          <motion.button
+                            onClick={() => setPaymentMethod("card")}
+                            whileTap={{ scale: 0.98 }}
+                            style={{
+                              padding: "24px", textAlign: "left", border: "1px solid", transition: "all 0.2s",
+                              borderColor: paymentMethod === "card" ? "#1e1814" : "rgba(30,24,20,0.12)",
+                              backgroundColor: paymentMethod === "card" ? "rgba(30,24,20,0.02)" : "transparent",
+                            }}
+                          >
+                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>💳 Credit / Debit Card</p>
+                            <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Visa, Mastercard — secure checkout</p>
                           </motion.button>
                         </div>
                       </section>
@@ -848,6 +968,29 @@ export function CheckoutPage() {
                 {step === "instapay-confirm" && orderResult && (
                   <motion.div key="instapay-confirm" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="w-full">
                     <InstapayConfirmation orderResult={orderResult} onDone={handleSuccessDone} breakdown={{ subtotal: breakdownSnapshot?.subtotal ?? 0, savings: breakdownSnapshot?.savings ?? 0, shippingCost: breakdownSnapshot?.shippingCost ?? 0, freeShipping: breakdownSnapshot?.freeShipping ?? false, fmt }} onProofSubmitted={(orderNo, shopifyId, total) => { setOrderResult({ ...orderResult, orderNumber: orderNo, shopifyOrderId: shopifyId, total }); instapayTrackedRef.current = false; }} />
+                  </motion.div>
+                )}
+
+                {step === "card-pending" && (
+                  <motion.div key="card-pending" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="w-12 h-12 border-2 border-[#1e1814] border-t-transparent rounded-full animate-spin mb-6" />
+                    <p style={{ fontSize: "16px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>Verifying your payment…</p>
+                    <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", marginTop: "12px" }}>Please do not close this page</p>
+                  </motion.div>
+                )}
+
+                {step === "card-confirm" && orderResult && (
+                  <motion.div key="card-confirm" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+                    <OrderConfirmedScreen
+                      orderResult={orderResult}
+                      onDone={handleSuccessDone}
+                      items={[]}
+                      breakdown={{ subtotal: breakdownSnapshot?.subtotal ?? 0, savings: breakdownSnapshot?.savings ?? 0, shippingCost: breakdownSnapshot?.shippingCost ?? 0, freeShipping: breakdownSnapshot?.freeShipping ?? false, fmt }}
+                      title="Payment Confirmed."
+                      subtitle="Credit / Debit Card"
+                      message={<>Your order <strong style={{ color: "#1e1814" }}>#{orderResult.orderNumber}</strong> has been placed successfully and is being processed.</>}
+                      note="You'll receive a confirmation email shortly."
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>
