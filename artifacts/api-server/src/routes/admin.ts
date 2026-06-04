@@ -9,7 +9,7 @@ import {
   sendWhatsApp,
   getShopifyAdminToken,
 } from "../lib/integrations";
-import { getMaskedConfig, savePaymobConfig, type PaymobConfig } from "../lib/paymobConfig";
+import { getMaskedConfig, savePaymobConfig } from "../lib/paymobConfig";
 import { listDiscountCodeUses } from "@workspace/db";
 import { sendEmail, buildAbandonedCartEmail, buildInstapayConfirmedEmail, buildInstapayRejectedEmail } from "../lib/email";
 import { getSiteUrl } from "../lib/siteUrl";
@@ -947,22 +947,21 @@ router.get("/admin/paymob-config", (_req, res) => {
   res.status(200).json(getMaskedConfig());
 });
 
-// POST /admin/paymob-config
+// POST /admin/paymob-config — only integrationId and iframeId can be persisted to JSON file;
+// apiKey and hmacSecret must be set as environment variables (PAYMOB_API_KEY, PAYMOB_HMAC_SECRET).
 router.post("/admin/paymob-config", (req, res) => {
-  const patch = req.body as Partial<PaymobConfig>;
-  const allowed: (keyof PaymobConfig)[] = ["apiKey", "secretKey", "publicKey", "integrationId", "hmacSecret", "iframeId", "applePayIntegrationId"];
-  const filtered: Partial<PaymobConfig> = {};
-  for (const key of allowed) {
-    if (typeof patch[key] === "string" && (patch[key] as string).trim()) {
-      filtered[key] = (patch[key] as string).trim();
-    }
-  }
-  if (filtered.integrationId !== undefined) {
-    const id = parseInt(filtered.integrationId, 10);
+  const patch = req.body as Record<string, string>;
+  const filtered: { integrationId?: string; iframeId?: string } = {};
+  if (typeof patch.integrationId === "string" && patch.integrationId.trim()) {
+    const id = parseInt(patch.integrationId.trim(), 10);
     if (!Number.isInteger(id) || id <= 0) {
       res.status(400).json({ error: "Integration ID must be a numeric ID (e.g. 123456) from your Paymob dashboard." });
       return;
     }
+    filtered.integrationId = patch.integrationId.trim();
+  }
+  if (typeof patch.iframeId === "string" && patch.iframeId.trim()) {
+    filtered.iframeId = patch.iframeId.trim();
   }
   try {
     savePaymobConfig(filtered);

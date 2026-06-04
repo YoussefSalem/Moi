@@ -17,7 +17,7 @@ import { logger } from "./logger";
 
 /**
  * Atomically claims a pending Paymob intent and creates a Shopify order.
- * Idempotent — if the intent is already claimed returns { alreadyClaimed: true }.
+ * Idempotent — returns { alreadyClaimed: true } if the intent is already claimed.
  *
  * Called by the webhook handler, paymob-sync, and the status polling fallback.
  */
@@ -25,13 +25,11 @@ export async function processPaymobSuccess(params: {
   intentId: string;
   paymobTxnId: string;
   amountCents: number;
-  paymentChannel?: "card" | "apple-pay";
 }): Promise<{ alreadyClaimed: boolean }> {
   const { intentId, paymobTxnId, amountCents } = params;
-  const isApplePay = params.paymentChannel === "apple-pay";
   const amount = (amountCents / 100).toFixed(2);
 
-  // Atomically claim the intent — only proceed if it is still "pending"
+  // Atomically claim the intent — only proceeds if status is still "pending"
   const claimed = await db
     .update(paymobIntents)
     .set({ status: "processing", paymobTxnId })
@@ -48,13 +46,13 @@ export async function processPaymobSuccess(params: {
     });
 
   if (claimed.length === 0) {
-    logger.info({ intentId, paymobTxnId }, "processPaymobSuccess: intent already claimed (idempotent)");
+    logger.info({ intentId, paymobTxnId }, "processPaymobSuccess: already claimed (idempotent)");
     return { alreadyClaimed: true };
   }
 
   const intent = claimed[0];
 
-  // Normalize customer — Apple Pay intents may have placeholder until billing_data is fetched
+  // Normalize customer fields
   const rawCustomer = intent.customer as CustomerInfo | null;
   const customer: CustomerInfo = rawCustomer ? {
     firstName: rawCustomer.firstName || "NA",
@@ -91,7 +89,7 @@ export async function processPaymobSuccess(params: {
     return { alreadyClaimed: false };
   }
 
-  logger.info({ intentId, paymobTxnId, amount, isApplePay }, "processPaymobSuccess: creating Shopify order");
+  logger.info({ intentId, paymobTxnId, amount }, "processPaymobSuccess: creating Shopify order");
 
   let shopifyOrderId: number;
   let shopifyOrderNumber: number;
@@ -103,12 +101,10 @@ export async function processPaymobSuccess(params: {
     const result = await createShopifyDirectOrder({
       lines,
       customer,
-      paymentMethod: isApplePay ? "apple-pay" : "card",
+      paymentMethod: "card",
       cartId: intent.cartId ?? undefined,
       discountCode: intent.discountCode ?? undefined,
-      extraTags: isApplePay
-        ? `apple-pay,paymob-apple-pay-paid,paymob-txn-${paymobTxnId}`
-        : `paymob-card-paid,paymob-card-order,paymob-txn-${paymobTxnId}`,
+      extraTags: `paymob-card-paid,paymob-card-order,paymob-txn-${paymobTxnId}`,
       attribution,
       financialStatus: "paid",
       paymobTxnId,
@@ -138,7 +134,7 @@ export async function processPaymobSuccess(params: {
     })
     .where(eq(paymobIntents.intentId, intentId));
 
-  logger.info({ intentId, shopifyOrderId, shopifyOrderNumber, paymobTxnId, isApplePay }, "processPaymobSuccess: order created and auto-approved");
+  logger.info({ intentId, shopifyOrderId, shopifyOrderNumber, paymobTxnId }, "processPaymobSuccess: order created");
 
   // Fire-and-forget side effects
   if (intent.checkoutToken) {
@@ -146,10 +142,8 @@ export async function processPaymobSuccess(params: {
   }
 
   if (intent.discountCode && shopifyDiscountAmount) {
-    void recordDiscountCodeUse(intent.discountCode, shopifyOrderId, shopifyOrderId, isApplePay ? "apple-pay" : "card");
+    void recordDiscountCodeUse(intent.discountCode, shopifyOrderId, shopifyOrderId, "card");
   }
-
-  const paymentMethodLabel = isApplePay ? "Apple Pay (Paymob)" : "Credit/Debit Card (Paymob)";
 
   // Customer confirmation email
   if (customer.email) {
@@ -158,7 +152,7 @@ export async function processPaymobSuccess(params: {
       orderNumber: shopifyOrderNumber,
       customerName: customer.firstName,
       total: amount,
-      paymentMethod: paymentMethodLabel,
+      paymentMethod: "Credit/Debit Card (Paymob)",
       address: customer.address,
       governorate: customer.governorate,
       city: customer.city,
@@ -194,7 +188,7 @@ export async function processPaymobSuccess(params: {
     });
     void sendEmail({
       to: adminEmail,
-      subject: `${isApplePay ? "🍎 Apple Pay" : "🟢 Card Payment"} — Order #${shopifyOrderNumber} — ${parseEGP(amount).toFixed(2)} EGP`,
+      subject: `🟢 Card Payment — Order #${shopifyOrderNumber} — ${parseEGP(amount).toFixed(2)} EGP`,
       html: adminHtml,
       text: adminText,
     })
@@ -211,12 +205,12 @@ export async function processPaymobSuccess(params: {
 
 Order #${shopifyOrderNumber}
 Total: ${amount} EGP
-Payment: ${isApplePay ? "Apple Pay" : "Credit/Debit Card"}
+Payment: Credit/Debit Card
 
 Your order is being prepared and will be dispatched soon. Thank you for shopping with Moi. 🖤`,
     );
   }
 
-  logger.info({ shopifyOrderId, shopifyOrderNumber, paymobTxnId, amount, isApplePay }, "processPaymobSuccess: completed");
+  logger.info({ shopifyOrderId, shopifyOrderNumber, paymobTxnId, amount }, "processPaymobSuccess: completed");
   return { alreadyClaimed: false };
 }

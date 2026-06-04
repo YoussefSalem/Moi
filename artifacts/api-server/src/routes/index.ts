@@ -22,15 +22,9 @@ import checkoutsRouter from "./checkouts";
 import abandonedCartsRouter from "./abandonedCarts";
 import metaCapiRouter from "./metaCapi";
 import anthropicRouter from "./anthropic/index";
-// import paymobApplePayInitRouter from "./paymobApplePayInit"; // unused legacy route
-import applePayDirectRouter from "./applePayDirect";
-// import shopifyApplePayRouter from "./shopifyApplePay"; // unused legacy route
-// import shopifyApplePayCheckoutRouter from "./shopifyApplePayCheckout"; // unused legacy route
 
 const router: IRouter = Router();
 
-// router.use(shopifyApplePayRouter); // disabled — Apple Pay off
-// router.use(shopifyApplePayCheckoutRouter); // disabled — Apple Pay off
 router.use(healthRouter);
 router.use(contactRouter);
 router.use(newsletterRouter);
@@ -54,7 +48,5 @@ router.use(checkoutsRouter);
 router.use(abandonedCartsRouter);
 router.use(metaCapiRouter);
 router.use(anthropicRouter);
-// router.use(paymobApplePayInitRouter); // unused legacy route
-router.use(applePayDirectRouter);
 
 export default router;

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
-import { createPaymobCardPaymentKey } from "../lib/paymob";
+import { createCardPaymentKey } from "../lib/paymob";
 import { fetchStorefrontCart, type OrderLine, type CustomerInfo, type OrderAttribution } from "../lib/shopifyOrder";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
@@ -8,6 +8,16 @@ import { paymobIntents } from "@workspace/db/schema";
 const router: IRouter = Router();
 const SHIPPING_EGP = 50;
 
+/**
+ * POST /api/orders/paymob-init
+ *
+ * Initializes a Paymob card payment:
+ * 1. Validates the request (line items + customer details)
+ * 2. Fetches the live Shopify cart total
+ * 3. Creates a paymob_intents record in the DB
+ * 4. Runs the Paymob 3-step auth flow to obtain an iframe URL
+ * 5. Returns { iframeUrl, intentId, total }
+ */
 router.post("/orders/paymob-init", async (req, res) => {
   const body = req.body as {
     lines?: unknown;
@@ -46,40 +56,39 @@ router.post("/orders/paymob-init", async (req, res) => {
     return;
   }
 
-  const lines = body.lines as OrderLine[];
-  const discountCode = typeof body.discountCode === "string" && body.discountCode.trim()
-    ? body.discountCode.trim() : undefined;
-  const cartId = typeof body.cartId === "string" && body.cartId.trim()
-    ? body.cartId.trim() : undefined;
-  const checkoutToken = typeof body.checkoutToken === "string" && body.checkoutToken.trim()
-    ? body.checkoutToken.trim() : null;
-
+  const cartId = typeof body.cartId === "string" && body.cartId.trim() ? body.cartId.trim() : undefined;
   if (!cartId) {
     res.status(400).json({ error: "Cart ID is required for card payments." });
     return;
   }
 
+  const lines = body.lines as OrderLine[];
+  const discountCode = typeof body.discountCode === "string" && body.discountCode.trim()
+    ? body.discountCode.trim() : undefined;
+  const checkoutToken = typeof body.checkoutToken === "string" && body.checkoutToken.trim()
+    ? body.checkoutToken.trim() : null;
+
   // Parse attribution
   let attribution: OrderAttribution | undefined;
   if (body.attribution && typeof body.attribution === "object") {
     const a = body.attribution as Record<string, unknown>;
-    attribution = {};
-    if (typeof a.sourceName === "string") attribution.sourceName = a.sourceName;
-    if (typeof a.referringSite === "string") attribution.referringSite = a.referringSite;
-    if (typeof a.landingSite === "string") attribution.landingSite = a.landingSite;
-    if (typeof a.fbclid === "string") attribution.fbclid = a.fbclid;
-    if (typeof a.gclid === "string") attribution.gclid = a.gclid;
-    if (typeof a.ttclid === "string") attribution.ttclid = a.ttclid;
+    const built: OrderAttribution = {};
+    if (typeof a.sourceName === "string") built.sourceName = a.sourceName;
+    if (typeof a.referringSite === "string") built.referringSite = a.referringSite;
+    if (typeof a.landingSite === "string") built.landingSite = a.landingSite;
+    if (typeof a.fbclid === "string") built.fbclid = a.fbclid;
+    if (typeof a.gclid === "string") built.gclid = a.gclid;
+    if (typeof a.ttclid === "string") built.ttclid = a.ttclid;
     if (a.utm && typeof a.utm === "object") {
-      attribution.utm = Object.fromEntries(
+      built.utm = Object.fromEntries(
         Object.entries(a.utm as Record<string, unknown>).filter(([, v]) => typeof v === "string"),
       ) as Record<string, string>;
     }
-    if (Object.keys(attribution).length === 0) attribution = undefined;
+    if (Object.keys(built).length > 0) attribution = built;
   }
 
-  // Compute total from live Shopify cart
-  req.log.info({ lineCount: lines.length }, "paymob-init: fetching Storefront cart for total");
+  // Fetch live cart total from Shopify
+  req.log.info({ lineCount: lines.length }, "paymob-init: fetching cart total");
   const cart = await fetchStorefrontCart(cartId);
   if (!cart) {
     res.status(400).json({ error: "Could not load your cart. Please try again." });
@@ -94,14 +103,12 @@ router.post("/orders/paymob-init", async (req, res) => {
     }
   }
 
-  const cartTotalEGP = cart.totalAmount;
-  const totalEGP = cartTotalEGP + SHIPPING_EGP;
+  const totalEGP = cart.totalAmount + SHIPPING_EGP;
   const amountCents = Math.round(totalEGP * 100);
   const total = totalEGP.toFixed(2);
-
   const intentId = randomUUID();
 
-  // Persist intent so we can look it up when payment completes
+  // Persist intent
   await db.insert(paymobIntents).values({
     intentId,
     lines: lines as unknown as Record<string, unknown>[],
@@ -118,12 +125,11 @@ router.post("/orders/paymob-init", async (req, res) => {
   req.log.info({ intentId, amountCents, total }, "paymob-init: intent saved — creating payment key");
 
   const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
+  const redirectionUrl = domain ? `https://${domain}/api/paymob-return` : undefined;
   const callbackUrl = domain ? `https://${domain}/api/webhooks/paymob` : undefined;
-  const redirectionUrl = domain ? `https://${domain}/paymob-relay.html` : undefined;
 
-  let iframeUrl: string;
   try {
-    const result = await createPaymobCardPaymentKey({
+    const { iframeUrl } = await createCardPaymentKey({
       amountCents,
       merchantOrderId: intentId,
       customer: {
@@ -134,18 +140,16 @@ router.post("/orders/paymob-init", async (req, res) => {
         address: customer.address,
         city: customer.city,
       },
-      callbackUrl,
       redirectionUrl,
+      callbackUrl,
     });
-    iframeUrl = result.iframeUrl;
+
+    req.log.info({ intentId }, "paymob-init: iframe URL ready");
+    res.status(200).json({ iframeUrl, intentId, total });
   } catch (err) {
     req.log.error({ err, intentId }, "paymob-init: payment key creation failed");
     res.status(500).json({ error: "Payment gateway unavailable. Please try again." });
-    return;
   }
-
-  req.log.info({ intentId }, "paymob-init: payment key created");
-  res.status(200).json({ iframeUrl, intentId, total });
 });
 
 export default router;
