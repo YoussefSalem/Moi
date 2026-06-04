@@ -75,7 +75,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const pageColorName = fallback.name.includes(" — ")
     ? (fallback.name.split(" — ").pop() ?? "")
     : "";
-  const { addToCart, clearCart, openCheckout } = useCart();
+  const { addToCart, clearCart, openCheckout, checkoutUrl } = useCart();
   const { customer } = useCustomer();
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -234,7 +234,11 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       size: selectedSize || "One Size",
       color: product.name,
     });
-    openCheckout();
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl;
+    } else {
+      openCheckout();
+    }
   };
 
 

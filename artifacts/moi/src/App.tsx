@@ -26,7 +26,6 @@ const TikTokSocialProof = lazy(() => import("@/components/TikTokSocialProof").th
 const PolicyPage = lazy(() => import("@/components/PolicyPage").then(m => ({ default: m.PolicyPage })));
 const Footer = lazy(() => import("@/components/Footer").then(m => ({ default: m.Footer })));
 const CartDrawer = lazy(() => import("@/components/CartDrawer").then(m => ({ default: m.CartDrawer })));
-const CheckoutPage = lazy(() => import("@/components/CheckoutPage").then(m => ({ default: m.CheckoutPage })));
 const CustomerAuthModal = lazy(() => import("@/components/CustomerAuthModal").then(m => ({ default: m.CustomerAuthModal })));
 const AccountPage = lazy(() => import("@/components/AccountPage").then(m => ({ default: m.AccountPage })));
 const SearchDrawer = lazy(() => import("@/components/SearchDrawer").then(m => ({ default: m.SearchDrawer })));
@@ -39,7 +38,7 @@ const NotFoundPage = lazy(() => import("@/components/NotFoundPage").then(m => ({
 const IS_ADMIN = window.location.pathname.startsWith("/admin");
 const IS_APPLE_PAY_IFRAME = window.location.pathname === "/buy/apple-pay";
 
-type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product" | "notfound" | "checkout";
+type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product" | "notfound";
 const POLICY_PAGES: PageType[] = ["privacy", "refund", "return", "delivery"];
 
 const VALID_PRODUCTS: Record<string, string[] | null> = {
@@ -68,7 +67,6 @@ function parsePath(): { page: PageType; productHandle: string; section?: string 
     if (!colorSlug || validColors.includes(colorSlug)) return { page: "product", productHandle: handle };
     return { page: "notfound", productHandle: handle };
   }
-  if (pathname === "/checkout") return { page: "checkout", productHandle: "" };
   if (pathname === "/accessories") return { page: "accessories", productHandle: "" };
   if (pathname === "/ambassador") return { page: "ambassador", productHandle: "" };
   const sectionId = SECTION_PATH_MAP[pathname];
@@ -387,8 +385,6 @@ function AppContent() {
             <Suspense fallback={<div style={{ minHeight: "100vh", background: "#faf8f5" }} />}>
               <NotFoundPage onNavigateHome={() => navigateTo("home")} />
             </Suspense>
-          ) : page === "checkout" ? (
-            <div style={{ minHeight: "100vh", background: "#efe6da" }} />
           ) : (
             <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
               <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home")} />
@@ -411,7 +407,6 @@ function AppContent() {
 
       <Suspense fallback={null}>
         <CartDrawer />
-        <CheckoutPage />
         <CustomerAuthModal />
         <AccountPage />
         <SearchDrawer

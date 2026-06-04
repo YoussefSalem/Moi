@@ -578,7 +578,11 @@ export function CartDrawer() {
                       quantity: numItems,
                     });
                     trackCheckoutStep("start", { numItems, totalVal });
-                    openCheckout();
+                    if (checkoutUrl) {
+                      window.location.href = checkoutUrl;
+                    } else {
+                      openCheckout();
+                    }
                   }}
                   disabled={loading}
                   className="block w-full text-center py-4 text-[11px] tracking-[0.32em] uppercase font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
