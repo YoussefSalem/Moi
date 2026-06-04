@@ -95,7 +95,6 @@ export async function processPaymobSuccess(params: {
       discountCode: intent.discountCode ?? undefined,
       extraTags: `paymob-card-paid,paymob-card-order,paymob-txn-${paymobTxnId}`,
       attribution,
-      financialStatus: "paid",
       paymobTxnId,
       paymobDetails: { txnId: paymobTxnId, amountCents, intentId },
     });
