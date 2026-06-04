@@ -12,10 +12,10 @@ export interface PaymobConfig {
 
 export function getPaymobConfig(): PaymobConfig {
   return {
-    secretKey: process.env.PAYMOB_SECRET_KEY ?? "egy_sk_test_dc479d41269d75a95be78d553e70381498035d15d024a2dbb3d301d24bcd8dbb",
-    publicKey: process.env.PAYMOB_PUBLIC_KEY ?? "egy_pk_test_g3H0nyr7orhUIjGAVX6zE5WpPt3RlzFA",
-    integrationId: process.env.PAYMOB_INTEGRATION_ID ?? "5658307",
-    hmacSecret: process.env.PAYMOB_HMAC_SECRET ?? "81AAB539BDCCAFEFBB43DC5EBE9246E2",
+    secretKey: process.env.PAYMOB_API_KEY ?? "",
+    publicKey: process.env.PAYMOB_PUBLIC_KEY ?? "",
+    integrationId: process.env.PAYMOB_INTEGRATION_ID ?? "",
+    hmacSecret: process.env.PAYMOB_HMAC_SECRET ?? "",
   };
 }
 
