@@ -47,3 +47,9 @@ id = "0wRlOwHXhTdhNga9NorZH"
 uri = "file://moi-images.zip"
 type = "unspecified"
 title = "moi-images.zip — All 39 images, clearly named"
+
+[[outputs]]
+id = "Ipy-QVPVJwoJB3F_q5dfS"
+uri = "file://moi-theme.zip"
+type = "unspecified"
+title = "Moi Shopify Theme (upload this to Shopify)"
