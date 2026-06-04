@@ -134,6 +134,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
+    // Auto-open checkout on initial load if URL is /checkout
+    if (typeof window !== "undefined" && window.location.pathname === "/checkout" && !checkoutInitRef.current) {
+      checkoutInitRef.current = true;
+      setCheckoutOpen(true);
+    }
     if (SHOPIFY_CONFIGURED) {
       const savedId = localStorage.getItem(CART_ID_KEY);
       if (savedId) {
@@ -401,7 +406,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
     }
     if (email) setPrefilledEmail(email);
-    setCartOpen(true);
+    setCartOpen(false);
+    setCheckoutOpen(true);
   }, []);
 
   const formatShopifyLinePrice = useCallback((line: ShopifyCartLine) => {
@@ -446,7 +452,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const openCheckout = useCallback((email?: string) => {
     if (email) setPrefilledEmail(email);
     setCartOpen(false);
-    // Fire checkout_started analytics
+    if (typeof window !== "undefined" && window.location.pathname !== "/checkout") {
+      window.history.pushState({ checkout: true }, "", "/checkout");
+    }
+    setCheckoutOpen(true);
+    // Fire checkout_started to Shopify Analytics, alongside existing Meta & TikTok pixels
     const checkoutTotal = shopifyCart
       ? parseFloat(shopifyCart.cost.totalAmount.amount)
       : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
@@ -475,8 +485,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
     trackShopifyCheckoutStarted({
       cartId: shopifyCart?.id,
-      totalPrice: checkoutTotal,
-      currencyCode: checkoutCurrency,
+      totalPrice: shopifyCart
+        ? parseFloat(shopifyCart.cost.totalAmount.amount)
+        : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0),
+      currencyCode:
+        shopifyCart?.cost.totalAmount.currencyCode ??
+        localItems[0]?.currencyCode ??
+        "EGP",
       lineItems: shopifyCart
         ? shopifyCart.lines.nodes.map((l) => ({
             variantId: l.merchandise.id,
@@ -491,11 +506,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             quantity: i.quantity,
           })),
     });
-    // Redirect to Shopify native checkout
-    const url = shopifyCart?.checkoutUrl;
-    if (url) {
-      window.location.href = url;
-    }
   }, [shopifyCart, localItems]);
 
   return (
