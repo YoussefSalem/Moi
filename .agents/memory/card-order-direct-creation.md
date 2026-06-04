@@ -22,7 +22,10 @@ For card/apple-pay Paymob payments, use the **draft → complete → capture** f
 - `POST /orders/{id}/transactions.json` with `kind: "sale"` after draft completion → same error
 - `POST /orders/{id}/transactions.json` with `source_name: "external"` → same error
 - GraphQL `orderMarkAsPaid` → fails on Shopify Payments stores
-- `createDirectPaidCardOrder` (the POST /orders.json approach) → do not use
+- `POST /orders.json` embedded-transaction approach (was `createDirectPaidCardOrder`, now deleted) → do NOT re-introduce. A doc comment in shopifyOrder.ts once claimed it was "the only reliable approach" — that comment was wrong and caused a regression; the proven approach is draft→complete→capture.
+
+## Capturable transaction match (recordShopifyPaymentTransaction)
+The Shopify auto-created authorization is usually `kind:"pending", status:"success"` but can be `kind:"authorization"` on some stores. Match must accept either, else it falls back to `kind:"sale"` and fails. When no capturable txn is found it logs the full transaction list — read that log to diagnose.
 
 ## payment_pending in `completeDraftOrder` (InstaPay)
 `completeDraftOrder` (used for InstaPay admin approval) keeps `payment_pending=true` because InstaPay orders are approved later via the admin panel, not auto-captured. These orders remain `financial_status: "pending"` in Shopify.

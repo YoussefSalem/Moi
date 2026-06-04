@@ -830,13 +830,29 @@ export async function recordShopifyPaymentTransaction(params: {
   // Shopify rejects kind:"sale" if any transaction already exists — so we must
   // check first and capture the pending transaction if present.
   let pendingTxnId: number | null = null;
-  const txnListRes = await fetch(`${baseUrl}/transactions.json?fields=id,kind,status`, { headers });
+  const txnListRes = await fetch(`${baseUrl}/transactions.json?fields=id,kind,status,gateway`, { headers });
   if (txnListRes.ok) {
-    const txnData = await txnListRes.json() as { transactions?: { id: number; kind: string; status: string }[] };
-    const pending = (txnData.transactions ?? []).find(
-      (t) => t.kind === "pending" && t.status === "success",
-    );
-    if (pending) pendingTxnId = pending.id;
+    const txnData = await txnListRes.json() as { transactions?: { id: number; kind: string; status: string; gateway?: string }[] };
+    const txns = txnData.transactions ?? [];
+    // Shopify auto-creates an authorization when a draft is completed without
+    // payment_pending=true. Its kind is usually "pending" (status "success"),
+    // but on some stores it is reported as "authorization". Capture whichever
+    // exists — capturing a Shopify-created authorization is the only way to mark
+    // the order paid on Shopify Payments stores (a fresh kind:"sale" is rejected
+    // with "Order has no shopify_payment.").
+    // Only capture a SUCCESSFUL authorization — capturing a failed/error
+    // authorization would itself fail. If none is success, fall through to the
+    // kind:"sale" path (which is logged below) rather than capturing a bad parent.
+    const capturable =
+      txns.find((t) => t.kind === "pending" && t.status === "success") ??
+      txns.find((t) => t.kind === "authorization" && t.status === "success");
+    if (capturable) pendingTxnId = capturable.id;
+    if (!pendingTxnId) {
+      logger.warn(
+        { orderId, transactions: txns.map((t) => ({ id: t.id, kind: t.kind, status: t.status, gateway: t.gateway })) },
+        "recordShopifyPaymentTransaction: no capturable authorization found — falling back to kind:sale (may fail on Shopify Payments stores)",
+      );
+    }
   }
 
   const body: Record<string, unknown> = {
@@ -872,201 +888,6 @@ export async function recordShopifyPaymentTransaction(params: {
     throw new Error(`recordShopifyPaymentTransaction: Shopify returned ${res.status}: ${text}`);
   }
   logger.info({ orderId, paymobTxnId, amount, kind: body.kind }, "recordShopifyPaymentTransaction: transaction posted — order marked paid");
-}
-
-/**
- * Creates a Shopify order for a verified Paymob card/apple-pay payment by POSTing
- * directly to /orders.json with the payment transaction embedded in the payload.
- *
- * WHY this approach instead of draft → complete → add transaction:
- *   On Shopify Payments stores, completing a draft order links the resulting order
- *   to Shopify Payments infrastructure. Any subsequent attempt to add a transaction
- *   via REST (POST /orders/{id}/transactions.json) fails with:
- *     {"message":"Order has no shopify_payment."}
- *   GraphQL orderMarkAsPaid also fails for the same reason — the order's payment
- *   gateway is locked to Shopify Payments even when completed with payment_pending=true.
- *
- *   The only reliable approach for external payment providers is to embed the
- *   transaction directly in POST /orders.json at creation time WITHOUT setting
- *   financial_status:"paid" explicitly. Shopify computes financial_status from
- *   the embedded kind:"sale" transaction automatically, bypassing the Shopify
- *   Payments infrastructure check that causes the above error.
- *
- * NOTE on discounts: Shopify's Orders API does accept discount_codes but does NOT
- *   reduce the order total from them (they're tracking-only). This function reads
- *   the draft's applied_discount to pass the correct already-computed amount via
- *   discount_codes, and uses Shopify-resolved line item prices from the draft.
- *   The transaction amount matches draft.total (which already includes the discount).
- *
- * Flow:
- *   1. createDraftOrder(complete:false) — validates prices, applies discounts
- *   2. GET /draft_orders/{id}.json — read back Shopify-resolved line item prices
- *   3. POST /orders.json with embedded transaction → order created and marked paid
- *   4. DELETE /draft_orders/{id}.json — cleanup (fire-and-forget)
- */
-export async function createDirectPaidCardOrder(params: {
-  lines: OrderLine[];
-  customer: CustomerInfo;
-  paymentMethod: "card" | "apple-pay";
-  cartId?: string;
-  discountCode?: string;
-  extraTags?: string;
-  attribution?: OrderAttribution;
-  paymobTxnId?: string;
-  paymobDetails?: { txnId: string; amountCents: number; intentId?: string };
-}): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string; shippingAmount?: string }> {
-  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = await getShopifyAdminToken();
-  if (!storeDomain || !adminToken) throw new Error("createDirectPaidCardOrder: Shopify not configured");
-
-  const authHeader = { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken };
-
-  // ── Step 1: Create draft order (price validation only, do NOT complete) ──────
-  const draft = await createDraftOrder({
-    lines: params.lines,
-    customer: params.customer,
-    paymentMethod: params.paymentMethod,
-    cartId: params.cartId,
-    discountCode: params.discountCode,
-    extraTags: params.extraTags,
-    complete: false,
-    attribution: params.attribution,
-    paymobDetails: params.paymobDetails,
-  });
-
-  const draftOrderId = draft.draftOrderId;
-  if (!draftOrderId) throw new Error("createDirectPaidCardOrder: createDraftOrder returned no draftOrderId");
-
-  // ── Step 2: Read back full draft to get Shopify-resolved prices ──────────────
-  type DraftItem = { variant_id: number; quantity: number; price: string; title?: string; variant_title?: string | null };
-  type DraftFull = {
-    note?: string;
-    note_attributes?: Array<{ name: string; value: string }>;
-    tags?: string;
-    email?: string;
-    line_items?: DraftItem[];
-    shipping_line?: { title: string; price: string; code?: string };
-    applied_discount?: { title: string; amount: string; value_type?: string };
-    source_name?: string;
-    referring_site?: string;
-    landing_site?: string;
-  };
-
-  const draftRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}.json`,
-    { headers: { "X-Shopify-Access-Token": adminToken } },
-  );
-  if (!draftRes.ok) {
-    throw new Error(`createDirectPaidCardOrder: failed to fetch draft ${draftOrderId} (${draftRes.status})`);
-  }
-  const draftFull = ((await draftRes.json()) as { draft_order: DraftFull }).draft_order;
-
-  // ── Step 3: Build order payload and POST /orders.json ───────────────────────
-  const c = params.customer;
-  const shippingLine = draftFull.shipping_line;
-  const appliedDiscount = draftFull.applied_discount;
-
-  const orderPayload: Record<string, unknown> = {
-    suppress_notifications: true,
-    send_receipt: false,
-    send_fulfillment_receipt: false,
-    // Do NOT set financial_status:"paid" explicitly — on Shopify Payments stores this
-    // triggers a validation check that returns "Order has no shopify_payment." because
-    // Shopify tries to link it to Shopify Payments infrastructure.
-    // Instead, let Shopify compute financial_status from the embedded transaction below.
-    // A successful kind:"sale" transaction causes Shopify to set financial_status:"paid"
-    // automatically without going through Shopify Payments.
-    source_name: draftFull.source_name ?? "api",
-    ...(c.email ? { email: c.email } : {}),
-    line_items: (draftFull.line_items ?? []).map((item) => ({
-      variant_id: item.variant_id,
-      quantity: item.quantity,
-      price: item.price,
-    })),
-    shipping_address: {
-      first_name: c.firstName,
-      last_name: c.lastName,
-      address1: c.address,
-      address2: c.governorate,
-      city: c.city,
-      province: EGYPT_PROVINCE_CODES[c.governorate] ?? c.governorate,
-      zip: c.postalCode ?? "",
-      country: "Egypt",
-      country_code: "EG",
-      phone: c.phone,
-    },
-    // Embed the Paymob transaction — this is what makes the order "paid" without
-    // needing a separate POST /transactions call afterward.
-    transactions: [{
-      kind: "sale",
-      status: "success",
-      amount: draft.total,
-      gateway: "paymob",
-      currency: "EGP",
-      ...(params.paymobTxnId ? { authorization: params.paymobTxnId } : {}),
-    }],
-  };
-
-  if (draftFull.note) orderPayload.note = draftFull.note;
-  if (draftFull.note_attributes?.length) orderPayload.note_attributes = draftFull.note_attributes;
-  if (draftFull.tags) orderPayload.tags = draftFull.tags;
-  if (draftFull.referring_site) orderPayload.referring_site = draftFull.referring_site;
-  if (draftFull.landing_site) orderPayload.landing_site = draftFull.landing_site;
-
-  if (shippingLine) {
-    orderPayload.shipping_lines = [{
-      title: shippingLine.title,
-      price: shippingLine.price,
-      code: shippingLine.code ?? "STANDARD",
-    }];
-  }
-
-  // discount_codes here is for Shopify's tracking display only (amounts are from the draft)
-  if (appliedDiscount) {
-    orderPayload.discount_codes = [{
-      code: appliedDiscount.title,
-      amount: appliedDiscount.amount,
-      type: appliedDiscount.value_type === "percentage" ? "percentage" : "fixed_amount",
-    }];
-  }
-
-  logger.info(
-    { draftOrderId, total: draft.total, paymobTxnId: params.paymobTxnId },
-    "createDirectPaidCardOrder: POSTing /orders.json with embedded transaction",
-  );
-
-  const orderRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/orders.json`,
-    { method: "POST", headers: authHeader, body: JSON.stringify({ order: orderPayload }) },
-  );
-  if (!orderRes.ok) {
-    const errText = await orderRes.text();
-    throw new Error(`createDirectPaidCardOrder: POST /orders.json failed (${orderRes.status}): ${errText}`);
-  }
-  const orderData = ((await orderRes.json()) as {
-    order: { id: number; order_number: number; line_items: ShopifyLineItem[]; financial_status: string };
-  }).order;
-
-  logger.info(
-    { draftOrderId, orderId: orderData.id, orderNumber: orderData.order_number, financialStatus: orderData.financial_status, paymobTxnId: params.paymobTxnId },
-    "createDirectPaidCardOrder: order created and marked paid",
-  );
-
-  // ── Step 4: Delete the draft order (cleanup — non-critical) ─────────────────
-  void fetch(
-    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}.json`,
-    { method: "DELETE", headers: { "X-Shopify-Access-Token": adminToken } },
-  ).catch(() => {});
-
-  return {
-    orderId: orderData.id,
-    orderNumber: orderData.order_number,
-    total: draft.total,
-    lineItems: orderData.line_items,
-    discountAmount: draft.discountAmount,
-    discountCode: draft.discountCode,
-    shippingAmount: draft.shippingAmount,
-  };
 }
 
 /**

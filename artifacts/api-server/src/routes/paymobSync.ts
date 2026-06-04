@@ -69,10 +69,10 @@ router.post("/orders/paymob-sync", async (req, res) => {
         .catch((err: unknown) => req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error"));
 
       const updated = await db
-        .select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
+        .select({ status: paymobIntents.status, shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
         .from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
       const row = updated[0];
-      res.json({ status: "completed", paymobTxnId: verified.txnId, shopifyOrderId: row?.shopifyOrderId ?? null, shopifyOrderNumber: row?.shopifyOrderNumber ?? null });
+      res.json({ status: row?.status ?? "completed", paymobTxnId: verified.txnId, shopifyOrderId: row?.shopifyOrderId ?? null, shopifyOrderNumber: row?.shopifyOrderNumber ?? null });
       return;
     }
     req.log.info({ intentId, clientTxnId }, "paymob-sync: txnId verify returned null — falling through");
@@ -97,10 +97,10 @@ router.post("/orders/paymob-sync", async (req, res) => {
       .catch((err: unknown) => req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error"));
 
     const updated = await db
-      .select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
+      .select({ status: paymobIntents.status, shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
       .from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
     const row = updated[0];
-    res.json({ status: "completed", paymobTxnId: result.txnId, shopifyOrderId: row?.shopifyOrderId ?? null, shopifyOrderNumber: row?.shopifyOrderNumber ?? null });
+    res.json({ status: row?.status ?? "completed", paymobTxnId: result.txnId, shopifyOrderId: row?.shopifyOrderId ?? null, shopifyOrderNumber: row?.shopifyOrderNumber ?? null });
     return;
   }
 
@@ -111,10 +111,10 @@ router.post("/orders/paymob-sync", async (req, res) => {
       .catch((err: unknown) => req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error (fallback)"));
 
     const updated = await db
-      .select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
+      .select({ status: paymobIntents.status, shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
       .from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
     const row = updated[0];
-    res.json({ status: "completed", paymobTxnId: clientTxnId, shopifyOrderId: row?.shopifyOrderId ?? null, shopifyOrderNumber: row?.shopifyOrderNumber ?? null });
+    res.json({ status: row?.status ?? "completed", paymobTxnId: clientTxnId, shopifyOrderId: row?.shopifyOrderId ?? null, shopifyOrderNumber: row?.shopifyOrderNumber ?? null });
     return;
   }
 
