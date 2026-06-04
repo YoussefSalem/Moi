@@ -140,6 +140,9 @@ router.post("/orders/paymob-init", async (req, res) => {
 
   const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
   const redirectionUrl = domain ? `https://${domain}/paymob-relay.html` : undefined;
+  // Override the integration's default callback (shopify_callback) with our own
+  // webhook so Paymob notifies us directly rather than trying to update Shopify.
+  const callbackUrl = domain ? `https://${domain}/api/webhooks/paymob` : undefined;
 
   let iframeUrl: string;
   try {
@@ -155,6 +158,7 @@ router.post("/orders/paymob-init", async (req, res) => {
         city: customer.city.trim(),
       },
       redirectionUrl,
+      callbackUrl,
     });
     iframeUrl = result.iframeUrl;
   } catch (err) {
