@@ -266,7 +266,6 @@ export function CheckoutPage() {
   const [breakdownSnapshot, setBreakdownSnapshot] = useState<{ subtotal: number; savings: number; shippingCost: number; freeShipping: boolean } | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
-  const [shopifyCheckoutToken, setShopifyCheckoutToken] = useState<string | null>(null);
   const isApplyingRef = useRef(false);
   const instapayTrackedRef = useRef(false);
   const codTrackedRef = useRef(false);
@@ -392,7 +391,6 @@ export function CheckoutPage() {
     clearCart();
     setStep("form");
     setOrderResult(null);
-    setShopifyCheckoutToken(null);
     setPromoApplied(null);
     setPromoInput("");
     setGovernorateOpen(false);
@@ -473,7 +471,6 @@ export function CheckoutPage() {
             cartId: shopifyCart?.id ?? null,
             discountCode: promoApplied?.code ?? null,
             attribution: buildOrderAttribution(),
-            checkoutToken: shopifyCheckoutToken ?? null,
           }),
         });
 
@@ -531,7 +528,6 @@ export function CheckoutPage() {
           cartId: shopifyCart?.id ?? null,
           discountCode: promoApplied?.code ?? null,
           attribution: buildOrderAttribution(),
-          checkoutToken: shopifyCheckoutToken ?? null,
         }),
       });
 
@@ -597,13 +593,12 @@ export function CheckoutPage() {
       setSubmitError("Network error. Please check your connection and try again.");
       submittingRef.current = false;
     }
-  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, clearCart, shopifyCheckoutToken, markAbandonedCartRecovered]);
+  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, clearCart, markAbandonedCartRecovered]);
 
   const handleDone = useCallback(() => {
     clearCart();
     setStep("form");
     setOrderResult(null);
-    setShopifyCheckoutToken(null);
     setPromoApplied(null);
     setPromoInput("");
     setGovernorateOpen(false);

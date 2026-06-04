@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import {
   sendWhatsApp,
-  completeShopifyCheckout,
 } from "../lib/integrations";
 import {
   createDraftOrder,
@@ -26,7 +25,6 @@ interface CreateOrderBody {
   discountCode?: unknown;
   cartId?: unknown;
   attribution?: unknown;
-  checkoutToken?: unknown;
 }
 
 function extractAttribution(body: CreateOrderBody): OrderAttribution | undefined {
@@ -132,11 +130,6 @@ router.post("/orders/instapay-init", async (req, res) => {
       ? body.discountCode.trim()
       : undefined;
 
-  const checkoutToken =
-    typeof body.checkoutToken === "string" && body.checkoutToken.trim()
-      ? body.checkoutToken.trim()
-      : undefined;
-
   const instapayAccount = process.env.INSTAPAY_ACCOUNT_NAME ?? process.env.VITE_INSTAPAY_ACCOUNT_NAME ?? "";
   const instapayNumber = process.env.INSTAPAY_ACCOUNT_NUMBER ?? process.env.VITE_INSTAPAY_ACCOUNT_NUMBER ?? "";
 
@@ -159,11 +152,6 @@ router.post("/orders/instapay-init", async (req, res) => {
     // Record discount code use so Shopify's usage_limit is enforced across API orders
     if (discountCode && result.discountAmount) {
       void recordDiscountCodeUse(discountCode, result.orderId, result.orderNumber, "instapay");
-    }
-
-    // Mark the Shopify abandoned checkout as complete (fire-and-forget)
-    if (checkoutToken) {
-      void completeShopifyCheckout(checkoutToken);
     }
 
     res.status(200).json({
@@ -232,11 +220,6 @@ router.post("/orders/create", async (req, res) => {
     typeof body.cartId === "string" && body.cartId.trim()
       ? body.cartId.trim()
       : undefined;
-  const checkoutToken =
-    typeof body.checkoutToken === "string" && body.checkoutToken.trim()
-      ? body.checkoutToken.trim()
-      : undefined;
-
   req.log.info(
     { paymentMethod, lineCount: lines.length, discountCode, cartId },
     "Creating COD order",
@@ -297,11 +280,6 @@ router.post("/orders/create", async (req, res) => {
     // NOTE: Bosta dispatch is intentionally skipped for all payment methods.
     // The Bosta Shopify app automatically syncs any orders that enter Shopify.
     // We just need to make sure the orders are sent correctly from our side.
-
-    // Mark the Shopify abandoned checkout as complete (fire-and-forget)
-    if (checkoutToken) {
-      void completeShopifyCheckout(checkoutToken);
-    }
 
     res.status(200).json({
       success: true,

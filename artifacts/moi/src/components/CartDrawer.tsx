@@ -154,7 +154,6 @@ export function CartDrawer() {
     applyDiscount,
     prefilledEmail,
     clearCart,
-    checkoutUrl,
   } = useCart();
 
   const { customer, openAuth } = useCustomer();
