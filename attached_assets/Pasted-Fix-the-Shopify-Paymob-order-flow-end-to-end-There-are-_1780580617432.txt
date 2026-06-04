@@ -1,0 +1,100 @@
+Fix the Shopify + Paymob order flow end-to-end. There are multiple inconsistencies causing missing payment sync and duplicate/invalid transaction attempts.
+
+1. Paymob sync gap (CRITICAL)
+
+Ensure processPaymobSuccess.ts always sends a backend request after postMessage success.
+
+If frontend receives Paymob success callback:
+It MUST call backend endpoint (e.g. /api/paymob-sync)
+Do NOT rely only on postMessage or client-side state
+Add logging:
+paymob-sync called
+include txnId, orderId, amountCents
+
+This fixes the issue where Paymob success happens but backend never receives it.
+
+2. REMOVE duplicate payment transaction calls
+
+There are currently 2 places calling recordShopifyPaymentTransaction for the same order:
+
+completeShopifyDraftOrder
+admin/manual “Record Payment” flow
+
+👉 Fix:
+
+Ensure ONLY ONE of these runs per order
+Add guard:
+if (draft?.payment_status === "paid") return;
+
+or better:
+
+Use a single source of truth: Paymob webhook / sync endpoint only
+3. Fix unsafe REST transaction attempt (root cause of Shopify errors)
+
+In recordShopifyPaymentTransaction:
+
+The REST call:
+
+POST /orders/{id}/transactions.json
+kind: "sale"
+
+is unreliable when Shopify Payments is enabled.
+
+👉 Fix:
+
+ALWAYS prefer GraphQL orderMarkAsPaid
+Either:
+remove REST entirely, OR
+wrap REST behind feature flag and skip if Shopify Payments detected
+
+Recommended fix:
+
+// skip REST completely
+go directly to GraphQL orderMarkAsPaid
+4. Fix double payment attempt in completeShopifyDraftOrder
+
+Inside completeShopifyDraftOrder:
+
+There is a call to:
+recordShopifyPaymentTransaction({ orderId, amount: total })
+
+👉 Problem:
+
+This runs WITHOUT paymobTxnId
+causes incomplete/invalid transaction logs
+
+👉 Fix:
+
+REMOVE this call entirely from completeShopifyDraftOrder
+Payment marking must only happen AFTER Paymob confirmation
+5. Fix payment ownership logic (VERY IMPORTANT)
+
+Rule:
+
+completeShopifyDraftOrder = creates order ONLY
+recordShopifyPaymentTransaction = only runs AFTER Paymob success
+
+👉 Ensure separation:
+
+Draft completion → NO payment logic
+Paymob success → mark order paid
+6. Fix missing backend sync reliability
+
+If frontend fails or refreshes:
+
+Add backend fallback:
+/paymob/webhook
+OR polling reconciliation job
+
+Ensure:
+
+Every Paymob transaction eventually maps to Shopify order
+7. Prevent duplicate order completion issues
+
+Add idempotency:
+
+if (order.financial_status === "paid") return;
+
+or store:
+
+shopify_payment_synced=true meta/note attribute

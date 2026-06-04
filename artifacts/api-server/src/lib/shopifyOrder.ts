@@ -431,12 +431,10 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
     lineItems = (orderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
   }
 
-  // Completed order defaults to "pending" — mark it paid so Bosta doesn't treat as COD.
-  // NOTE: PUT /orders/{id}.json with financial_status is silently ignored by Shopify.
-  // The only way to change financial_status is to POST a transaction with kind:"sale".
-  try {
-    await recordShopifyPaymentTransaction({ orderId, amount: total, storeDomain, adminToken });
-  } catch { /* ignore */ }
+  // InstaPay orders remain as "payment pending" in Shopify — this is correct since
+  // payment confirmation happens via admin review of the bank-transfer proof, not via
+  // a Paymob transaction. The admin should manually mark the order paid in Shopify
+  // after confirming receipt.
 
   // Re-apply referring_site / landing_site (Shopify strips them during completion)
   if (attributionRaw) {

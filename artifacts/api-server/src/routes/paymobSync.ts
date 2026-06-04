@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
 import { queryPaymobByMerchantOrderId, verifyPaymobTransactionById, mapPaymobBillingToCustomer } from "../lib/paymob";
 import { processPaymobSuccess } from "../lib/processPaymobSuccess";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -18,6 +19,8 @@ router.post("/orders/paymob-sync", async (req, res) => {
   const body = req.body as { intentId?: unknown; paymobTxnId?: unknown };
   const intentId = typeof body.intentId === "string" ? body.intentId.trim() : "";
   const clientTxnId = typeof body.paymobTxnId === "string" ? body.paymobTxnId.trim() : "";
+
+  logger.info({ intentId, clientTxnId: clientTxnId || undefined }, "paymob-sync: received");
 
   if (!intentId) {
     res.status(400).json({ error: "Missing intentId" });
