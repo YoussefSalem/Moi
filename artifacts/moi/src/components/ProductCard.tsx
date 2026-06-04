@@ -545,6 +545,38 @@ export function ProductCard({ product, onLookView, onNavigateToProduct, hideLook
                         )}
                       </AnimatePresence>
 
+                      {/* Out of stock overlay — desktop */}
+                      <AnimatePresence>
+                        {isOutOfStock && (
+                          <motion.div
+                            key="oos-desktop"
+                            className="absolute inset-0 pointer-events-none flex items-end justify-center pb-3"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <span
+                              style={{
+                                padding: "5px 14px",
+                                fontSize: 9,
+                                letterSpacing: "0.38em",
+                                textTransform: "uppercase",
+                                fontFamily: "'Montserrat', sans-serif",
+                                fontWeight: 500,
+                                color: "rgba(30,24,20,0.72)",
+                                backgroundColor: "rgba(250,248,245,0.84)",
+                                backdropFilter: "blur(6px)",
+                                WebkitBackdropFilter: "blur(6px)",
+                                border: "1px solid rgba(30,24,20,0.12)",
+                              }}
+                            >
+                              Out of Stock
+                            </span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
                     </div>
                   </div>
 
@@ -670,6 +702,38 @@ export function ProductCard({ product, onLookView, onNavigateToProduct, hideLook
                           exit={{ opacity: 0, transition: { duration: 0.3 } }}
                         >
                           <ImageSkeleton variant="card" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Out of stock overlay — mobile */}
+                    <AnimatePresence>
+                      {isOutOfStock && (
+                        <motion.div
+                          key="oos-mobile"
+                          className="absolute inset-0 pointer-events-none flex items-end justify-center pb-3"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <span
+                            style={{
+                              padding: "5px 14px",
+                              fontSize: 9,
+                              letterSpacing: "0.38em",
+                              textTransform: "uppercase",
+                              fontFamily: "'Montserrat', sans-serif",
+                              fontWeight: 500,
+                              color: "rgba(30,24,20,0.72)",
+                              backgroundColor: "rgba(250,248,245,0.84)",
+                              backdropFilter: "blur(6px)",
+                              WebkitBackdropFilter: "blur(6px)",
+                              border: "1px solid rgba(30,24,20,0.12)",
+                            }}
+                          >
+                            Out of Stock
+                          </span>
                         </motion.div>
                       )}
                     </AnimatePresence>
