@@ -1012,7 +1012,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct, hideLook
               )}
 
               {/* Scarcity note */}
-              {!isOutOfStock && !product.name.toLowerCase().includes("versa") && !product.name.toLowerCase().includes("bangles") && (
+              {!isOutOfStock && !product.name.toLowerCase().includes("versa") && (
                 <motion.p
                   variants={itemVariants}
                   className="mb-1"

@@ -17,13 +17,6 @@ export function useShopifyProductByHandle(
 
   useEffect(() => {
     if (!SHOPIFY_CONFIGURED) return;
-    // If the fallback has no Shopify-like variants, skip the fetch and use the
-    // config data directly. This preserves config-based products (e.g. Trio Bangles)
-    // that don't have real Shopify variants.
-    if (!fallback.variants || fallback.variants.length === 0) {
-      setLoading(false);
-      return;
-    }
     let cancelled = false;
     setLoading(true);
 

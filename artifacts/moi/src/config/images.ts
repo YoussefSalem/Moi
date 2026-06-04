@@ -318,7 +318,6 @@ export const IMAGES = {
     price: "890 EGP",
     outer: "Material: Brass with gold-tone plating",
     lining: "Set of 3 bangles",
-    variantId: "trio-bangles",
     ref: "ACC/001/TRB",
   },
 } as const;
