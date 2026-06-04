@@ -15,9 +15,6 @@ const SHIPPING_EGP = 50;
  * Creates a Paymob Intention (Unified Checkout v1) for Apple Pay.
  * Returns { clientSecret, publicKey, intentId, total } which the frontend
  * uses to initialise the Paymob JS SDK and display the native Apple Pay button.
- *
- * The Paymob Intentions API endpoint: POST https://accept.paymob.com/v1/intention/
- * Auth: Authorization: Token {secretKey}
  */
 router.post("/orders/paymob-apple-pay-init", async (req, res) => {
   const config = getPaymobConfig();
@@ -31,10 +28,11 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
     return;
   }
 
-  // Use the dedicated Apple Pay integration ID if set, otherwise fall back to the card integration ID
-  const rawIntegrationId = config.applePayIntegrationId || config.integrationId;
+  // Apple Pay REQUIRES a dedicated Apple Pay integration ID from Paymob.
+  // The regular card integration cannot process Apple Pay tokens, so never fall back to it.
+  const rawIntegrationId = config.applePayIntegrationId;
   if (!rawIntegrationId) {
-    res.status(503).json({ error: "Paymob integration is not configured. Please contact support." });
+    res.status(503).json({ error: "Apple Pay is not configured. Please contact support." });
     return;
   }
 
@@ -71,18 +69,11 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
     }
   }
 
-  // Customer fields are optional for Apple Pay — the native Apple Pay sheet
-  // collects the buyer's billing/contact info on the device. We fall back to
-  // "NA" placeholders so the Paymob Intentions API billing_data is satisfied.
   const customer = body.customer as CustomerInfo | undefined;
-
   const lines = body.lines as OrderLine[];
   const discountCode = typeof body.discountCode === "string" && body.discountCode.trim() ? body.discountCode.trim() : undefined;
   const cartId = typeof body.cartId === "string" && body.cartId.trim() ? body.cartId.trim() : undefined;
   const checkoutToken = typeof body.checkoutToken === "string" && body.checkoutToken.trim() ? body.checkoutToken.trim() : null;
-  // totalAmountCents is sent by the frontend as a fallback when the Shopify cart
-  // isn't available (e.g. immediately after clearCart on the product page).
-  // It already includes shipping and any applied discount, computed client-side.
   const clientTotalAmountCents = typeof body.totalAmountCents === "number" && Number.isFinite(body.totalAmountCents) && body.totalAmountCents > 0
     ? Math.round(body.totalAmountCents)
     : undefined;
@@ -130,7 +121,6 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
     amountCents = Math.round(totalEGP * 100);
     total = totalEGP.toFixed(2);
   } else if (clientTotalAmountCents) {
-    // Fallback: use the client-computed total (already includes shipping + discounts)
     req.log.info({ lineCount: lines.length, clientTotalAmountCents }, "Paymob Apple Pay init — using client-provided total (no cart ID)");
     amountCents = clientTotalAmountCents;
     total = (clientTotalAmountCents / 100).toFixed(2);
@@ -144,7 +134,15 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
   await db.insert(paymobIntents).values({
     intentId,
     lines: lines as unknown as Record<string, unknown>[],
-    customer: customer as unknown as Record<string, unknown>,
+    customer: (customer ?? {
+      firstName: "Apple",
+      lastName: "Pay",
+      email: "NA",
+      phone: "NA",
+      address: "NA",
+      city: "Cairo",
+      governorate: "NA",
+    }) as unknown as Record<string, unknown>,
     cartId,
     discountCode: discountCode ?? null,
     amountCents,
@@ -233,11 +231,6 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
 
   req.log.info({ intentId }, "Paymob Apple Pay intention created successfully");
 
-  // Return the intention's client_secret + the merchant public key. The frontend
-  // feeds these into the Paymob Pixel SDK (`new Pixel({ paymentMethods: ['apple-pay'] })`),
-  // which renders the native Apple Pay button inline and triggers the real Apple Pay
-  // sheet on supported devices. This requires the domain to be Apple-Pay verified
-  // and the payment-processing certificate to be registered with Paymob.
   res.status(200).json({
     clientSecret,
     publicKey: config.publicKey,

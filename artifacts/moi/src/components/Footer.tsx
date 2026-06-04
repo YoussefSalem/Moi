@@ -60,7 +60,7 @@ export function Footer({ onNavigate }: FooterProps) {
           {/* Social links */}
           <div className="flex items-center justify-center gap-6 mb-8">
             <a
-              href="https://www.instagram.com/shopmoi___?igsh=MW5xa3lvaXB3dmF3cw%3D%3D&utm_source=qr"
+              href="https://www.instagram.com/shopmoi/"
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-center gap-2.5 transition-all duration-300 hover:opacity-100 opacity-70"

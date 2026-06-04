@@ -23,12 +23,14 @@ const SHIPPING_EGP = 50;
  */
 router.post("/apple-pay/validate-merchant", async (req, res) => {
   const config = getPaymobConfig();
-  if (!config.apiKey || !(config.applePayIntegrationId || config.integrationId)) {
-    res.status(503).json({ error: "Payment gateway is not configured." });
+  // Apple Pay REQUIRES a dedicated Apple Pay integration ID from Paymob.
+  // The regular card integration cannot process Apple Pay tokens, so never fall back to it.
+  if (!config.apiKey || !config.applePayIntegrationId) {
+    res.status(503).json({ error: "Apple Pay is not configured." });
     return;
   }
 
-  const applePayIntegrationId = config.applePayIntegrationId || config.integrationId;
+  const applePayIntegrationId = config.applePayIntegrationId;
 
   const body = req.body as {
     validationURL?: unknown;
@@ -72,8 +74,6 @@ router.post("/apple-pay/validate-merchant", async (req, res) => {
     return;
   }
 
-  // If the client total does not already include shipping, add it.
-  // The frontend sends (productPrice * 100 + 5000) so shipping IS included.
   const amountCents = clientTotalAmountCents;
   const total = (amountCents / 100).toFixed(2);
 
@@ -103,7 +103,6 @@ router.post("/apple-pay/validate-merchant", async (req, res) => {
 
   const intentId = randomUUID();
 
-  // Save the intent (customer will be filled in after Apple Pay sheet collects contact info)
   await db.insert(paymobIntents).values({
     intentId,
     lines: lines as unknown as Record<string, unknown>[],
@@ -127,7 +126,6 @@ router.post("/apple-pay/validate-merchant", async (req, res) => {
 
   req.log.info({ intentId, amountCents, total }, "Apple Pay direct: intent saved — creating payment key");
 
-  // Create legacy payment key and validate merchant in parallel
   let paymobPaymentKey: string;
   let merchantSession: unknown;
 
@@ -146,13 +144,16 @@ router.post("/apple-pay/validate-merchant", async (req, res) => {
             }),
           },
         );
-        if (!validationRes.ok) {
-          const text = await validationRes.text();
-          throw new Error(`Paymob merchant validation failed (${validationRes.status}): ${text}`);
+        // Paymob returns HTTP 400 even on success — check body instead of status
+        const text = await validationRes.text();
+        let data: { api_response?: unknown };
+        try {
+          data = JSON.parse(text) as { api_response?: unknown };
+        } catch {
+          throw new Error(`Paymob merchant validation returned non-JSON (${validationRes.status}): ${text}`);
         }
-        const data = await validationRes.json() as { api_response?: unknown };
         if (!data.api_response) {
-          throw new Error("Paymob merchant validation returned no api_response");
+          throw new Error(`Paymob merchant validation failed (${validationRes.status}): ${text}`);
         }
         return data.api_response;
       })(),
@@ -162,7 +163,6 @@ router.post("/apple-pay/validate-merchant", async (req, res) => {
     merchantSession = validationResult;
   } catch (err) {
     req.log.error({ err, intentId }, "Apple Pay direct: payment key or merchant validation failed");
-    // Clean up the intent
     await db.delete(paymobIntents).where(eq(paymobIntents.intentId, intentId));
     res.status(500).json({ error: "Apple Pay is unavailable right now. Please try another payment method." });
     return;
@@ -215,7 +215,6 @@ router.post("/apple-pay/authorize", async (req, res) => {
     paymobPaymentKey: string;
   };
 
-  // Map Apple Pay shippingContact to CustomerInfo
   const sc = (body.shippingContact ?? {}) as {
     firstName?: string;
     lastName?: string;
@@ -235,7 +234,6 @@ router.post("/apple-pay/authorize", async (req, res) => {
     governorate: sc.governorate?.trim() || "NA",
   };
 
-  // Look up the intent to verify it exists and get amountCents
   const existing = await db
     .select({
       intentId: paymobIntents.intentId,
@@ -258,7 +256,6 @@ router.post("/apple-pay/authorize", async (req, res) => {
 
   const { amountCents, total } = existing[0];
 
-  // Update the intent with the real customer info from Apple Pay
   await db
     .update(paymobIntents)
     .set({ customer: customer as unknown as Record<string, unknown> })
@@ -266,7 +263,6 @@ router.post("/apple-pay/authorize", async (req, res) => {
 
   req.log.info({ intentId, amountCents }, "Apple Pay direct: submitting token to Paymob");
 
-  // Submit the Apple Pay payment token to Paymob
   let paymobSuccess = false;
   let paymobTxnId: string | undefined;
   let paymobDeclined = false;
@@ -278,7 +274,6 @@ router.post("/apple-pay/authorize", async (req, res) => {
       body: JSON.stringify({
         source: { identifier: paymentData, subtype: "APPLE_PAY" },
         payment_token: paymobPaymentKey,
-        api_source: "PIXEL",
       }),
     });
 
@@ -300,7 +295,6 @@ router.post("/apple-pay/authorize", async (req, res) => {
     } else if (payRes.status === 200 && successVal === "false" && pendingVal === "false") {
       paymobDeclined = true;
     }
-    // pending === "true" means still processing — treat as temporary failure for now
 
     req.log.info(
       { intentId, paymobSuccess, paymobDeclined, txnId, status: payRes.status },
@@ -313,7 +307,6 @@ router.post("/apple-pay/authorize", async (req, res) => {
   }
 
   if (!paymobSuccess) {
-    // Mark intent as failed
     await db
       .update(paymobIntents)
       .set({ status: "failed" })
@@ -326,19 +319,17 @@ router.post("/apple-pay/authorize", async (req, res) => {
     return;
   }
 
-  // Payment succeeded — create Shopify order
   try {
     await processPaymobSuccess({
       intentId,
       paymobTxnId: paymobTxnId ?? `apple-pay-${intentId}`,
       amountCents,
+      paymentChannel: "apple-pay",
     });
   } catch (err) {
     req.log.error({ err, intentId }, "Apple Pay direct: processPaymobSuccess failed");
-    // Don't fail the whole request — the payment IS captured. Return success.
   }
 
-  // Read back the order details
   const updated = await db
     .select({
       shopifyOrderId: paymobIntents.shopifyOrderId,

@@ -35,9 +35,11 @@ function log(...args: unknown[]): void {
   }
 }
 function logError(...args: unknown[]): void {
-  // Intentionally using console for critical analytics errors
-  // eslint-disable-next-line no-console
-  console.error("[ShopifyAnalytics]", ...args);
+  if (DEBUG_ANALYTICS) {
+    // Intentionally using console for critical analytics errors in debug mode
+    // eslint-disable-next-line no-console
+    console.error("[ShopifyAnalytics]", ...args);
+  }
 }
 
 // --- Token generation ---

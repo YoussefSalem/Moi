@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
-import { queryPaymobByMerchantOrderId, verifyPaymobTransactionById } from "../lib/paymob";
+import { queryPaymobByMerchantOrderId, verifyPaymobTransactionById, mapPaymobBillingToCustomer } from "../lib/paymob";
 import { processPaymobSuccess } from "../lib/processPaymobSuccess";
 
 const router: IRouter = Router();
@@ -79,18 +79,28 @@ router.post("/orders/paymob-sync", async (req, res) => {
         { intentId, txnId: verified.txnId, amountCents: verified.amountCents },
         "paymob-sync: verified via txnId — processing order",
       );
+      // Update customer from Apple Pay billing_data (shippingContact) before order creation
+      if (verified.billingData) {
+        const applePayCustomer = mapPaymobBillingToCustomer(verified.billingData);
+        await db.update(paymobIntents)
+          .set({ customer: applePayCustomer as unknown as Record<string, unknown> })
+          .where(eq(paymobIntents.intentId, intentId))
+          .catch((err: unknown) => req.log.warn({ err, intentId }, "paymob-sync: failed to update customer from billing_data"));
+      }
+      const paymentChannelTxn = verified.sourceDataSubType?.toUpperCase() === "APPLE_PAY" ? "apple-pay" as const : "card" as const;
       // Trigger order creation; then read the intent to get the Shopify order details
       await processPaymobSuccess({
         intentId,
         paymobTxnId: verified.txnId,
         amountCents: verified.amountCents,
+        paymentChannel: paymentChannelTxn,
       }).catch((err: unknown) =>
         req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error"),
       );
-      const updatedRows = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId })
+      const updatedRows = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
         .from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
       const updated = updatedRows[0];
-      res.json({ status: "completed", paymobTxnId: verified.txnId, shopifyOrderId: updated?.shopifyOrderId ?? null, shopifyOrderNumber: updated?.shopifyConfirmedOrderId ?? null });
+      res.json({ status: "completed", paymobTxnId: verified.txnId, shopifyOrderId: updated?.shopifyOrderId ?? null, shopifyOrderNumber: updated?.shopifyOrderNumber ?? null });
       return;
     }
     req.log.info({ intentId, clientTxnId }, "paymob-sync: txnId verify returned null — falling through to order query");
@@ -117,18 +127,28 @@ router.post("/orders/paymob-sync", async (req, res) => {
       { intentId, txnId: result.txnId, amountCents: result.amountCents },
       "paymob-sync: verified via order query — processing order",
     );
-    void processPaymobSuccess({
+    // Update customer from Apple Pay billing_data if available
+    if (result.billingData) {
+      const applePayCustomer = mapPaymobBillingToCustomer(result.billingData);
+      await db.update(paymobIntents)
+        .set({ customer: applePayCustomer as unknown as Record<string, unknown> })
+        .where(eq(paymobIntents.intentId, intentId))
+        .catch((err: unknown) => req.log.warn({ err, intentId }, "paymob-sync: failed to update customer from billing_data"));
+    }
+    const paymentChannelOrder = result.sourceDataSubType?.toUpperCase() === "APPLE_PAY" ? "apple-pay" as const : "card" as const;
+    await processPaymobSuccess({
       intentId,
       paymobTxnId: result.txnId,
       amountCents: result.amountCents,
+      paymentChannel: paymentChannelOrder,
     }).catch((err: unknown) =>
       req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error"),
     );
-    // After triggering processPaymobSuccess, read the intent to get the Shopify order details
-    const updatedRows = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId })
+    // After processPaymobSuccess completes, read the intent to get the Shopify order details
+    const updatedRows = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
       .from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
     const updated = updatedRows[0];
-    res.json({ status: "completed", paymobTxnId: result.txnId, shopifyOrderId: updated?.shopifyOrderId ?? null, shopifyOrderNumber: updated?.shopifyConfirmedOrderId ?? null });
+    res.json({ status: "completed", paymobTxnId: result.txnId, shopifyOrderId: updated?.shopifyOrderId ?? null, shopifyOrderNumber: updated?.shopifyOrderNumber ?? null });
     return;
   }
 
@@ -141,18 +161,18 @@ router.post("/orders/paymob-sync", async (req, res) => {
       { intentId, clientTxnId, storedAmountCents: amountCents },
       "paymob-sync: Paymob API unavailable — processing with client-provided txnId (admin review required)",
     );
-    void processPaymobSuccess({
+    await processPaymobSuccess({
       intentId,
       paymobTxnId: clientTxnId,
       amountCents,
     }).catch((err: unknown) =>
       req.log.error({ err, intentId }, "paymob-sync: processPaymobSuccess error (fallback)"),
     );
-    // After triggering processPaymobSuccess, read the intent to get the Shopify order details
-    const updatedRows = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId })
+    // After processPaymobSuccess completes, read the intent to get the Shopify order details
+    const updatedRows = await db.select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
       .from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
     const updated = updatedRows[0];
-    res.json({ status: "completed", paymobTxnId: clientTxnId, shopifyOrderId: updated?.shopifyOrderId ?? null, shopifyOrderNumber: updated?.shopifyConfirmedOrderId ?? null });
+    res.json({ status: "completed", paymobTxnId: clientTxnId, shopifyOrderId: updated?.shopifyOrderId ?? null, shopifyOrderNumber: updated?.shopifyOrderNumber ?? null });
     return;
   }
 

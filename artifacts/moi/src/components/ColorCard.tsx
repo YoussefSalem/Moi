@@ -195,7 +195,7 @@ export function ColorCard({
             <AnimatePresence initial={false} mode="sync">
               <motion.img
                 key={mobileIndex}
-                src={allImages[mobileIndex] ?? image}
+                src={(allImages[mobileIndex] ?? image) || undefined}
                 alt={`${productName} — ${colorName}`}
                 className="absolute inset-0 w-full h-full z-10"
                 style={{

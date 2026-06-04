@@ -326,7 +326,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                                   userSelect: "none",
                                 }}
                               >
-                                <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
+                                <img src={src || undefined} alt="" className="w-full h-full object-cover" draggable={false} />
                               </button>
                             );
                           })}
@@ -346,7 +346,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                                 className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 active:opacity-60 transition-opacity duration-150"
                                 style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
                               >
-                                <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
+                                <img src={src || undefined} alt="" className="w-full h-full object-cover" draggable={false} />
                               </button>
                             );
                           })}
@@ -388,7 +388,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                                 className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 active:opacity-60 transition-opacity duration-150"
                                 style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
                               >
-                                <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
+                                <img src={src || undefined} alt="" className="w-full h-full object-cover" draggable={false} />
                               </button>
                             );
                           })}

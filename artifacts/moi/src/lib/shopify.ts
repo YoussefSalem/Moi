@@ -1,7 +1,24 @@
 const STORE_DOMAIN = import.meta.env.VITE_SHOPIFY_STORE_DOMAIN as string | undefined;
 const STOREFRONT_TOKEN = import.meta.env.VITE_SHOPIFY_STOREFRONT_TOKEN as string | undefined;
+const CHECKOUT_DOMAIN = (import.meta.env.VITE_SHOPIFY_CHECKOUT_DOMAIN as string | undefined)
+  ?.replace(/^https?:\/\//, "")
+  .replace(/\/$/, "");
 
 export const SHOPIFY_CONFIGURED = Boolean(STORE_DOMAIN && STOREFRONT_TOKEN);
+
+// Shopify's Storefront API always returns *.myshopify.com in checkoutUrl, even
+// when a custom primary domain is configured. Rewrite to the brand domain so
+// shoppers never see the internal myshopify URL.
+function normalizeCart(cart: ShopifyCart): ShopifyCart {
+  if (!CHECKOUT_DOMAIN || !cart.checkoutUrl) return cart;
+  try {
+    const url = new URL(cart.checkoutUrl);
+    url.hostname = CHECKOUT_DOMAIN;
+    return { ...cart, checkoutUrl: url.toString() };
+  } catch {
+    return cart;
+  }
+}
 
 const ENDPOINT = STORE_DOMAIN
   ? `https://${STORE_DOMAIN}/api/2024-04/graphql.json`
@@ -186,7 +203,7 @@ export async function createCart(): Promise<ShopifyCart> {
       cartCreate { cart { ...CartFields } }
     }
   `);
-  return data.cartCreate.cart;
+  return normalizeCart(data.cartCreate.cart);
 }
 
 export async function createCartWithLines(
@@ -198,7 +215,7 @@ export async function createCartWithLines(
       cartCreate(input: { lines: $lines }) { cart { ...CartFields } }
     }
   `, { lines });
-  return data.cartCreate.cart;
+  return normalizeCart(data.cartCreate.cart);
 }
 
 export async function getCart(cartId: string): Promise<ShopifyCart | null> {
@@ -208,7 +225,7 @@ export async function getCart(cartId: string): Promise<ShopifyCart | null> {
       cart(id: $cartId) { ...CartFields }
     }
   `, { cartId });
-  return data.cart;
+  return data.cart ? normalizeCart(data.cart) : null;
 }
 
 export async function addCartLines(
@@ -221,7 +238,7 @@ export async function addCartLines(
       cartLinesAdd(cartId: $cartId, lines: $lines) { cart { ...CartFields } }
     }
   `, { cartId, lines });
-  return data.cartLinesAdd.cart;
+  return normalizeCart(data.cartLinesAdd.cart);
 }
 
 export async function removeCartLines(cartId: string, lineIds: string[]): Promise<ShopifyCart> {
@@ -231,7 +248,7 @@ export async function removeCartLines(cartId: string, lineIds: string[]): Promis
       cartLinesRemove(cartId: $cartId, lineIds: $lineIds) { cart { ...CartFields } }
     }
   `, { cartId, lineIds });
-  return data.cartLinesRemove.cart;
+  return normalizeCart(data.cartLinesRemove.cart);
 }
 
 export async function updateCartLines(
@@ -244,7 +261,7 @@ export async function updateCartLines(
       cartLinesUpdate(cartId: $cartId, lines: $lines) { cart { ...CartFields } }
     }
   `, { cartId, lines });
-  return data.cartLinesUpdate.cart;
+  return normalizeCart(data.cartLinesUpdate.cart);
 }
 
 export async function customerCreate(
@@ -336,7 +353,7 @@ export async function cartDiscountCodesUpdate(
   if (data.cartDiscountCodesUpdate.userErrors.length) {
     throw new Error(data.cartDiscountCodesUpdate.userErrors[0].message);
   }
-  return data.cartDiscountCodesUpdate.cart;
+  return normalizeCart(data.cartDiscountCodesUpdate.cart);
 }
 
 export async function cartBuyerIdentityUpdate(
@@ -362,7 +379,7 @@ export async function cartBuyerIdentityUpdate(
     if (data.cartBuyerIdentityUpdate.userErrors.length) {
       return null;
     }
-    return data.cartBuyerIdentityUpdate.cart;
+    return normalizeCart(data.cartBuyerIdentityUpdate.cart);
   } catch {
     return null;
   }
@@ -380,6 +397,160 @@ export async function subscribeToNewsletter(email: string): Promise<{ success: b
     return { success: false, delivered: false, error: json.error ?? "Could not subscribe. Please try again." };
   }
   return { success: true, delivered: Boolean(json.delivered), note: json.note };
+}
+
+export interface ShopifyCheckout {
+  id: string;
+  webUrl: string;
+  totalPriceV2: { amount: string; currencyCode: string };
+  subtotalPriceV2: { amount: string; currencyCode: string };
+}
+
+export interface ShopifyCheckoutPayment {
+  id: string;
+  ready: boolean;
+  errorMessage: string | null;
+  checkout: {
+    id: string;
+    completedAt: string | null;
+    order: { id: string; orderNumber: number; name: string } | null;
+  } | null;
+}
+
+const CHECKOUT_FRAGMENT = `
+  fragment CheckoutFields on Checkout {
+    id webUrl
+    totalPriceV2 { amount currencyCode }
+    subtotalPriceV2 { amount currencyCode }
+  }
+`;
+
+export async function checkoutCreate(
+  lines: { variantId: string; quantity: number }[],
+  discountCode?: string,
+): Promise<ShopifyCheckout> {
+  const input: Record<string, unknown> = {
+    lineItems: lines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
+  };
+  if (discountCode) input.discountCodes = [discountCode];
+
+  const data = await shopifyFetch<{
+    checkoutCreate: {
+      checkout: ShopifyCheckout | null;
+      checkoutUserErrors: { code: string; field: string[]; message: string }[];
+    };
+  }>(`
+    ${CHECKOUT_FRAGMENT}
+    mutation CheckoutCreate($input: CheckoutCreateInput!) {
+      checkoutCreate(input: $input) {
+        checkout { ...CheckoutFields }
+        checkoutUserErrors { code field message }
+      }
+    }
+  `, { input });
+
+  if (data.checkoutCreate.checkoutUserErrors.length) {
+    throw new Error(data.checkoutCreate.checkoutUserErrors[0].message);
+  }
+  if (!data.checkoutCreate.checkout) {
+    throw new Error("Checkout could not be created");
+  }
+  return data.checkoutCreate.checkout;
+}
+
+export async function checkoutCompleteWithTokenizedPayment(
+  checkoutId: string,
+  payment: {
+    billingAddress: {
+      firstName?: string;
+      lastName?: string;
+      address1?: string;
+      address2?: string;
+      city?: string;
+      province?: string;
+      zip?: string;
+      country?: string;
+      phone?: string;
+    };
+    idempotencyKey: string;
+    paymentAmount: { amount: string; currencyCode: string };
+    paymentData: string;
+    type: "APPLE_PAY";
+  },
+): Promise<{ paymentId: string | null; orderNumber: number | null; error: string | null }> {
+  const data = await shopifyFetch<{
+    checkoutCompleteWithTokenizedPaymentV3: {
+      checkout: {
+        id: string;
+        order: { id: string; orderNumber: number; name: string } | null;
+      } | null;
+      checkoutUserErrors: { code: string; field: string[]; message: string }[];
+      payment: { id: string; ready: boolean; errorMessage: string | null } | null;
+    };
+  }>(`
+    mutation CheckoutCompleteV3($checkoutId: ID!, $payment: TokenizedPaymentInputV3!) {
+      checkoutCompleteWithTokenizedPaymentV3(checkoutId: $checkoutId, payment: $payment) {
+        checkout {
+          id
+          order { id orderNumber name }
+        }
+        checkoutUserErrors { code field message }
+        payment { id ready errorMessage }
+      }
+    }
+  `, {
+    checkoutId,
+    payment: {
+      billingAddress: payment.billingAddress,
+      idempotencyKey: payment.idempotencyKey,
+      paymentAmount: payment.paymentAmount,
+      paymentData: payment.paymentData,
+      type: payment.type,
+    },
+  });
+
+  const result = data.checkoutCompleteWithTokenizedPaymentV3;
+  if (result.checkoutUserErrors.length) {
+    return { paymentId: null, orderNumber: null, error: result.checkoutUserErrors[0].message };
+  }
+  if (result.payment?.errorMessage) {
+    return { paymentId: result.payment.id, orderNumber: null, error: result.payment.errorMessage };
+  }
+
+  const orderNumber = result.checkout?.order?.orderNumber ?? null;
+  return { paymentId: result.payment?.id ?? null, orderNumber, error: null };
+}
+
+export async function pollCheckoutPayment(
+  checkoutId: string,
+  timeoutMs = 15_000,
+): Promise<{ orderNumber: number | null; error: string | null }> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const data = await shopifyFetch<{
+      node: {
+        id: string;
+        completedAt: string | null;
+        order: { id: string; orderNumber: number; name: string } | null;
+      } | null;
+    }>(`
+      query CheckoutStatus($id: ID!) {
+        node(id: $id) {
+          ... on Checkout {
+            id completedAt
+            order { id orderNumber name }
+          }
+        }
+      }
+    `, { id: checkoutId });
+
+    const c = data.node;
+    if (c?.completedAt) {
+      return { orderNumber: c.order?.orderNumber ?? null, error: null };
+    }
+    await new Promise((r) => setTimeout(r, 1_000));
+  }
+  return { orderNumber: null, error: "Payment confirmation timed out — check your email for confirmation" };
 }
 
 export function formatMoney(amount: string, currencyCode: string): string {
