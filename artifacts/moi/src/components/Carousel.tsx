@@ -169,7 +169,7 @@ export function Carousel() {
                     className="text-[9px] tracking-[0.3em] uppercase font-medium leading-tight"
                     style={{ color: "#9a8e82" }}
                   >
-                    The Collections
+                    The Collection
                   </p>
                 </div>
                 <div className="flex-1 overflow-y-auto flex flex-col gap-1 px-2 pb-4">

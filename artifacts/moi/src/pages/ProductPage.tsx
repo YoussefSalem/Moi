@@ -14,7 +14,7 @@ import { trackAddToCart } from "@/lib/analytics";
 import { trackViewContent } from "@/lib/metaPixel";
 import { trackTikTokViewContent } from "@/lib/tiktokPixel";
 import { getStockCount } from "@/lib/stock";
-import { ENABLE_APPLE_PAY } from "@/config/features";
+import { canUseApplePay } from "@/lib/applePayUtils";
 import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
 
 function slugify(str: string): string {
@@ -449,7 +449,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               </h1>
 
               {/* Stock count */}
-              {stockCount && !isOutOfStock && (
+              {stockCount && (
                 <div className="mb-2" style={{ marginTop: -2 }}>
                   <span
                     style={{
@@ -709,26 +709,15 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     Buy It Now
                   </motion.button>
 
-                  {/* Apple Pay — Buy with Apple Pay */}
-                  {ENABLE_APPLE_PAY && (
-                    <div style={{ width: "100%", marginTop: 12 }}>
-                      <ShopifyApplePayButton
-                        variantId={selectedVariant?.id ?? product.variantId ?? ""}
-                        quantity={1}
-                        priceEGP={parseEGP(String(effectivePrice)) || 0}
-                        disabled={isOutOfStock}
-                        style={{ width: "100%" }}
-                        onSuccess={(orderNumber, total) => {
-                          toast.success(
-                            `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
-                            { duration: 5000 },
-                          );
-                        }}
-                        onError={(msg) => {
-                          toast.error(msg, { duration: 4000 });
-                        }}
-                      />
-                    </div>
+                  {/* Apple Pay quick-buy — opens native payment sheet via Paymob */}
+                  {(
+                    <ShopifyApplePayButton
+                      variantId={selectedVariant?.id ?? product.variantId ?? ""}
+                      quantity={1}
+                      priceEGP={parseEGP(String(effectivePrice)) || 0}
+                      disabled={isOutOfStock}
+                      style={{ width: "100%" }}
+                    />
                   )}
                 </div>
               )}

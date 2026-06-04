@@ -92,13 +92,15 @@ router.post("/webhooks/orders-paid", async (req, res) => {
   const orderRef = `#${order.order_number ?? order.id}`;
   const total = order.total_price ?? "";
 
-  // InstaPay orders: Bosta dispatch is handled by the Bosta Shopify app automatically.
-  // No manual Bosta API calls are needed — the app syncs orders when they enter Shopify.
+  // InstaPay orders: Bosta dispatch and fulfillment are handled exclusively via the
+  // admin approval endpoint (/admin/instapay-proofs/:id/approve). The orders/paid
+  // webhook MUST NOT dispatch Bosta here — the order becomes paid automatically in
+  // Shopify before admin has reviewed the proof, causing premature fulfillment.
   // COD orders never reach this point (financial_status stays pending until delivery).
   if (isInstapay) {
     req.log.info(
       { orderId: order.id, orderNumber: order.order_number },
-      "orders/paid webhook: instapay order — Bosta dispatch handled by Shopify app",
+      "orders/paid webhook: instapay order — skipping Bosta (handled exclusively by admin approval)",
     );
     return;
   }

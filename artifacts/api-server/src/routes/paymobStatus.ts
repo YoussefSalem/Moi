@@ -2,28 +2,19 @@ import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
-import { queryTransactionByMerchantOrderId } from "../lib/paymob";
+import { queryPaymobByMerchantOrderId, mapPaymobBillingToCustomer } from "../lib/paymob";
 import { processPaymobSuccess } from "../lib/processPaymobSuccess";
 
 const router: IRouter = Router();
 
-// Rate-limit direct Paymob API lookups to once every 15 seconds per intent
-const _lastLookup = new Map<string, number>();
-const LOOKUP_RATE_MS = 15_000;
-const MIN_AGE_MS = 1_000; // Wait at least 1 second before first direct lookup
+// Per-intent rate-limit for direct Paymob API lookups: at most once every 5 seconds.
+// Stored in-process; resets on server restart (acceptable — worst case is one extra call).
+const _lastDirectLookup = new Map<string, number>();
 
-/**
- * GET /api/orders/paymob-status/:intentId
- *
- * Polling endpoint used by the frontend while a card payment is in progress.
- * Returns the current status of the intent.
- *
- * After a short delay, also queries the Paymob API directly as a webhook
- * fallback (in case the server-to-server callback never arrives).
- */
 router.get("/orders/paymob-status/:intentId", async (req, res) => {
   const { intentId } = req.params;
-  if (!intentId) {
+
+  if (!intentId || typeof intentId !== "string") {
     res.status(400).json({ error: "Missing intentId" });
     return;
   }
@@ -48,37 +39,88 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
   const { status, paymobTxnId, shopifyOrderId, shopifyOrderNumber, createdAt } = rows[0];
   res.setHeader("Cache-Control", "no-store");
 
-  // Fast path: already resolved
+  // Fast path: already resolved by webhook or a prior direct lookup.
   if (status !== "pending") {
-    res.json({ status, paymobTxnId: paymobTxnId ?? null, shopifyOrderId: shopifyOrderId ?? null, shopifyOrderNumber: shopifyOrderNumber ?? null });
+    res.json({
+      status,
+      paymobTxnId: paymobTxnId ?? null,
+      shopifyOrderId: shopifyOrderId ?? null,
+      shopifyOrderNumber: shopifyOrderNumber ?? null,
+    });
     return;
   }
 
-  // Fallback: query Paymob directly if the webhook hasn't arrived yet (rate-limited)
+  // Fallback: if the intent has been pending for > 8 seconds and the webhook has
+  // not arrived yet (common during development or if Paymob cannot reach our URL),
+  // query Paymob directly. Rate-limited to once per 5 s per intent to avoid hammering
+  // their API during the 200 ms polling interval.
   const ageMs = Date.now() - new Date(createdAt).getTime();
-  if (ageMs > MIN_AGE_MS) {
-    const lastLookup = _lastLookup.get(intentId) ?? 0;
-    if (Date.now() - lastLookup > LOOKUP_RATE_MS) {
-      _lastLookup.set(intentId, Date.now());
-      const result = await queryTransactionByMerchantOrderId(intentId).catch(() => null);
+  // 1 s delay so the lookup fires quickly if polling continues after the postMessage.
+  // The frontend also calls /paymob-sync directly on success, so this is a fallback.
+  const DIRECT_LOOKUP_DELAY_MS = 1_000;
+  // Increased to 15 s — each check now makes 2 Paymob API calls (order search +
+  // transaction list), so we keep this conservative to avoid rate-limiting.
+  const DIRECT_LOOKUP_RATE_MS = 15_000;
+
+  if (ageMs > DIRECT_LOOKUP_DELAY_MS) {
+    const lastLookup = _lastDirectLookup.get(intentId) ?? 0;
+    if (Date.now() - lastLookup > DIRECT_LOOKUP_RATE_MS) {
+      _lastDirectLookup.set(intentId, Date.now());
+      const result = await queryPaymobByMerchantOrderId(intentId).catch(() => null);
 
       if (result !== null) {
         if (result.success) {
-          req.log.info({ intentId, txnId: result.txnId }, "paymob-status: direct lookup — successful payment");
-          await processPaymobSuccess({ intentId, paymobTxnId: result.txnId, amountCents: result.amountCents })
-            .catch((err: unknown) => req.log.error({ err, intentId }, "paymob-status: processPaymobSuccess error"));
-          const updated = await db
-            .select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
-            .from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
-          const row = updated[0];
-          res.json({ status: "completed", paymobTxnId: result.txnId, shopifyOrderId: row?.shopifyOrderId ?? null, shopifyOrderNumber: row?.shopifyOrderNumber ?? null });
+          req.log.info(
+            { intentId, txnId: result.txnId, amountCents: result.amountCents },
+            "paymob-status: direct lookup found successful payment — processing order",
+          );
+          // Update customer from Apple Pay billing_data if available
+          if (result.billingData) {
+            const applePayCustomer = mapPaymobBillingToCustomer(result.billingData);
+            await db.update(paymobIntents)
+              .set({ customer: applePayCustomer as unknown as Record<string, unknown> })
+              .where(eq(paymobIntents.intentId, intentId))
+              .catch((err: unknown) => req.log.warn({ err, intentId }, "paymob-status: failed to update customer from billing_data"));
+          }
+          const paymentChannelStatus = result.sourceDataSubType?.toUpperCase() === "APPLE_PAY" ? "apple-pay" as const : "card" as const;
+          // Process the successful payment: creates Shopify order, sends
+          // confirmation email + WhatsApp, marks intent completed. Idempotent.
+          await processPaymobSuccess({
+            intentId,
+            paymobTxnId: result.txnId,
+            amountCents: result.amountCents,
+            paymentChannel: paymentChannelStatus,
+          }).catch((err: unknown) =>
+            req.log.error({ err, intentId }, "paymob-status: processPaymobSuccess error"),
+          );
+          // Fetch updated order details to return to the client
+          const updatedRows = await db
+            .select({
+              shopifyOrderId: paymobIntents.shopifyOrderId,
+              shopifyOrderNumber: paymobIntents.shopifyOrderNumber,
+            })
+            .from(paymobIntents)
+            .where(eq(paymobIntents.intentId, intentId))
+            .limit(1);
+          const updated = updatedRows[0];
+          res.json({
+            status: "completed",
+            paymobTxnId: result.txnId,
+            shopifyOrderId: updated?.shopifyOrderId ?? null,
+            shopifyOrderNumber: updated?.shopifyOrderNumber ?? null,
+          });
         } else {
-          req.log.info({ intentId, txnId: result.txnId }, "paymob-status: direct lookup — declined payment");
+          req.log.info(
+            { intentId, txnId: result.txnId },
+            "paymob-status: direct lookup found declined payment",
+          );
           await db
             .update(paymobIntents)
             .set({ status: "declined", paymobTxnId: result.txnId })
             .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "pending")))
-            .catch((err: unknown) => req.log.error({ err, intentId }, "paymob-status: failed to mark declined"));
+            .catch((err: unknown) =>
+              req.log.error({ err, intentId }, "paymob-status: failed to mark intent declined"),
+            );
           res.json({ status: "declined", paymobTxnId: result.txnId });
         }
         return;

@@ -233,7 +233,6 @@ export async function createBostaShipment(params: {
   city: string;
   orderReference: string;
   codAmount?: number;
-  items?: { title: string; variant_title: string | null; quantity: number }[];
 }): Promise<string | null> {
   const apiKey = process.env.BOSTA_API_KEY;
   if (!apiKey) {
@@ -263,12 +262,7 @@ export async function createBostaShipment(params: {
           lastName: params.lastName,
           phone: formatted,
         },
-        notes: [
-          `Moi Order ${params.orderReference}`,
-          ...(params.items && params.items.length > 0
-            ? [params.items.map((i) => `${i.variant_title ?? i.title} x${i.quantity}`).join(", ")]
-            : []),
-        ].join(" — "),
+        notes: `Moi Order ${params.orderReference}`,
         ...(params.codAmount && params.codAmount > 0 ? { cod: params.codAmount } : {}),
       }),
     });
@@ -443,69 +437,35 @@ export async function findOrderByTrackingNote(
 
 export async function createShopifyFulfillment(
   orderId: number,
-  trackingNumber?: string,
+  trackingNumber: string,
 ): Promise<number | null> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return null;
 
   try {
-    // Shopify 2022-07+ requires line_items_by_fulfillment_order so items appear
-    // on the fulfillment. First fetch the order's open fulfillment orders.
-    const foRes = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/fulfillment_orders.json`,
-      { headers: { "X-Shopify-Access-Token": adminToken } },
-    );
-    type FulfillmentOrderLine = { id: number; quantity: number };
-    type FulfillmentOrder = { id: number; status: string; line_items: FulfillmentOrderLine[] };
-    const foData = foRes.ok
-      ? (await foRes.json() as { fulfillment_orders: FulfillmentOrder[] })
-      : null;
-
-    const openFOs = foData?.fulfillment_orders.filter((fo) => fo.status === "open") ?? [];
-
-    const fulfillmentBody: Record<string, unknown> = {
-      notify_customer: false,
-    };
-
-    if (openFOs.length > 0) {
-      fulfillmentBody.line_items_by_fulfillment_order = openFOs.map((fo) => ({
-        fulfillment_order_id: fo.id,
-        fulfillment_order_line_items: fo.line_items.map((li) => ({
-          id: li.id,
-          quantity: li.quantity,
-        })),
-      }));
-    }
-
-    if (trackingNumber) {
-      fulfillmentBody.tracking_info = {
-        number: trackingNumber,
-        company: "Bosta",
-        url: `https://app.bosta.co/track-order/${trackingNumber}`,
-      };
-    }
-
     const res = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/fulfillments.json`,
+      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/fulfillments.json`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Shopify-Access-Token": adminToken,
         },
-        body: JSON.stringify({ fulfillment: fulfillmentBody }),
+        body: JSON.stringify({
+          fulfillment: {
+            tracking_number: trackingNumber,
+            tracking_company: "Bosta",
+            tracking_url: `https://app.bosta.co/track-order/${trackingNumber}`,
+            notify_customer: false,
+          },
+        }),
       },
     );
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      logger.warn({ orderId, status: res.status, errText }, "createShopifyFulfillment: Shopify returned error");
-      return null;
-    }
+    if (!res.ok) return null;
     const data = await res.json() as { fulfillment: { id: number } };
     return data.fulfillment.id;
-  } catch (err) {
-    logger.warn({ err, orderId }, "createShopifyFulfillment: unexpected error");
+  } catch {
     return null;
   }
 }

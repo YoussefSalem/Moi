@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
-import { ENABLE_CARD_PAYMENTS } from "@/config/features";
+import { PaymobApplePayButton } from "./PaymobApplePayButton";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -135,12 +135,7 @@ function resolveEmailImage(line: ShopifyCartLine, localItems?: { variantId: stri
   return null;
 }
 
-type PaymentMethod = "cod" | "instapay" | "card";
-const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = [
-  "cod",
-  "instapay",
-  ...(ENABLE_CARD_PAYMENTS ? ["card" as PaymentMethod] : []),
-];
+type PaymentMethod = "cod" | "instapay" | "card" | "apple-pay";
 type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
 type InstapaySubStep = "instructions" | "upload" | "review";
 
@@ -322,6 +317,7 @@ export function CheckoutPage() {
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
   const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
+  const [applePayData, setApplePayData] = useState<{ clientSecret: string; publicKey: string; intentId: string } | null>(null);
   const [paymentTimerActive, setPaymentTimerActive] = useState(false);
   const [paymentTimerKey, setPaymentTimerKey] = useState(0);
   const [sessionRefreshed, setSessionRefreshed] = useState(false);
@@ -353,6 +349,7 @@ export function CheckoutPage() {
         setStep("form");
         setOrderResult(null);
         setPaymobIframeUrl(null);
+        setApplePayData(null);
         setPaymentMethod("cod");
         setSubmitError("");
         closeCheckout();
@@ -362,11 +359,138 @@ export function CheckoutPage() {
     return () => window.removeEventListener("popstate", onPopState);
   }, [checkoutOpen, closeCheckout]);
 
+  // Direct Apple Pay fast-path: skip the email + form steps entirely.
+  // Called immediately when checkout is opened via the "Buy with Apple Pay" button.
+  const triggerApplePayDirectInit = useCallback(async () => {
+    const orderLines = isShopify && shopifyCart
+      ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
+      : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
+
+    if (orderLines.length === 0) return;
+
+    const subTotal = isShopify && shopifyCart
+      ? shopifyCart.lines.nodes.reduce((s, l) => s + parseFloat(l.merchandise.price.amount) * l.quantity, 0)
+      : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
+    const cartDiscounted = isShopify && shopifyCart
+      ? parseFloat(shopifyCart.cost.totalAmount.amount)
+      : subTotal;
+    const savingsAmt = Math.max(0, subTotal - cartDiscounted);
+    const discSubtotal = subTotal - savingsAmt;
+    const isFreeShipping = discSubtotal >= 2000;
+    const shippingAmt = isFreeShipping ? 0 : SHIPPING_EGP;
+    const total = discSubtotal + shippingAmt;
+
+    setPaymentMethod("apple-pay");
+    setStep("loading");
+
+    try {
+      const formCustomer = form.firstName.trim() && form.phone.trim() ? {
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim() || undefined,
+        address: form.address.trim() || "NA",
+        city: form.city.trim() || "Cairo",
+        governorate: form.governorate.trim() || "NA",
+      } : undefined;
+
+      const res = await fetch("/api/orders/paymob-apple-pay-init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lines: orderLines,
+          cartId: isShopify ? (shopifyCart?.id ?? null) : null,
+          totalAmountCents: Math.round(total * 100),
+          discountCode: promoApplied?.code ?? null,
+          attribution: buildOrderAttribution(),
+          checkoutToken: shopifyCheckoutToken ?? null,
+          ...(formCustomer ? { customer: formCustomer } : {}),
+        }),
+      });
+
+      const data = await res.json() as { clientSecret?: string; publicKey?: string; intentId?: string; total?: string; error?: string };
+
+      if (!res.ok || !data.clientSecret || !data.publicKey || !data.intentId) {
+        setSubmitError(data.error ?? "Apple Pay is unavailable right now. Please try another payment method.");
+        setStep("form");
+        return;
+      }
+
+      const resolvedTotal = data.total ?? `${Math.round(total)} EGP`;
+      setBreakdownSnapshot({ subtotal: subTotal, savings: savingsAmt, shippingCost: shippingAmt, freeShipping: isFreeShipping });
+
+      const cartItemsSnapshot = isShopify && shopifyCart
+        ? shopifyCart.lines.nodes.map((l) => ({
+            id: l.id,
+            title: l.merchandise.product.title,
+            variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
+            quantity: l.quantity,
+            image: resolveLineImage(l, localItems),
+            price: formatShopifyLinePrice(l),
+          }))
+        : localItems.map((i) => ({
+            id: i.id,
+            title: i.title,
+            variantTitle: null,
+            quantity: i.quantity,
+            image: i.image ?? null,
+            price: i.price,
+          }));
+
+      setOrderResult({ orderNumber: "", total: resolvedTotal, intentId: data.intentId, items: cartItemsSnapshot.length > 0 ? cartItemsSnapshot : undefined });
+      paymobTrackedRef.current = false;
+      setApplePayData({ clientSecret: data.clientSecret, publicKey: data.publicKey, intentId: data.intentId });
+
+      if (data.intentId) {
+        sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
+        sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
+        sessionStorage.setItem("moi_paymob_breakdown", JSON.stringify({ subtotal: subTotal, savings: savingsAmt, shippingCost: shippingAmt, freeShipping: isFreeShipping }));
+        if (cartItemsSnapshot.length > 0) {
+          sessionStorage.setItem("moi_paymob_items", JSON.stringify(cartItemsSnapshot));
+        }
+      }
+      setStep("form");
+    } catch {
+      setSubmitError("Network error. Please check your connection and try again.");
+      setStep("form");
+    }
+  }, [isShopify, shopifyCart, localItems, promoApplied, shopifyCheckoutToken, formatShopifyLinePrice, form]);
 
   useEffect(() => {
     if (!checkoutOpen && prefilledEmail) return;
     if (!checkoutOpen) return;
 
+    const applePayResultRaw = sessionStorage.getItem("moi_apple_pay_result");
+    if (applePayResultRaw) {
+      sessionStorage.removeItem("moi_apple_pay_result");
+      try {
+        const result = JSON.parse(applePayResultRaw) as {
+          txnId?: string;
+          shopifyOrderId?: number;
+          shopifyOrderNumber?: number;
+          total?: string;
+          intentId?: string;
+          items?: OrderResult["items"];
+        };
+        setOrderResult({
+          orderNumber: result.shopifyOrderNumber ?? result.shopifyOrderId ?? "",
+          total: result.total ?? "",
+          intentId: result.intentId,
+          paymobTxnId: result.txnId,
+          shopifyOrderId: result.shopifyOrderId ?? null,
+          shopifyOrderNumber: result.shopifyOrderNumber,
+          items: result.items,
+        });
+        setStep("card-confirm");
+      } catch { /* ignore parse errors */ }
+      return;
+    }
+
+    const preferred = sessionStorage.getItem("moi_preferred_payment");
+    if (preferred === "apple-pay") {
+      sessionStorage.removeItem("moi_preferred_payment");
+      setPaymentMethod("apple-pay");
+    }
   }, [checkoutOpen]);
 
   useEffect(() => {
@@ -566,12 +690,6 @@ export function CheckoutPage() {
 
     // Card payment: call paymob-init → embed Paymob hosted checkout in-page via iframe
     if (paymentMethod === "card") {
-      if (!ENABLE_CARD_PAYMENTS) {
-        submittingRef.current = false;
-        setSubmitError("Card payments are temporarily unavailable. Please choose another payment method.");
-        setStep("form");
-        return;
-      }
       try {
         const res = await fetch("/api/orders/paymob-init", {
           method: "POST",
@@ -650,6 +768,14 @@ export function CheckoutPage() {
         setSubmitError("Network error. Please check your connection and try again.");
       }
       submittingRef.current = false;
+      return;
+    }
+
+    // Apple Pay is handled by the native "Buy with Apple Pay" button above — never redirect to Shopify.
+    if (paymentMethod === "apple-pay") {
+      submittingRef.current = false;
+      setSubmitError("Please tap the Apple Pay button above to complete your purchase.");
+      setStep("form");
       return;
     }
 
@@ -960,6 +1086,10 @@ export function CheckoutPage() {
     }
   }, [clearCart, markAbandonedCartRecovered, isShopify, shopifyCart, localItems, totalAmount]);
 
+  const handleShopifyApplePaySuccess = useCallback((orderNumber: number | null) => {
+    handleIframeSuccess(undefined, null, orderNumber ?? null);
+  }, [handleIframeSuccess]);
+
   const handleIframeFail = useCallback(() => {
     setPaymentTimerActive(false);
     setPaymobIframeUrl(null);
@@ -970,8 +1100,64 @@ export function CheckoutPage() {
     refreshSessionRef.current();
   }, []);
 
+  const handleApplePayFail = useCallback(() => {
+    setApplePayData(null);
+    setSubmitError("Apple Pay payment was declined or cancelled. Please try again.");
+    setStep("form");
+    submittingRef.current = false;
+  }, []);
+
+  const handleApplePaySuccess = useCallback((txnId: string) => {
+    const intentId = applePayData?.intentId;
+    setApplePayData(null);
+    if (!intentId) {
+      handleApplePayFail();
+      return;
+    }
+
+    type SyncResult = { status?: string; paymobTxnId?: string; shopifyOrderId?: number | null; shopifyOrderNumber?: number | null };
+
+    const syncOnce = async (): Promise<SyncResult | null> => {
+      try {
+        const r = await fetch("/api/orders/paymob-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intentId, ...(txnId ? { paymobTxnId: txnId } : {}) }),
+        });
+        if (!r.ok) return null;
+        return (await r.json()) as SyncResult;
+      } catch {
+        return null;
+      }
+    };
+
+    const run = async () => {
+      const maxAttempts = 5;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const d = await syncOnce();
+        if (d?.status === "completed") {
+          handleIframeSuccess(d.paymobTxnId ?? txnId ?? undefined, d.shopifyOrderId ?? null, d.shopifyOrderNumber ?? null);
+          return;
+        }
+        if (d?.status === "declined") {
+          handleApplePayFail();
+          return;
+        }
+        if (attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      }
+      setSubmitError("Your Apple Pay payment is processing. If it doesn't confirm shortly, please check your email or contact us before retrying.");
+      setStep("form");
+      submittingRef.current = false;
+    };
+
+    void run();
+  }, [applePayData, handleIframeSuccess, handleApplePayFail]);
+
   const handleCancelCardCheckout = useCallback(() => {
     setPaymobIframeUrl(null);
+    setApplePayData(null);
     setStep("form");
     setPaymentMethod("card");
     submittingRef.current = false;
@@ -1234,7 +1420,7 @@ export function CheckoutPage() {
 
   const isSuccessStep = step === "cod-confirm" || step === "card-confirm";
   const isConfirmStep = isSuccessStep || step === "instapay-confirm" || step === "card-failed";
-  const isCardCheckoutStep = step === "card-checkout" || (step === "form" && !!paymobIframeUrl);
+  const isCardCheckoutStep = step === "card-checkout" || (step === "form" && !!(paymobIframeUrl || applePayData));
   const loadingText = paymentMethod === "card" ? "Preparing payment…" : "Placing your order…";
 
   return (
@@ -1410,48 +1596,64 @@ export function CheckoutPage() {
 
                 {/* Card / Apple Pay iframe section */}
                 {(true) && (
-                  <>
+                  <div>
                 {/* Payment method header */}
                 <div className="mb-5">
                   <div className="flex items-center gap-3 mb-4">
-                    <svg width="34" height="24" viewBox="0 0 34 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-                      <rect x="0.5" y="0.5" width="33" height="23" rx="3.5" stroke="rgba(30,24,20,0.22)" fill="rgba(30,24,20,0.03)"/>
-                      <rect x="9" y="7" width="16" height="10" rx="1.5" fill="rgba(30,24,20,0.15)" stroke="rgba(30,24,20,0.2)" strokeWidth="0.75"/>
-                      <line x1="9" y1="12" x2="25" y2="12" stroke="rgba(30,24,20,0.16)" strokeWidth="0.75"/>
-                      <line x1="17" y1="7" x2="17" y2="17" stroke="rgba(30,24,20,0.16)" strokeWidth="0.75"/>
-                    </svg>
+                    {paymentMethod === "apple-pay" ? (
+                      <svg viewBox="0 0 814 1000" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#1e1814" style={{ flexShrink: 0 }}>
+                        <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.1-38.8-168.4-103.1c-73.9-71.9-134.6-183.3-134.6-290.9 0-195.3 129.4-298.5 256.8-298.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/>
+                      </svg>
+                    ) : (
+                      <svg width="34" height="24" viewBox="0 0 34 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                        <rect x="0.5" y="0.5" width="33" height="23" rx="3.5" stroke="rgba(30,24,20,0.22)" fill="rgba(30,24,20,0.03)"/>
+                        <rect x="9" y="7" width="16" height="10" rx="1.5" fill="rgba(30,24,20,0.15)" stroke="rgba(30,24,20,0.2)" strokeWidth="0.75"/>
+                        <line x1="9" y1="12" x2="25" y2="12" stroke="rgba(30,24,20,0.16)" strokeWidth="0.75"/>
+                        <line x1="17" y1="7" x2="17" y2="17" stroke="rgba(30,24,20,0.16)" strokeWidth="0.75"/>
+                      </svg>
+                    )}
                     <div>
                       <p style={{ fontSize: "10px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", marginBottom: "2px" }}>
                         Payment
                       </p>
                       <p style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
-                        Credit / Debit Card
+                        {paymentMethod === "apple-pay" ? "Apple Pay" : "Credit / Debit Card"}
                       </p>
                     </div>
                   </div>
                   <div style={{ height: "1px", backgroundColor: "rgba(30,24,20,0.13)" }} />
                 </div>
 
-                {/* Payment surface — card iframe */}
-                <div style={{ borderRadius: "16px", overflow: "hidden" }}>
-                  <div className="max-h-[715px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
-                    <PaymobIframe
-                      url={paymobIframeUrl}
-                      intentId={orderResult?.intentId}
-                      onSuccess={handleIframeSuccess}
-                      onFail={handleIframeFail}
-                    />
-                    <div style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: 20,
-                      background: "linear-gradient(to bottom, rgba(250,248,245,0), rgba(250,248,245,1))",
-                      pointerEvents: "none",
-                    }} />
+                {/* Payment surface — native Apple Pay button (Pixel SDK) or card iframe */}
+                {applePayData ? (
+                  <PaymobApplePayButton
+                    clientSecret={applePayData.clientSecret}
+                    publicKey={applePayData.publicKey}
+                    intentId={applePayData.intentId}
+                    onSuccess={handleApplePaySuccess}
+                    onFail={handleApplePayFail}
+                  />
+                ) : (
+                  <div style={{ borderRadius: "16px", overflow: "hidden" }}>
+                    <div className="max-h-[715px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
+                      <PaymobIframe
+                        url={paymobIframeUrl}
+                        intentId={orderResult?.intentId}
+                        onSuccess={handleIframeSuccess}
+                        onFail={handleIframeFail}
+                      />
+                      <div style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 20,
+                        background: "linear-gradient(to bottom, rgba(250,248,245,0), rgba(250,248,245,1))",
+                        pointerEvents: "none",
+                      }} />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Security badge */}
                 <div className="mt-4 flex flex-col items-center gap-3">
@@ -1461,6 +1663,7 @@ export function CheckoutPage() {
                       Secured by Paymob · 256-bit SSL
                     </p>
                   </div>
+                  {!applePayData && (
                   <button
                     onClick={() => {
                       if (paymobIframeUrl) {
@@ -1482,11 +1685,12 @@ export function CheckoutPage() {
                   >
                     Payment stuck? Open in new window
                   </button>
+                  )}
                 </div>
-              </>
-            )}
-            </div>
-          </motion.div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
           ) : step === "loading" ? (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5">
               <motion.div
@@ -1773,7 +1977,7 @@ export function CheckoutPage() {
                   Payment Method
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-8">
-                  {AVAILABLE_PAYMENT_METHODS.map((m) => (
+                  {(["cod", "instapay", "card"] as PaymentMethod[]).map((m) => (
                     <button
                       key={m}
                       onClick={() => setPaymentMethod(m)}
@@ -1795,10 +1999,38 @@ export function CheckoutPage() {
                       </p>
                     </button>
                   ))}
+                  {/* Apple Pay tile — redirects to Shopify hosted checkout (handles Apple Pay via Paymob) */}
+                  {typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && checkoutUrl && (
+                    <button
+                      type="button"
+                      onClick={() => { window.location.href = checkoutUrl; }}
+                      className="text-left transition-all"
+                      style={{
+                        padding: "14px 12px",
+                        border: paymentMethod === "apple-pay" ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.15)",
+                        backgroundColor: paymentMethod === "apple-pay" ? "rgba(30,24,20,0.03)" : "transparent",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0,
+                      }}
+                    >
+                      <div style={{ marginBottom: "5px" }}>
+                        <svg viewBox="0 0 814 1000" xmlns="http://www.w3.org/2000/svg" width="17" height="17" fill="#1e1814">
+                          <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.1-38.8-168.4-103.1c-73.9-71.9-134.6-183.3-134.6-290.9 0-195.3 129.4-298.5 256.8-298.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/>
+                        </svg>
+                      </div>
+                      <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
+                        Apple Pay
+                      </p>
+                      <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", marginTop: "3px", lineHeight: 1.4 }}>
+                        Touch ID · Face ID
+                      </p>
+                    </button>
+                  )}
                 </div>
 
-                {/* Delivery Details */}
-                {(<>
+                {/* Delivery form — hidden when Apple Pay is selected */}
+                {paymentMethod !== "apple-pay" && (<>
                 <p style={{ fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
                   Delivery Details
                 </p>
@@ -2663,43 +2895,6 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
     showOverlay();
   }, [showOverlay, onFail]);
 
-  // Shows a "3D Secure Required" overlay with a button that opens the ACS challenge in a popup.
-  // Using a popup (instead of navigating the iframe) avoids X-Frame-Options blocks from bank ACS pages.
-  // After 3DS completes, Paymob redirects the popup to our relay page which uses window.opener
-  // to postMessage PAYMOB_RESULT back to this window.
-  const show3DSOverlay = useCallback((acsUrl: string) => {
-    if (overlayInnerRef.current) {
-      overlayInnerRef.current.innerHTML =
-        '<div style="width:72px;height:72px;border-radius:50%;background:rgba(30,24,20,0.07);display:flex;align-items:center;justify-content:center;margin-bottom:18px;flex-shrink:0">' +
-          '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e1814" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
-        '</div>' +
-        '<p style="font-size:15px;letter-spacing:0.3em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:700;margin-bottom:14px">3D Secure</p>' +
-        '<p style="font-size:13px;color:rgba(30,24,20,0.6);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:300px;line-height:1.85;margin-bottom:24px">Your bank requires additional verification.<br>Click below to complete the<br>secure authentication step.</p>' +
-        '<button id="tds-cta" style="background:#1e1814;color:#faf8f5;border:none;padding:14px 32px;font-family:\'Montserrat\',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;cursor:pointer;margin-bottom:14px;width:100%;max-width:300px">Complete Verification →</button>' +
-        '<p id="tds-hint" style="font-size:11px;color:rgba(30,24,20,0.38);font-family:\'Montserrat\',sans-serif;letter-spacing:0.06em;text-align:center">Opens in a new window</p>';
-
-      const inner = overlayInnerRef.current;
-      const btnEl = inner.querySelector<HTMLElement>('#tds-cta');
-      if (btnEl) {
-        btnEl.addEventListener('click', () => {
-          const popup = window.open(acsUrl, 'paymob_3ds', 'width=520,height=700,scrollbars=yes,resizable=yes,toolbar=no,menubar=no');
-          if (!popup) {
-            // Popup was blocked — show a direct anchor link as fallback
-            const hintEl = inner.querySelector<HTMLElement>('#tds-hint');
-            if (hintEl) {
-              hintEl.innerHTML = '<a href="' + acsUrl.replace(/"/g, '&quot;') + '" target="_blank" rel="noopener" style="color:#1e1814;letter-spacing:0.06em;font-size:11px;text-underline-offset:3px;text-decoration:underline">Verification window blocked — click to open manually</a>';
-            }
-          } else {
-            if (btnEl) btnEl.textContent = 'Verification window opened…';
-            const hintEl = inner.querySelector<HTMLElement>('#tds-hint');
-            if (hintEl) hintEl.textContent = 'Complete the step in the new window, then return here';
-          }
-        });
-      }
-    }
-    showOverlay();
-  }, [showOverlay]);
-
   const stopPolling = useCallback(() => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
@@ -2882,7 +3077,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
       }
 
       // Paymob inline postMessage — legacy v1 sends success as a string ("true"/"false"),
-      // Unified Checkout (also on accept.paymob.com) sends a boolean. Accept both.
+      // Unified Checkout sends a boolean. Accept both.
       if (isPaymob && ("success" in data)) {
         const rawSuccess = data["success"];
         const isSuccess = rawSuccess === true || rawSuccess === "true";
@@ -2929,19 +3124,11 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
               resolvedRef.current = false;
               // Cancel any pending blur-debounce timer — 3DS is underway, not a failure.
               if (blurDebounceRef.current) { clearTimeout(blurDebounceRef.current); blurDebounceRef.current = null; }
-              const acsUrl = data["redirection_url"];
-              if (typeof acsUrl === "string" && acsUrl) {
-                // Open 3DS challenge in a popup to avoid X-Frame-Options restrictions on
-                // bank ACS pages. The relay page (window.opener) will postMessage
-                // PAYMOB_RESULT back to this window when 3DS completes.
-                // Do NOT navigate the iframe — keep it showing so the overlay renders
-                // correctly above it without triggering handleIframeLoad.
-                show3DSOverlay(acsUrl);
-              } else {
-                // No ACS URL provided — Paymob may handle the redirect internally.
-                // Show a processing overlay and wait for the next postMessage or polling.
-                tempOverlayRef.current = true;
-                showOverlay();
+              tempOverlayRef.current = true;
+              showOverlay();
+              const redirectionUrl = data["redirection_url"];
+              if (typeof redirectionUrl === "string" && redirectionUrl && iframeRef.current) {
+                iframeRef.current.src = redirectionUrl;
               }
             }
           }
@@ -2952,7 +3139,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [intentId, showOverlay, show3DSOverlay, showOverlaySuccess, showOverlayPending, showOverlayFail, stopPolling]);
+  }, [intentId, showOverlay, showOverlaySuccess, showOverlayPending, showOverlayFail, stopPolling]);
 
   return (
     <div style={{ position: "relative", width: "100%" }}>
@@ -3145,4 +3332,3 @@ function PaymentSessionTimer({ active, onExpire, onTryAgain }: PaymentSessionTim
     </div>
   );
 }
-

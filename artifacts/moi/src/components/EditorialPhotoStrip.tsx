@@ -90,7 +90,7 @@ export function EditorialPhotoStrip() {
         className="text-center text-[9px] tracking-[0.55em] uppercase mb-5"
         style={{ color: "rgba(120,108,96,0.6)", fontFamily: "'Montserrat', sans-serif" }}
       >
-        The Collections
+        The Collection
       </motion.p>
 
       {/* Scrollable strip with arrow nav (desktop) */}

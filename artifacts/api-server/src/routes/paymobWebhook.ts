@@ -1,21 +1,12 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
-import { verifyPaymobHmac, extractWebhookTxn } from "../lib/paymob";
+import { verifyPaymobHmac, extractPaymobTxn, mapPaymobBillingToCustomer, type PaymobBillingData } from "../lib/paymob";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
 import { processPaymobSuccess } from "../lib/processPaymobSuccess";
 
 const router: IRouter = Router();
 
-/**
- * POST /api/webhooks/paymob
- *
- * Receives Paymob server-to-server payment notifications.
- * - Verifies HMAC signature
- * - Ignores pending/3DS intermediate notifications
- * - Marks declined payments
- * - Triggers Shopify order creation for successful payments
- */
 router.post("/webhooks/paymob", async (req, res) => {
   const rawBody = req.body as Buffer;
 
@@ -27,62 +18,100 @@ router.post("/webhooks/paymob", async (req, res) => {
     return;
   }
 
-  // Verify HMAC signature — reject invalid or unsigned requests
-  const hmac = (req.query.hmac ?? req.headers["x-paymob-hmac"]) as string | undefined;
-  if (!hmac) {
-    req.log.warn("paymob-webhook: missing HMAC");
+  const hmacParam = (req.query.hmac ?? req.headers["x-paymob-hmac"]) as string | undefined;
+
+  if (!hmacParam) {
+    req.log.warn("Paymob webhook: missing hmac");
     res.status(401).json({ error: "Missing HMAC" });
     return;
   }
-  if (!verifyPaymobHmac(payload, hmac)) {
-    req.log.warn("paymob-webhook: invalid HMAC");
+
+  if (!verifyPaymobHmac(payload, hmacParam)) {
+    req.log.warn("Paymob webhook: HMAC verification failed");
     res.status(401).json({ error: "Invalid HMAC" });
     return;
   }
 
-  // Respond immediately — process asynchronously so Paymob doesn't time out
+  // Respond immediately — process async
   res.status(200).json({ ok: true });
 
-  const txn = extractWebhookTxn(payload);
-  const orderObj = txn.order && typeof txn.order === "object" ? (txn.order as Record<string, unknown>) : null;
+  // Normalize payload: v1 has fields at top level; v2 (Unified Checkout) wraps them in `obj`
+  const txn = extractPaymobTxn(payload);
+
+  // merchant_order_id is our internal intent UUID (set at paymob-init time)
+  const orderObj = (txn.order && typeof txn.order === "object")
+    ? (txn.order as Record<string, unknown>)
+    : null;
   const intentId = String(txn.merchant_order_id ?? orderObj?.merchant_order_id ?? "");
   const paymobTxnId = String(txn.id ?? "");
 
-  // Skip intermediate 3DS notifications — pending=true means auth is still in progress
-  if (txn.pending === true) {
-    req.log.info({ intentId, paymobTxnId }, "paymob-webhook: pending/3DS — waiting for final result");
+  // Skip intermediate 3DS notifications — Paymob fires a webhook with
+  // success=false + pending=true while the cardholder is authenticating.
+  // Marking this as declined would kill the intent before 3DS completes.
+  const isPendingTxn = txn.pending === true;
+  if (isPendingTxn) {
+    req.log.info({ intentId, paymobTxnId }, "Paymob webhook: pending/3DS transaction — skipping (waiting for final result)");
     return;
   }
+
+  // Mark declined/voided transactions so the frontend polling can detect them.
+  const isFailure = txn.success !== true || txn.is_voided === true || txn.is_refunded === true;
+  if (isFailure) {
+    req.log.info({ success: txn.success, is_voided: txn.is_voided, intentId, paymobTxnId }, "Paymob webhook: failed/voided transaction — marking intent declined");
+    if (intentId && paymobTxnId) {
+      await db
+        .update(paymobIntents)
+        .set({ status: "declined", paymobTxnId })
+        .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "pending")))
+        .catch((err: unknown) => req.log.error({ err, intentId }, "Paymob webhook: failed to mark intent declined"));
+    }
+    return;
+  }
+
+  const amountCents = txn.amount_cents as number | undefined;
 
   if (!intentId || !paymobTxnId) {
-    req.log.error({ intentId, paymobTxnId }, "paymob-webhook: missing intentId or txnId");
+    req.log.error({ merchant_order_id: intentId, id: txn.id }, "Paymob webhook: missing intent or transaction ID");
     return;
   }
 
-  const isSuccess = txn.success === true && txn.is_voided !== true && txn.is_refunded !== true;
+  req.log.info({ intentId, paymobTxnId }, "Paymob webhook: processing successful payment");
 
-  if (!isSuccess) {
-    req.log.info({ intentId, paymobTxnId, success: txn.success }, "paymob-webhook: payment failed — marking declined");
-    await db
-      .update(paymobIntents)
-      .set({ status: "declined", paymobTxnId })
-      .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "pending")))
-      .catch((err: unknown) => req.log.error({ err, intentId }, "paymob-webhook: failed to mark declined"));
-    return;
+  // Extract Apple Pay billing data to populate customer info (shippingContact from Apple Pay sheet)
+  const webhookBillingData = txn.billing_data as PaymobBillingData | undefined;
+  const webhookSourceSubType = typeof (txn.source_data as Record<string, unknown> | undefined)?.sub_type === "string"
+    ? (txn.source_data as Record<string, unknown>).sub_type as string
+    : undefined;
+  const webhookIsApplePay = webhookSourceSubType?.toUpperCase() === "APPLE_PAY";
+
+  if (webhookBillingData && intentId) {
+    const applePayCustomer = mapPaymobBillingToCustomer(webhookBillingData);
+    if (applePayCustomer.firstName !== "NA" || applePayCustomer.email) {
+      await db.update(paymobIntents)
+        .set({ customer: applePayCustomer as unknown as Record<string, unknown> })
+        .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "pending")))
+        .catch((err: unknown) => req.log.warn({ err, intentId }, "Paymob webhook: failed to update customer from billing_data"));
+    }
   }
-
-  const amountCents = typeof txn.amount_cents === "number" ? txn.amount_cents : 0;
-  req.log.info({ intentId, paymobTxnId, amountCents }, "paymob-webhook: processing successful payment");
 
   try {
-    await processPaymobSuccess({ intentId, paymobTxnId, amountCents });
+    await processPaymobSuccess({
+      intentId,
+      paymobTxnId,
+      amountCents: typeof amountCents === "number" ? amountCents : 0,
+      paymentChannel: webhookIsApplePay ? "apple-pay" : "card",
+    });
   } catch (err) {
-    req.log.error({ err, intentId, paymobTxnId }, "paymob-webhook: processPaymobSuccess error");
-    await db
-      .update(paymobIntents)
-      .set({ status: "failed" })
-      .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "processing")))
-      .catch((dbErr) => req.log.error({ dbErr }, "paymob-webhook: failed to mark intent as failed"));
+    req.log.error({ err, intentId, paymobTxnId }, "Paymob webhook processing error");
+    // Prevent the intent from getting stuck in 'processing' — mark it failed so
+    // it surfaces for manual review and future retries are not silently dropped.
+    if (intentId) {
+      await db
+        .update(paymobIntents)
+        .set({ status: "failed" })
+        .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "processing")))
+        .catch((dbErr) => req.log.error({ dbErr }, "Paymob webhook: also failed to mark intent as failed"));
+    }
   }
 });
 
