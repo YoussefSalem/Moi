@@ -263,10 +263,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return resolvedCheckoutUrl;
   }, [ensureShopifyCart]);
 
-  // Express single-item checkout (e.g. Apple Pay): creates a brand-new, ephemeral
+  // Express single-item checkout: creates a brand-new, ephemeral
   // Shopify cart containing only this item and returns its checkoutUrl. The
-  // shopper's persistent cart is left untouched, so cancelling Apple Pay loses
-  // nothing. Avoids the clearCart()+addToCart() race (stale cart contents).
+  // shopper's persistent cart is left untouched.
+  // Avoids the clearCart()+addToCart() race (stale cart contents).
   const buyNowCheckoutUrl = useCallback(async (variantId: string, quantity = 1): Promise<string | null> => {
     if (!SHOPIFY_CONFIGURED || !variantId) return null;
     try {
