@@ -21,6 +21,7 @@ import analyticsRouter from "./analytics";
 import checkoutsRouter from "./checkouts";
 import abandonedCartsRouter from "./abandonedCarts";
 import metaCapiRouter from "./metaCapi";
+import anthropicRouter from "./anthropic/index";
 // import paymobApplePayInitRouter from "./paymobApplePayInit"; // disabled — Apple Pay off
 // import applePayDirectRouter from "./applePayDirect"; // disabled — Apple Pay off
 // import shopifyApplePayRouter from "./shopifyApplePay"; // disabled — Apple Pay off
@@ -52,6 +53,7 @@ router.use(analyticsRouter);
 router.use(checkoutsRouter);
 router.use(abandonedCartsRouter);
 router.use(metaCapiRouter);
+router.use(anthropicRouter);
 // router.use(paymobApplePayInitRouter); // disabled — Apple Pay off
 // router.use(applePayDirectRouter); // disabled — Apple Pay off
 
