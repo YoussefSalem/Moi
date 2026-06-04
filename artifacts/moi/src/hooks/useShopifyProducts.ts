@@ -84,7 +84,7 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
       }
       return fromShopify;
     })(),
-    defaultInventory: {
+    defaultInventory: fallback.defaultInventory ?? {
       brown: { Small: 10, Medium: 10 },
       taupe: { Small: 10, Medium: 10 },
       ivory: { Small: 10, Medium: 10 },
@@ -139,7 +139,36 @@ export function useShopifyProducts(fallbacks: ProductConfig[]): UseShopifyProduc
           ) ?? fallbacks.find((fb) =>
             fb.name && fb.name.toLowerCase().includes(spTitle)
           ) ?? fallbacks[0];
-          return mapProductToConfig(sp, matched);
+          let mapped = mapProductToConfig(sp, matched);
+          // Respect fallback out-of-stock flags. If ALL fallback variants are
+          // unavailable, force all Shopify variants as unavailable.
+          if (mapped.variants) {
+            const fallbackVariants = matched.variants ?? [];
+            const allFallbackUnavailable = fallbackVariants.length > 0 && fallbackVariants.every((v) => !v.availableForSale);
+            if (allFallbackUnavailable) {
+              mapped = {
+                ...mapped,
+                variants: mapped.variants.map((v) => ({ ...v, availableForSale: false })),
+              };
+            } else {
+              const fallbackUnavailableIds = new Set(
+                fallbackVariants
+                  .filter((v) => !v.availableForSale)
+                  .map((v) => v.id),
+              );
+              if (fallbackUnavailableIds.size > 0) {
+                mapped = {
+                  ...mapped,
+                  variants: mapped.variants.map((v) =>
+                    fallbackUnavailableIds.has(v.id)
+                      ? { ...v, availableForSale: false }
+                      : v,
+                  ),
+                };
+              }
+            }
+          }
+          return mapped;
         });
         setProducts(mapped);
         setLoading(false);
