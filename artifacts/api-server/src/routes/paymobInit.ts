@@ -2,19 +2,21 @@ import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
 import { getPaymobConfig } from "../lib/paymobConfig";
 import { createPaymobPaymentKey } from "../lib/paymob";
-import { fetchStorefrontCart, type OrderLine, type CustomerInfo, type OrderAttribution } from "../lib/shopifyOrder";
+import { type OrderLine, type CustomerInfo, type OrderAttribution } from "../lib/shopifyOrder";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
 
 const router: IRouter = Router();
-
-const SHIPPING_EGP = 50;
 
 /**
  * POST /api/orders/paymob-init
  *
  * Creates a Paymob payment key (legacy 3-step flow) for card payments.
  * Uses the iframe at accept.paymob.com/api/acceptance/iframes/{iframeId}.
+ *
+ * The total is provided by the client as `amountCents` (already computed from
+ * cart prices + discount + shipping). No Shopify Storefront API call is made
+ * here; the Shopify order is created via Admin API after payment confirmation.
  *
  * Returns { iframeUrl, intentId, total }.
  */
@@ -38,6 +40,7 @@ router.post("/orders/paymob-init", async (req, res) => {
     lines?: unknown;
     customer?: unknown;
     cartId?: unknown;
+    amountCents?: unknown;
     discountCode?: unknown;
     attribution?: unknown;
     checkoutToken?: unknown;
@@ -70,9 +73,16 @@ router.post("/orders/paymob-init", async (req, res) => {
     return;
   }
 
+  if (typeof body.amountCents !== "number" || !Number.isInteger(body.amountCents) || body.amountCents < 100) {
+    res.status(400).json({ error: "Invalid order amount." });
+    return;
+  }
+
   const lines = body.lines as OrderLine[];
+  const amountCents = body.amountCents;
+  const total = (amountCents / 100).toFixed(2);
   const discountCode = typeof body.discountCode === "string" && body.discountCode.trim() ? body.discountCode.trim() : undefined;
-  const cartId = typeof body.cartId === "string" && body.cartId.trim() ? body.cartId.trim() : undefined;
+  const cartId = typeof body.cartId === "string" && body.cartId.trim() ? body.cartId.trim() : null;
   const checkoutToken = typeof body.checkoutToken === "string" && body.checkoutToken.trim() ? body.checkoutToken.trim() : null;
 
   let attribution: OrderAttribution | undefined;
@@ -93,34 +103,6 @@ router.post("/orders/paymob-init", async (req, res) => {
     if (Object.keys(attribution).length === 0) attribution = undefined;
   }
 
-  if (!cartId) {
-    res.status(400).json({ error: "Cart ID is required for card payments." });
-    return;
-  }
-
-  req.log.info({ lineCount: lines.length }, "Paymob init — computing total from Storefront cart");
-
-  const cart = await fetchStorefrontCart(cartId);
-  if (!cart) {
-    res.status(400).json({ error: "Could not load your cart. Please try again." });
-    return;
-  }
-
-  if (discountCode && cart.discountCodes.length > 0) {
-    const applicable = cart.discountCodes.find((d) => d.applicable);
-    if (!applicable) {
-      res.status(422).json({ error: `Discount code "${discountCode}" is not applicable to this order.` });
-      return;
-    }
-  }
-
-  const cartTotalEGP = cart.totalAmount;
-  const isFreeShipping = cartTotalEGP >= 2000;
-  const shippingEGP = isFreeShipping ? 0 : SHIPPING_EGP;
-  const totalEGP = cartTotalEGP + shippingEGP;
-  const amountCents = Math.round(totalEGP * 100);
-  const total = totalEGP.toFixed(2);
-
   const intentId = randomUUID();
 
   await db.insert(paymobIntents).values({
@@ -140,8 +122,6 @@ router.post("/orders/paymob-init", async (req, res) => {
 
   const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
   const redirectionUrl = domain ? `https://${domain}/paymob-relay.html` : undefined;
-  // Override the integration's default callback (shopify_callback) with our own
-  // webhook so Paymob notifies us directly rather than trying to update Shopify.
   const callbackUrl = domain ? `https://${domain}/api/webhooks/paymob` : undefined;
 
   let iframeUrl: string;
