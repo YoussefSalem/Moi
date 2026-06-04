@@ -728,6 +728,36 @@ export function CheckoutPage() {
                   <motion.div key="form" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.35 }}>
                     <div className="space-y-12">
                       <section>
+                        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "28px", fontWeight: 500, color: "#1e1814", marginBottom: "32px" }}>Payment Method</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <motion.button
+                            onClick={() => setPaymentMethod("cod")}
+                            whileTap={{ scale: 0.98 }}
+                            style={{
+                              padding: "24px", textAlign: "left", border: "1px solid", transition: "all 0.2s",
+                              borderColor: paymentMethod === "cod" ? "#1e1814" : "rgba(30,24,20,0.12)",
+                              backgroundColor: paymentMethod === "cod" ? "rgba(30,24,20,0.02)" : "transparent",
+                            }}
+                          >
+                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>Cash on Delivery</p>
+                            <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Pay when you receive your order</p>
+                          </motion.button>
+                          <motion.button
+                            onClick={() => setPaymentMethod("instapay")}
+                            whileTap={{ scale: 0.98 }}
+                            style={{
+                              padding: "24px", textAlign: "left", border: "1px solid", transition: "all 0.2s",
+                              borderColor: paymentMethod === "instapay" ? "#1e1814" : "rgba(30,24,20,0.12)",
+                              backgroundColor: paymentMethod === "instapay" ? "rgba(30,24,20,0.02)" : "transparent",
+                            }}
+                          >
+                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>Instapay</p>
+                            <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Instant bank transfer (Requires proof)</p>
+                          </motion.button>
+                        </div>
+                      </section>
+
+                      <section>
                         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "28px", fontWeight: 500, color: "#1e1814", marginBottom: "32px" }}>Delivery Information</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
                           <div className="space-y-2">
@@ -770,34 +800,6 @@ export function CheckoutPage() {
                             <label style={labelStyle}>City / Area</label>
                             <input type="text" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} style={inputStyle} className="checkout-input" />
                           </div>
-                        </div>
-                      </section>
-
-                      <section>
-                        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "28px", fontWeight: 500, color: "#1e1814", marginBottom: "32px" }}>Payment Method</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <button
-                            onClick={() => setPaymentMethod("cod")}
-                            style={{
-                              padding: "24px", textAlign: "left", border: "1px solid", transition: "all 0.2s",
-                              borderColor: paymentMethod === "cod" ? "#1e1814" : "rgba(30,24,20,0.12)",
-                              backgroundColor: paymentMethod === "cod" ? "rgba(30,24,20,0.02)" : "transparent",
-                            }}
-                          >
-                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>Cash on Delivery</p>
-                            <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Pay when you receive your order</p>
-                          </button>
-                          <button
-                            onClick={() => setPaymentMethod("instapay")}
-                            style={{
-                              padding: "24px", textAlign: "left", border: "1px solid", transition: "all 0.2s",
-                              borderColor: paymentMethod === "instapay" ? "#1e1814" : "rgba(30,24,20,0.12)",
-                              backgroundColor: paymentMethod === "instapay" ? "rgba(30,24,20,0.02)" : "transparent",
-                            }}
-                          >
-                            <p style={{ fontSize: "14px", fontWeight: 600, color: "#1e1814", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>Instapay</p>
-                            <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Instant bank transfer (Requires proof)</p>
-                          </button>
                         </div>
                       </section>
                     </div>
