@@ -179,6 +179,16 @@ export function ProductCard({ product, onLookView, onNavigateToProduct, hideLook
     return colorInventory[size] ?? 0;
   }
 
+  function isColorAvailable(color: string): boolean {
+    if (!hasShopifyVariants || !product.variants) return true;
+    return product.variants.some((v) => {
+      const colorMatch = v.selectedOptions.some(
+        (o) => o.name.toLowerCase() === "color" && o.value === color
+      );
+      return colorMatch && v.availableForSale;
+    });
+  }
+
   function isSizeAvailable(size: string): boolean {
     const defaultStock = getDefaultStock(selectedColor, size);
     if (defaultStock >= 0) return defaultStock > 0;
@@ -798,12 +808,15 @@ export function ProductCard({ product, onLookView, onNavigateToProduct, hideLook
                     <span style={{ color: "#1e1814" }}>{selectedColor}</span>
                   </p>
                   <div className="flex items-center gap-2.5 flex-wrap justify-center">
-                    {displayColors.map((option, index) => (
+                    {displayColors.map((option, index) => {
+                      const colorAvailable = isColorAvailable(option.name);
+                      return (
                       <button
                         key={option.name}
                         type="button"
-                        aria-label={`View ${option.name}`}
+                        aria-label={`${option.name}${!colorAvailable ? " — Out of stock" : ""}`}
                         aria-pressed={selectedColor === option.name}
+                        title={!colorAvailable ? `${option.name} — Out of stock` : option.name}
                         onClick={() => {
                           if (onNavigateToProduct) {
                             onNavigateToProduct(`${product.slug}-${slugify(option.name)}`);
@@ -819,12 +832,20 @@ export function ProductCard({ product, onLookView, onNavigateToProduct, hideLook
                           className="absolute inset-0 rounded-full transition-transform duration-300 hover:scale-110"
                           style={{
                             backgroundColor: option.swatch,
+                            opacity: colorAvailable ? 1 : 0.45,
                             boxShadow:
                               index === displayColors.length - 1 && option.swatch.startsWith("#1")
                                 ? "inset 0 0 0 1px rgba(255,255,255,0.16)"
                                 : "inset 0 0 0 1px rgba(30,24,20,0.1)",
                           }}
                         />
+                        {!colorAvailable && (
+                          <span aria-hidden="true" className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                            <svg width="100%" height="100%" viewBox="0 0 30 30" style={{ position: "absolute", top: 0, left: 0 }}>
+                              <line x1="4" y1="26" x2="26" y2="4" stroke="rgba(30,24,20,0.55)" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                          </span>
+                        )}
                         <span
                           className="absolute inset-[-5px] rounded-full border transition-opacity duration-300"
                           style={{
@@ -833,7 +854,8 @@ export function ProductCard({ product, onLookView, onNavigateToProduct, hideLook
                           }}
                         />
                       </button>
-                    ))}
+                    );
+                    })}
                   </div>
                 </motion.div>
               )}
