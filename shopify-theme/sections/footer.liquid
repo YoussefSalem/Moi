@@ -1,0 +1,159 @@
+<footer class="site-footer" role="contentinfo">
+  <div class="footer-inner">
+
+    <!-- Nav links -->
+    <nav class="footer-nav" aria-label="Footer navigation">
+      <a href="{{ routes.root_url }}#collection">Clothing</a>
+      <a href="{{ routes.collections_url }}/accessories">Accessories</a>
+      <a href="{{ routes.pages_url }}/ambassador">Ambassador</a>
+    </nav>
+
+    <!-- Social -->
+    <div class="footer-social">
+      <a href="https://www.instagram.com/shopmoi/" target="_blank" rel="noopener noreferrer" class="footer-social-link" aria-label="Instagram">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+        </svg>
+        <span>Follow us on Instagram</span>
+      </a>
+      <div class="footer-social-divider" aria-hidden="true"></div>
+      <a href="https://www.tiktok.com/@shopmoi_" target="_blank" rel="noopener noreferrer" class="footer-social-link" aria-label="TikTok">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>
+        </svg>
+        <span>Follow us on TikTok</span>
+      </a>
+    </div>
+
+    <!-- Brand description -->
+    <div class="footer-brand">
+      <p class="footer-brand-label">Moi</p>
+      <p class="footer-brand-desc">
+        Shop versatile tops, elegant clothing, and curated fashion accessories designed for effortless everyday style.
+      </p>
+    </div>
+
+    <!-- Accordion info sections -->
+    <div class="footer-accordion">
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'accordion_item' -%}
+          <div class="accordion-item" {{ block.shopify_attributes }}>
+            <button
+              class="accordion-trigger"
+              aria-expanded="false"
+              onclick="toggleAccordion(this)"
+            >
+              <div>
+                <p class="accordion-label">{{ block.settings.title }}</p>
+                <p class="accordion-desc">{{ block.settings.description }}</p>
+              </div>
+              <svg class="accordion-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            <div class="accordion-body" hidden>
+              <div class="accordion-body-inner">{{ block.settings.body }}</div>
+            </div>
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+
+    <!-- Newsletter -->
+    <div class="footer-newsletter">
+      <p class="footer-newsletter-title">{{ section.settings.newsletter_title | default: 'Stay in the loop' }}</p>
+      {%- form 'customer', id: 'newsletter-form' -%}
+        <input type="hidden" name="contact[tags]" value="newsletter">
+        <div class="newsletter-form">
+          <input
+            type="email"
+            name="contact[email]"
+            class="newsletter-input"
+            placeholder="{{ section.settings.newsletter_placeholder | default: 'Your email' }}"
+            required
+            aria-label="Email for newsletter"
+          >
+          <button type="submit" class="newsletter-btn">
+            {{ section.settings.newsletter_btn | default: 'Subscribe' }}
+          </button>
+        </div>
+        {%- if form.posted_successfully? -%}
+          <p class="newsletter-success">Thanks for subscribing!</p>
+        {%- endif -%}
+      {%- endform -%}
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="footer-bottom">
+      <div class="footer-policies">
+        <a href="{{ routes.pages_url }}/privacy-policy">Privacy Policy</a>
+        <a href="{{ routes.pages_url }}/refund-policy">Refund Policy</a>
+        <a href="{{ routes.pages_url }}/return-policy">Return Policy</a>
+        <a href="{{ routes.pages_url }}/delivery-policy">Delivery Policy</a>
+      </div>
+      <div class="footer-contact">
+        <a href="mailto:hello@buy-moi.com">hello@buy-moi.com</a>
+        <span>|</span>
+        <a href="tel:+201200520083">+20 120 052 0083</a>
+        <span>|</span>
+        <span>58 Sotar Street, Azarita, Bab Sharq, Alexandria, Egypt</span>
+      </div>
+      <div class="footer-copy">
+        <p>© {{ 'now' | date: '%Y' }} Moi. All rights reserved.</p>
+        <p>Premium versatile tops.</p>
+      </div>
+    </div>
+
+  </div>
+</footer>
+
+<script>
+  function toggleAccordion(btn) {
+    const isOpen = btn.getAttribute('aria-expanded') === 'true';
+    // Close all
+    document.querySelectorAll('.accordion-trigger').forEach(function(b) {
+      b.setAttribute('aria-expanded', 'false');
+      const body = b.parentElement.querySelector('.accordion-body');
+      if (body) body.hidden = true;
+    });
+    // Open clicked if it was closed
+    if (!isOpen) {
+      btn.setAttribute('aria-expanded', 'true');
+      const body = btn.parentElement.querySelector('.accordion-body');
+      if (body) body.hidden = false;
+    }
+  }
+</script>
+
+{% schema %}
+{
+  "name": "Footer",
+  "settings": [
+    { "type": "text", "id": "newsletter_title",       "label": "Newsletter title",       "default": "Stay in the loop" },
+    { "type": "text", "id": "newsletter_placeholder", "label": "Newsletter placeholder", "default": "Your email" },
+    { "type": "text", "id": "newsletter_btn",         "label": "Newsletter button text", "default": "Subscribe" }
+  ],
+  "blocks": [
+    {
+      "type": "accordion_item",
+      "name": "Info accordion",
+      "settings": [
+        { "type": "text",     "id": "title",       "label": "Title",       "default": "Care instructions" },
+        { "type": "text",     "id": "description", "label": "Description", "default": "Handle each piece with care." },
+        { "type": "textarea", "id": "body",        "label": "Body text" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Footer",
+      "blocks": [
+        { "type": "accordion_item", "settings": { "title": "Care instructions", "description": "Handle each piece with care to preserve fit, texture, and finish over time.", "body": "We recommend gentle cleaning, low heat drying, and storing garments away from direct sunlight. For more delicate pieces, professional care is best." } },
+        { "type": "accordion_item", "settings": { "title": "Return policy", "description": "Simple returns within the policy window for eligible items.", "body": "Please keep items unworn, with original packaging and tags attached. If you need help with an exchange or return, contact us and we will guide you through the process." } },
+        { "type": "accordion_item", "settings": { "title": "Shipping", "description": "Fast, tracked delivery with clear timing by region.", "body": "Delivery times vary by location. Orders in Cairo and Giza typically arrive within 3 to 4 days, while governorates may take 5 to 6 working days. Tracking details are shared once your order is processed." } },
+        { "type": "accordion_item", "settings": { "title": "Contact us", "description": "Reach the team for product, order, or policy questions.", "body": "For more inquiries, email Hello@buy-moi.com or use the contact option in the footer menu. We aim to reply as quickly as possible." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

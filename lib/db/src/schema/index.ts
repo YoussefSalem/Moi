@@ -28,3 +28,5 @@ export * from "./abandonedCarts";
 export * from "./analyticsSessions";
 export * from "./analyticsEvents";
 export * from "./chatInteractions";
+export * from "./conversations";
+export * from "./messages";

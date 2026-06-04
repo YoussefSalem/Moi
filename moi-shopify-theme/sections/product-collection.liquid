@@ -1,0 +1,255 @@
+{% assign section_title    = section.settings.section_title %}
+{% assign section_subtitle = section.settings.section_subtitle %}
+{% assign section_id       = section.settings.section_id %}
+{% assign is_dark          = section.settings.dark_background %}
+
+{% comment %} ── resolve the product to display ── {% endcomment %}
+{% if section.settings.product_handle != blank %}
+  {% assign target_product = all_products[section.settings.product_handle] %}
+{% elsif section.settings.collection != blank %}
+  {% assign col_products = collections[section.settings.collection].products %}
+  {% assign target_product = col_products.first %}
+{% endif %}
+
+<section id="{{ section_id }}" class="moi-product-section {% if is_dark %}moi-product-section--warm{% else %}moi-product-section--light{% endif %}">
+  <div class="moi-container">
+    <div class="moi-section-header moi-fade-in">
+      <p class="moi-section-header__label">Collections</p>
+      <h2 class="moi-section-header__title">{{ section_title }}</h2>
+      {% if section_subtitle != blank %}
+        <p class="moi-section-header__subtitle">{{ section_subtitle }}</p>
+      {% endif %}
+      <div class="moi-section-header__divider"></div>
+    </div>
+
+    <div class="moi-product-grid">
+      {% if target_product %}
+        {% comment %} One card per colour — deduplicate by option1 {% endcomment %}
+        {% comment %} Find which option index (0-based) is Color/Colour {% endcomment %}
+        {% assign color_option_index = 0 %}
+        {% for opt in target_product.options %}
+          {% assign opt_down = opt | downcase %}
+          {% if opt_down == 'color' or opt_down == 'colour' %}
+            {% assign color_option_index = forloop.index0 %}
+          {% endif %}
+        {% endfor %}
+
+        {% assign seen_colors = '' %}
+        {% for variant in target_product.variants %}
+          {% if color_option_index == 1 %}
+            {% assign color_name = variant.option2 | default: '' %}
+          {% elsif color_option_index == 2 %}
+            {% assign color_name = variant.option3 | default: '' %}
+          {% else %}
+            {% assign color_name = variant.option1 | default: '' %}
+          {% endif %}
+          {% assign color_key  = color_name | handleize | append: '|' %}
+
+          {% unless seen_colors contains color_key %}
+            {% assign seen_colors = seen_colors | append: color_key %}
+
+            {% comment %} Aggregate stock + availability for this colour across all sizes {% endcomment %}
+            {% assign color_stock     = 0 %}
+            {% assign color_available = false %}
+            {% assign first_variant   = nil %}
+            {% for v in target_product.variants %}
+              {% if color_option_index == 1 %}
+                {% assign v_color = v.option2 %}
+              {% elsif color_option_index == 2 %}
+                {% assign v_color = v.option3 %}
+              {% else %}
+                {% assign v_color = v.option1 %}
+              {% endif %}
+              {% if v_color == color_name %}
+                {% if first_variant == nil %}{% assign first_variant = v %}{% endif %}
+                {% if v.available %}{% assign color_available = true %}{% endif %}
+                {% if v.inventory_quantity > 0 %}
+                  {% assign color_stock = color_stock | plus: v.inventory_quantity %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+
+            {% comment %} Image: variant image → product image → theme asset fallback {% endcomment %}
+            {% assign card_image_url = nil %}
+            {% if first_variant.featured_image != blank %}
+              {% assign card_image_url = first_variant.featured_image | image_url: width: 600 %}
+            {% elsif target_product.featured_image != blank %}
+              {% assign card_image_url = target_product.featured_image | image_url: width: 600 %}
+            {% else %}
+              {% assign img_prefix = section.settings.image_prefix | default: 'wavvy' %}
+              {% assign asset_name = img_prefix | append: '-' | append: color_key | remove: '|' | append: 'main.jpg' %}
+              {% assign card_image_url = asset_name | asset_url %}
+            {% endif %}
+
+            {% comment %} Swatch hex {% endcomment %}
+            {% assign cl = color_name | downcase %}
+            {% if cl == 'light blue' %}{% assign sw = '#a8c8d8' %}
+            {% elsif cl == 'navy' %}{% assign sw = '#3a5a7a' %}
+            {% elsif cl == 'mint' %}{% assign sw = '#98c8a8' %}
+            {% elsif cl == 'white' %}{% assign sw = '#f5f0e8' %}
+            {% elsif cl == 'cashmere' %}{% assign sw = '#d4c4b0' %}
+            {% elsif cl == 'beige' %}{% assign sw = '#c8b8a0' %}
+            {% elsif cl == 'yellow' %}{% assign sw = '#e8d080' %}
+            {% elsif cl == 'teal' %}{% assign sw = '#4a8a8a' %}
+            {% elsif cl == 'ivory' %}{% assign sw = '#e3d4cb' %}
+            {% else %}{% assign sw = '#c8b8a0' %}{% endif %}
+
+            {% comment %} Selling Fast = available and ≤ 5 in stock {% endcomment %}
+            {% assign selling_fast = false %}
+            {% if color_available and color_stock > 0 and color_stock <= 5 %}
+              {% assign selling_fast = true %}
+            {% endif %}
+
+            {% assign show_stock = false %}
+            {% if color_available and color_stock > 0 and color_stock <= 10 %}
+              {% assign show_stock = true %}
+            {% endif %}
+
+            <a href="{{ target_product.url }}?variant={{ first_variant.id }}" class="moi-color-card moi-fade-in">
+              <div class="moi-color-card__image">
+                {% if card_image_url != blank %}
+                  <img src="{{ card_image_url }}"
+                       alt="{{ target_product.title }} — {{ color_name }}"
+                       loading="lazy" decoding="async"
+                       class="moi-color-card__main-img">
+                {% endif %}
+                {% unless color_available %}
+                  <div class="moi-color-card__sold-out"><span>Sold Out</span></div>
+                {% endunless %}
+              </div>
+
+              <div class="moi-color-card__info">
+                <div class="moi-color-card__color-row">
+                  <span class="moi-color-card__swatch" style="background-color:{{ sw }};"></span>
+                  <span class="moi-color-card__color-name">{{ color_name }}</span>
+                  {% if selling_fast %}
+                    <span class="moi-color-card__badge">
+                      <span class="moi-color-card__badge-dot"></span>
+                      <span class="moi-color-card__badge-text">Selling Fast</span>
+                    </span>
+                  {% endif %}
+                </div>
+
+                <div class="moi-color-card__name-row">
+                  <h3 class="moi-color-card__product-name">{{ target_product.title }}</h3>
+                  {% if show_stock %}
+                    <span class="moi-color-card__stock-badge">Only {{ color_stock }} left</span>
+                  {% endif %}
+                </div>
+
+                <div class="moi-color-card__price">
+                  {% if first_variant.compare_at_price > first_variant.price %}
+                    <span class="moi-color-card__compare">{{ first_variant.compare_at_price | money_without_trailing_zeros }}</span>
+                  {% endif %}
+                  <span class="moi-color-card__current-price {% if first_variant.compare_at_price > first_variant.price %}moi-color-card__current-price--sale{% endif %}">
+                    {{ first_variant.price | money_without_trailing_zeros }}
+                  </span>
+                </div>
+
+                {% if color_available %}
+                  <span class="moi-color-card__btn">Order Now</span>
+                {% else %}
+                  <span class="moi-color-card__btn moi-color-card__btn--sold-out">Sold Out</span>
+                {% endif %}
+              </div>
+            </a>
+          {% endunless %}
+        {% endfor %}
+
+      {% else %}
+        {% comment %} Manual blocks fallback {% endcomment %}
+        {% for block in section.blocks %}
+          <a href="{{ block.settings.product_url }}" class="moi-color-card moi-fade-in">
+            <div class="moi-color-card__image">
+              <img src="{{ block.settings.product_image | image_url: width: 600 }}"
+                   alt="{{ block.settings.product_title }}" loading="lazy" decoding="async"
+                   class="moi-color-card__main-img">
+              {% if block.settings.sold_out %}
+                <div class="moi-color-card__sold-out"><span>Sold Out</span></div>
+              {% endif %}
+            </div>
+            <div class="moi-color-card__info">
+              <div class="moi-color-card__color-row">
+                {% if block.settings.swatch_color != blank %}
+                  <span class="moi-color-card__swatch" style="background-color:{{ block.settings.swatch_color }};"></span>
+                {% endif %}
+                <span class="moi-color-card__color-name">{{ block.settings.color_name }}</span>
+                {% if block.settings.selling_fast %}
+                  <span class="moi-color-card__badge">
+                    <span class="moi-color-card__badge-dot"></span>
+                    <span class="moi-color-card__badge-text">Selling Fast</span>
+                  </span>
+                {% endif %}
+              </div>
+              <div class="moi-color-card__name-row">
+                <h3 class="moi-color-card__product-name">{{ block.settings.product_title }}</h3>
+                {% if block.settings.sold_out == false and block.settings.stock_count > 0 and block.settings.stock_count <= 10 %}
+                  <span class="moi-color-card__stock-badge">Only {{ block.settings.stock_count }} left</span>
+                {% endif %}
+              </div>
+              <div class="moi-color-card__price">
+                {% if block.settings.compare_price > 0 and block.settings.compare_price > block.settings.price %}
+                  <span class="moi-color-card__compare">{{ block.settings.compare_price | money_without_trailing_zeros }}</span>
+                {% endif %}
+                <span class="moi-color-card__current-price {% if block.settings.compare_price > block.settings.price %}moi-color-card__current-price--sale{% endif %}">
+                  {{ block.settings.price | money_without_trailing_zeros }}
+                </span>
+              </div>
+              {% if block.settings.sold_out %}
+                <span class="moi-color-card__btn moi-color-card__btn--sold-out">Sold Out</span>
+              {% else %}
+                <span class="moi-color-card__btn">Order Now</span>
+              {% endif %}
+            </div>
+          </a>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "MOI WAVVY Collection",
+  "settings": [
+    {
+      "type": "text",
+      "id": "product_handle",
+      "label": "Product Handle",
+      "default": "moi-wavvy",
+      "info": "Shopify product handle (from the product URL). This section shows ONLY this product's colour variants."
+    },
+    {
+      "type": "text",
+      "id": "image_prefix",
+      "label": "Image Prefix",
+      "default": "wavvy",
+      "info": "Used to auto-load images from theme assets. 'wavvy' loads wavvy-light-blue-main.jpg, wavvy-navy-main.jpg, etc."
+    },
+    { "type": "text", "id": "section_id", "label": "Section ID", "default": "wavvy" },
+    { "type": "text", "id": "section_title", "label": "Section Title", "default": "MOI WAVVY" },
+    { "type": "text", "id": "section_subtitle", "label": "Subtitle", "default": "The ultimate throw-and-go. Light, breathable, and made for drifting." },
+    { "type": "collection", "id": "collection", "label": "Collection (fallback)", "info": "Only used if Product Handle is blank" },
+    { "type": "checkbox", "id": "dark_background", "label": "Dark Background", "default": false }
+  ],
+  "blocks": [
+    {
+      "type": "product",
+      "name": "Product Card",
+      "settings": [
+        { "type": "text", "id": "product_title", "label": "Title" },
+        { "type": "text", "id": "color_name", "label": "Colour Name" },
+        { "type": "color", "id": "swatch_color", "label": "Swatch Colour" },
+        { "type": "image_picker", "id": "product_image", "label": "Image" },
+        { "type": "url", "id": "product_url", "label": "URL" },
+        { "type": "number", "id": "price", "label": "Price (cents)", "default": 89900 },
+        { "type": "number", "id": "compare_price", "label": "Compare Price (cents)", "default": 150000 },
+        { "type": "number", "id": "stock_count", "label": "Stock Count", "default": 0 },
+        { "type": "checkbox", "id": "sold_out", "label": "Sold Out", "default": false },
+        { "type": "checkbox", "id": "selling_fast", "label": "Selling Fast", "default": false }
+      ]
+    }
+  ],
+  "presets": [{ "name": "MOI WAVVY Collection" }]
+}
+{% endschema %}

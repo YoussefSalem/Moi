@@ -1,0 +1,86 @@
+{%- comment -%}
+  Renders a product card with color swatches.
+  Usage: {% render 'product-card', product: product %}
+{%- endcomment -%}
+
+{%- assign current_variant = product.selected_or_first_available_variant -%}
+{%- assign product_url = product.url -%}
+
+<div class="color-card animate-in" data-product-id="{{ product.id }}">
+  <a href="{{ product_url }}" class="color-card-image-link" aria-label="{{ product.title | escape }}">
+    <div class="color-card-image-wrap">
+      {%- if product.featured_media -%}
+        <img
+          class="color-card-image"
+          src="{{ product.featured_media | img_url: '600x800', crop: 'center' }}"
+          srcset="{{ product.featured_media | img_url: '400x533', crop: 'center' }} 400w, {{ product.featured_media | img_url: '600x800', crop: 'center' }} 600w"
+          alt="{{ product.featured_media.alt | default: product.title | escape }}"
+          loading="lazy"
+          width="600"
+          height="800"
+        >
+      {%- else -%}
+        <div class="color-card-placeholder"></div>
+      {%- endif -%}
+
+      {%- unless current_variant.available -%}
+        <span class="color-card-badge color-card-badge--soldout">Sold out</span>
+      {%- endunless -%}
+    </div>
+  </a>
+
+  <div class="color-card-info">
+    <a href="{{ product_url }}" class="color-card-title">{{ product.title }}</a>
+
+    <div class="color-card-price">
+      {%- if current_variant.compare_at_price > current_variant.price -%}
+        <span class="price-compare">{{ current_variant.compare_at_price | money }}</span>
+      {%- endif -%}
+      <span class="price-current">{{ current_variant.price | money }}</span>
+    </div>
+
+    <!-- Color swatches -->
+    {%- assign color_option_index = nil -%}
+    {%- for option in product.options_with_values -%}
+      {%- if option.name == 'Color' or option.name == 'Colour' -%}
+        {%- assign color_option_index = forloop.index0 -%}
+        <div class="color-swatches" role="group" aria-label="Color options">
+          {%- for value in option.values -%}
+            {%- assign variant_for_color = nil -%}
+            {%- for variant in product.variants -%}
+              {%- if variant.options[color_option_index] == value -%}
+                {%- assign variant_for_color = variant -%}
+                {%- break -%}
+              {%- endif -%}
+            {%- endfor -%}
+            <button
+              class="color-swatch{% if variant_for_color.available == false %} color-swatch--unavailable{% endif %}"
+              style="background-color: {{ value | handleize | replace: '-', '' | prepend: 'var(--swatch-' | append: ')' }}"
+              aria-label="{{ value }}"
+              data-color="{{ value }}"
+              data-variant-id="{{ variant_for_color.id }}"
+              onclick="selectColor(this, '{{ product.id }}')"
+              title="{{ value }}"
+            ></button>
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+    {%- endfor -%}
+
+    <div class="color-card-actions">
+      {%- if current_variant.available -%}
+        <button
+          class="btn-add-to-cart"
+          data-variant-id="{{ current_variant.id }}"
+          data-product-id="{{ product.id }}"
+          onclick="addToCart(this)"
+        >
+          Add to Bag
+        </button>
+      {%- else -%}
+        <button class="btn-add-to-cart btn-add-to-cart--disabled" disabled>Sold Out</button>
+      {%- endif -%}
+      <a href="{{ product_url }}" class="btn-view-details">View Details</a>
+    </div>
+  </div>
+</div>

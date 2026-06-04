@@ -1,0 +1,205 @@
+<header class="site-header" id="site-header" role="banner">
+  <div class="header-inner">
+
+    <!-- Hamburger -->
+    <button
+      class="header-hamburger"
+      aria-label="Open menu"
+      aria-expanded="false"
+      aria-controls="nav-drawer"
+      onclick="openDrawer()"
+    >
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line hamburger-line--short"></span>
+    </button>
+
+    <!-- Logo -->
+    <a href="{{ routes.root_url }}" class="header-logo" aria-label="{{ shop.name }}">
+      MOI
+    </a>
+
+    <!-- Right icons -->
+    <div class="header-icons">
+      <button class="header-icon-btn" aria-label="Search" onclick="openSearch()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </button>
+
+      <a href="{{ routes.account_url }}" class="header-icon-btn" aria-label="Account">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+      </a>
+
+      <button class="header-icon-btn header-cart-btn" aria-label="Cart" onclick="openCart()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
+        </svg>
+        <span class="cart-badge" id="cart-count">{{ cart.item_count }}</span>
+      </button>
+    </div>
+
+  </div>
+</header>
+
+<!-- Nav Drawer -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<nav class="nav-drawer" id="nav-drawer" aria-label="Main navigation" aria-hidden="true">
+  <div class="nav-drawer-header">
+    <span class="nav-drawer-logo">MOI</span>
+    <button class="nav-drawer-close" aria-label="Close menu" onclick="closeDrawer()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <ul class="nav-links">
+    <li><a href="{{ routes.root_url }}">Clothing</a></li>
+    <li><a href="{{ routes.collections_url }}/accessories">Accessories</a></li>
+    <li><a href="{{ routes.pages_url }}/ambassador">Ambassador</a></li>
+  </ul>
+
+  <div class="nav-drawer-footer">
+    {%- if customer -%}
+      <a href="{{ routes.account_url }}" class="nav-account-link">{{ customer.first_name | default: customer.email }}</a>
+      <a href="{{ routes.account_logout_url }}" class="nav-signout-link">Sign Out</a>
+    {%- else -%}
+      <a href="{{ routes.account_login_url }}" class="nav-signin-link">Sign In</a>
+    {%- endif -%}
+  </div>
+</nav>
+
+<!-- Search overlay -->
+<div class="search-overlay" id="search-overlay" aria-hidden="true">
+  <div class="search-overlay-inner">
+    <button class="search-close" onclick="closeSearch()" aria-label="Close search">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+    <form action="{{ routes.search_url }}" method="get" class="search-form" role="search">
+      <input type="hidden" name="type" value="product">
+      <input
+        type="search"
+        name="q"
+        class="search-input"
+        placeholder="Search..."
+        autocomplete="off"
+        aria-label="Search"
+        id="search-input"
+      >
+    </form>
+  </div>
+</div>
+
+<!-- Cart Drawer -->
+<div class="drawer-overlay" id="cart-overlay" onclick="closeCart()"></div>
+<div class="cart-drawer" id="cart-drawer" aria-hidden="true">
+  <div class="cart-drawer-header">
+    <span class="cart-drawer-title">Your Bag</span>
+    <button class="cart-drawer-close" onclick="closeCart()" aria-label="Close cart">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <div class="cart-drawer-body" id="cart-drawer-body">
+    {%- if cart.item_count == 0 -%}
+      <p class="cart-empty">Your bag is empty.</p>
+    {%- else -%}
+      {%- for item in cart.items -%}
+        <div class="cart-item">
+          <img src="{{ item.image | img_url: '120x120', crop: 'center' }}" alt="{{ item.title | escape }}" class="cart-item-image">
+          <div class="cart-item-details">
+            <p class="cart-item-title">{{ item.product.title }}</p>
+            {%- if item.variant.title != 'Default Title' -%}
+              <p class="cart-item-variant">{{ item.variant.title }}</p>
+            {%- endif -%}
+            <p class="cart-item-price">{{ item.final_price | money }}</p>
+          </div>
+          <button class="cart-item-remove" aria-label="Remove" onclick="removeCartItem('{{ item.key }}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      {%- endfor -%}
+    {%- endif -%}
+  </div>
+  {%- if cart.item_count > 0 -%}
+    <div class="cart-drawer-footer">
+      <div class="cart-subtotal">
+        <span>Subtotal</span>
+        <span>{{ cart.total_price | money }}</span>
+      </div>
+      <a href="{{ routes.cart_url }}" class="btn-checkout">Proceed to Checkout</a>
+    </div>
+  {%- endif -%}
+</div>
+
+<script>
+  // Sticky header scroll behaviour
+  const header = document.getElementById('site-header');
+  window.addEventListener('scroll', function() {
+    if (window.scrollY > 60) {
+      header.classList.add('scrolled');
+    } else {
+      header.classList.remove('scrolled');
+    }
+  }, { passive: true });
+
+  function openDrawer() {
+    document.getElementById('nav-drawer').setAttribute('aria-hidden', 'false');
+    document.getElementById('nav-drawer').classList.add('open');
+    document.getElementById('drawer-overlay').classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeDrawer() {
+    document.getElementById('nav-drawer').setAttribute('aria-hidden', 'true');
+    document.getElementById('nav-drawer').classList.remove('open');
+    document.getElementById('drawer-overlay').classList.remove('visible');
+    document.body.style.overflow = '';
+  }
+  function openSearch() {
+    document.getElementById('search-overlay').setAttribute('aria-hidden', 'false');
+    document.getElementById('search-overlay').classList.add('open');
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 100);
+  }
+  function closeSearch() {
+    document.getElementById('search-overlay').setAttribute('aria-hidden', 'true');
+    document.getElementById('search-overlay').classList.remove('open');
+  }
+  function openCart() {
+    document.getElementById('cart-drawer').setAttribute('aria-hidden', 'false');
+    document.getElementById('cart-drawer').classList.add('open');
+    document.getElementById('cart-overlay').classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeCart() {
+    document.getElementById('cart-drawer').setAttribute('aria-hidden', 'true');
+    document.getElementById('cart-drawer').classList.remove('open');
+    document.getElementById('cart-overlay').classList.remove('visible');
+    document.body.style.overflow = '';
+  }
+  function removeCartItem(key) {
+    fetch('/cart/change.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: key, quantity: 0 })
+    })
+    .then(r => r.json())
+    .then(cart => {
+      document.getElementById('cart-count').textContent = cart.item_count;
+      location.reload();
+    });
+  }
+</script>
+
+{% schema %}
+{
+  "name": "Header",
+  "settings": []
+}
+{% endschema %}

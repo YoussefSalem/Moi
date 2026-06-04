@@ -1,0 +1,314 @@
+{% assign current_variant = product.selected_or_first_available_variant %}
+
+{% comment %} Detect color vs size option dynamically {% endcomment %}
+{% assign color_option = nil %}
+{% assign size_option = nil %}
+{% for opt in product.options_with_values %}
+  {% assign opt_down = opt.name | downcase %}
+  {% if opt_down == 'color' or opt_down == 'colour' %}
+    {% assign color_option = opt %}
+  {% elsif opt_down == 'size' or opt_down == 'titre' %}
+    {% assign size_option = opt %}
+  {% endif %}
+{% endfor %}
+
+{% comment %} Savings % {% endcomment %}
+{% assign savings_pct = 0 %}
+{% if current_variant.compare_at_price > current_variant.price %}
+  {% assign savings_amount = current_variant.compare_at_price | minus: current_variant.price %}
+  {% assign savings_pct = savings_amount | times: 100 | divided_by: current_variant.compare_at_price %}
+{% endif %}
+
+<div class="moi-pdp">
+  <div class="moi-pdp__grid">
+
+    <!-- ── Gallery ── -->
+    <div class="moi-pdp__gallery">
+      <div class="moi-pdp__main-img-wrap">
+        {% if product.images.size > 0 %}
+          <img
+            id="moi-pdp-main"
+            src="{{ product.images[0] | image_url: width: 900 }}"
+            alt="{{ product.title }}"
+            loading="eager"
+            decoding="async"
+          >
+        {% else %}
+          <img src="{{ 'placeholder.png' | asset_url }}" alt="{{ product.title }}">
+        {% endif %}
+      </div>
+
+      {% if product.images.size > 1 %}
+        <div class="moi-pdp__thumbs">
+          {% for image in product.images %}
+            <button
+              class="moi-pdp__thumb {% if forloop.first %}is-active{% endif %}"
+              data-src="{{ image | image_url: width: 900 }}"
+              onclick="moiPdpThumb(this)"
+            >
+              <img src="{{ image | image_url: width: 200 }}" alt="{{ product.title }} — image {{ forloop.index }}" loading="lazy">
+            </button>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Info ── -->
+    <div class="moi-pdp__info">
+
+      <h1 class="moi-pdp__title">{{ product.title }}</h1>
+
+      {% comment %} Stock urgency — shown above price {% endcomment %}
+      <p class="moi-pdp__urgency" id="moi-pdp-urgency">
+        {% if current_variant.available and current_variant.inventory_quantity > 0 and current_variant.inventory_quantity <= 10 %}
+          Only {{ current_variant.inventory_quantity }} left
+        {% endif %}
+      </p>
+
+      {% comment %} Price block {% endcomment %}
+      <div class="moi-pdp__price" id="moi-pdp-price">
+        {% if current_variant.compare_at_price > current_variant.price %}
+          <span class="moi-pdp__compare">{{ current_variant.compare_at_price | money_without_trailing_zeros }}</span>
+          <div class="moi-pdp__price-row">
+            <span class="moi-pdp__sale">{{ current_variant.price | money_without_trailing_zeros }}</span>
+            <span class="moi-pdp__save">Save {{ savings_pct }}%</span>
+          </div>
+        {% else %}
+          <span class="moi-pdp__regular">{{ current_variant.price | money_without_trailing_zeros }}</span>
+        {% endif %}
+      </div>
+
+      {% comment %} Description as bullet list {% endcomment %}
+      {% if product.description != blank %}
+        <div class="moi-pdp__desc">
+          {{ product.description }}
+        </div>
+      {% endif %}
+
+      {% form 'product', product, id: 'moi-pdp-form' %}
+        <input type="hidden" name="id" id="moi-pdp-variant-id" value="{{ current_variant.id }}">
+
+        {% comment %} Color option {% endcomment %}
+        {% if color_option %}
+          <div class="moi-pdp__option-group">
+            <p class="moi-pdp__option-label">Color: <span id="moi-pdp-color-label">{{ current_variant.option1 }}</span></p>
+            <div class="moi-pdp__swatches" id="moi-pdp-swatches">
+              {% for value in color_option.values %}
+                {% assign is_selected = false %}
+                {% assign is_available = false %}
+                {% for v in product.variants %}
+                  {% if v.option1 == value %}
+                    {% if v.available %}{% assign is_available = true %}{% endif %}
+                  {% endif %}
+                {% endfor %}
+                {% if current_variant.option1 == value %}{% assign is_selected = true %}{% endif %}
+                {% assign sw_color = value | handleize
+                  | replace: 'light-blue','#a8c8d8'
+                  | replace: 'navy','#3a5a7a'
+                  | replace: 'mint','#98c8a8'
+                  | replace: 'white','#f5f0e8'
+                  | replace: 'cashmere','#d4c4b0'
+                  | replace: 'beige','#c8b8a0'
+                  | replace: 'yellow','#e8d080'
+                  | replace: 'teal','#4a8a8a'
+                  | replace: 'ivory','#e3d4cb' %}
+                <button
+                  type="button"
+                  class="moi-pdp__swatch {% if is_selected %}is-active{% endif %} {% unless is_available %}is-unavailable{% endunless %}"
+                  style="background-color:{{ sw_color }};"
+                  onclick="moiPdpSelectColor('{{ value }}')"
+                  title="{{ value }}"
+                  aria-label="Select {{ value }}"
+                ></button>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% comment %} Size option — "ONE SIZE" pill if single value {% endcomment %}
+        {% if size_option %}
+          <div class="moi-pdp__option-group">
+            {% if size_option.values.size <= 1 %}
+              <div class="moi-pdp__one-size">
+                <span>{{ size_option.values.first }}</span>
+              </div>
+            {% else %}
+              <p class="moi-pdp__option-label">Size: <span id="moi-pdp-size-label">{{ current_variant.option2 }}</span></p>
+              <div class="moi-pdp__sizes" id="moi-pdp-sizes">
+                {% for value in size_option.values %}
+                  {% assign is_available = false %}
+                  {% for v in product.variants %}
+                    {% if v.option2 == value and v.available %}{% assign is_available = true %}{% endif %}
+                  {% endfor %}
+                  {% assign is_selected = false %}
+                  {% if current_variant.option2 == value %}{% assign is_selected = true %}{% endif %}
+                  <button
+                    type="button"
+                    class="moi-pdp__size {% if is_selected %}is-active{% endif %} {% unless is_available %}is-unavailable{% endunless %}"
+                    onclick="moiPdpSelectSize('{{ value }}')"
+                  >{{ value }}</button>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% comment %} Buttons {% endcomment %}
+        <div class="moi-pdp__actions">
+          <button
+            type="submit"
+            name="add"
+            id="moi-pdp-atc"
+            class="moi-pdp__btn moi-pdp__btn--outline {% unless current_variant.available %}is-sold-out{% endunless %}"
+            {% unless current_variant.available %}disabled{% endunless %}
+          >
+            <span id="moi-pdp-atc-label">{% if current_variant.available %}Add to Cart{% else %}Sold Out{% endif %}</span>
+          </button>
+
+          {% if current_variant.available %}
+            <a href="/cart/add?id={{ current_variant.id }}&quantity=1&return_to=/checkout" class="moi-pdp__btn moi-pdp__btn--solid" id="moi-pdp-buy">
+              Buy It Now
+            </a>
+          {% endif %}
+        </div>
+      {% endform %}
+    </div>
+
+  </div>
+
+  {% comment %} You May Also Like {% endcomment %}
+  <div class="moi-pdp__recs">
+    <p class="moi-pdp__recs-label">You May Also Like</p>
+    <div class="moi-pdp__recs-track" id="moi-pdp-recs-track">
+      {% assign showed_handles = '' %}
+      {% for p in collections.all.products limit: 10 %}
+        {% unless p.handle == product.handle or showed_handles contains p.handle %}
+          {% assign showed_handles = showed_handles | append: p.handle | append: ',' %}
+          <a href="{{ p.url }}" class="moi-pdp__rec-item">
+            <div class="moi-pdp__rec-img">
+              {% if p.featured_image %}
+                <img src="{{ p.featured_image | image_url: width: 400 }}" alt="{{ p.title }}" loading="lazy">
+              {% endif %}
+            </div>
+            <p class="moi-pdp__rec-name">{{ p.title }}</p>
+            <p class="moi-pdp__rec-price">{{ p.price_min | money_without_trailing_zeros }}</p>
+          </a>
+        {% endunless %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var variants = {{ product.variants | json }};
+  var productOptions = {{ product.options | json }};
+
+  {% comment %} Find color and size indices {% endcomment %}
+  var colorIndex = -1;
+  var sizeIndex = -1;
+  productOptions.forEach(function(opt, i) {
+    var lo = opt.toLowerCase();
+    if (lo === 'color' || lo === 'colour') colorIndex = i;
+    if (lo === 'size' || lo === 'titre') sizeIndex = i;
+  });
+
+  var selColor = {{ current_variant.option1 | json }};
+  var selSize  = {{ current_variant.option2 | json }};
+
+  function optVal(v, idx) {
+    if (idx === 0) return v.option1;
+    if (idx === 1) return v.option2;
+    if (idx === 2) return v.option3;
+    return null;
+  }
+
+  function findVariant() {
+    return variants.find(function(v) {
+      var cm = colorIndex < 0 || optVal(v, colorIndex) === selColor;
+      var sm = sizeIndex  < 0 || optVal(v, sizeIndex)  === selSize;
+      return cm && sm;
+    });
+  }
+
+  window.moiPdpSelectColor = function(color) {
+    selColor = color;
+    document.querySelectorAll('.moi-pdp__swatch').forEach(function(b) {
+      b.classList.toggle('is-active', b.getAttribute('title') === color);
+    });
+    var lbl = document.getElementById('moi-pdp-color-label');
+    if (lbl) lbl.textContent = color;
+    applyVariant(findVariant());
+  };
+
+  window.moiPdpSelectSize = function(size) {
+    selSize = size;
+    document.querySelectorAll('.moi-pdp__size').forEach(function(b) {
+      b.classList.toggle('is-active', b.textContent.trim() === size);
+    });
+    var lbl = document.getElementById('moi-pdp-size-label');
+    if (lbl) lbl.textContent = size;
+    applyVariant(findVariant());
+  };
+
+  window.moiPdpThumb = function(btn) {
+    document.querySelectorAll('.moi-pdp__thumb').forEach(function(b) { b.classList.remove('is-active'); });
+    btn.classList.add('is-active');
+    var main = document.getElementById('moi-pdp-main');
+    if (main) main.src = btn.getAttribute('data-src');
+  };
+
+  function applyVariant(v) {
+    if (!v) return;
+    document.getElementById('moi-pdp-variant-id').value = v.id;
+
+    // Update image
+    if (v.featured_image && v.featured_image.src) {
+      var img = document.getElementById('moi-pdp-main');
+      if (img) img.src = v.featured_image.src.replace(/(\.[^.?]+)(\?.*)?$/, '_800x$1$2');
+    }
+
+    // Update urgency
+    var urgency = document.getElementById('moi-pdp-urgency');
+    if (urgency) {
+      urgency.textContent = (v.available && v.inventory_quantity > 0 && v.inventory_quantity <= 10)
+        ? 'Only ' + v.inventory_quantity + ' left' : '';
+    }
+
+    // Update price
+    var priceEl = document.getElementById('moi-pdp-price');
+    if (priceEl) {
+      if (v.compare_at_price && v.compare_at_price > v.price) {
+        var pct = Math.round((v.compare_at_price - v.price) * 100 / v.compare_at_price);
+        priceEl.innerHTML =
+          '<span class="moi-pdp__compare">' + moiMoney(v.compare_at_price) + '</span>' +
+          '<div class="moi-pdp__price-row">' +
+            '<span class="moi-pdp__sale">' + moiMoney(v.price) + '</span>' +
+            '<span class="moi-pdp__save">Save ' + pct + '%</span>' +
+          '</div>';
+      } else {
+        priceEl.innerHTML = '<span class="moi-pdp__regular">' + moiMoney(v.price) + '</span>';
+      }
+    }
+
+    // Update ATC button
+    var btn = document.getElementById('moi-pdp-atc');
+    var lbl = document.getElementById('moi-pdp-atc-label');
+    var buyBtn = document.getElementById('moi-pdp-buy');
+    if (v.available) {
+      btn.disabled = false;
+      btn.classList.remove('is-sold-out');
+      if (lbl) lbl.textContent = 'Add to Cart';
+      if (buyBtn) buyBtn.href = '/cart/add?id=' + v.id + '&quantity=1&return_to=/checkout';
+    } else {
+      btn.disabled = true;
+      btn.classList.add('is-sold-out');
+      if (lbl) lbl.textContent = 'Sold Out';
+    }
+  }
+
+  function moiMoney(cents) {
+    return 'LE\u00a0' + (cents / 100).toLocaleString('en-EG', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+})();
+</script>

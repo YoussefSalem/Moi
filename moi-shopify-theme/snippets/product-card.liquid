@@ -1,0 +1,53 @@
+{% assign product = product %}
+{% assign card_image = product.featured_image %}
+{% assign hover_image = product.images[1] %}
+{% assign card_price = product.price %}
+{% assign card_compare_price = product.compare_at_price %}
+{% assign card_title = product.title %}
+{% assign card_color = product.options_with_values[0].values[0] %}
+{% assign card_swatch = product.metafields.custom.color_swatch %}
+{% assign card_url = product.url %}
+{% assign is_sold_out = true %}
+{% for variant in product.variants %}
+  {% if variant.available %}
+    {% assign is_sold_out = false %}
+  {% endif %}
+{% endfor %}
+
+<a href="{{ card_url }}" class="moi-color-card moi-fade-in">
+  <div class="moi-color-card__image">
+    <img src="{{ card_image | image_url: width: 600 }}" alt="{{ card_title }}" loading="lazy" decoding="async" class="moi-color-card__main-img">
+    {% if hover_image != blank %}
+      <div class="moi-color-card__image-hover">
+        <img src="{{ hover_image | image_url: width: 600 }}" alt="{{ card_title }} alternate" loading="lazy" decoding="async">
+      </div>
+    {% endif %}
+    {% if is_sold_out %}
+      <div class="moi-color-card__sold-out">
+        <span>Sold Out</span>
+      </div>
+    {% endif %}
+  </div>
+  <div class="moi-color-card__info">
+    <div class="moi-color-card__color-row">
+      {% if card_swatch != blank %}
+        <span class="moi-color-card__swatch" style="background-color: {{ card_swatch }};"></span>
+      {% endif %}
+      <span class="moi-color-card__color-name">{{ card_color }}</span>
+    </div>
+    <h3 class="moi-color-card__product-name">{{ card_title }}</h3>
+    <div class="moi-color-card__price">
+      {% if card_compare_price > card_price %}
+        <span class="moi-color-card__compare">{{ card_compare_price | money }}</span>
+      {% endif %}
+      <span class="moi-color-card__current-price {% if card_compare_price > card_price %}moi-color-card__current-price--sale{% endif %}">
+        {{ card_price | money }}
+      </span>
+    </div>
+    {% if is_sold_out %}
+      <span class="moi-color-card__btn moi-color-card__btn--sold-out">Sold Out</span>
+    {% else %}
+      <span class="moi-color-card__btn">Order Now</span>
+    {% endif %}
+  </div>
+</a>

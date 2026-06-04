@@ -60,7 +60,7 @@ export function ProductColorSection({
               marginBottom: 10,
             }}
           >
-            Collection
+            Collections
           </p>
           <h2
             style={{
@@ -108,6 +108,7 @@ export function ProductColorSection({
             const variant = product.variants?.find((v) =>
               v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === c.name)
             );
+            const outOfStock = variant !== undefined && !variant.availableForSale;
 
             return (
               <div
@@ -126,6 +127,7 @@ export function ProductColorSection({
                   handle={handle}
                   swatchColor={swatch}
                   description={description ?? (product as unknown as Record<string, string>).description}
+                  outOfStock={outOfStock}
                   onNavigate={onNavigate}
                   onAddToCart={onAddToCart}
                   index={i}

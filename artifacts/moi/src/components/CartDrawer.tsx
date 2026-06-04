@@ -11,7 +11,7 @@ import { trackCheckoutStep, trackCartAbandonment } from "@/lib/analytics";
 import { formatMoney } from "@/lib/shopify";
 import type { ShopifyCartLine } from "@/lib/shopify";
 import type { LocalCartItem } from "@/context/CartContext";
-import { canUseApplePay } from "@/lib/applePayUtils";
+import { ENABLE_APPLE_PAY } from "@/config/features";
 import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
 
 // Product-scoped color map: "productname::color" → image URL
@@ -518,7 +518,7 @@ export function CartDrawer() {
                 </div>
                 {/* Conversion Banner — FIRST50 (disabled — uncomment to re-enable) */}
                 {/* <DiscountBanner /> */}
-                {shopifyCart && shopifyCart.lines.nodes.length > 0 && (
+                {ENABLE_APPLE_PAY && shopifyCart && shopifyCart.lines.nodes.length > 0 && (
                   <ShopifyApplePayButton
                     lines={shopifyCart.lines.nodes.map((l) => ({
                       variantId: l.merchandise.id,
@@ -533,6 +533,15 @@ export function CartDrawer() {
                           }, 0)
                     }
                     disabled={loading}
+                    onSuccess={(orderNumber, total) => {
+                      toast.success(
+                        `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
+                        { duration: 5000 },
+                      );
+                    }}
+                    onError={(msg) => {
+                      toast.error(msg, { duration: 4000 });
+                    }}
                   />
                 )}
                 <button

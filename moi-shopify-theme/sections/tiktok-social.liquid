@@ -1,0 +1,128 @@
+<section id="social-proof" class="moi-tiktok">
+  <div class="moi-container">
+    <div class="moi-fade-in">
+      <div class="moi-tiktok__header">
+        <p class="moi-tiktok__label">{{ section.settings.section_label | default: 'TikTok social proof' }}</p>
+        <h2 class="moi-tiktok__title">{{ section.settings.section_title | default: 'Styled by you' }}</h2>
+        <p class="moi-tiktok__desc">{{ section.settings.section_description | default: 'Real people. Real outfits. See how Moi moves in the wild.' }}</p>
+      </div>
+
+      <div class="moi-tiktok__grid-container">
+        <div class="moi-tiktok__grid-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path></svg>
+          <p>TikTok social proof</p>
+        </div>
+        <div class="moi-tiktok__grid">
+          {%- assign tiktok_videos = '' | split: '' -%}
+          {%- assign video_1 = '' -%}
+          {%- assign video_1 = video_1 | append: 'How brands under 1000 EGP actually look on 👀💸|@etharrdiabb|https://www.tiktok.com/@etharrdiabb|Real styling review — affordable local fashion that actually delivers.|https://www.tiktok.com/embed/v2/7642745763021262098' -%}
+          {%- assign video_2 = '' -%}
+          {%- assign video_2 = video_2 | append: 'New Moi piece just dropped 🔥|@etharrdiabb|https://www.tiktok.com/@etharrdiabb|First look at the latest Moi drop — fit, fabric, and how it wears.|https://www.tiktok.com/embed/v2/7643440266891840776' -%}
+          {%- assign video_3 = '' -%}
+          {%- assign video_3 = video_3 | append: 'Get ready with me|@thatsalmarocks|https://www.tiktok.com/@thatsalmarocks|Morning routine & outfit check — effortless day-to-night dressing.|https://www.tiktok.com/embed/v2/7639398570302377223' -%}
+          {%- assign video_4 = '' -%}
+          {%- assign video_4 = video_4 | append: 'Outfit of the day|@shopmoi_|https://www.tiktok.com/@shopmoi_|Styling picks that feel polished and easy to recreate.|https://www.tiktok.com/embed/v2/7639352601947016455' -%}
+          {%- assign video_5 = '' -%}
+          {%- assign video_5 = video_5 | append: 'Everyday outfit inspo|@thatsalmarocks|https://www.tiktok.com/@thatsalmarocks|Real, wearable outfits that translate from screen to wardrobe.|https://www.tiktok.com/embed/v2/7641637259661430024' -%}
+          {%- assign tiktok_videos = video_1 | append: '##' | append: video_2 | append: '##' | append: video_3 | append: '##' | append: video_4 | append: '##' | append: video_5 | split: '##' -%}
+
+          {%- for video in tiktok_videos -%}
+            {%- assign parts = video | split: '|' -%}
+            {%- assign title = parts[0] -%}
+            {%- assign handle = parts[1] -%}
+            {%- assign profile_url = parts[2] -%}
+            {%- assign caption = parts[3] -%}
+            {%- assign embed_url = parts[4] -%}
+            <div class="moi-tiktok__card">
+              <p class="moi-tiktok__card-title">{{ title }}</p>
+              <a href="{{ profile_url }}" target="_blank" rel="noopener noreferrer" class="moi-tiktok__card-handle">
+                {{ handle }}
+              </a>
+              <p class="moi-tiktok__card-caption">{{ caption }}</p>
+              <div class="moi-tiktok__card-video">
+                <iframe
+                  title="{{ title }}"
+                  src="{{ embed_url }}"
+                  style="width: 100%; aspect-ratio: 9/16; border: none;"
+                  allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture; autoplay"
+                  scrolling="no"
+                  sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms"
+                ></iframe>
+              </div>
+            </div>
+          {%- endfor -%}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "TikTok Social Proof",
+  "settings": [
+    {
+      "type": "text",
+      "id": "section_label",
+      "label": "Section Label",
+      "default": "TikTok social proof"
+    },
+    {
+      "type": "text",
+      "id": "section_title",
+      "label": "Section Title",
+      "default": "Styled by you"
+    },
+    {
+      "type": "textarea",
+      "id": "section_description",
+      "label": "Section Description",
+      "default": "Real people. Real outfits. See how Moi moves in the wild."
+    }
+  ],
+  "blocks": [
+    {
+      "type": "video",
+      "name": "TikTok Video",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Video Title"
+        },
+        {
+          "type": "text",
+          "id": "handle",
+          "label": "Creator Handle",
+          "default": "@shopmoi_"
+        },
+        {
+          "type": "url",
+          "id": "profile_url",
+          "label": "Profile URL"
+        },
+        {
+          "type": "textarea",
+          "id": "caption",
+          "label": "Caption"
+        },
+        {
+          "type": "url",
+          "id": "embed_url",
+          "label": "TikTok Embed URL"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "TikTok Social Proof",
+      "blocks": [
+        {
+          "type": "video"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

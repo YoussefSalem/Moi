@@ -15,6 +15,7 @@ interface QuickPreviewProps {
   gallery: string[];
   handle: string;
   description?: string;
+  outOfStock?: boolean;
   onNavigate: (handle: string) => void;
   onAddToCart?: (handle: string, image: string) => void;
 }
@@ -30,6 +31,7 @@ export function QuickPreview({
   gallery,
   handle,
   description,
+  outOfStock,
   onNavigate,
   onAddToCart,
 }: QuickPreviewProps) {
@@ -359,7 +361,7 @@ export function QuickPreview({
                       {price}
                     </span>
                   </div>
-                  {stockCount !== null && (
+                  {stockCount !== null && !outOfStock && (
                     <span
                       style={{
                         fontFamily: "'Montserrat', sans-serif",

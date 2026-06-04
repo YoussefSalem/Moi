@@ -1,0 +1,69 @@
+<section class="moi-newsletter-section">
+  <div class="moi-newsletter-section__top-gradient"></div>
+  <div class="moi-container">
+    <div class="moi-newsletter-card">
+      <div class="moi-newsletter-card__gradient-1"></div>
+
+      <div class="moi-newsletter-card__label">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.806.806 0 0 1 0-1.962L8.5 8.937A2 2 0 0 0 9.937 7.5l1.582-6.135a.806.806 0 0 1 1.962 0L15.063 7.5A2 2 0 0 0 16.5 8.937l6.135 1.582a.806.806 0 0 1 0 1.962L16.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.806.806 0 0 1-1.962 0z"></path></svg>
+        {{ section.settings.label | default: 'Moi Newsletter' }}
+      </div>
+
+      <p class="moi-newsletter-card__headline">
+        {{ section.settings.headline | default: 'Stay in Moi-tion.' }}
+      </p>
+      <p class="moi-newsletter-card__desc">
+        {{ section.settings.description | default: 'Be the first to discover new versatile tops, fashion drops, and exclusive pieces — delivered straight to your inbox.' }}
+      </p>
+
+      {% form 'customer', id: 'moi-newsletter-form' %}
+        <div class="moi-newsletter-card__form">
+          <div class="moi-newsletter-card__input-wrap">
+            <label class="moi-newsletter-card__input-label">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+              <div>
+                <p>Email address</p>
+                <input type="email" name="contact[email]" required placeholder="Email address">
+              </div>
+            </label>
+          </div>
+          <button type="submit" class="moi-newsletter-card__submit">
+            Subscribe
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+          </button>
+        </div>
+      {% endform %}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Newsletter",
+  "settings": [
+    {
+      "type": "text",
+      "id": "label",
+      "label": "Label",
+      "default": "Moi Newsletter"
+    },
+    {
+      "type": "text",
+      "id": "headline",
+      "label": "Headline",
+      "default": "Stay in Moi-tion."
+    },
+    {
+      "type": "textarea",
+      "id": "description",
+      "label": "Description",
+      "default": "Be the first to discover new versatile tops, fashion drops, and exclusive pieces — delivered straight to your inbox."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Newsletter"
+    }
+  ]
+}
+{% endschema %}

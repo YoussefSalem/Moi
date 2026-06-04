@@ -1,0 +1,63 @@
+<div class="moi-product-section moi-product-section--light" style="padding-top: 120px;">
+  <div class="moi-container">
+    <div class="moi-section-header moi-fade-in">
+      <p class="moi-section-header__label">Collections</p>
+      <h1 class="moi-section-header__title">{{ collection.title }}</h1>
+      {% if collection.description != blank %}
+        <p class="moi-section-header__subtitle">{{ collection.description }}</p>
+      {% endif %}
+      <div class="moi-section-header__divider"></div>
+    </div>
+
+    <div class="moi-product-grid">
+      {% for product in collection.products %}
+        <div class="moi-grid-2 flex justify-center">
+          <a href="{{ product.url }}" class="moi-color-card moi-fade-in">
+            <div class="moi-color-card__image">
+              <img
+                src="{{ product.featured_image | image_url: width: 600 }}"
+                alt="{{ product.title }}"
+                loading="lazy"
+                decoding="async"
+                class="moi-color-card__main-img"
+              >
+              {% if product.images[1] != blank %}
+                <div class="moi-color-card__image-hover">
+                  <img
+                    src="{{ product.images[1] | image_url: width: 600 }}"
+                    alt="{{ product.title }} alternate"
+                    loading="lazy"
+                    decoding="async"
+                  >
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="moi-color-card__info">
+              <div class="moi-color-card__color-row">
+                <span class="moi-color-card__color-name">{{ product.vendor | default: 'MOI' }}</span>
+              </div>
+
+              <h3 class="moi-color-card__product-name">{{ product.title }}</h3>
+
+              <div class="moi-color-card__price">
+                {% if product.compare_at_price > product.price %}
+                  <span class="moi-color-card__compare">{{ product.compare_at_price | money }}</span>
+                {% endif %}
+                <span class="moi-color-card__current-price {% if product.compare_at_price > product.price %}moi-color-card__current-price--sale{% endif %}">
+                  {{ product.price | money }}
+                </span>
+              </div>
+            </div>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if paginate.pages > 1 %}
+      <div class="moi-pagination" style="display: flex; justify-content: center; gap: 8px; margin-top: 48px;">
+        {{ paginate | default_pagination }}
+      </div>
+    {% endif %}
+  </div>
+</div>

@@ -80,6 +80,81 @@ export function extractVariantId(gid: string): number {
   return id;
 }
 
+/**
+ * Batch-check whether all requested variants are available for sale via the
+ * Shopify Storefront GraphQL API. Returns a list of unavailable variant GIDs.
+ *
+ * This is the backend enforcement layer for stock — the frontend already blocks
+ * adding out-of-stock items to cart, but this prevents abuse (malicious / stale
+ * cart requests, race conditions, etc.).
+ */
+export async function validateStockAvailability(
+  lines: OrderLine[],
+): Promise<{ ok: true } | { ok: false; unavailableVariantIds: string[] }> {
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const storefrontToken = process.env.VITE_SHOPIFY_STOREFRONT_TOKEN;
+  if (!storeDomain || !storefrontToken) {
+    // If Shopify is not configured, we cannot validate — fail open (log loudly).
+    logger.warn("validateStockAvailability: Shopify not configured — skipping stock check");
+    return { ok: true };
+  }
+
+  const uniqueVariantIds = [...new Set(lines.map((l) => l.variantId))];
+  const unavailable: string[] = [];
+
+  const endpoint = `https://${storeDomain}/api/2024-04/graphql.json`;
+  const headers = {
+    "Content-Type": "application/json",
+    "X-Shopify-Storefront-Access-Token": storefrontToken,
+  };
+
+  for (const variantId of uniqueVariantIds) {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          query: `
+            query CheckVariant($id: ID!) {
+              node(id: $id) {
+                ... on ProductVariant {
+                  id
+                  availableForSale
+                }
+              }
+            }
+          `,
+          variables: { id: variantId },
+        }),
+      });
+      if (!res.ok) {
+        logger.warn({ variantId, status: res.status }, "validateStockAvailability: Storefront API error");
+        continue; // fail open for individual variant errors
+      }
+      const json = await res.json() as {
+        data?: { node?: { id: string; availableForSale: boolean } };
+        errors?: { message: string }[];
+      };
+      if (json.errors?.length) {
+        logger.warn({ variantId, errors: json.errors }, "validateStockAvailability: GraphQL errors");
+        continue;
+      }
+      const available = json.data?.node?.availableForSale ?? true;
+      if (!available) {
+        unavailable.push(variantId);
+      }
+    } catch (err) {
+      logger.warn({ err, variantId }, "validateStockAvailability: network error checking variant");
+      // fail open for network errors
+    }
+  }
+
+  if (unavailable.length > 0) {
+    return { ok: false, unavailableVariantIds: unavailable };
+  }
+  return { ok: true };
+}
+
 export async function fetchStorefrontCart(
   cartId: string,
 ): Promise<StorefrontCartResult | null> {

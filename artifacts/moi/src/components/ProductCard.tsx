@@ -29,9 +29,10 @@ interface ProductCardProps {
   product: ProductConfig;
   onLookView: (product: ProductConfig) => void;
   onNavigateToProduct?: (handle: string) => void;
+  hideLookView?: boolean;
 }
 
-export function ProductCard({ product, onLookView, onNavigateToProduct }: ProductCardProps) {
+export function ProductCard({ product, onLookView, onNavigateToProduct, hideLookView }: ProductCardProps) {
   const { addToCart } = useCart();
   const { customer } = useCustomer();
   const [addedFeedback, setAddedFeedback] = useState(false);
@@ -176,6 +177,16 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
     const colorInventory = product.defaultInventory[colorKey];
     if (colorInventory === undefined) return -1;
     return colorInventory[size] ?? 0;
+  }
+
+  function isColorAvailable(color: string): boolean {
+    if (!hasShopifyVariants || !product.variants) return true;
+    return product.variants.some((v) => {
+      const colorMatch = v.selectedOptions.some(
+        (o) => o.name.toLowerCase() === "color" && o.value === color
+      );
+      return colorMatch && v.availableForSale;
+    });
   }
 
   function isSizeAvailable(size: string): boolean {
@@ -400,6 +411,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
               {/* Image tap / swipe area */}
               <div className="relative w-full mx-auto">
                 {/* See the Look — desktop, above image */}
+                {!hideLookView && (
                 <motion.button
                   type="button"
                   onClick={() => {
@@ -418,6 +430,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   </span>
                   <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
                 </motion.button>
+                )}
 
                 {/* Desktop: image + side arrows in a row — Mobile: swipe only */}
                 <div className="hidden md:flex items-center justify-center gap-4">
@@ -481,6 +494,8 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                       setDraggingGallery(false);
                       if (shouldSwipe) {
                         jumpGallery(delta < 0 ? 1 : -1);
+                      } else if (hideLookView && onNavigateToProduct) {
+                        onNavigateToProduct(product.slug);
                       } else {
                         onLookView(product);
                       }
@@ -530,6 +545,38 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                         )}
                       </AnimatePresence>
 
+                      {/* Out of stock overlay — desktop */}
+                      <AnimatePresence>
+                        {isOutOfStock && (
+                          <motion.div
+                            key="oos-desktop"
+                            className="absolute inset-0 pointer-events-none flex items-end justify-center pb-3"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <span
+                              style={{
+                                padding: "5px 14px",
+                                fontSize: 9,
+                                letterSpacing: "0.38em",
+                                textTransform: "uppercase",
+                                fontFamily: "'Montserrat', sans-serif",
+                                fontWeight: 500,
+                                color: "rgba(30,24,20,0.72)",
+                                backgroundColor: "rgba(250,248,245,0.84)",
+                                backdropFilter: "blur(6px)",
+                                WebkitBackdropFilter: "blur(6px)",
+                                border: "1px solid rgba(30,24,20,0.12)",
+                              }}
+                            >
+                              Out of Stock
+                            </span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
                     </div>
                   </div>
 
@@ -557,6 +604,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 </div>
 
                 {/* Mobile: just image, no arrows */}
+                {!hideLookView && (
                 <motion.button
                   type="button"
                   onClick={() => {
@@ -575,6 +623,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   </span>
                   <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
                 </motion.button>
+                )}
                 <div
                   className="md:hidden relative w-full mx-auto"
                   onPointerDown={(e) => {
@@ -614,6 +663,8 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     setDraggingGallery(false);
                     if (shouldSwipe) {
                       jumpGallery(delta < 0 ? 1 : -1);
+                    } else if (hideLookView && onNavigateToProduct) {
+                      onNavigateToProduct(product.slug);
                     } else {
                       onLookView(product);
                     }
@@ -651,6 +702,38 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                           exit={{ opacity: 0, transition: { duration: 0.3 } }}
                         >
                           <ImageSkeleton variant="card" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Out of stock overlay — mobile */}
+                    <AnimatePresence>
+                      {isOutOfStock && (
+                        <motion.div
+                          key="oos-mobile"
+                          className="absolute inset-0 pointer-events-none flex items-end justify-center pb-3"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <span
+                            style={{
+                              padding: "5px 14px",
+                              fontSize: 9,
+                              letterSpacing: "0.38em",
+                              textTransform: "uppercase",
+                              fontFamily: "'Montserrat', sans-serif",
+                              fontWeight: 500,
+                              color: "rgba(30,24,20,0.72)",
+                              backgroundColor: "rgba(250,248,245,0.84)",
+                              backdropFilter: "blur(6px)",
+                              WebkitBackdropFilter: "blur(6px)",
+                              border: "1px solid rgba(30,24,20,0.12)",
+                            }}
+                          >
+                            Out of Stock
+                          </span>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -789,12 +872,15 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     <span style={{ color: "#1e1814" }}>{selectedColor}</span>
                   </p>
                   <div className="flex items-center gap-2.5 flex-wrap justify-center">
-                    {displayColors.map((option, index) => (
+                    {displayColors.map((option, index) => {
+                      const colorAvailable = isColorAvailable(option.name);
+                      return (
                       <button
                         key={option.name}
                         type="button"
-                        aria-label={`View ${option.name}`}
+                        aria-label={`${option.name}${!colorAvailable ? " — Out of stock" : ""}`}
                         aria-pressed={selectedColor === option.name}
+                        title={!colorAvailable ? `${option.name} — Out of stock` : option.name}
                         onClick={() => {
                           if (onNavigateToProduct) {
                             onNavigateToProduct(`${product.slug}-${slugify(option.name)}`);
@@ -810,12 +896,20 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                           className="absolute inset-0 rounded-full transition-transform duration-300 hover:scale-110"
                           style={{
                             backgroundColor: option.swatch,
+                            opacity: colorAvailable ? 1 : 0.45,
                             boxShadow:
                               index === displayColors.length - 1 && option.swatch.startsWith("#1")
                                 ? "inset 0 0 0 1px rgba(255,255,255,0.16)"
                                 : "inset 0 0 0 1px rgba(30,24,20,0.1)",
                           }}
                         />
+                        {!colorAvailable && (
+                          <span aria-hidden="true" className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                            <svg width="100%" height="100%" viewBox="0 0 30 30" style={{ position: "absolute", top: 0, left: 0 }}>
+                              <line x1="4" y1="26" x2="26" y2="4" stroke="rgba(30,24,20,0.55)" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                          </span>
+                        )}
                         <span
                           className="absolute inset-[-5px] rounded-full border transition-opacity duration-300"
                           style={{
@@ -824,7 +918,8 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                           }}
                         />
                       </button>
-                    ))}
+                    );
+                    })}
                   </div>
                 </motion.div>
               )}
@@ -917,7 +1012,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
               )}
 
               {/* Scarcity note */}
-              {!product.name.toLowerCase().includes("versa") && (
+              {!isOutOfStock && !product.name.toLowerCase().includes("versa") && (
                 <motion.p
                   variants={itemVariants}
                   className="mb-1"

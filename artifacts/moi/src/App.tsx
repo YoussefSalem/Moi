@@ -372,7 +372,7 @@ function AppContent() {
           ) : page === "accessories" ? (
             <div>
               <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
-                <AccessoriesPage onLookView={setLookProduct} />
+                <AccessoriesPage onNavigateToProduct={navigateToProduct} onLookView={setLookProduct} />
                 <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
               </Suspense>
             </div>
@@ -441,7 +441,8 @@ function App() {
   }
 
   if (IS_APPLE_PAY_IFRAME) {
-    return <ApplePayIframePage />;
+    // Apple Pay iframe is disabled until ENABLE_APPLE_PAY is true in features.ts
+    return null;
   }
 
   return (

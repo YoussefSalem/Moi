@@ -1,0 +1,89 @@
+<section class="moi-hero" id="hero">
+  <div class="moi-hero__ambient"></div>
+
+  <div class="moi-hero__media">
+    {% if section.settings.hero_video != blank %}
+      {% if section.settings.hero_image != blank %}
+        {% assign hero_poster = section.settings.hero_image | image_url: width: 1920 %}
+      {% else %}
+        {% assign hero_poster = 'moi-hero.jpg' | asset_url %}
+      {% endif %}
+      <video autoplay loop muted playsinline poster="{{ hero_poster }}">
+        <source src="{{ section.settings.hero_video }}" type="video/mp4">
+      </video>
+    {% elsif section.settings.hero_image != blank %}
+      <img
+        src="{{ section.settings.hero_image | image_url: width: 1920 }}"
+        alt="{{ shop.name }} — Premium fashion collection"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      >
+    {% else %}
+      <img
+        src="{{ 'moi-hero.jpg' | asset_url }}"
+        alt="{{ shop.name }} — Premium fashion collection"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      >
+    {% endif %}
+  </div>
+
+  <div class="moi-hero__gradient"></div>
+  <div class="moi-hero__vignette"></div>
+
+  <div class="moi-hero__content">
+    <p class="moi-hero__label">New Drop</p>
+    <h1 class="moi-hero__title">MOI<span class="sr-only"> — Premium Versatile Tops & Fashion</span></h1>
+    <p class="moi-hero__headline">Summer Collection — Exclusive Drop</p>
+    <p class="moi-hero__subheadline">New pieces just launched. Fresh arrivals.</p>
+
+    <a href="{{ section.settings.cta_link }}" class="moi-hero__cta">
+      {{ section.settings.cta_text }}
+    </a>
+
+    <p class="moi-hero__urgency">Delivery in Egypt: 2–4 days</p>
+  </div>
+
+  <div class="moi-hero__scroll-cue">
+    <div class="moi-hero__scroll-line"></div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Hero",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "hero_image",
+      "label": "Hero Image",
+      "info": "Fallback image when no video is used"
+    },
+    {
+      "type": "url",
+      "id": "hero_video",
+      "label": "Hero Video URL",
+      "info": "Optional: Direct MP4 URL for looping background video"
+    },
+    {
+      "type": "text",
+      "id": "cta_text",
+      "label": "CTA Button Text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "text",
+      "id": "cta_link",
+      "label": "CTA Link",
+      "default": "/collections/all"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Hero"
+    }
+  ]
+}
+{% endschema %}

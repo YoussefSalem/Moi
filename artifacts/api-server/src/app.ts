@@ -47,18 +47,17 @@ app.use("/api/images", express.static(imagesDir, { maxAge: "7d" }));
 
 app.use("/api", router);
 
-// Apple Pay domain verification — serves the file Apple requires at this exact path.
-// Set APPLE_PAY_DOMAIN_ASSOCIATION env var to the raw content Apple provides in the
-// Developer Portal when you register your merchant domain.
-const applePayDomainAssociation = process.env["APPLE_PAY_DOMAIN_ASSOCIATION"];
-if (applePayDomainAssociation) {
-  app.get(
-    "/.well-known/apple-developer-merchantid-domain-association",
-    (_req, res) => {
-      res.set("Content-Type", "application/octet-stream");
-      res.send(Buffer.from(applePayDomainAssociation));
-    },
-  );
-}
+// Apple Pay domain verification — disabled while Apple Pay is off.
+// To re-enable: set APPLE_PAY_DOMAIN_ASSOCIATION env var and uncomment the block below.
+// const applePayDomainAssociation = process.env["APPLE_PAY_DOMAIN_ASSOCIATION"];
+// if (applePayDomainAssociation) {
+//   app.get(
+//     "/.well-known/apple-developer-merchantid-domain-association",
+//     (_req, res) => {
+//       res.set("Content-Type", "application/octet-stream");
+//       res.send(Buffer.from(applePayDomainAssociation));
+//     },
+//   );
+// }
 
 export default app;

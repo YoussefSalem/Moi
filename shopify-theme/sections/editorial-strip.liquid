@@ -1,0 +1,30 @@
+<section class="editorial-strip" id="editorial-strip">
+  <div class="editorial-strip-overlay" aria-hidden="true"></div>
+
+  <div class="editorial-strip-content">
+    <p class="editorial-label animate-in">{{ section.settings.label | default: 'The Moi Philosophy' }}</p>
+
+    <div class="editorial-words">
+      {%- assign words = section.settings.words | default: 'Effortless,Versatile,Yours' | split: ',' -%}
+      {%- for word in words -%}
+        <span class="editorial-word animate-in{% if forloop.index == 2 %} editorial-word--featured{% endif %}">{{ word | strip }}</span>
+      {%- endfor -%}
+    </div>
+
+    <div class="editorial-divider animate-in" aria-hidden="true"></div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Editorial Strip",
+  "settings": [
+    { "type": "text",     "id": "label", "label": "Label",                "default": "The Moi Philosophy" },
+    { "type": "text",     "id": "words", "label": "Words (comma-separated)", "default": "Effortless,Versatile,Yours",
+      "info": "Separate each word with a comma. The middle word gets full opacity." }
+  ],
+  "presets": [
+    { "name": "Editorial Strip" }
+  ]
+}
+{% endschema %}

@@ -14,6 +14,30 @@ interface VideoItem {
 
 const videos: VideoItem[] = [
   {
+    title: "Moi styling moment",
+    handle: "@tokagamal2",
+    profileUrl: "https://www.tiktok.com/@tokagamal2",
+    caption: "Creator review of Moi pieces — real fit, real style.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7647232073824062721",
+    type: "video",
+  },
+  {
+    title: "Moi in real life",
+    handle: "@lojaiinnabil",
+    profileUrl: "https://www.tiktok.com/@lojaiinnabil",
+    caption: "See how the pieces look and feel on an everyday outfit.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7647196308670926087",
+    type: "video",
+  },
+  {
+    title: "Moi style check",
+    handle: "@llifewitht",
+    profileUrl: "https://www.tiktok.com/@llifewitht",
+    caption: "Day-to-day outfit styling with Moi pieces.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7647230230519713044",
+    type: "carousel",
+  },
+  {
     title: "How brands under 1000 EGP actually look on \ud83d\udc40\ud83d\udcb8",
     handle: "@etharrdiabb",
     profileUrl: "https://www.tiktok.com/@etharrdiabb",
@@ -52,6 +76,30 @@ const videos: VideoItem[] = [
     caption: "Real, wearable outfits that translate from screen to wardrobe.",
     embedUrl: "https://www.tiktok.com/embed/v2/7641637259661430024",
     type: "video",
+  },
+  {
+    title: "Moi styling moment",
+    handle: "@tokagamal2",
+    profileUrl: "https://www.tiktok.com/@tokagamal2",
+    caption: "Creator review of Moi pieces — real fit, real style.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7647232073824062721",
+    type: "video",
+  },
+  {
+    title: "Moi in real life",
+    handle: "@lojaiinnabil",
+    profileUrl: "https://www.tiktok.com/@lojaiinnabil",
+    caption: "See how the pieces look and feel on an everyday outfit.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7647196308670926087",
+    type: "video",
+  },
+  {
+    title: "Moi style check",
+    handle: "@llifewitht",
+    profileUrl: "https://www.tiktok.com/@llifewitht",
+    caption: "Day-to-day outfit styling with Moi pieces.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7647230230519713044",
+    type: "carousel",
   },
 ];
 

@@ -1,12 +1,7 @@
 import { Router, type IRouter } from "express";
 import {
   sendWhatsApp,
-  createBostaShipment,
-  addShopifyOrderNote,
-  tagShopifyOrder,
   completeShopifyCheckout,
-  createShopifyFulfillment,
-  addShopifyFulfillmentEvent,
 } from "../lib/integrations";
 import {
   createDraftOrder,
@@ -14,6 +9,7 @@ import {
   extractVariantId,
   lookupDiscountCode,
   recordDiscountCodeUse,
+  validateStockAvailability,
   type OrderLine,
   type CustomerInfo,
   type OrderAttribution,
@@ -119,6 +115,13 @@ router.post("/orders/instapay-init", async (req, res) => {
     return;
   }
 
+  const stockCheck = await validateStockAvailability(lines);
+  if (!stockCheck.ok) {
+    req.log.warn({ unavailableVariantIds: stockCheck.unavailableVariantIds }, "Instapay init — stock check failed");
+    res.status(422).json({ error: "One or more items are out of stock." });
+    return;
+  }
+
   const cartId =
     typeof body.cartId === "string" && body.cartId.trim()
       ? body.cartId.trim()
@@ -208,6 +211,13 @@ router.post("/orders/create", async (req, res) => {
     return;
   }
 
+  const stockCheck = await validateStockAvailability(lines);
+  if (!stockCheck.ok) {
+    req.log.warn({ unavailableVariantIds: stockCheck.unavailableVariantIds }, "COD order — stock check failed");
+    res.status(422).json({ error: "One or more items are out of stock." });
+    return;
+  }
+
   const paymentMethod = body.paymentMethod as string | undefined;
   if (paymentMethod !== "cod") {
     res.status(400).json({ error: "Only COD orders are accepted at this endpoint." });
@@ -284,30 +294,9 @@ router.post("/orders/create", async (req, res) => {
       `✅ Your Moi order #${orderNumber} has been placed!\n\nTotal: ${total} EGP (${whatsappShippingNote})\nPayment: Cash on Delivery\n\nOur team will contact you shortly. Thank you for shopping with Moi. 🖤`,
     );
 
-    const trackingNumber = await createBostaShipment({
-      firstName: customer.firstName,
-      lastName: customer.lastName,
-      phone: customer.phone,
-      address: customer.address,
-      city: customer.city,
-      orderReference: `#${orderNumber}`,
-      codAmount: parseEGP(total),
-    });
-
-    if (trackingNumber) {
-      void addShopifyOrderNote(orderId, `Bosta tracking: ${trackingNumber}`);
-      void tagShopifyOrder(orderId, `bosta-${trackingNumber}`);
-      req.log.info({ trackingNumber, orderNumber }, "Bosta COD shipment created");
-
-      // Create a Shopify fulfillment immediately so the Bosta Shopify App sees
-      // the order as already fulfilled and does NOT create a competing Bosta
-      // shipment (which would have cod: 0 / "No Cash Collection"). This mirrors
-      // the card-orders and instapay dispatch flows in admin.ts.
-      const fulfillmentId = await createShopifyFulfillment(orderId, trackingNumber);
-      if (fulfillmentId) {
-        void addShopifyFulfillmentEvent(orderId, fulfillmentId, "in_transit");
-      }
-    }
+    // NOTE: Bosta dispatch is intentionally skipped for all payment methods.
+    // The Bosta Shopify app automatically syncs any orders that enter Shopify.
+    // We just need to make sure the orders are sent correctly from our side.
 
     // Mark the Shopify abandoned checkout as complete (fire-and-forget)
     if (checkoutToken) {

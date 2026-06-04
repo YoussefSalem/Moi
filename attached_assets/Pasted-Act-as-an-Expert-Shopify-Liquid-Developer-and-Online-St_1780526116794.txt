@@ -1,0 +1,26 @@
+Act as an Expert Shopify Liquid Developer and Online Store 2.0 Architect. My goal is to convert my custom-coded website (currently hosted on Replit) into a perfect 1:1 custom Shopify theme for my fashion brand, MOI.
+
+I need this migration to be flawless. Every design element must match perfectly, and all JavaScript functionalities must be properly converted to work within Shopify's ecosystem. 
+
+Because I want the transition to be as seamless as possible upon uploading the theme zip, you must utilize Shopify OS 2.0 JSON templates. 
+
+Here are your strict parameters for this build:
+
+1. FOLDER STRUCTURE & ARCHITECTURE:
+- Output the exact required Shopify folder structure (`layout/`, `templates/`, `sections/`, `snippets/`, `assets/`, `config/`, `locales/`).
+- Use OS 2.0 JSON templates exclusively for templates (e.g., `index.json`, `product.json`, `collection.json`). No `.liquid` files in the templates folder except for cart/checkout if absolutely necessary.
+
+2. ASSET MANAGEMENT:
+- Convert all of my standard `<link>` and `<script>` tags, as well as image `src` paths, to Shopify Liquid asset filters (e.g., `{{ 'style.css' | asset_url | stylesheet_tag }}`). 
+
+3. "AUTOMATIC" PAGE CREATION VIA JSON:
+- For any custom static pages in my Replit code (e.g., About Us, Lookbook), create a dedicated JSON template (e.g., `templates/page.about.json`) and the corresponding section file. This ensures that when I create a blank page in the Shopify admin and assign the template, the exact Replit design populates instantly without needing to rebuild it in the block editor.
+
+4. DYNAMIC PRODUCT INTEGRATION:
+- Ensure the product pages are fully dynamic. The code must perfectly handle Shopify's product object (`{{ product.title }}`, `{{ product.price }}`, variants, and images). Ensure the logic accommodates various product types, whether I am selling Wavvy tops, Versa tops, or Trio Bangles.
+- Convert my custom add-to-cart buttons into functional Shopify product forms (`{% form 'product', product %}`) with functioning variant selectors.
+
+5. GLOBAL ELEMENTS:
+- Extract my header, navigation, and footer from the Replit code and convert them into modular, globally available Shopify sections (`sections/header.liquid`, `sections/footer.liquid`). Use Shopify's linklists object for menus so I can control navigation dynamically from the admin.
+
+I will provide my Replit files (HTML, CSS, JS) in my next message. Please confirm you understand these constraints and are ready to receive the code. When you generate the files, provide them in clear code blocks with the exact filename and path at the top of each block so I can compile my theme.

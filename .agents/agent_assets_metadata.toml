@@ -29,3 +29,27 @@ id = "l0kyFHkIkqipyIdnwltMm"
 uri = "file://private-certs/moi-apple-pay-csrs.tar.gz"
 type = "unspecified"
 title = "Apple Pay CSR files (upload to Apple Developer Portal)"
+
+[[outputs]]
+id = "KLOtmpf10AMQEjSuEYrCx"
+uri = "file://moi-shopify-theme.zip"
+type = "unspecified"
+title = "Moi Shopify Theme"
+
+[[outputs]]
+id = "75If9yBtyJsavm34tO03v"
+uri = "file://moi-shopify-theme.tar.gz"
+type = "unspecified"
+title = "Moi Shopify Theme"
+
+[[outputs]]
+id = "0wRlOwHXhTdhNga9NorZH"
+uri = "file://moi-images.zip"
+type = "unspecified"
+title = "moi-images.zip — All 39 images, clearly named"
+
+[[outputs]]
+id = "Ipy-QVPVJwoJB3F_q5dfS"
+uri = "file://moi-theme.zip"
+type = "unspecified"
+title = "Moi Shopify Theme — Fixed (with settings_data.json)"

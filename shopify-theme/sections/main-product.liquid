@@ -1,0 +1,216 @@
+{%- assign product = product -%}
+{%- assign current_variant = product.selected_or_first_available_variant -%}
+
+<section class="product-page">
+  <div class="product-page-inner">
+
+    <!-- Gallery -->
+    <div class="product-gallery" id="product-gallery">
+      <div class="product-gallery-main">
+        <img
+          id="gallery-main-img"
+          class="product-gallery-main-img"
+          src="{{ current_variant.image | default: product.featured_media | img_url: '900x1200', crop: 'center' }}"
+          alt="{{ product.title | escape }}"
+          loading="eager"
+        >
+      </div>
+      <div class="product-gallery-thumbs">
+        {%- for media in product.media limit: 8 -%}
+          <button
+            class="gallery-thumb{% if forloop.first %} gallery-thumb--active{% endif %}"
+            onclick="setGalleryImage(this, '{{ media | img_url: '900x1200', crop: 'center' }}')"
+            aria-label="View image {{ forloop.index }}"
+          >
+            <img
+              src="{{ media | img_url: '120x160', crop: 'center' }}"
+              alt="{{ media.alt | default: product.title | escape }}"
+              loading="lazy"
+            >
+          </button>
+        {%- endfor -%}
+      </div>
+    </div>
+
+    <!-- Product details -->
+    <div class="product-details">
+      <p class="product-collection-label">
+        {%- if product.collections.first -%}{{ product.collections.first.title }}{%- endif -%}
+      </p>
+      <h1 class="product-title">{{ product.title }}</h1>
+
+      <div class="product-price">
+        {%- if current_variant.compare_at_price > current_variant.price -%}
+          <span class="price-compare">{{ current_variant.compare_at_price | money }}</span>
+        {%- endif -%}
+        <span class="price-current" id="product-price">{{ current_variant.price | money }}</span>
+      </div>
+
+      <!-- Variants form -->
+      <form action="/cart/add" method="post" id="product-form">
+        <input type="hidden" name="form_type" value="product">
+        <input type="hidden" name="utf8" value="✓">
+        <input type="hidden" id="variant-id" name="id" value="{{ current_variant.id }}">
+
+        {%- for option in product.options_with_values -%}
+          <div class="variant-option">
+            <p class="variant-label">{{ option.name }}: <span id="selected-{{ option.name | handleize }}">{{ option.selected_value }}</span></p>
+            {%- if option.name == 'Color' or option.name == 'Colour' -%}
+              <div class="color-swatches" role="group" aria-label="Select color">
+                {%- for value in option.values -%}
+                  <button
+                    type="button"
+                    class="color-swatch{% if option.selected_value == value %} color-swatch--selected{% endif %}"
+                    style="background: var(--swatch-{{ value | handleize }}, #ccc)"
+                    aria-label="{{ value }}"
+                    aria-pressed="{{ option.selected_value == value }}"
+                    data-option-name="{{ option.name }}"
+                    data-option-value="{{ value }}"
+                    onclick="selectVariantOption(this)"
+                  >
+                  </button>
+                {%- endfor -%}
+              </div>
+            {%- else -%}
+              <div class="size-options" role="group" aria-label="Select {{ option.name }}">
+                {%- for value in option.values -%}
+                  <button
+                    type="button"
+                    class="size-option{% if option.selected_value == value %} size-option--selected{% endif %}"
+                    aria-label="{{ value }}"
+                    aria-pressed="{{ option.selected_value == value }}"
+                    data-option-name="{{ option.name }}"
+                    data-option-value="{{ value }}"
+                    onclick="selectVariantOption(this)"
+                  >
+                    {{ value }}
+                  </button>
+                {%- endfor -%}
+              </div>
+            {%- endif -%}
+          </div>
+        {%- endfor -%}
+
+        <div class="product-add-row">
+          <button
+            type="submit"
+            class="btn-add-to-cart-primary"
+            id="add-to-cart-btn"
+            {%- unless current_variant.available -%}disabled{%- endunless -%}
+          >
+            {%- if current_variant.available -%}Add to Bag{%- else -%}Sold Out{%- endif -%}
+          </button>
+        </div>
+      </form>
+
+      <!-- Description -->
+      {%- if product.description != blank -%}
+        <div class="product-description">
+          {{ product.description }}
+        </div>
+      {%- endif -%}
+
+      <!-- Meta -->
+      {%- if product.metafields.custom.material -%}
+        <p class="product-meta">{{ product.metafields.custom.material }}</p>
+      {%- endif -%}
+      <p class="product-meta product-ref">Ref: {{ product.sku | default: product.handle }}</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- Variant data for JS -->
+<script>
+  var productVariants = {{ product.variants | json }};
+  var selectedOptions = {};
+
+  function selectVariantOption(btn) {
+    var optionName = btn.dataset.optionName;
+    var optionValue = btn.dataset.optionValue;
+    selectedOptions[optionName] = optionValue;
+
+    // Update button UI
+    btn.closest('.color-swatches, .size-options').querySelectorAll('button').forEach(function(b) {
+      b.classList.remove('color-swatch--selected', 'size-option--selected');
+      b.setAttribute('aria-pressed', 'false');
+    });
+    btn.classList.add(btn.classList.contains('color-swatch') ? 'color-swatch--selected' : 'size-option--selected');
+    btn.setAttribute('aria-pressed', 'true');
+
+    document.getElementById('selected-' + optionName.toLowerCase().replace(/\s+/g, '-')).textContent = optionValue;
+
+    // Match variant
+    var matched = productVariants.find(function(v) {
+      return Object.keys(selectedOptions).every(function(key) {
+        return v.options.some(function(o) { return o === selectedOptions[key]; });
+      });
+    });
+
+    if (matched) {
+      document.getElementById('variant-id').value = matched.id;
+      document.getElementById('product-price').textContent = (matched.price / 100).toFixed(0) + ' EGP';
+      var btn2 = document.getElementById('add-to-cart-btn');
+      if (matched.available) {
+        btn2.disabled = false;
+        btn2.textContent = 'Add to Bag';
+      } else {
+        btn2.disabled = true;
+        btn2.textContent = 'Sold Out';
+      }
+      // Update gallery image if variant has one
+      if (matched.featured_image) {
+        document.getElementById('gallery-main-img').src = matched.featured_image.src;
+      }
+    }
+  }
+
+  function setGalleryImage(thumb, src) {
+    document.getElementById('gallery-main-img').src = src;
+    document.querySelectorAll('.gallery-thumb').forEach(function(t) {
+      t.classList.remove('gallery-thumb--active');
+    });
+    thumb.classList.add('gallery-thumb--active');
+  }
+
+  // Handle cart form submission via AJAX
+  document.getElementById('product-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var btn = document.getElementById('add-to-cart-btn');
+    btn.textContent = 'Adding…';
+    btn.disabled = true;
+
+    fetch('/cart/add.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: document.getElementById('variant-id').value,
+        quantity: 1
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function() {
+      btn.textContent = 'Added!';
+      setTimeout(function() {
+        btn.textContent = 'Add to Bag';
+        btn.disabled = false;
+        openCart();
+        // Refresh cart count
+        fetch('/cart.js').then(function(r) { return r.json(); }).then(function(cart) {
+          document.getElementById('cart-count').textContent = cart.item_count;
+        });
+      }, 800);
+    })
+    .catch(function() {
+      btn.textContent = 'Error — try again';
+      btn.disabled = false;
+    });
+  });
+</script>
+
+{% schema %}
+{
+  "name": "Product Page",
+  "settings": []
+}
+{% endschema %}
