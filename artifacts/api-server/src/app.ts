@@ -34,7 +34,6 @@ app.use(cors());
 
 // Raw body must be captured BEFORE express.json() for webhook HMAC verification.
 // Routes under /api/webhooks and /api/bosta/status-webhook receive a Buffer in req.body.
-// Note: /api/webhooks covers both /api/webhooks/orders-paid and /api/webhooks/paymob.
 app.use("/api/webhooks", express.raw({ type: "application/json" }));
 app.use("/api/bosta/status-webhook", express.raw({ type: "application/json" }));
 
@@ -46,18 +45,5 @@ const imagesDir = path.resolve(__dirname, "..", "public", "images");
 app.use("/api/images", express.static(imagesDir, { maxAge: "7d" }));
 
 app.use("/api", router);
-
-// Apple Pay domain verification — disabled while Apple Pay is off.
-// To re-enable: set APPLE_PAY_DOMAIN_ASSOCIATION env var and uncomment the block below.
-// const applePayDomainAssociation = process.env["APPLE_PAY_DOMAIN_ASSOCIATION"];
-// if (applePayDomainAssociation) {
-//   app.get(
-//     "/.well-known/apple-developer-merchantid-domain-association",
-//     (_req, res) => {
-//       res.set("Content-Type", "application/octet-stream");
-//       res.send(Buffer.from(applePayDomainAssociation));
-//     },
-//   );
-// }
 
 export default app;

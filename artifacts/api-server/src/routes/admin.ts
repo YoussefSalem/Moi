@@ -1,19 +1,18 @@
 import crypto from "crypto";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db } from "@workspace/db";
-import { instapayProofs, abandonedCarts, paymobIntents } from "@workspace/db/schema";
-import { eq, desc, and, gte, lte, count, isNull, inArray } from "drizzle-orm";
+import { instapayProofs, abandonedCarts } from "@workspace/db/schema";
+import { eq, desc, and, gte, lte, count, isNull } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
 import {
   tagShopifyOrder,
   sendWhatsApp,
   getShopifyAdminToken,
 } from "../lib/integrations";
-import { getMaskedConfig, savePaymobConfig, type PaymobConfig } from "../lib/paymobConfig";
+import { completeShopifyDraftOrder } from "../lib/shopifyOrder";
 import { listDiscountCodeUses } from "@workspace/db";
 import { sendEmail, buildAbandonedCartEmail, buildInstapayConfirmedEmail, buildInstapayRejectedEmail } from "../lib/email";
 import { getSiteUrl } from "../lib/siteUrl";
-import { completeShopifyDraftOrder, recordShopifyPaymentTransaction } from "../lib/shopifyOrder";
 import { parseEGP } from "@workspace/utils";
 
 const router: IRouter = Router();
@@ -366,226 +365,6 @@ router.post("/admin/instapay-proofs/:id/reject", async (req, res) => {
   res.status(200).json({ ok: true });
 });
 
-// ---------------------------------------------------------------------------
-// Card order dispatch (Paymob card payments — admin approves Bosta shipment)
-// ---------------------------------------------------------------------------
-
-// GET /admin/card-orders — list all Paymob intents that have payment activity
-// (completed, processing, failed, declined) — pending intents that never
-// progressed are excluded to avoid clutter.
-router.get("/admin/card-orders", async (req, res) => {
-  try {
-    const rows = await db
-      .select()
-      .from(paymobIntents)
-      .where(inArray(paymobIntents.status, ["completed", "processing", "failed", "declined"]))
-      .orderBy(desc(paymobIntents.createdAt));
-
-    const result = rows.map((r) => {
-      const customer = r.customer as {
-        firstName?: string;
-        lastName?: string;
-        phone?: string;
-        address?: string;
-        city?: string;
-        governorate?: string;
-        email?: string;
-      };
-      return {
-        id: r.id,
-        intentId: r.intentId,
-        status: r.status,
-        shopifyOrderId: r.shopifyOrderId,
-        shopifyConfirmedOrderId: r.shopifyConfirmedOrderId,
-        paymobTxnId: r.paymobTxnId,
-        total: r.total,
-        customerName: [customer.firstName, customer.lastName].filter(Boolean).join(" ") || null,
-        customerPhone: customer.phone ?? null,
-        customerEmail: customer.email ?? null,
-        address: customer.address ?? null,
-        city: customer.city ?? null,
-        adminApproved: r.adminApproved,
-        adminApprovedAt: r.adminApprovedAt,
-        bostaDispatched: r.bostaDispatched,
-        bostaTrackingNumber: r.bostaTrackingNumber,
-        bostaDispatchedAt: r.bostaDispatchedAt,
-        createdAt: r.createdAt,
-      };
-    });
-
-    res.status(200).json({ orders: result });
-  } catch (err) {
-    req.log.error({ err }, "card-orders: failed to fetch");
-    res.status(500).json({ error: "Failed to fetch card orders" });
-  }
-});
-
-// POST /admin/card-orders/:id/approve — convert Shopify draft order to a confirmed order
-router.post("/admin/card-orders/:id/approve", async (req, res) => {
-  const id = parseInt(String(req.params.id), 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-
-  // Read the intent to get shopifyOrderId and validate pre-conditions.
-  const rows = await db.select().from(paymobIntents).where(eq(paymobIntents.id, id)).limit(1);
-  const intent = rows[0];
-  if (!intent) { res.status(404).json({ error: "Order not found" }); return; }
-  if (intent.status !== "completed") { res.status(409).json({ error: "Order not in completed state" }); return; }
-  if (intent.adminApproved) {
-    res.status(200).json({ ok: true, orderId: intent.shopifyConfirmedOrderId, orderNumber: intent.shopifyConfirmedOrderId, alreadyApproved: true });
-    return;
-  }
-  if (!intent.shopifyOrderId) { res.status(409).json({ error: "No Shopify order linked — payment may still be processing" }); return; }
-
-  // Atomic guard: flip adminApproved BEFORE calling Shopify to prevent two concurrent
-  // admin requests from both completing the same draft order.
-  const guardRows = await db
-    .update(paymobIntents)
-    .set({ adminApproved: true, adminApprovedAt: new Date() })
-    .where(and(eq(paymobIntents.id, id), eq(paymobIntents.adminApproved, false)))
-    .returning({ id: paymobIntents.id });
-
-  if (guardRows.length === 0) {
-    // Another request won the race — re-fetch and return current state
-    const latest = await db.select({ shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId }).from(paymobIntents).where(eq(paymobIntents.id, id)).limit(1);
-    res.status(200).json({ ok: true, orderId: latest[0]?.shopifyConfirmedOrderId, orderNumber: latest[0]?.shopifyConfirmedOrderId, alreadyApproved: true });
-    return;
-  }
-
-  req.log.info({ id, orderId: intent.shopifyOrderId }, "card-orders approve: completing Shopify order");
-
-  const result = await completeShopifyDraftOrder(intent.shopifyOrderId).catch((err: unknown) => {
-    req.log.error({ err, id }, "card-orders approve: completeShopifyDraftOrder threw");
-    return null;
-  });
-
-  if (!result) {
-    res.status(502).json({ error: "Failed to complete Shopify order — check Shopify credentials and order status" });
-    return;
-  }
-
-  // adminApproved/adminApprovedAt already set by the atomic guard above; just record the confirmed order ID
-  await db
-    .update(paymobIntents)
-    .set({ shopifyConfirmedOrderId: result.orderId })
-    .where(eq(paymobIntents.id, id));
-
-  req.log.info({ id, orderId: intent.shopifyOrderId, confirmedOrderId: result.orderId, orderNumber: result.orderNumber }, "card-orders approve: order completed");
-  res.status(200).json({ ok: true, orderId: result.orderId, orderNumber: result.orderNumber, total: result.total });
-});
-
-// POST /admin/card-orders/:id/decline — admin rejects a pending-approval card order
-router.post("/admin/card-orders/:id/decline", async (req, res) => {
-  const id = parseInt(String(req.params.id), 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-
-  const rows = await db.select().from(paymobIntents).where(eq(paymobIntents.id, id)).limit(1);
-  const intent = rows[0];
-  if (!intent) { res.status(404).json({ error: "Order not found" }); return; }
-  if (intent.adminApproved) { res.status(409).json({ error: "Order already approved — cannot decline" }); return; }
-  if (intent.status === "declined") { res.status(409).json({ error: "Order already declined" }); return; }
-
-  await db
-    .update(paymobIntents)
-    .set({ status: "declined" })
-    .where(eq(paymobIntents.id, id));
-
-  req.log.info({ id, paymobTxnId: intent.paymobTxnId }, "card-orders decline: order declined by admin");
-  res.status(200).json({ ok: true });
-});
-
-// ---------------------------------------------------------------------------
-// Transactions — read-only Paymob intent tracking view
-// ---------------------------------------------------------------------------
-
-// GET /admin/transactions — returns all Paymob intents with payment activity
-// for the admin transactions view (replaces the old card-orders tab UI).
-router.get("/admin/transactions", async (req, res) => {
-  try {
-    const rows = await db
-      .select()
-      .from(paymobIntents)
-      .where(inArray(paymobIntents.status, ["completed", "processing", "failed", "declined"]))
-      .orderBy(desc(paymobIntents.createdAt));
-
-    const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN ?? null;
-
-    const result = rows.map((r) => {
-      const customer = r.customer as { firstName?: string; lastName?: string; phone?: string; email?: string };
-      const attr = r.attribution as { sourceName?: string; referringSite?: string; landingSite?: string; utm?: Record<string, string> } | null;
-
-      const allTimestamps = [r.bostaDispatchedAt, r.adminApprovedAt].filter((t): t is Date => !!t);
-      const lastUpdated = allTimestamps.sort((a, b) => b.getTime() - a.getTime())[0] ?? r.createdAt;
-
-      const shopifyOrderUrl = (storeDomain && r.shopifyOrderId)
-        ? `https://${storeDomain}/admin/orders/${r.shopifyOrderId}`
-        : null;
-
-      return {
-        id: r.id,
-        transactionId: r.paymobTxnId ?? r.intentId,
-        paymobTxnId: r.paymobTxnId,
-        dateCreated: r.createdAt,
-        amount: r.total,
-        paymentType: "Card" as const,
-        paymentSource: attr?.utm?.source ?? attr?.sourceName ?? "Direct",
-        origin: attr?.referringSite ?? attr?.landingSite ?? "—",
-        status: r.status,
-        shopifyOrderNumber: r.shopifyOrderNumber ?? null,
-        shopifyOrderId: r.shopifyOrderId ?? null,
-        shopifyOrderUrl,
-        transactionType: r.status === "completed" ? "Sale" : r.status === "processing" ? "Pending" : "—",
-        lastUpdated,
-        customerName: [customer.firstName, customer.lastName].filter(Boolean).join(" ") || null,
-        customerEmail: customer.email ?? null,
-        customerPhone: customer.phone ?? null,
-        bostaDispatched: r.bostaDispatched,
-        bostaTrackingNumber: r.bostaTrackingNumber ?? null,
-        bostaDispatchedAt: r.bostaDispatchedAt ?? null,
-      };
-    });
-
-    res.status(200).json({ transactions: result });
-  } catch (err) {
-    req.log.error({ err }, "transactions: failed to fetch");
-    res.status(500).json({ error: "Failed to fetch transactions" });
-  }
-});
-
-// POST /admin/fix-payment-transaction/:id — re-post a Shopify payment transaction
-// for a completed Paymob intent. Use when a card payment succeeded in Paymob but
-// the Shopify order still shows as Payment Pending (e.g. if the first attempt failed).
-router.post("/admin/fix-payment-transaction/:id", async (req, res) => {
-  const id = parseInt(String(req.params.id), 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-
-  const rows = await db.select().from(paymobIntents).where(eq(paymobIntents.id, id)).limit(1);
-  const intent = rows[0];
-  if (!intent) { res.status(404).json({ error: "Not found" }); return; }
-  if (intent.status !== "completed") { res.status(409).json({ error: "Intent must be in completed state" }); return; }
-  if (!intent.shopifyOrderId || !intent.paymobTxnId) {
-    res.status(409).json({ error: "Missing shopifyOrderId or paymobTxnId — cannot record transaction" });
-    return;
-  }
-
-  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = await getShopifyAdminToken();
-  if (!storeDomain || !adminToken) { res.status(503).json({ error: "Shopify not configured" }); return; }
-
-  try {
-    await recordShopifyPaymentTransaction({
-      orderId: intent.shopifyOrderId,
-      amount: intent.total,
-      paymobTxnId: intent.paymobTxnId,
-      storeDomain,
-      adminToken,
-    });
-    req.log.info({ id, shopifyOrderId: intent.shopifyOrderId, paymobTxnId: intent.paymobTxnId }, "fix-payment-transaction: transaction re-posted to Shopify");
-    res.status(200).json({ ok: true });
-  } catch (err) {
-    req.log.error({ err, id }, "fix-payment-transaction: failed");
-    res.status(500).json({ error: "Failed to post transaction to Shopify" });
-  }
-});
 
 /**
  * POST /api/admin/test-discount-counter
@@ -939,36 +718,6 @@ router.post("/admin/abandoned-carts/:id/send-now", requireAdminAuth, async (req,
   } catch (err) {
     req.log.error({ err, id }, "abandoned-cart: send-now failed");
     res.status(500).json({ error: "Failed to send email" });
-  }
-});
-
-// GET /admin/paymob-config
-router.get("/admin/paymob-config", (_req, res) => {
-  res.status(200).json(getMaskedConfig());
-});
-
-// POST /admin/paymob-config
-router.post("/admin/paymob-config", (req, res) => {
-  const patch = req.body as Partial<PaymobConfig>;
-  const allowed: (keyof PaymobConfig)[] = ["apiKey", "secretKey", "publicKey", "integrationId", "hmacSecret", "iframeId", "applePayIntegrationId"];
-  const filtered: Partial<PaymobConfig> = {};
-  for (const key of allowed) {
-    if (typeof patch[key] === "string" && (patch[key] as string).trim()) {
-      filtered[key] = (patch[key] as string).trim();
-    }
-  }
-  if (filtered.integrationId !== undefined) {
-    const id = parseInt(filtered.integrationId, 10);
-    if (!Number.isInteger(id) || id <= 0) {
-      res.status(400).json({ error: "Integration ID must be a numeric ID (e.g. 123456) from your Paymob dashboard." });
-      return;
-    }
-  }
-  try {
-    savePaymobConfig(filtered);
-    res.status(200).json(getMaskedConfig());
-  } catch {
-    res.status(500).json({ error: "Failed to save config" });
   }
 });
 

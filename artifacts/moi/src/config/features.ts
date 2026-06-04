@@ -1,6 +1,6 @@
 /**
- * Payment feature flags — flip these to true when Paymob is live
- * to re-enable card and Apple Pay options without restoring code.
+ * Payment feature flags.
+ * Only COD and InstaPay are available.
  */
-export const ENABLE_CARD_PAYMENTS = true;
-export const ENABLE_APPLE_PAY = true;
+export const ENABLE_INSTAPAY = true;
+export const ENABLE_COD = true;

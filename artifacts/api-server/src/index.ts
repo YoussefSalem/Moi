@@ -43,16 +43,6 @@ app.listen(port, (err) => {
     ? "Resend config resolved — WARNING: RESEND_API_KEY_AUDIENCE is identical to RESEND_API_KEY (audience sync disabled until a full-access key is set)"
     : "Resend config resolved");
 
-  // Log Paymob configuration presence (values masked) for observability
-  logger.info({
-    paymobApiKey: !!process.env["PAYMOB_API_KEY"],
-    paymobPublicKey: !!process.env["PAYMOB_PUBLIC_KEY"],
-    paymobSecretKey: !!process.env["PAYMOB_SECRET_KEY"],
-    paymobIntegrationId: !!process.env["PAYMOB_INTEGRATION_ID"],
-    paymobHmacSecret: !!process.env["PAYMOB_HMAC_SECRET"],
-    paymobIframeId: process.env["PAYMOB_IFRAME_ID"] || "(missing)",
-  }, "Paymob config resolved");
-
   // Register Shopify webhooks for automatic restock notifications
   registerRestockWebhooks().catch((e) =>
     logger.warn({ err: e }, "Webhook registration error"),
