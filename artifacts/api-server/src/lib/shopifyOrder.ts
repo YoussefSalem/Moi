@@ -920,9 +920,10 @@ export async function recordShopifyPaymentTransaction(params: {
  *   gateway is locked to Shopify Payments even when completed with payment_pending=true.
  *
  *   The only reliable approach for external payment providers is to embed the
- *   transaction directly in POST /orders.json at creation time. Shopify creates
- *   the order AND records the payment atomically, setting financial_status:"paid"
- *   without requiring Shopify Payments infrastructure.
+ *   transaction directly in POST /orders.json at creation time WITHOUT setting
+ *   financial_status:"paid" explicitly. Shopify computes financial_status from
+ *   the embedded kind:"sale" transaction automatically, bypassing the Shopify
+ *   Payments infrastructure check that causes the above error.
  *
  * NOTE on discounts: Shopify's Orders API does accept discount_codes but does NOT
  *   reduce the order total from them (they're tracking-only). This function reads
@@ -1002,10 +1003,12 @@ async function createDirectPaidCardOrder(params: {
     suppress_notifications: true,
     send_receipt: false,
     send_fulfillment_receipt: false,
-    // financial_status:"paid" + a successful sale transaction → Shopify marks order paid
-    financial_status: "paid",
-    // "paymob" is a custom gateway name — avoids Shopify Payments linkage
-    gateway: "paymob",
+    // Do NOT set financial_status:"paid" explicitly — on Shopify Payments stores this
+    // triggers a validation check that returns "Order has no shopify_payment." because
+    // Shopify tries to link it to Shopify Payments infrastructure.
+    // Instead, let Shopify compute financial_status from the embedded transaction below.
+    // A successful kind:"sale" transaction causes Shopify to set financial_status:"paid"
+    // automatically without going through Shopify Payments.
     source_name: draftFull.source_name ?? "api",
     ...(c.email ? { email: c.email } : {}),
     line_items: (draftFull.line_items ?? []).map((item) => ({
