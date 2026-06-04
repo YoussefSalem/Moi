@@ -4,7 +4,7 @@ import { paymobIntents } from "@workspace/db/schema";
 import { parseEGP } from "@workspace/utils";
 import { sendWhatsApp, completeShopifyCheckout } from "./integrations";
 import {
-  createShopifyDirectOrder,
+  createDirectPaidCardOrder,
   recordDiscountCodeUse,
   validateStockAvailability,
   type OrderLine,
@@ -98,7 +98,7 @@ export async function processPaymobSuccess(params: {
   let shopifyDiscountCode: string | undefined;
 
   try {
-    const result = await createShopifyDirectOrder({
+    const result = await createDirectPaidCardOrder({
       lines,
       customer,
       paymentMethod: "card",
@@ -106,7 +106,6 @@ export async function processPaymobSuccess(params: {
       discountCode: intent.discountCode ?? undefined,
       extraTags: `paymob-card-paid,paymob-card-order,paymob-txn-${paymobTxnId}`,
       attribution,
-      financialStatus: "paid",
       paymobTxnId,
       paymobDetails: { txnId: paymobTxnId, amountCents, intentId },
     });

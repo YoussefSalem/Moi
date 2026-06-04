@@ -904,7 +904,7 @@ export async function recordShopifyPaymentTransaction(params: {
  *   3. POST /orders.json with embedded transaction → order created and marked paid
  *   4. DELETE /draft_orders/{id}.json — cleanup (fire-and-forget)
  */
-async function createDirectPaidCardOrder(params: {
+export async function createDirectPaidCardOrder(params: {
   lines: OrderLine[];
   customer: CustomerInfo;
   paymentMethod: "card" | "apple-pay";
