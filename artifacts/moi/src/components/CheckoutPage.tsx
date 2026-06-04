@@ -2938,6 +2938,43 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
     showOverlay();
   }, [showOverlay, onFail]);
 
+  // Shows a "3D Secure Required" overlay with a button that opens the ACS challenge in a popup.
+  // Using a popup (instead of navigating the iframe) avoids X-Frame-Options blocks from bank ACS pages.
+  // After 3DS completes, Paymob redirects the popup to our relay page which uses window.opener
+  // to postMessage PAYMOB_RESULT back to this window.
+  const show3DSOverlay = useCallback((acsUrl: string) => {
+    if (overlayInnerRef.current) {
+      overlayInnerRef.current.innerHTML =
+        '<div style="width:72px;height:72px;border-radius:50%;background:rgba(30,24,20,0.07);display:flex;align-items:center;justify-content:center;margin-bottom:18px;flex-shrink:0">' +
+          '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e1814" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+        '</div>' +
+        '<p style="font-size:15px;letter-spacing:0.3em;text-transform:uppercase;color:#1e1814;font-family:\'Montserrat\',sans-serif;font-weight:700;margin-bottom:14px">3D Secure</p>' +
+        '<p style="font-size:13px;color:rgba(30,24,20,0.6);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:300px;line-height:1.85;margin-bottom:24px">Your bank requires additional verification.<br>Click below to complete the<br>secure authentication step.</p>' +
+        '<button id="tds-cta" style="background:#1e1814;color:#faf8f5;border:none;padding:14px 32px;font-family:\'Montserrat\',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;cursor:pointer;margin-bottom:14px;width:100%;max-width:300px">Complete Verification →</button>' +
+        '<p id="tds-hint" style="font-size:11px;color:rgba(30,24,20,0.38);font-family:\'Montserrat\',sans-serif;letter-spacing:0.06em;text-align:center">Opens in a new window</p>';
+
+      const inner = overlayInnerRef.current;
+      const btnEl = inner.querySelector<HTMLElement>('#tds-cta');
+      if (btnEl) {
+        btnEl.addEventListener('click', () => {
+          const popup = window.open(acsUrl, 'paymob_3ds', 'width=520,height=700,scrollbars=yes,resizable=yes,toolbar=no,menubar=no');
+          if (!popup) {
+            // Popup was blocked — show a direct anchor link as fallback
+            const hintEl = inner.querySelector<HTMLElement>('#tds-hint');
+            if (hintEl) {
+              hintEl.innerHTML = '<a href="' + acsUrl.replace(/"/g, '&quot;') + '" target="_blank" rel="noopener" style="color:#1e1814;letter-spacing:0.06em;font-size:11px;text-underline-offset:3px;text-decoration:underline">Verification window blocked — click to open manually</a>';
+            }
+          } else {
+            if (btnEl) btnEl.textContent = 'Verification window opened…';
+            const hintEl = inner.querySelector<HTMLElement>('#tds-hint');
+            if (hintEl) hintEl.textContent = 'Complete the step in the new window, then return here';
+          }
+        });
+      }
+    }
+    showOverlay();
+  }, [showOverlay]);
+
   const stopPolling = useCallback(() => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
@@ -3167,11 +3204,19 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
               resolvedRef.current = false;
               // Cancel any pending blur-debounce timer — 3DS is underway, not a failure.
               if (blurDebounceRef.current) { clearTimeout(blurDebounceRef.current); blurDebounceRef.current = null; }
-              tempOverlayRef.current = true;
-              showOverlay();
-              const redirectionUrl = data["redirection_url"];
-              if (typeof redirectionUrl === "string" && redirectionUrl && iframeRef.current) {
-                iframeRef.current.src = redirectionUrl;
+              const acsUrl = data["redirection_url"];
+              if (typeof acsUrl === "string" && acsUrl) {
+                // Open 3DS challenge in a popup to avoid X-Frame-Options restrictions on
+                // bank ACS pages. The relay page (window.opener) will postMessage
+                // PAYMOB_RESULT back to this window when 3DS completes.
+                // Do NOT navigate the iframe — keep it showing so the overlay renders
+                // correctly above it without triggering handleIframeLoad.
+                show3DSOverlay(acsUrl);
+              } else {
+                // No ACS URL provided — Paymob may handle the redirect internally.
+                // Show a processing overlay and wait for the next postMessage or polling.
+                tempOverlayRef.current = true;
+                showOverlay();
               }
             }
           }
@@ -3182,7 +3227,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [intentId, showOverlay, showOverlaySuccess, showOverlayPending, showOverlayFail, stopPolling]);
+  }, [intentId, showOverlay, show3DSOverlay, showOverlaySuccess, showOverlayPending, showOverlayFail, stopPolling]);
 
   return (
     <div style={{ position: "relative", width: "100%" }}>
