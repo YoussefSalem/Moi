@@ -352,6 +352,32 @@ export interface ShopifyLineItem {
   price: string;
 }
 
+async function markShopifyOrderPaid(
+  orderId: number,
+  amount: string,
+  storeDomain: string,
+  adminToken: string,
+): Promise<void> {
+  try {
+    await fetch(
+      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/transactions.json`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+        body: JSON.stringify({
+          transaction: {
+            kind: "sale",
+            status: "success",
+            amount,
+            currency: "EGP",
+            gateway: "paymob",
+          },
+        }),
+      },
+    );
+  } catch { /* non-fatal — order is already created */ }
+}
+
 export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{ orderId: number; orderNumber: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string } | null> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
@@ -408,14 +434,47 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
   // That caused discounts to be lost (frontend showed discounted price, Shopify showed
   // full price). We already track usage_count ourselves via recordDiscountCodeUse(),
   // so draft completion is the correct path.
+  // Complete without payment_pending=true so Shopify marks the order as "Paid".
+  // Completing via Admin API does not require a Shopify payment gateway — the
+  // financial_status is set to "paid" directly because payment was already
+  // collected externally (Paymob).
   const completeRes = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false&payment_pending=true`,
+    `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
     },
   );
-  if (!completeRes.ok) return null;
+  if (!completeRes.ok) {
+    const errText = await completeRes.text().catch(() => "");
+    // If Shopify rejects the direct-paid completion, fall back to payment_pending
+    // and then mark paid via a manual transaction
+    if (completeRes.status === 422) {
+      const fallbackRes = await fetch(
+        `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false&payment_pending=true`,
+        { method: "PUT", headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken } },
+      );
+      if (!fallbackRes.ok) return null;
+      const fallbackData = await fallbackRes.json() as { draft_order: { order_id: number; total_price: string } };
+      const fbOrderId = fallbackData.draft_order.order_id;
+      const fbTotal = fallbackData.draft_order.total_price;
+      void markShopifyOrderPaid(fbOrderId, fbTotal, storeDomain, adminToken);
+      const fbOrderRes = await fetch(
+        `https://${storeDomain}/admin/api/2024-04/orders/${fbOrderId}.json?fields=order_number,line_items`,
+        { headers: { "X-Shopify-Access-Token": adminToken } },
+      );
+      let fbOrderNumber = fbOrderId;
+      let fbLineItems: ShopifyLineItem[] = [];
+      if (fbOrderRes.ok) {
+        const fbOrderData = await fbOrderRes.json() as { order: { order_number: number; line_items: unknown[] } };
+        fbOrderNumber = fbOrderData.order.order_number ?? fbOrderId;
+        fbLineItems = (fbOrderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
+      }
+      return { orderId: fbOrderId, orderNumber: fbOrderNumber, total: fbTotal, lineItems: fbLineItems, discountAmount: draftDiscountAmount, discountCode: draftDiscountCode };
+    }
+    logger.error({ status: completeRes.status, body: errText }, "completeShopifyDraftOrder failed");
+    return null;
+  }
 
   const completeData = await completeRes.json() as {
     draft_order: { order_id: number; total_price: string };
