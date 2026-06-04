@@ -22,6 +22,7 @@ import { useRestockChecker } from "@/hooks/useRestockChecker";
 // Heavy components — loaded only when needed
 const AccessoriesPage = lazy(() => import("@/components/AccessoriesPage").then(m => ({ default: m.AccessoriesPage })));
 const AmbassadorPage = lazy(() => import("@/components/AmbassadorPage").then(m => ({ default: m.AmbassadorPage })));
+const LimitedDrop = lazy(() => import("@/components/LimitedDrop").then(m => ({ default: m.LimitedDrop })));
 const TikTokSocialProof = lazy(() => import("@/components/TikTokSocialProof").then(m => ({ default: m.TikTokSocialProof })));
 const PolicyPage = lazy(() => import("@/components/PolicyPage").then(m => ({ default: m.PolicyPage })));
 const Footer = lazy(() => import("@/components/Footer").then(m => ({ default: m.Footer })));
@@ -32,12 +33,10 @@ const AccountPage = lazy(() => import("@/components/AccountPage").then(m => ({ d
 const SearchDrawer = lazy(() => import("@/components/SearchDrawer").then(m => ({ default: m.SearchDrawer })));
 import type { SearchItem } from "@/components/SearchDrawer";
 import { ProductPage } from "@/pages/ProductPage";
-import { ApplePayIframePage } from "@/pages/ApplePayIframePage";
 const AdminPage = lazy(() => import("@/pages/AdminPage").then(m => ({ default: m.AdminPage })));
 const NotFoundPage = lazy(() => import("@/components/NotFoundPage").then(m => ({ default: m.NotFoundPage })));
 
 const IS_ADMIN = window.location.pathname.startsWith("/admin");
-const IS_APPLE_PAY_IFRAME = window.location.pathname === "/buy/apple-pay";
 
 type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product" | "notfound" | "checkout";
 const POLICY_PAGES: PageType[] = ["privacy", "refund", "return", "delivery"];
@@ -438,10 +437,6 @@ function App() {
         <AdminPage />
       </Suspense>
     );
-  }
-
-  if (IS_APPLE_PAY_IFRAME) {
-    return <ApplePayIframePage />;
   }
 
   return (

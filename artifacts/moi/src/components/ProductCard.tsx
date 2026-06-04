@@ -501,7 +501,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                       <AnimatePresence initial={false} mode="wait">
                         <motion.img
                           key={mainImage}
-                          src={mainImage || undefined}
+                          src={mainImage}
                           alt={`${product.name} — ${selectedColor}`}
                           className="absolute inset-0 w-full h-full"
                           style={{ objectFit: "contain", objectPosition: "center" }}
@@ -627,7 +627,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     <AnimatePresence initial={false} mode="wait">
                       <motion.img
                         key={mainImage}
-                        src={mainImage || undefined}
+                        src={mainImage}
                         alt={`${product.name} — ${selectedColor}`}
                         className="absolute inset-0 w-full h-full"
                         style={{ objectFit: "contain", objectPosition: "center" }}

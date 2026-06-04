@@ -1,6 +1,4 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { toast } from "sonner";
-import { PaymobApplePayButton } from "./PaymobApplePayButton";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -11,6 +9,7 @@ import { trackTikTokPurchase } from "@/lib/tiktokPixel";
 import { trackShopifyPurchase } from "@/lib/shopifyAnalytics";
 import { getAttribution } from "@/lib/adAttribution";
 import { trackCheckoutStep, trackCheckoutStepTime } from "@/lib/analytics";
+import { PaymobApplePayButton } from "@/components/PaymobApplePayButton";
 import type { ShopifyCartLine } from "@/lib/shopify";
 
 const PRODUCT_COLOR_MAP: Record<string, string> = {};
@@ -136,7 +135,7 @@ function resolveEmailImage(line: ShopifyCartLine, localItems?: { variantId: stri
 }
 
 type PaymentMethod = "cod" | "instapay" | "card" | "apple-pay";
-type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
+type Step = "email" | "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
 type InstapaySubStep = "instructions" | "upload" | "review";
 
 interface OrderResult {
@@ -299,10 +298,10 @@ export function CheckoutPage() {
     formatShopifyLinePrice,
     applyDiscount,
     prefilledEmail,
-    checkoutUrl,
   } = useCart();
 
-  const [step, setStep] = useState<Step>("form");
+  const [step, setStep] = useState<Step>("email");
+  const [emailInput, setEmailInput] = useState("");
   const [emailError, setEmailError] = useState("");
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
@@ -346,7 +345,8 @@ export function CheckoutPage() {
     if (!checkoutOpen) return;
     function onPopState() {
       if (window.location.pathname !== "/checkout") {
-        setStep("form");
+        setStep("email");
+        setEmailInput("");
         setOrderResult(null);
         setPaymobIframeUrl(null);
         setApplePayData(null);
@@ -359,15 +359,28 @@ export function CheckoutPage() {
     return () => window.removeEventListener("popstate", onPopState);
   }, [checkoutOpen, closeCheckout]);
 
+  useEffect(() => {
+    if (checkoutOpen && prefilledEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRegex.test(prefilledEmail.trim())) {
+        setEmailInput(prefilledEmail);
+        setForm((f) => ({ ...f, email: prefilledEmail }));
+        setStep("form");
+      }
+    }
+  }, [checkoutOpen, prefilledEmail]);
+
   // Direct Apple Pay fast-path: skip the email + form steps entirely.
   // Called immediately when checkout is opened via the "Buy with Apple Pay" button.
+  // The native Apple Pay sheet collects payment/contact info — no form needed.
   const triggerApplePayDirectInit = useCallback(async () => {
     const orderLines = isShopify && shopifyCart
       ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
       : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
 
-    if (orderLines.length === 0) return;
+    if (orderLines.length === 0) return; // cart not ready — let normal flow handle it
 
+    // Recompute totals inline (mirrors the render-level computed values)
     const subTotal = isShopify && shopifyCart
       ? shopifyCart.lines.nodes.reduce((s, l) => s + parseFloat(l.merchandise.price.amount) * l.quantity, 0)
       : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
@@ -384,16 +397,6 @@ export function CheckoutPage() {
     setStep("loading");
 
     try {
-      const formCustomer = form.firstName.trim() && form.phone.trim() ? {
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
-        phone: form.phone.trim(),
-        email: form.email.trim() || undefined,
-        address: form.address.trim() || "NA",
-        city: form.city.trim() || "Cairo",
-        governorate: form.governorate.trim() || "NA",
-      } : undefined;
-
       const res = await fetch("/api/orders/paymob-apple-pay-init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -404,7 +407,6 @@ export function CheckoutPage() {
           discountCode: promoApplied?.code ?? null,
           attribution: buildOrderAttribution(),
           checkoutToken: shopifyCheckoutToken ?? null,
-          ...(formCustomer ? { customer: formCustomer } : {}),
         }),
       });
 
@@ -454,12 +456,16 @@ export function CheckoutPage() {
       setSubmitError("Network error. Please check your connection and try again.");
       setStep("form");
     }
-  }, [isShopify, shopifyCart, localItems, promoApplied, shopifyCheckoutToken, formatShopifyLinePrice, form]);
+  }, [isShopify, shopifyCart, localItems, promoApplied, shopifyCheckoutToken, formatShopifyLinePrice]);
 
+  // Read sessionStorage flag set by ProductPage "Buy with Apple Pay" shortcut.
+  // When Apple Pay is available, skip the email + form steps and go straight to
+  // the native payment sheet via triggerApplePayDirectInit.
   useEffect(() => {
-    if (!checkoutOpen && prefilledEmail) return;
     if (!checkoutOpen) return;
 
+    // Check for a completed Apple Pay direct payment from ProductPage.
+    // The native sheet already ran; we just need to display the confirmation.
     const applePayResultRaw = sessionStorage.getItem("moi_apple_pay_result");
     if (applePayResultRaw) {
       sessionStorage.removeItem("moi_apple_pay_result");
@@ -489,19 +495,15 @@ export function CheckoutPage() {
     const preferred = sessionStorage.getItem("moi_preferred_payment");
     if (preferred === "apple-pay") {
       sessionStorage.removeItem("moi_preferred_payment");
-      setPaymentMethod("apple-pay");
-    }
-  }, [checkoutOpen]);
-
-  useEffect(() => {
-    if (checkoutOpen && prefilledEmail) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (emailRegex.test(prefilledEmail.trim())) {
-        setForm((f) => ({ ...f, email: prefilledEmail }));
+      const applePayAvailable =
+        typeof window !== "undefined" &&
+        "ApplePaySession" in window &&
+        !!(window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.();
+      if (applePayAvailable) {
+        void triggerApplePayDirectInit();
       }
     }
-  }, [checkoutOpen, prefilledEmail]);
-
+  }, [checkoutOpen, triggerApplePayDirectInit]);
 
   useEffect(() => {
     if (prevStepRef.current) {
@@ -511,7 +513,7 @@ export function CheckoutPage() {
     prevStepRef.current = step;
     stepEnterTimeRef.current = Date.now();
 
-    // Map step names to analytics events (CartDrawer fires the start event)
+    // Map step names to analytics events (skip "email" — CartDrawer already fires start)
     const stepMap: Record<string, string> = {
       form: "shipping",
       "card-checkout": "payment",
@@ -631,9 +633,11 @@ export function CheckoutPage() {
     // Safety net: mark recovered in case payment path missed it
     markAbandonedCartRecovered();
     clearCart();
-    setStep("form");
+    setStep("email");
+    setEmailInput("");
     setOrderResult(null);
     setPaymobIframeUrl(null);
+    setApplePayData(null);
     setShopifyCheckoutToken(null);
     setPromoApplied(null);
     setPromoInput("");
@@ -771,18 +775,40 @@ export function CheckoutPage() {
       return;
     }
 
-    // Apple Pay is handled by the native "Buy with Apple Pay" button above — never redirect to Shopify.
+    // Apple Pay: create Unified Checkout intention → Paymob SDK handles native sheet
     if (paymentMethod === "apple-pay") {
-      submittingRef.current = false;
-      setSubmitError("Please tap the Apple Pay button above to complete your purchase.");
-      setStep("form");
-      return;
-    }
-
-    // InstaPay: validate cart + get account info — order is created only at proof upload
-    if (paymentMethod === "instapay") {
       try {
-        // Capture cart items snapshot so the confirmation screen shows thumbnails
+        const res = await fetch("/api/orders/paymob-apple-pay-init", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lines: orderLines,
+            customer: customerPayload,
+            cartId: shopifyCart?.id ?? null,
+            totalAmountCents: Math.round(totalAmount * 100),
+            discountCode: promoApplied?.code ?? null,
+            attribution: buildOrderAttribution(),
+            checkoutToken: shopifyCheckoutToken ?? null,
+          }),
+        });
+
+        const data = await res.json() as {
+          clientSecret?: string;
+          publicKey?: string;
+          intentId?: string;
+          total?: string;
+          error?: string;
+        };
+
+        if (!res.ok || !data.clientSecret || !data.publicKey || !data.intentId) {
+          setStep("form");
+          setSubmitError(data.error ?? "Apple Pay is unavailable right now. Please try another payment method.");
+          submittingRef.current = false;
+          return;
+        }
+
+        const resolvedTotal = data.total ?? fmt(totalAmount);
+        setBreakdownSnapshot({ subtotal: subtotalAmount, savings, shippingCost, freeShipping });
         const cartItemsSnapshot = isShopify && shopifyCart
           ? shopifyCart.lines.nodes.map((l) => ({
               id: l.id,
@@ -800,6 +826,29 @@ export function CheckoutPage() {
               image: i.image ?? null,
               price: i.price,
             }));
+        setOrderResult({ orderNumber: "", total: resolvedTotal, intentId: data.intentId, items: cartItemsSnapshot.length > 0 ? cartItemsSnapshot : undefined });
+        paymobTrackedRef.current = false;
+        setApplePayData({ clientSecret: data.clientSecret, publicKey: data.publicKey, intentId: data.intentId });
+        if (data.intentId) {
+          sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
+          sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
+          sessionStorage.setItem("moi_paymob_breakdown", JSON.stringify({ subtotal: subtotalAmount, savings, shippingCost, freeShipping }));
+          if (cartItemsSnapshot.length > 0) {
+            sessionStorage.setItem("moi_paymob_items", JSON.stringify(cartItemsSnapshot));
+          }
+        }
+        setStep("form");
+      } catch {
+        setStep("form");
+        setSubmitError("Network error. Please check your connection and try again.");
+      }
+      submittingRef.current = false;
+      return;
+    }
+
+    // InstaPay: validate cart + get account info — order is created only at proof upload
+    if (paymentMethod === "instapay") {
+      try {
         const res = await fetch("/api/orders/instapay-init", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -841,7 +890,6 @@ export function CheckoutPage() {
           instapayNumber: data.instapayNumber,
           customerName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
           customerPhone: form.phone.trim(),
-          items: cartItemsSnapshot.length > 0 ? cartItemsSnapshot : undefined,
         };
         setBreakdownSnapshot({ subtotal: subtotalAmount, savings, shippingCost, freeShipping });
         setOrderResult(orderResultPayload);
@@ -939,9 +987,11 @@ export function CheckoutPage() {
 
   const handleDone = useCallback(() => {
     clearCart();
-    setStep("form");
+    setStep("email");
+    setEmailInput("");
     setOrderResult(null);
     setPaymobIframeUrl(null);
+    setApplePayData(null);
     setShopifyCheckoutToken(null);
     setPromoApplied(null);
     setPromoInput("");
@@ -955,11 +1005,17 @@ export function CheckoutPage() {
     closeCheckout();
   }, [clearCart, closeCheckout]);
 
-  const handleEmailBlur = useCallback(() => {
-    const email = form.email.trim();
+  const handleEmailContinue = useCallback(async () => {
+    const email = emailInput.trim();
     if (!email) return;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return;
+    if (!emailRegex.test(email)) {
+      setEmailError("Please enter a valid email address (e.g. your@email.com).");
+      return;
+    }
+    setEmailError("");
+    setForm((f) => ({ ...f, email }));
+    setStep("form");
     const cartId = shopifyCart?.id;
     if (cartId) {
       // Fire-and-forget: set buyer identity on cart via Storefront API
@@ -1010,7 +1066,7 @@ export function CheckoutPage() {
           .catch(() => {});
       }
     }
-  }, [form.email, shopifyCart, isShopify, localItems, totalAmount, fmt]);
+  }, [emailInput, shopifyCart, isShopify, localItems, totalAmount, fmt]);
 
   const handleIframeSuccess = useCallback((txnId?: string, shopifyOrderId?: number | null, shopifyOrderNumber?: number | null) => {
     // Update orderResult immediately so Shopify data reaches the state even
@@ -1086,10 +1142,6 @@ export function CheckoutPage() {
     }
   }, [clearCart, markAbandonedCartRecovered, isShopify, shopifyCart, localItems, totalAmount]);
 
-  const handleShopifyApplePaySuccess = useCallback((orderNumber: number | null) => {
-    handleIframeSuccess(undefined, null, orderNumber ?? null);
-  }, [handleIframeSuccess]);
-
   const handleIframeFail = useCallback(() => {
     setPaymentTimerActive(false);
     setPaymobIframeUrl(null);
@@ -1107,6 +1159,13 @@ export function CheckoutPage() {
     submittingRef.current = false;
   }, []);
 
+  // Called by the Pixel SDK's afterPaymentComplete once the native Apple Pay
+  // sheet authorises the payment. We ask the server to verify the intention and
+  // create the Shopify order (same finaliser the card flow uses) BEFORE showing
+  // the confirmation screen — we only treat an explicit "completed" status as
+  // success. A "pending" status (Paymob not yet reporting the txn) is retried a
+  // few times; anything else returns the user to the form so we never show a
+  // false success or clear the cart for an unverified payment.
   const handleApplePaySuccess = useCallback((txnId: string) => {
     const intentId = applePayData?.intentId;
     setApplePayData(null);
@@ -1143,10 +1202,14 @@ export function CheckoutPage() {
           handleApplePayFail();
           return;
         }
+        // pending / null (transient) — wait and retry
         if (attempt < maxAttempts - 1) {
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
       }
+      // Still unresolved after retries. The payment was authorised by Apple but
+      // the server hasn't confirmed it yet — show a processing message and let
+      // the webhook reconcile the order rather than asserting a false success.
       setSubmitError("Your Apple Pay payment is processing. If it doesn't confirm shortly, please check your email or contact us before retrying.");
       setStep("form");
       submittingRef.current = false;
@@ -1441,7 +1504,7 @@ export function CheckoutPage() {
             style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}
           >
             <button
-              onClick={isSuccessStep ? handleSuccessDone : isConfirmStep ? handleDone : isCardCheckoutStep ? handleCancelCardCheckout : closeCheckout}
+              onClick={isSuccessStep ? handleSuccessDone : isConfirmStep ? handleDone : isCardCheckoutStep ? handleCancelCardCheckout : step === "form" ? () => setStep("email") : closeCheckout}
               className="flex items-center gap-2 transition-opacity hover:opacity-50"
               aria-label="Back"
             >
@@ -1456,7 +1519,7 @@ export function CheckoutPage() {
             <div style={{ width: 80 }} />
           </div>
 
-          {(step === "card-checkout" || step === "form") && paymobIframeUrl ? (
+          {(step === "card-checkout" || step === "form") && (paymobIframeUrl || applePayData) ? (
             <motion.div
               key="card-checkout"
               initial={{ opacity: 0, y: 16 }}
@@ -1471,13 +1534,11 @@ export function CheckoutPage() {
                 </p>
                 <div style={{ borderTop: "1px solid rgba(30,24,20,0.16)" }}>
                   {lines
-                    ? lines.map((line) => {
-                        const lineImg = resolveLineImage(line, localItems);
-                        return (
+                    ? lines.map((line) => (
                         <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
-                            {lineImg && (
-                              <img src={lineImg} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            {resolveLineImage(line, localItems) && (
+                              <img src={resolveLineImage(line, localItems)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             )}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
@@ -1488,7 +1549,7 @@ export function CheckoutPage() {
                             </div>
                           </div>
                         </div>
-                      );})
+                      ))
                     : localLines.map((item) => (
                         <div key={item.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
@@ -1587,12 +1648,14 @@ export function CheckoutPage() {
                 )}
 
                 {/* Payment session countdown timer */}
-                <PaymentSessionTimer
-                  key={paymentTimerKey}
-                  active={paymentTimerActive}
-                  onExpire={handleRefreshPaymobSession}
-                  onTryAgain={handleRefreshPaymobSession}
-                />
+                {!applePayData && (
+                  <PaymentSessionTimer
+                    key={paymentTimerKey}
+                    active={paymentTimerActive}
+                    onExpire={handleRefreshPaymobSession}
+                    onTryAgain={handleRefreshPaymobSession}
+                  />
+                )}
 
                 {/* Card / Apple Pay iframe section */}
                 {(true) && (
@@ -1637,7 +1700,7 @@ export function CheckoutPage() {
                   <div style={{ borderRadius: "16px", overflow: "hidden" }}>
                     <div className="max-h-[715px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
                       <PaymobIframe
-                        url={paymobIframeUrl}
+                        url={paymobIframeUrl ?? ""}
                         intentId={orderResult?.intentId}
                         onSuccess={handleIframeSuccess}
                         onFail={handleIframeFail}
@@ -1664,31 +1727,86 @@ export function CheckoutPage() {
                     </p>
                   </div>
                   {!applePayData && (
-                  <button
-                    onClick={() => {
-                      if (paymobIframeUrl) {
-                        window.open(paymobIframeUrl, "_blank", "width=520,height=720");
-                      }
-                    }}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: 0,
-                      cursor: "pointer",
-                      fontSize: "11px",
-                      color: "rgba(30,24,20,0.38)",
-                      fontFamily: "'Montserrat', sans-serif",
-                      letterSpacing: "0.06em",
-                      textDecoration: "underline",
-                      textUnderlineOffset: "3px",
-                    }}
-                  >
-                    Payment stuck? Open in new window
-                  </button>
+                    <button
+                      onClick={() => {
+                        if (paymobIframeUrl) {
+                          window.open(paymobIframeUrl, "_blank", "width=520,height=720");
+                        }
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                        fontSize: "11px",
+                        color: "rgba(30,24,20,0.38)",
+                        fontFamily: "'Montserrat', sans-serif",
+                        letterSpacing: "0.06em",
+                        textDecoration: "underline",
+                        textUnderlineOffset: "3px",
+                      }}
+                    >
+                      Payment stuck? Open in new window
+                    </button>
                   )}
                 </div>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          ) : step === "email" ? (
+            <motion.div
+              key="email-step"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+              className="flex flex-col items-center justify-center min-h-[75vh] px-6"
+            >
+              <div style={{ width: "100%", maxWidth: "440px" }}>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(29px, 5vw, 40px)", fontWeight: 400, color: "#1e1814", marginBottom: "8px", letterSpacing: "0.02em", lineHeight: 1.15 }}>
+                  What's your email?
+                </h2>
+                <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", marginBottom: "40px" }}>
+                  We'll send your order confirmation here.
+                </p>
+                <div style={{ marginBottom: "28px" }}>
+                  <label style={labelStyle}>Email Address</label>
+                  <input
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    value={emailInput}
+                    onChange={(e) => { setEmailInput(e.target.value); setEmailError(""); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" && emailInput.trim()) void handleEmailContinue(); }}
+                    style={{ ...inputStyle, fontSize: "17px", padding: "14px 0", borderBottomColor: emailError ? "#c0392b" : undefined }}
+                    placeholder="your@email.com"
+                    autoFocus
+                    className="checkout-input"
+                  />
+                  {emailError && (
+                    <p style={{ marginTop: "8px", fontSize: "12px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{emailError}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => void handleEmailContinue()}
+                  disabled={!emailInput.trim()}
+                  style={{ 
+                    width: "100%",
+                    padding: "16px",
+                    backgroundColor: emailInput.trim() ? "#1e1814" : "rgba(30,24,20,0.22)",
+                    color: "#efe6da",
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: "12px",
+                    letterSpacing: "0.3em",
+                    textTransform: "uppercase",
+                    fontWeight: 700,
+                    border: "none",
+                    cursor: emailInput.trim() ? "pointer" : "not-allowed",
+                    transition: "background-color 0.2s ease",
+                  }}
+                >
+                  Continue
+                </button>
               </div>
             </motion.div>
           ) : step === "loading" ? (
@@ -1780,13 +1898,11 @@ export function CheckoutPage() {
 
                 <div style={{ borderTop: "1px solid rgba(30,24,20,0.16)" }}>
                   {lines
-                    ? lines.map((line) => {
-                        const lineImg = resolveLineImage(line, localItems);
-                        return (
+                    ? lines.map((line) => (
                         <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.1)" }}>
-                            {lineImg && (
-                              <img src={lineImg} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            {resolveLineImage(line, localItems) && (
+                              <img src={resolveLineImage(line, localItems)!} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             )}
                           </div>
                           <div className="flex-1 flex flex-col justify-between min-w-0">
@@ -1802,7 +1918,7 @@ export function CheckoutPage() {
                             </div>
                           </div>
                         </div>
-                      );})
+                      ))
                     : localLines.map((item) => (
                         <div key={item.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
                           <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.1)" }}>
@@ -1999,11 +2115,11 @@ export function CheckoutPage() {
                       </p>
                     </button>
                   ))}
-                  {/* Apple Pay tile — redirects to Shopify hosted checkout (handles Apple Pay via Paymob) */}
-                  {typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && checkoutUrl && (
+                  {/* Apple Pay tile — only shown when the browser supports it */}
+                  {typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
                     <button
                       type="button"
-                      onClick={() => { window.location.href = checkoutUrl; }}
+                      onClick={() => setPaymentMethod("apple-pay")}
                       className="text-left transition-all"
                       style={{
                         padding: "14px 12px",
@@ -2029,8 +2145,7 @@ export function CheckoutPage() {
                   )}
                 </div>
 
-                {/* Delivery form — hidden when Apple Pay is selected */}
-                {paymentMethod !== "apple-pay" && (<>
+                {/* Delivery form */}
                 <p style={{ fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
                   Delivery Details
                 </p>
@@ -2053,22 +2168,17 @@ export function CheckoutPage() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label style={labelStyle}>Email Address</label>
-                    <input
-                      type="email"
-                      name="email"
-                      inputMode="email"
-                      autoComplete="email"
-                      value={form.email}
-                      onChange={(e) => { setForm((f) => ({ ...f, email: e.target.value })); setEmailError(""); }}
-                      onBlur={handleEmailBlur}
-                      style={inputStyle}
-                      placeholder="your@email.com"
-                      className="checkout-input"
-                    />
-                    {emailError && (
-                      <p style={{ marginTop: "6px", fontSize: "12px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{emailError}</p>
-                    )}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                      <label style={labelStyle}>Email Address</label>
+                      <button
+                        type="button"
+                        onClick={() => setStep("email")}
+                        style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                      >
+                        Change
+                      </button>
+                    </div>
+                    <input type="email" name="email" value={form.email} readOnly style={{ ...inputStyle, color: "rgba(30,24,20,0.65)" }} className="checkout-input" />
                   </div>
 
                   <div className="flex flex-col gap-1">
@@ -2145,7 +2255,6 @@ export function CheckoutPage() {
                 <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.58)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "14px", letterSpacing: "0.18em" }}>
                   By placing your order you agree to our terms of service.
                 </p>
-                </>)}
               </div>
             </div>
           )}
@@ -2157,17 +2266,16 @@ export function CheckoutPage() {
 
 function CODConfirmation({ orderResult, onDone, items, breakdown }: { orderResult: OrderResult; onDone: () => void; items: NonNullable<OrderResult["items"]>; breakdown: OrderBreakdown }) {
   return (
-    <OrderConfirmedScreen
+    <OrderSuccessScreen
       orderResult={orderResult}
       onDone={onDone}
       items={items}
-      breakdown={breakdown}
-      title="Order Confirmed."
+      title="Order Placed"
       subtitle="Cash on Delivery"
-      message={orderResult.shopifyOrderNumber
-        ? <>Your order has been placed for order <strong style={{ color: "#1e1814" }}>#{orderResult.shopifyOrderNumber}</strong>. Our team will contact you shortly to arrange delivery. Total due on arrival: {orderResult.total} EGP.</>
-        : `Your order has been placed. Our team will contact you shortly to arrange delivery. Total due on arrival: ${orderResult.total} EGP.`}
+      detail={`Our team will contact you shortly to arrange delivery. Total due on arrival: ${orderResult.total} EGP`}
       note="A WhatsApp confirmation has been sent to your number."
+      accentLabel="Pay on Delivery"
+      breakdown={breakdown}
     />
   );
 }
@@ -2184,42 +2292,6 @@ function CardConfirmation({
   breakdown: OrderBreakdown;
 }) {
   return (
-    <OrderConfirmedScreen
-      orderResult={orderResult}
-      onDone={onDone}
-      items={items}
-      breakdown={breakdown}
-      message={orderResult.shopifyOrderNumber
-        ? <>Your payment has been received for order <strong style={{ color: "#1e1814" }}>#{orderResult.shopifyOrderNumber}</strong>. Your order is now being prepared.</>
-        : "Your payment has been received and your order is now being prepared."}
-      note="You'll receive a WhatsApp message with your order details and tracking update shortly."
-    />
-  );
-}
-
-function OrderConfirmedScreen({
-  orderResult,
-  onDone,
-  items,
-  breakdown,
-  title = "Order Confirmed.",
-  subtitle,
-  message,
-  note,
-  orderNumber,
-}: {
-  orderResult: OrderResult;
-  onDone: () => void;
-  items: NonNullable<OrderResult["items"]>;
-  breakdown: OrderBreakdown;
-  title?: string;
-  subtitle?: string;
-  message?: React.ReactNode;
-  note?: string;
-  orderNumber?: string | number | null;
-}) {
-  const displayOrderNumber = orderNumber ?? orderResult.shopifyOrderNumber;
-  return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
@@ -2230,28 +2302,23 @@ function OrderConfirmedScreen({
       </div>
 
       <div style={{ textAlign: "center" }}>
-        {subtitle && (
-          <p style={{ fontSize: "11px", letterSpacing: "0.34em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginBottom: "6px" }}>
-            {subtitle}
-          </p>
-        )}
         <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "33px", fontWeight: 700, color: "#1e1814", marginBottom: "6px" }}>
-          {title}
+          Order Confirmed.
         </h1>
-        {message && (
-          <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
-            {message}
-          </p>
-        )}
+        <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
+          {orderResult.shopifyOrderNumber
+            ? <>Your payment has been received for order <strong style={{ color: "#1e1814" }}>#{orderResult.shopifyOrderNumber}</strong>. Your order is now being prepared.</>
+            : "Your payment has been received and your order is now being prepared."}
+        </p>
       </div>
 
-      {displayOrderNumber ? (
+      {orderResult.shopifyOrderNumber ? (
         <div style={{ padding: "14px 24px", border: "1px solid rgba(30,24,20,0.22)", width: "100%", textAlign: "center" }}>
           <p style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>
             Order Number
           </p>
           <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "29px", color: "#1e1814", fontWeight: 700 }}>
-            #{displayOrderNumber}
+            #{orderResult.shopifyOrderNumber}
           </p>
         </div>
       ) : (
@@ -2294,13 +2361,11 @@ function OrderConfirmedScreen({
         </div>
       )}
 
-      {note && (
-        <div style={{ padding: "14px 18px", backgroundColor: "rgba(30,24,20,0.04)", border: "1px solid rgba(30,24,20,0.12)", width: "100%", textAlign: "center" }}>
-          <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", lineHeight: 1.7 }}>
-            {note}
-          </p>
-        </div>
-      )}
+      <div style={{ padding: "14px 18px", backgroundColor: "rgba(30,24,20,0.04)", border: "1px solid rgba(30,24,20,0.12)", width: "100%", textAlign: "center" }}>
+        <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", lineHeight: 1.7 }}>
+          You'll receive a WhatsApp message with your order details and tracking update shortly.
+        </p>
+      </div>
 
       <button
         onClick={onDone}
@@ -2724,19 +2789,33 @@ function InstapayConfirmation({
         )}
 
         {subStep === "review" && (
-          <OrderConfirmedScreen
-            orderResult={orderResult}
-            onDone={onDone}
-            items={orderResult.items ?? []}
-            breakdown={breakdown}
-            title="Order Confirmed."
-            subtitle="InstaPay"
-            message={confirmedOrderNumber != null
-              ? <>Your order is confirmed and payment proof is awaiting verification. Our team will review and confirm your order <strong style={{ color: "#1e1814" }}>#{confirmedOrderNumber}</strong> shortly.</>
-              : "Your order is confirmed and payment proof is awaiting verification. Our team will review and confirm your order shortly."}
-            note="Verification is usually completed within a few hours. You'll receive a WhatsApp message once confirmed."
-            orderNumber={confirmedOrderNumber}
-          />
+          <motion.div key="review" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full flex flex-col items-center gap-5 py-4">
+            <div style={{ width: 52, height: 52, borderRadius: "50%", backgroundColor: "rgba(30,24,20,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Check size={24} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "29px", fontWeight: 700, color: "#1e1814", marginBottom: "8px" }}>
+                Proof Submitted
+              </h2>
+              <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
+                {confirmedOrderNumber != null
+                  ? <>We've received your payment proof for order <strong style={{ color: "#1e1814" }}>#{confirmedOrderNumber}</strong>. Our team will verify and confirm your order via WhatsApp shortly.</>
+                  : <>We've received your payment proof. Our team will verify and confirm your order via WhatsApp shortly.</>}
+              </p>
+            </div>
+            <div style={{ padding: "14px 18px", backgroundColor: "rgba(30,24,20,0.04)", border: "1px solid rgba(30,24,20,0.12)", width: "100%", textAlign: "center" as const }}>
+              <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", lineHeight: 1.7 }}>
+                Verification is usually completed within a few hours during business hours.
+              </p>
+            </div>
+            <button
+              onClick={onDone}
+              className="mt-2 transition-opacity hover:opacity-60"
+              style={{ fontSize: "14px", letterSpacing: "0.28em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", padding: "12px 32px", border: "1px solid rgba(30,24,20,0.18)" }}
+            >
+              Continue Shopping
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
@@ -2756,13 +2835,13 @@ function OrderBreakdownRows({ breakdown }: { breakdown: OrderBreakdown }) {
       {subtotal > 0 && (
         <div style={rowStyle}>
           <span style={labelStyle}>Subtotal</span>
-          <span style={valueStyle}>{fmt(subtotal)}</span>
+          <span style={valueStyle}>{fmt(subtotal)} EGP</span>
         </div>
       )}
       {savings > 0 && (
         <div style={rowStyle}>
           <span style={labelStyle}>Discount</span>
-          <span style={{ ...valueStyle, color: "#5a7a5a" }}>−{fmt(savings)}</span>
+          <span style={{ ...valueStyle, color: "#5a7a5a" }}>−{fmt(savings)} EGP</span>
         </div>
       )}
       <div style={rowStyle}>
@@ -2770,19 +2849,158 @@ function OrderBreakdownRows({ breakdown }: { breakdown: OrderBreakdown }) {
         {freeShipping ? (
           <span style={{ ...valueStyle, color: "rgba(30,24,20,0.5)", fontStyle: "italic" }}>Complimentary</span>
         ) : (
-          <span style={valueStyle}>{fmt(shippingCost)}</span>
+          <span style={valueStyle}>{fmt(shippingCost)} EGP</span>
         )}
       </div>
       <div style={{ ...rowStyle, borderTop: "1px solid rgba(30,24,20,0.12)", paddingTop: 8, marginTop: 2 }}>
         <span style={totalLabelStyle}>Total</span>
-        <span style={totalValueStyle}>{fmt(computedTotal)}</span>
+        <span style={totalValueStyle}>{fmt(computedTotal)} EGP</span>
       </div>
     </div>
   );
 }
 
+function OrderSuccessScreen({
+  orderResult,
+  onDone,
+  items,
+  title,
+  subtitle,
+  detail,
+  note,
+  accentLabel,
+  breakdown,
+}: {
+  orderResult: OrderResult;
+  onDone: () => void;
+  items: NonNullable<OrderResult["items"]>;
+  title: string;
+  subtitle: string;
+  detail: string;
+  note: string;
+  accentLabel: string;
+  breakdown?: OrderBreakdown;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-xl mx-auto px-6 py-14 md:py-16 flex flex-col items-center text-center gap-7"
+    >
+      <div className="relative flex items-center justify-center" style={{ width: 82, height: 82 }}>
+        <motion.div
+          initial={{ scale: 0.7, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          style={{ width: 82, height: 82, borderRadius: "50%", border: "1px solid rgba(30,24,20,0.12)", backgroundColor: "rgba(30,24,20,0.03)" }}
+        />
+        <motion.div
+          initial={{ scale: 0.75, opacity: 0, rotate: -10 }}
+          animate={{ scale: 1, opacity: 1, rotate: 0 }}
+          transition={{ duration: 0.42, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <motion.div
+            animate={{ y: [0, -2, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+            style={{ width: 52, height: 52, borderRadius: "50%", backgroundColor: "#1e1814", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <Check size={24} strokeWidth={2} style={{ color: "#faf8f5" }} />
+          </motion.div>
+        </motion.div>
+      </div>
+
+      <div className="space-y-2">
+        <p style={{ fontSize: "11px", letterSpacing: "0.34em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif" }}>
+          {subtitle}
+        </p>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "40px", fontWeight: 700, color: "#1e1814", lineHeight: 1 }}>
+          {title}
+        </h1>
+      </div>
+
+      <div className="w-full grid gap-3">
+        {breakdown && <OrderBreakdownRows breakdown={breakdown} />}
+
+        {/* Order number — appears as soon as the server confirms the Shopify order */}
+        {orderResult.shopifyOrderNumber ? (
+          <div className="flex items-center justify-between px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.12)" }}>
+            <span style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>
+              Order
+            </span>
+            <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
+              #{orderResult.shopifyOrderNumber}
+            </span>
+          </div>
+        ) : null}
+
+        <div className="flex items-center justify-between px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.12)" }}>
+          <span style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>
+            {accentLabel}
+          </span>
+          <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
+            {orderResult.total} EGP
+          </span>
+        </div>
+
+        {items.length > 0 && (
+          <>
+            <p style={{ fontSize: "11px", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginTop: 4 }}>
+              Items
+            </p>
+            {items.map((item) => (
+              <div key={item.id ?? `${item.title}-${item.quantity}`} className="flex items-center gap-3 px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.08)", backgroundColor: "rgba(30,24,20,0.02)" }}>
+                <div className="w-12 h-14 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
+                  {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {item.title}
+                  </p>
+                  {item.variantTitle && (
+                    <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>
+                      {item.variantTitle}
+                    </p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>Qty {item.quantity}</p>
+                  {item.price && (
+                    <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
+                      {item.price}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+
+      <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.8)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 420 }}>
+        {detail}
+      </p>
+
+      <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.68)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 420 }}>
+        {note}
+      </p>
+
+      <button
+        onClick={onDone}
+        className="w-full max-w-sm py-4 transition-opacity hover:opacity-85"
+        style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "12px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+      >
+        <span className="inline-flex items-center justify-center gap-2">
+          <ShoppingBag size={14} strokeWidth={2} />
+          Shop More
+        </span>
+      </button>
+    </motion.div>
+  );
+}
+
 interface PaymobIframeProps {
-  url: string | null | undefined;
+  url: string;
   intentId?: string | null;
   onSuccess: (txnId?: string, shopifyOrderId?: number | null, shopifyOrderNumber?: number | null) => void;
   onFail: () => void;
@@ -3145,7 +3363,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
     <div style={{ position: "relative", width: "100%" }}>
       <iframe
         ref={iframeRef}
-        src={url ?? undefined}
+        src={url}
         title="Secure Card Payment"
         allow="payment"
         scrolling="no"

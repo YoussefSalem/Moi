@@ -169,7 +169,7 @@ export function QuickPreview({
                 <img
                   key={currentImage}
                   ref={imgRef}
-                  src={currentImage || undefined}
+                  src={currentImage}
                   alt={`${productName} — ${colorName}`}
                   className="absolute inset-0 w-full h-full"
                   style={{

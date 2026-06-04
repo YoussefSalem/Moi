@@ -73,8 +73,7 @@ interface CartContextValue {
   openCheckout: (email?: string) => void;
   closeCheckout: () => void;
   prefilledEmail: string | null;
-  addToCart: (params: AddToCartParams) => Promise<string | null>;
-  buyNowCheckoutUrl: (variantId: string, quantity?: number) => Promise<string | null>;
+  addToCart: (params: AddToCartParams) => Promise<void>;
   removeItem: (idOrLineId: string) => Promise<void>;
   updateQuantity: (idOrLineId: string, quantity: number) => Promise<void>;
   applyDiscount: (code: string) => Promise<{ applicable: boolean; code: string; discountAmount: number }>;
@@ -118,12 +117,7 @@ function saveLocalCart(items: LocalCartItem[]) {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [shopifyCart, setShopifyCart] = useState<ShopifyCart | null>(null);
-  // Load local cart synchronously on first render so checkout doesn't flash
-  // empty items after a refresh on /checkout.
-  const [localItems, setLocalItems] = useState<LocalCartItem[]>(() => {
-    if (typeof window === "undefined") return [];
-    return loadLocalCart();
-  });
+  const [localItems, setLocalItems] = useState<LocalCartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [prefilledEmail, setPrefilledEmail] = useState<string | null>(null);
@@ -134,6 +128,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
+    setLocalItems(loadLocalCart());
     // Auto-open checkout on initial load if URL is /checkout
     if (typeof window !== "undefined" && window.location.pathname === "/checkout" && !checkoutInitRef.current) {
       checkoutInitRef.current = true;
@@ -172,10 +167,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return newCart;
   }, [shopifyCart]);
 
-  const addToCart = useCallback(async (params: AddToCartParams): Promise<string | null> => {
+  const addToCart = useCallback(async (params: AddToCartParams) => {
     const qty = params.quantity ?? 1;
     setLoading(true);
-    let resolvedCheckoutUrl: string | null = null;
     try {
       // Shopify sync — best-effort; local cart always succeeds regardless
       if (SHOPIFY_CONFIGURED && params.variantId) {
@@ -183,7 +177,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           const c = await ensureShopifyCart();
           const updated = await addCartLines(c.id, [{ merchandiseId: params.variantId, quantity: qty }]);
           setShopifyCart(updated);
-          resolvedCheckoutUrl = updated.checkoutUrl ?? null;
         } catch {
           // Shopify failure must not block local cart; silently fall through
         }
@@ -260,22 +253,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-    return resolvedCheckoutUrl;
   }, [ensureShopifyCart]);
-
-  // Express single-item checkout (e.g. Apple Pay): creates a brand-new, ephemeral
-  // Shopify cart containing only this item and returns its checkoutUrl. The
-  // shopper's persistent cart is left untouched, so cancelling Apple Pay loses
-  // nothing. Avoids the clearCart()+addToCart() race (stale cart contents).
-  const buyNowCheckoutUrl = useCallback(async (variantId: string, quantity = 1): Promise<string | null> => {
-    if (!SHOPIFY_CONFIGURED || !variantId) return null;
-    try {
-      const cart = await createCartWithLines([{ merchandiseId: variantId, quantity }]);
-      return cart.checkoutUrl ?? null;
-    } catch {
-      return null;
-    }
-  }, []);
 
   const removeItem = useCallback(async (idOrLineId: string) => {
     setLoading(true);
@@ -540,7 +518,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       },
       prefilledEmail,
       addToCart,
-      buyNowCheckoutUrl,
       removeItem,
       updateQuantity,
       applyDiscount,

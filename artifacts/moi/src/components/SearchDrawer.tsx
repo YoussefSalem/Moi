@@ -89,13 +89,11 @@ export function SearchDrawer({ open, items, query, onQueryChange, onClose, onSel
                       onClick={() => onSelect(item)}
                       className="flex items-center gap-4 text-left p-3 transition-colors hover:bg-black/5"
                     >
-                      {item.image && (
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-16 h-20 object-cover flex-shrink-0"
-                        />
-                      )}
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-16 h-20 object-cover flex-shrink-0"
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm uppercase tracking-[0.16em]" style={{ color: "#1e1814" }}>
                           {item.name}

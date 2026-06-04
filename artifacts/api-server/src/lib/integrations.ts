@@ -151,55 +151,40 @@ async function fetchBostaCities(apiKey: string): Promise<BostaCity[]> {
     const res = await fetch("https://app.bosta.co/api/v2/cities", {
       headers: { Authorization: apiKey },
     });
-    if (!res.ok) {
-      logger.warn({ status: res.status }, "fetchBostaCities: non-2xx from Bosta cities API");
-      return [];
-    }
-    const data = await res.json() as unknown;
-    const list = (data as { data?: { list?: unknown } })?.data?.list;
-    if (!Array.isArray(list)) {
-      logger.warn({ data }, "fetchBostaCities: unexpected response shape — data.data.list is not an array");
-      _bostaCityCache = [];
-      return [];
-    }
-    _bostaCityCache = list as BostaCity[];
+    if (!res.ok) return [];
+    const data = await res.json() as { data?: BostaCity[] };
+    _bostaCityCache = data?.data ?? [];
     return _bostaCityCache;
-  } catch (err) {
-    logger.warn({ err }, "fetchBostaCities: fetch error");
+  } catch {
     return [];
   }
 }
 
 /**
- * Resolves a user-entered city string to the Bosta city object {_id, name}.
+ * Resolves a user-entered city string to the exact Bosta city name.
  * First normalises via the static map, then validates against Bosta's live city list.
- * Returns null if the cities API is unavailable (caller should fall back gracefully).
+ * Falls back to the normalised name if the API is unavailable.
  */
-async function resolveBostaCityObject(
+export async function resolveBostaCityName(
   cityInput: string,
   apiKey: string,
-): Promise<{ _id: string; name: string } | null> {
+): Promise<string> {
   const normalised = normalizeCityName(cityInput);
   const cities = await fetchBostaCities(apiKey);
-  if (cities.length === 0) return null;
+  if (cities.length === 0) return normalised;
 
   // Exact match first
   const exact = cities.find(
     (c) => c.name.toLowerCase() === normalised.toLowerCase(),
   );
-  if (exact) return { _id: exact._id, name: exact.name };
+  if (exact) return exact.name;
 
   // Partial match fallback
   const partial = cities.find((c) =>
     c.name.toLowerCase().includes(normalised.toLowerCase()) ||
     normalised.toLowerCase().includes(c.name.toLowerCase()),
   );
-  if (partial) return { _id: partial._id, name: partial.name };
-
-  // No match — use Cairo as default rather than silently failing
-  const cairo = cities.find((c) => c.name === "Cairo");
-  logger.warn({ cityInput, normalised }, "resolveBostaCityObject: city not found — falling back to Cairo");
-  return cairo ? { _id: cairo._id, name: cairo.name } : null;
+  return partial?.name ?? normalised;
 }
 
 export async function sendWhatsApp(phone: string, message: string): Promise<void> {
@@ -235,15 +220,12 @@ export async function createBostaShipment(params: {
   codAmount?: number;
 }): Promise<string | null> {
   const apiKey = process.env.BOSTA_API_KEY;
-  if (!apiKey) {
-    logger.warn("createBostaShipment: BOSTA_API_KEY is not set — skipping shipment creation");
-    return null;
-  }
+  if (!apiKey) return null;
+
+  const resolvedCity = await resolveBostaCityName(params.city, apiKey);
+  const formatted = formatPhone(params.phone);
 
   try {
-    const cityObj = await resolveBostaCityObject(params.city, apiKey);
-    const formatted = formatPhone(params.phone);
-
     const res = await fetch("https://app.bosta.co/api/v2/deliveries", {
       method: "POST",
       headers: {
@@ -253,14 +235,11 @@ export async function createBostaShipment(params: {
       body: JSON.stringify({
         type: 10,
         specs: { packageType: "Parcel", size: "SMALL" },
-        dropOffAddress: {
-          city: cityObj ?? { _id: "", name: params.city },
-          firstLine: params.address,
-        },
         receiver: {
           firstName: params.firstName,
           lastName: params.lastName,
           phone: formatted,
+          address: { city: resolvedCity, firstLine: params.address },
         },
         notes: `Moi Order ${params.orderReference}`,
         ...(params.codAmount && params.codAmount > 0 ? { cod: params.codAmount } : {}),

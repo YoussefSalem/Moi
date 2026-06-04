@@ -55,8 +55,8 @@ if (applePayDomainAssociation) {
   app.get(
     "/.well-known/apple-developer-merchantid-domain-association",
     (_req, res) => {
-      res.set("Content-Type", "application/octet-stream");
-      res.send(Buffer.from(applePayDomainAssociation));
+      res.set("Content-Type", "text/plain");
+      res.send(applePayDomainAssociation);
     },
   );
 }

@@ -5,8 +5,6 @@ import {
   addShopifyOrderNote,
   tagShopifyOrder,
   completeShopifyCheckout,
-  createShopifyFulfillment,
-  addShopifyFulfillmentEvent,
 } from "../lib/integrations";
 import {
   createDraftOrder,
@@ -298,15 +296,6 @@ router.post("/orders/create", async (req, res) => {
       void addShopifyOrderNote(orderId, `Bosta tracking: ${trackingNumber}`);
       void tagShopifyOrder(orderId, `bosta-${trackingNumber}`);
       req.log.info({ trackingNumber, orderNumber }, "Bosta COD shipment created");
-
-      // Create a Shopify fulfillment immediately so the Bosta Shopify App sees
-      // the order as already fulfilled and does NOT create a competing Bosta
-      // shipment (which would have cod: 0 / "No Cash Collection"). This mirrors
-      // the card-orders and instapay dispatch flows in admin.ts.
-      const fulfillmentId = await createShopifyFulfillment(orderId, trackingNumber);
-      if (fulfillmentId) {
-        void addShopifyFulfillmentEvent(orderId, fulfillmentId, "in_transit");
-      }
     }
 
     // Mark the Shopify abandoned checkout as complete (fire-and-forget)

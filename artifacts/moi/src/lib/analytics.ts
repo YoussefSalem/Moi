@@ -435,13 +435,13 @@ export function initAnalytics(): void {
     }, { passive: true });
   }
 
-  // End session on unload — only when the page is actually being discarded,
-  // not when it's frozen into the back-forward cache. beforeunload blocks
-  // bfcache on Safari/iOS, so we only use pagehide and check persisted.
-  window.addEventListener("pagehide", (e) => {
-    if (!e.persisted) {
-      sendPageScroll();
-      endAnalyticsSession();
-    }
+  // End session on unload
+  window.addEventListener("beforeunload", () => {
+    sendPageScroll();
+    endAnalyticsSession();
+  });
+  window.addEventListener("pagehide", () => {
+    sendPageScroll();
+    endAnalyticsSession();
   });
 }

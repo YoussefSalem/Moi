@@ -49,6 +49,8 @@ function loadPixelSdk(): Promise<void> {
     const src = `${PIXEL_BASE}/main.js`;
     const existing = document.querySelector(`script[src="${src}"]`);
 
+    // The Pixel SDK is an ES module; once it loads it attaches `Pixel` to window.
+    // Poll briefly after the module executes since the global may be set async.
     const waitForGlobal = () => {
       const started = Date.now();
       const tick = () => {
@@ -62,6 +64,7 @@ function loadPixelSdk(): Promise<void> {
     if (existing) {
       existing.addEventListener("load", waitForGlobal);
       existing.addEventListener("error", () => reject(new Error("Paymob Pixel SDK failed to load")));
+      // If it was already loaded before listeners attached, start polling anyway.
       waitForGlobal();
       return;
     }
@@ -153,6 +156,7 @@ export function PaymobApplePayButton({ clientSecret, publicKey, onSuccess, onFai
         </div>
       ) : null}
 
+      {/* Paymob Pixel mounts the native Apple Pay button into this element */}
       <div
         id={PIXEL_ELEMENT_ID}
         style={{
