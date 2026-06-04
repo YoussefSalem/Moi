@@ -473,6 +473,7 @@ export function ColorCard({
         gallery={allImages.length > 0 ? allImages : [image]}
         handle={handle}
         description={description}
+        outOfStock={outOfStock}
         onNavigate={onNavigate}
         onAddToCart={onAddToCart}
       />

@@ -449,7 +449,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               </h1>
 
               {/* Stock count */}
-              {stockCount && (
+              {stockCount && !isOutOfStock && (
                 <div className="mb-2" style={{ marginTop: -2 }}>
                   <span
                     style={{
