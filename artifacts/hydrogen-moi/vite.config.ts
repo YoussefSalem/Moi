@@ -3,6 +3,7 @@ import { hydrogen } from '@shopify/hydrogen/vite';
 import { oxygen } from '@shopify/mini-oxygen/vite';
 import { vitePlugin as remix } from '@remix-run/dev';
 import tailwindcss from '@tailwindcss/vite';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
   plugins: [
@@ -17,14 +18,10 @@ export default defineConfig({
         v3_throwAbortReason: true,
       },
     }),
+    tsconfigPaths(),
   ],
   build: {
     assetsInlineLimit: 0,
-  },
-  ssr: {
-    optimizeDeps: {
-      include: ['typographic-base'],
-    },
   },
   optimizeDeps: {
     include: ['react', 'react-dom'],

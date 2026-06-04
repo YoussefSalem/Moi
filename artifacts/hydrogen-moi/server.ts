@@ -1,10 +1,5 @@
 import {
   createRequestHandler,
-  createStorefrontClient,
-  createCustomerAccountClient,
-  createCartHandler,
-  cartGetIdDefault,
-  cartSetIdDefault,
   storefrontRedirect,
   createHydrogenContext,
 } from '@shopify/hydrogen';
@@ -47,7 +42,8 @@ export default {
         session,
         i18n: { language: 'EN', country: 'EG' },
         cart: {
-          checkoutDomain: env.PUBLIC_CHECKOUT_DOMAIN ?? env.PUBLIC_STORE_DOMAIN,
+          checkoutDomain:
+            env.PUBLIC_CHECKOUT_DOMAIN ?? env.PUBLIC_STORE_DOMAIN,
         },
       });
 
@@ -72,9 +68,8 @@ export default {
         });
       }
 
-      session.commit().then((cookie) => {
-        response.headers.append('Set-Cookie', cookie);
-      });
+      const cookie = await session.commit();
+      response.headers.append('Set-Cookie', cookie);
 
       return response;
     } catch (error) {
@@ -85,7 +80,7 @@ export default {
   },
 };
 
-class HydrogenSession {
+export class HydrogenSession {
   public readonly headers = new Headers();
   private sessionStorage: SessionStorage;
   private session: Session;
@@ -105,7 +100,9 @@ class HydrogenSession {
         secrets,
       },
     });
-    const session = await storage.getSession(request.headers.get('Cookie'));
+    const session = await storage.getSession(
+      request.headers.get('Cookie'),
+    );
     return new HydrogenSession(storage, session);
   }
 
