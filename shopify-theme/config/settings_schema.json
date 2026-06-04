@@ -1,0 +1,72 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Moi",
+    "theme_version": "1.0.0",
+    "theme_author": "Moi",
+    "theme_documentation_url": "https://buy-moi.com",
+    "theme_support_url": "mailto:hello@buy-moi.com"
+  },
+  {
+    "name": "Colors",
+    "settings": [
+      {
+        "type": "color",
+        "id": "color_background",
+        "label": "Page background",
+        "default": "#faf8f5"
+      },
+      {
+        "type": "color",
+        "id": "color_text",
+        "label": "Text color",
+        "default": "#1e1814"
+      },
+      {
+        "type": "color",
+        "id": "color_accent",
+        "label": "Accent color",
+        "default": "#b0a090"
+      }
+    ]
+  },
+  {
+    "name": "Typography",
+    "settings": [
+      {
+        "type": "select",
+        "id": "heading_font",
+        "label": "Heading font",
+        "default": "cormorant_garamond",
+        "options": [
+          { "value": "cormorant_garamond", "label": "Cormorant Garamond" },
+          { "value": "playfair_display", "label": "Playfair Display" },
+          { "value": "libre_baskerville", "label": "Libre Baskerville" }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Social",
+    "settings": [
+      {
+        "type": "url",
+        "id": "instagram_url",
+        "label": "Instagram URL",
+        "default": "https://www.instagram.com/shopmoi/"
+      },
+      {
+        "type": "url",
+        "id": "tiktok_url",
+        "label": "TikTok URL",
+        "default": "https://www.tiktok.com/@shopmoi_"
+      },
+      {
+        "type": "text",
+        "id": "whatsapp_number",
+        "label": "WhatsApp number (with country code)",
+        "default": "201200520083"
+      }
+    ]
+  }
+]

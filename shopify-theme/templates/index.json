@@ -1,0 +1,48 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "settings": {
+        "label": "New Drop",
+        "brand_text": "MOI",
+        "headline": "Summer Collection — Exclusive Drop",
+        "subheadline": "New pieces just launched. Fresh arrivals.",
+        "cta_text": "Shop Now",
+        "cta_url": "#collection",
+        "urgency_text": "Delivery in Egypt: 2–4 days"
+      },
+      "blocks": {
+        "trust-1": { "type": "trust_item", "settings": { "emoji": "☀️", "text": "New summer drop" } },
+        "trust-2": { "type": "trust_item", "settings": { "emoji": "⚡", "text": "Fast delivery across Egypt" } },
+        "trust-3": { "type": "trust_item", "settings": { "emoji": "🔥", "text": "Limited stock available" } }
+      },
+      "block_order": ["trust-1", "trust-2", "trust-3"]
+    },
+    "wavvy": {
+      "type": "product-color-section",
+      "settings": {
+        "section_id": "moi-wavvy",
+        "title": "MOI WAVVY",
+        "subtitle": "The ultimate throw-and-go. Light, breathable, and made for drifting.",
+        "dark_bg": false
+      }
+    },
+    "editorial": {
+      "type": "editorial-strip",
+      "settings": {
+        "label": "The Moi Philosophy",
+        "words": "Effortless,Versatile,Yours"
+      }
+    },
+    "versa": {
+      "type": "product-color-section",
+      "settings": {
+        "section_id": "moi-versa-top",
+        "title": "MOI VERSA TOP",
+        "subtitle": "Effortlessly versatile. A silhouette that moves with you, in every shade of summer.",
+        "dark_bg": true
+      }
+    }
+  },
+  "order": ["hero", "wavvy", "editorial", "versa"]
+}
