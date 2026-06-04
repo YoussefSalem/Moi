@@ -25,6 +25,19 @@ Shopify is inventory/order management only. Paymob is the payment source of trut
 ## HMAC verification
 HMAC-SHA512 with `PAYMOB_HMAC_SECRET` as key. The message is 20 specific transaction fields concatenated in a fixed order. See `verifyPaymobHmac()` in `paymob.ts`.
 
+**VPC/MIGS integrations send the HMAC as a URL query parameter** (`?hmac=...` appended to the webhook URL), NOT inside the transaction JSON body. UIG integrations send it inside `txn.hmac`. The webhook handler reads from `req.query.hmac` first, falls back to `txn.hmac`.
+
+## Integration types — critical lessons
+- **Shopify-type integration** (e.g. 5658307): Paymob hardcodes an internal call to `shopify_callback` after every payment regardless of webhook URL or `notification_url`. This cannot be overridden. Do NOT use for custom checkout — the customer sees "Order has no shopify_payment." error.
+- **VPC/Non-Shopify integration** (e.g. 5693943 "MIGS-online", live): Webhook fires correctly to `transaction_processed_callback`. HMAC arrives as query param. Full pipeline confirmed working.
+- **UIG/online_new integration** (e.g. 5700496): Returns 404 from Intentions API — incompatible with Intentions API.
+- Only ONE test integration per gateway type/currency is allowed. To get a test VPC Non-Shopify integration, the Shopify-type 5658307 must be deleted first to free the slot.
+
+## Integration IDs (as of June 2026)
+- 5658307 — test, VPC, **Shopify-type** (causes shopify_callback) — must delete to free test slot
+- 5693943 — **live**, VPC, Non-Shopify ("MIGS-online") — works fully, real cards only
+- 5700496 — test, UIG/online_new, Non-Shopify — incompatible with Intentions API
+
 ## Shopify draft completion for card
 `completeShopifyDraftOrder()` in `shopifyOrder.ts` is reused — it does NOT call any Shopify payment transaction API; it just completes the draft which makes the order appear in Shopify Admin for fulfillment.
 
