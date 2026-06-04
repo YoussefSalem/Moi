@@ -1,7 +1,5 @@
 import { Router, type IRouter } from "express";
 import {
-  createBostaShipment,
-  addShopifyOrderNote,
   findOrderByTrackingNote,
   createShopifyFulfillment,
   addShopifyFulfillmentEvent,
@@ -18,86 +16,10 @@ const BOSTA_TO_SHOPIFY_STATUS: Record<string, string> = {
   CANCELLED: "failure",
 };
 
-function requireInternalAuth(
-  req: Parameters<Parameters<typeof router.post>[1]>[0],
-  res: Parameters<Parameters<typeof router.post>[1]>[1],
-): boolean {
-  const secret = process.env.INTERNAL_API_SECRET;
-  if (!secret) {
-    res.status(503).json({ error: "Internal auth not configured." });
-    return false;
-  }
-  const auth = req.headers["x-internal-secret"];
-  if (auth !== secret) {
-    res.status(401).json({ error: "Unauthorized" });
-    return false;
-  }
-  return true;
-}
-
-interface CreateShipmentBody {
-  firstName?: unknown;
-  lastName?: unknown;
-  phone?: unknown;
-  address?: unknown;
-  city?: unknown;
-  orderReference?: unknown;
-  codAmount?: unknown;
-  orderId?: unknown;
-}
-
-router.post("/bosta/create-shipment", async (req, res) => {
-  if (!requireInternalAuth(req, res)) return;
-
-  const body = req.body as CreateShipmentBody;
-  const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
-  const lastName = typeof body.lastName === "string" ? body.lastName.trim() : "";
-  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
-  const address = typeof body.address === "string" ? body.address.trim() : "";
-  const city = typeof body.city === "string" ? body.city.trim() : "";
-  const orderReference =
-    typeof body.orderReference === "string" ? body.orderReference.trim() : "";
-  const codAmount = typeof body.codAmount === "number" ? body.codAmount : 0;
-  const orderId = typeof body.orderId === "number" ? body.orderId : null;
-
-  if (!firstName || !phone || !address || !city) {
-    res
-      .status(400)
-      .json({ error: "firstName, phone, address, and city are required." });
-    return;
-  }
-
-  if (!process.env.BOSTA_API_KEY) {
-    res.status(503).json({ error: "Bosta shipping not configured." });
-    return;
-  }
-
-  try {
-    const trackingNumber = await createBostaShipment({
-      firstName,
-      lastName,
-      phone,
-      address,
-      city,
-      orderReference,
-      codAmount,
-    });
-
-    if (!trackingNumber) {
-      res.status(502).json({ error: "Bosta did not return a tracking number." });
-      return;
-    }
-
-    if (orderId) {
-      void addShopifyOrderNote(orderId, `Bosta tracking: ${trackingNumber}`);
-    }
-
-    req.log.info({ trackingNumber, orderReference }, "Bosta shipment created via API");
-    res.status(200).json({ success: true, trackingNumber });
-  } catch (err) {
-    req.log.error({ err }, "Bosta shipment creation failed");
-    res.status(500).json({ error: "Failed to create Bosta shipment." });
-  }
+router.post("/bosta/create-shipment", async (_req, res) => {
+  res.status(503).json({
+    error: "Bosta shipment creation is disabled on this server. The Bosta Shopify app handles all shipments automatically.",
+  });
 });
 
 // Bosta delivery-status webhook — updates Shopify fulfillment state.
