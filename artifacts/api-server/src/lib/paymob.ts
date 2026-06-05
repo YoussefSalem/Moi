@@ -244,7 +244,8 @@ export async function findSuccessfulPaymobTransaction(
 ): Promise<PaymobTransaction | null> {
   const token = await getPaymobAuthToken();
 
-  const url = `${PAYMOB_BASE}/api/acceptance/transactions/?merchant_order_id=${encodeURIComponent(merchantOrderId)}&page_size=10`;
+  // NOTE: trailing slash causes 404 — do NOT add it.
+  const url = `${PAYMOB_BASE}/api/acceptance/transactions?merchant_order_id=${encodeURIComponent(merchantOrderId)}&page_size=10`;
 
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
@@ -261,7 +262,19 @@ export async function findSuccessfulPaymobTransaction(
     ? data
     : (data as { results?: PaymobTransaction[] }).results ?? [];
 
-  logger.info({ merchantOrderId, count: results.length }, "Paymob transaction inquiry results");
+  logger.info(
+    { merchantOrderId, count: results.length, statuses: results.map((t) => ({ id: t.id, success: t.success, pending: t.pending, error: t.error_occured })) },
+    "Paymob transaction inquiry results",
+  );
 
-  return results.find((t) => t.success && !t.pending) ?? null;
+  // Prefer a fully confirmed transaction (success=true, pending=false).
+  // Fall back to a pending transaction with no error — this happens with
+  // Shopify-type integrations (e.g. 5658307) where the transaction is left
+  // in pending state because Shopify's payment callback can't confirm it,
+  // even though the card was actually charged.
+  return (
+    results.find((t) => t.success && !t.pending) ??
+    results.find((t) => t.pending && !t.error_occured && t.amount_cents > 0) ??
+    null
+  );
 }

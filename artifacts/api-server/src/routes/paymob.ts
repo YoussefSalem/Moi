@@ -328,7 +328,14 @@ router.post("/paymob/webhook", async (req, res) => {
     return;
   }
 
-  if (!txn.success || txn.pending) {
+  // Shopify-type integrations (e.g. 5658307) leave transactions as
+  // pending=true because Shopify's payment callback fails. The card IS
+  // charged — treat pending+no-error as a valid payment.
+  const isValidPayment =
+    (txn.success && !txn.pending) ||
+    (txn.pending && !txn.error_occured && txn.amount_cents > 0);
+
+  if (!isValidPayment) {
     try {
       if (!txn.success && intent.status !== "failed") {
         await updatePaymobIntent(intent.id, { status: "failed" });
