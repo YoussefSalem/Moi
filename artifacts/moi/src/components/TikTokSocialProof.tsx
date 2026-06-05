@@ -14,6 +14,30 @@ interface VideoItem {
 
 const videos: VideoItem[] = [
   {
+    title: "Moi fit check",
+    handle: "@llifewitht",
+    profileUrl: "https://www.tiktok.com/@llifewitht",
+    caption: "Styling Moi — real look, real feel.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7647230230519713044",
+    type: "carousel",
+  },
+  {
+    title: "Moi outfit of the day",
+    handle: "@lojaiinnabil",
+    profileUrl: "https://www.tiktok.com/@lojaiinnabil",
+    caption: "Everyday Moi looks that actually work.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7647196308670926087",
+    type: "video",
+  },
+  {
+    title: "Wearing Moi",
+    handle: "@tokagamal2",
+    profileUrl: "https://www.tiktok.com/@tokagamal2",
+    caption: "Effortless dressing with Moi pieces.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7647232073824062721",
+    type: "video",
+  },
+  {
     title: "How brands under 1000 EGP actually look on \ud83d\udc40\ud83d\udcb8",
     handle: "@etharrdiabb",
     profileUrl: "https://www.tiktok.com/@etharrdiabb",
