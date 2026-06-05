@@ -374,6 +374,7 @@ export function CheckoutPage() {
   // called in the same call-stack as the user gesture (tap/click).
   // All async work (validate-merchant, authorize) happens inside the session callbacks.
   const triggerApplePayDirectInit = useCallback(() => {
+    if (submittingRef.current) return;
     const AP = (window as unknown as {
       ApplePaySession?: {
         new(v: number, r: object): {

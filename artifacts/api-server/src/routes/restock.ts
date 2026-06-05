@@ -116,7 +116,20 @@ router.get("/restock/check-and-notify", (_req, res) => {
 // POST /api/restock/check-and-notify
 // Called by Shopify webhooks (inventory_levels/update, products/update)
 // or on demand. Checks all pending subscriptions and sends emails.
+// Requires X-Restock-Token header matching RESTOCK_SECRET env var.
 router.post("/restock/check-and-notify", async (req, res) => {
+  const secret = process.env.RESTOCK_SECRET;
+  if (secret) {
+    const provided = req.headers["x-restock-token"];
+    if (provided !== secret) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+  } else if (process.env.NODE_ENV === "production") {
+    req.log.error("RESTOCK_SECRET is not set — blocking unauthenticated restock trigger in production");
+    res.status(503).json({ error: "Service not configured" });
+    return;
+  }
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const storefrontToken = process.env.VITE_SHOPIFY_STOREFRONT_TOKEN;
 

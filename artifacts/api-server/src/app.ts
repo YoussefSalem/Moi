@@ -30,7 +30,21 @@ app.use(
     },
   }),
 );
-app.use(cors());
+// In production restrict CORS to the known frontend domains.
+// REPLIT_DOMAINS is a comma-separated list injected by the Replit runtime.
+// In development allow all origins so local tooling and the dev proxy work freely.
+const corsOrigin: string[] | true =
+  process.env.NODE_ENV === "production"
+    ? [
+        ...(process.env.REPLIT_DOMAINS ?? "")
+          .split(",")
+          .map((d) => `https://${d.trim()}`)
+          .filter((d) => d.length > 8),
+        "https://buy-moi.com",
+      ]
+    : true;
+
+app.use(cors({ origin: corsOrigin }));
 
 // Raw body must be captured BEFORE express.json() for webhook HMAC verification.
 // Routes under /api/webhooks and /api/bosta/status-webhook receive a Buffer in req.body.
