@@ -83,7 +83,7 @@ function parsePath(): { page: PageType; productHandle: string; section?: string 
 const WAVVY_COLORS  = [{ name: "Light Blue" }, { name: "Navy" }, { name: "Mint" }];
 const VERSA_COLORS  = [{ name: "White" }, { name: "Cashmere" }, { name: "Beige" }, { name: "Yellow" }, { name: "Teal" }];
 
-const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2];
+const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2, IMAGES.product3 as ProductConfig];
 
 function AppContent() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
@@ -95,9 +95,9 @@ function AppContent() {
   const cart = useCart();
 
   function handleColorCardAddToCart(handle: string, _image?: string) {
-    // Use Shopify-fetched products (real variant GIDs) + IMAGES.product3 fallback.
+    // Use Shopify-fetched products (real variant GIDs) — all three products now in `products`.
     // DO NOT shadow the outer `products` state — we need the live Shopify data.
-    const allProducts: ProductConfig[] = [...products, IMAGES.product3 as ProductConfig];
+    const allProducts: ProductConfig[] = [...products];
     const product = allProducts.find((p) => handle.startsWith(p.slug + "-") || handle === p.slug);
     if (!product) return;
     const colorSlug = handle.startsWith(product.slug + "-")
@@ -191,7 +191,7 @@ function AppContent() {
   // so the mapping doesn't break when the Shopify store grows.
   const product1 = products.find(p => p.slug === "moi-wavvy") ?? IMAGES.product1;
   const product2 = products.find(p => p.slug === "moi-versa-top") ?? IMAGES.product2;
-  const product3 = IMAGES.product3 as ProductConfig;
+  const product3 = products.find(p => p.slug === "trio-bangles") ?? IMAGES.product3 as ProductConfig;
 
   // Build search items: one entry per color variant, plus accessories
   const searchItems: SearchItem[] = useMemo(() => {
