@@ -7,7 +7,7 @@ import { paymobIntents } from "@workspace/db/schema";
 
 const router: IRouter = Router();
 
-const SHIPPING_EGP = 50;
+const SHIPPING_EGP = process.env.NODE_ENV === "production" ? 50 : 0;
 
 router.post("/orders/paymob-init", async (req, res) => {
   const body = req.body as {
