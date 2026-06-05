@@ -5,10 +5,9 @@ import { instapayProofs } from "@workspace/db/schema";
 import { eq, and, or } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
 import { addShopifyOrderNote, tagShopifyOrder, sendWhatsApp, getShopifyAdminToken } from "../lib/integrations";
-import { sendEmail, buildInstapayPendingEmail, buildInstapayAdminReferenceEmail } from "../lib/email";
+import { sendEmail, buildInstapayPendingEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 import { parseEGP } from "@workspace/utils";
-import { validateStockAvailability } from "../lib/shopifyOrder";
 
 const router: IRouter = Router();
 
@@ -104,7 +103,6 @@ router.post(
             draft_order?: {
               total_price?: string;
               email?: string;
-              line_items?: { variant_id: number; quantity: number }[];
               applied_discount?: { title?: string; amount?: string } | null;
               note_attributes?: { name: string; value: string }[];
               shipping_line?: { price?: string } | null;
@@ -118,19 +116,6 @@ router.post(
             if (d.applied_discount?.amount) draftDiscountAmount = parseFloat(d.applied_discount.amount);
             if (d.shipping_line?.price !== undefined && d.shipping_line.price !== null) {
               draftShippingAmount = d.shipping_line.price;
-            }
-            // Stock check before accepting proof — items may have gone out of stock since init
-            if (d.line_items && d.line_items.length > 0) {
-              const lines = d.line_items.map((li) => ({
-                variantId: `gid://shopify/ProductVariant/${li.variant_id}`,
-                quantity: li.quantity,
-              }));
-              const stockCheck = await validateStockAvailability(lines);
-              if (!stockCheck.ok) {
-                logger.warn({ draftOrderId, unavailableVariantIds: stockCheck.unavailableVariantIds }, "Instapay proof — stock check failed on draft order");
-                res.status(422).json({ error: "One or more items in your order are now out of stock." });
-                return;
-              }
             }
           }
         }
@@ -198,7 +183,7 @@ router.post(
       status: "pending",
     });
 
-    // 6. Branded pending-verification email to customer (fire-and-forget)
+    // 5. Branded pending-verification email to customer (fire-and-forget)
     if (customerEmail) {
       const shippingPrice = draftShippingAmount ?? (parseEGP(amountDisplay) >= 2000 ? "0.00" : "50.00");
       const { html, text } = buildInstapayPendingEmail({
@@ -220,11 +205,11 @@ router.post(
         .catch((err) => logger.warn({ err, email: customerEmail }, "InstaPay pending email failed"));
     }
 
-    // 7. Shopify note + tag on the DRAFT order (fire-and-forget)
+    // 6. Shopify note + tag on the DRAFT order (fire-and-forget)
     void addShopifyOrderNote(draftOrderId, `InstaPay proof submitted — ref: ${referenceNumber.trim()} (draft, awaiting approval)`);
     void tagShopifyOrder(draftOrderId, "instapay-proof-submitted");
 
-    // 8. Admin notifications (WhatsApp + email)
+    // 7. Admin notifications (WhatsApp + email)
     const businessWA = process.env.BUSINESS_WHATSAPP_NUMBER ?? "";
     const siteUrl = process.env.SITE_URL ?? "";
     if (businessWA) {
@@ -233,22 +218,23 @@ router.post(
         `📋 InstaPay proof — draft order #${draftOrderId}\nRef: ${referenceNumber.trim()}\nAmount: ${amountDisplay} EGP\nCustomer: ${customerName} · ${customerPhone}\nReview: ${siteUrl}/admin`,
       );
     }
-    // 8b. Branded admin reference email (same Moi design, for support reference)
+    // Always email admin as backup — Resend is configured
     const adminEmail = (process.env.ADMIN_EMAIL ?? process.env.RESEND_FROM_EMAIL ?? "hello@buy-moi.com").trim();
-    const { html: adminHtml, text: adminText } = buildInstapayAdminReferenceEmail({
-      draftOrderId,
-      customerName: customerName || "N/A",
-      customerPhone: customerPhone || "N/A",
-      referenceNumber: referenceNumber.trim(),
-      amount: amountDisplay,
-    });
     void sendEmail({
       to: adminEmail,
-      subject: `Admin Reference — InstaPay Proof for Draft #${draftOrderId}`,
-      html: adminHtml,
-      text: adminText,
-    }).then(() => logger.info({ draftOrderId, adminEmail }, "InstaPay admin reference email sent"))
-      .catch((err) => logger.warn({ err, draftOrderId }, "InstaPay admin reference email failed"));
+      subject: `🔔 New InstaPay Proof — Draft #${draftOrderId}`,
+      html: `<p>A new InstaPay proof has been submitted.</p>
+        <ul>
+          <li><b>Draft Order:</b> #${draftOrderId}</li>
+          <li><b>Reference:</b> ${referenceNumber.trim()}</li>
+          <li><b>Amount:</b> ${amountDisplay} EGP</li>
+          <li><b>Customer:</b> ${customerName || "N/A"}</li>
+          <li><b>Phone:</b> ${customerPhone || "N/A"}</li>
+        </ul>
+        <p><a href="${siteUrl || "https://buy-moi.com"}/admin">Review in Admin Dashboard</a></p>`,
+      text: `New InstaPay Proof Submitted\n\nDraft Order: #${draftOrderId}\nReference: ${referenceNumber.trim()}\nAmount: ${amountDisplay} EGP\nCustomer: ${customerName || "N/A"}\nPhone: ${customerPhone || "N/A"}\n\nReview: ${siteUrl || "https://buy-moi.com"}/admin`,
+    }).then(() => logger.info({ draftOrderId, adminEmail }, "InstaPay admin notification email sent"))
+      .catch((err) => logger.warn({ err, draftOrderId }, "InstaPay admin notification email failed"));
 
     // 8. WhatsApp to customer
     if (customerPhone) {

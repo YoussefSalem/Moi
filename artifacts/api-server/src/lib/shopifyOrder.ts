@@ -80,81 +80,6 @@ export function extractVariantId(gid: string): number {
   return id;
 }
 
-/**
- * Batch-check whether all requested variants are available for sale via the
- * Shopify Storefront GraphQL API. Returns a list of unavailable variant GIDs.
- *
- * This is the backend enforcement layer for stock — the frontend already blocks
- * adding out-of-stock items to cart, but this prevents abuse (malicious / stale
- * cart requests, race conditions, etc.).
- */
-export async function validateStockAvailability(
-  lines: OrderLine[],
-): Promise<{ ok: true } | { ok: false; unavailableVariantIds: string[] }> {
-  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const storefrontToken = process.env.VITE_SHOPIFY_STOREFRONT_TOKEN;
-  if (!storeDomain || !storefrontToken) {
-    // If Shopify is not configured, we cannot validate — fail open (log loudly).
-    logger.warn("validateStockAvailability: Shopify not configured — skipping stock check");
-    return { ok: true };
-  }
-
-  const uniqueVariantIds = [...new Set(lines.map((l) => l.variantId))];
-  const unavailable: string[] = [];
-
-  const endpoint = `https://${storeDomain}/api/2024-04/graphql.json`;
-  const headers = {
-    "Content-Type": "application/json",
-    "X-Shopify-Storefront-Access-Token": storefrontToken,
-  };
-
-  for (const variantId of uniqueVariantIds) {
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          query: `
-            query CheckVariant($id: ID!) {
-              node(id: $id) {
-                ... on ProductVariant {
-                  id
-                  availableForSale
-                }
-              }
-            }
-          `,
-          variables: { id: variantId },
-        }),
-      });
-      if (!res.ok) {
-        logger.warn({ variantId, status: res.status }, "validateStockAvailability: Storefront API error");
-        continue; // fail open for individual variant errors
-      }
-      const json = await res.json() as {
-        data?: { node?: { id: string; availableForSale: boolean } };
-        errors?: { message: string }[];
-      };
-      if (json.errors?.length) {
-        logger.warn({ variantId, errors: json.errors }, "validateStockAvailability: GraphQL errors");
-        continue;
-      }
-      const available = json.data?.node?.availableForSale ?? true;
-      if (!available) {
-        unavailable.push(variantId);
-      }
-    } catch (err) {
-      logger.warn({ err, variantId }, "validateStockAvailability: network error checking variant");
-      // fail open for network errors
-    }
-  }
-
-  if (unavailable.length > 0) {
-    return { ok: false, unavailableVariantIds: unavailable };
-  }
-  return { ok: true };
-}
-
 export async function fetchStorefrontCart(
   cartId: string,
 ): Promise<StorefrontCartResult | null> {
@@ -352,33 +277,7 @@ export interface ShopifyLineItem {
   price: string;
 }
 
-async function markShopifyOrderPaid(
-  orderId: number,
-  amount: string,
-  storeDomain: string,
-  adminToken: string,
-): Promise<void> {
-  try {
-    await fetch(
-      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/transactions.json`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-        body: JSON.stringify({
-          transaction: {
-            kind: "sale",
-            status: "success",
-            amount,
-            currency: "EGP",
-            gateway: "paymob",
-          },
-        }),
-      },
-    );
-  } catch { /* non-fatal — order is already created */ }
-}
-
-export async function completeShopifyDraftOrder(draftOrderId: number, options?: { paymentPending?: boolean }): Promise<{ orderId: number; orderNumber: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string } | null> {
+export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{ orderId: number; orderNumber: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string } | null> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return null;
@@ -434,40 +333,6 @@ export async function completeShopifyDraftOrder(draftOrderId: number, options?: 
   // That caused discounts to be lost (frontend showed discounted price, Shopify showed
   // full price). We already track usage_count ourselves via recordDiscountCodeUse(),
   // so draft completion is the correct path.
-
-  // When paymentPending=true: complete as "Payment Pending" (payment not yet captured).
-  // Used when the payment gateway callback fails but the order should still be placed.
-  if (options?.paymentPending) {
-    const pendingRes = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false&payment_pending=true`,
-      { method: "PUT", headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken } },
-    );
-    if (!pendingRes.ok) {
-      const errText = await pendingRes.text().catch(() => "");
-      logger.error({ status: pendingRes.status, body: errText }, "completeShopifyDraftOrder (payment_pending) failed");
-      return null;
-    }
-    const pendingData = await pendingRes.json() as { draft_order: { order_id: number; total_price: string } };
-    const pOrderId = pendingData.draft_order.order_id;
-    const pTotal = pendingData.draft_order.total_price;
-    const pOrderRes = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/orders/${pOrderId}.json?fields=order_number,line_items`,
-      { headers: { "X-Shopify-Access-Token": adminToken } },
-    );
-    let pOrderNumber = pOrderId;
-    let pLineItems: ShopifyLineItem[] = [];
-    if (pOrderRes.ok) {
-      const pOrderData = await pOrderRes.json() as { order: { order_number: number; line_items: unknown[] } };
-      pOrderNumber = pOrderData.order.order_number ?? pOrderId;
-      pLineItems = (pOrderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
-    }
-    return { orderId: pOrderId, orderNumber: pOrderNumber, total: pTotal, lineItems: pLineItems, discountAmount: draftDiscountAmount, discountCode: draftDiscountCode };
-  }
-
-  // Complete without payment_pending=true so Shopify marks the order as "Paid".
-  // Completing via Admin API does not require a Shopify payment gateway — the
-  // financial_status is set to "paid" directly because payment was already
-  // collected externally (Paymob).
   const completeRes = await fetch(
     `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false`,
     {
@@ -475,36 +340,7 @@ export async function completeShopifyDraftOrder(draftOrderId: number, options?: 
       headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
     },
   );
-  if (!completeRes.ok) {
-    const errText = await completeRes.text().catch(() => "");
-    // If Shopify rejects the direct-paid completion, fall back to payment_pending
-    // and then mark paid via a manual transaction
-    if (completeRes.status === 422) {
-      const fallbackRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false&payment_pending=true`,
-        { method: "PUT", headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken } },
-      );
-      if (!fallbackRes.ok) return null;
-      const fallbackData = await fallbackRes.json() as { draft_order: { order_id: number; total_price: string } };
-      const fbOrderId = fallbackData.draft_order.order_id;
-      const fbTotal = fallbackData.draft_order.total_price;
-      void markShopifyOrderPaid(fbOrderId, fbTotal, storeDomain, adminToken);
-      const fbOrderRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/orders/${fbOrderId}.json?fields=order_number,line_items`,
-        { headers: { "X-Shopify-Access-Token": adminToken } },
-      );
-      let fbOrderNumber = fbOrderId;
-      let fbLineItems: ShopifyLineItem[] = [];
-      if (fbOrderRes.ok) {
-        const fbOrderData = await fbOrderRes.json() as { order: { order_number: number; line_items: unknown[] } };
-        fbOrderNumber = fbOrderData.order.order_number ?? fbOrderId;
-        fbLineItems = (fbOrderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
-      }
-      return { orderId: fbOrderId, orderNumber: fbOrderNumber, total: fbTotal, lineItems: fbLineItems, discountAmount: draftDiscountAmount, discountCode: draftDiscountCode };
-    }
-    logger.error({ status: completeRes.status, body: errText }, "completeShopifyDraftOrder failed");
-    return null;
-  }
+  if (!completeRes.ok) return null;
 
   const completeData = await completeRes.json() as {
     draft_order: { order_id: number; total_price: string };
@@ -523,6 +359,13 @@ export async function completeShopifyDraftOrder(draftOrderId: number, options?: 
     orderNumber = orderData.order.order_number ?? orderId;
     lineItems = (orderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
   }
+
+  // Completed order defaults to "pending" — mark it paid so Bosta doesn't treat as COD.
+  // NOTE: PUT /orders/{id}.json with financial_status is silently ignored by Shopify.
+  // The only way to change financial_status is to POST a transaction with kind:"sale".
+  try {
+    await recordShopifyPaymentTransaction({ orderId, amount: total, storeDomain, adminToken });
+  } catch { /* ignore */ }
 
   // Re-apply referring_site / landing_site (Shopify strips them during completion)
   if (attributionRaw) {
@@ -584,8 +427,12 @@ export async function createDraftOrder(params: {
   complete?: boolean;
   /** Marketing attribution to pass to Shopify for channel/sales source reporting */
   attribution?: OrderAttribution;
-  /** Paymob checkout token (merchant_order_id) — stamped onto note_attributes for a visible Paymob↔Shopify link */
-  paymobCheckoutToken?: string;
+  /** Paymob transaction details — attached as note_attributes for traceability */
+  paymobDetails?: {
+    txnId: string;
+    amountCents: number;
+    intentId?: string;
+  };
 }): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; draftOrderId?: number; discountAmount?: number; discountCode?: string; shippingAmount?: string }> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
@@ -600,16 +447,30 @@ export async function createDraftOrder(params: {
     params.paymentMethod === "cod"
       ? "cod,moi-checkout"
       : params.paymentMethod === "card"
-        ? "card,moi-checkout"
-        : "instapay,moi-checkout";
+      ? "paymob,moi-checkout"
+      : "instapay,moi-checkout";
   const tags = params.extraTags ? `${baseTags},${params.extraTags}` : baseTags;
+
+  const pd = params.paymobDetails;
+  const pdDate = pd ? new Date().toISOString() : "";
 
   const noteText =
     params.paymentMethod === "cod"
       ? "Cash on Delivery"
+      : params.paymentMethod === "card" && pd
+      ? [
+          `Credit/Debit Card (Paymob)`,
+          `Transaction ID: ${pd.txnId}`,
+          `Amount: ${(pd.amountCents / 100).toFixed(2)} EGP`,
+          `Transaction Type: Payment`,
+          `Payment Source: Paymob Application`,
+          `Status: Successful`,
+          `Date: ${pdDate}`,
+          ...(pd.intentId ? [`Reference: ${pd.intentId}`] : []),
+        ].join("\n")
       : params.paymentMethod === "card"
-        ? "Card Payment (Paymob)"
-        : "Instapay Transfer";
+      ? "Credit/Debit Card (Paymob)"
+      : "Instapay Transfer";
 
   // Determine shipping based on cart total: free over 2,000 EGP
   let shippingPrice = "50.00";
@@ -705,14 +566,22 @@ export async function createDraftOrder(params: {
       { name: "payment_method", value: params.paymentMethod },
       { name: "customer_phone", value: params.customer.phone },
       { name: "governorate", value: params.customer.governorate },
-      ...(params.paymobCheckoutToken ? [
-        { name: "paymob_checkout_token", value: params.paymobCheckoutToken },
-        { name: "payment_gateway", value: "paymob" },
-      ] : []),
       ...(params.customer.postalCode ? [{ name: "postal_code", value: params.customer.postalCode }] : []),
       ...(cartDiscountAmount > 0.01 ? [
         { name: "__discount_amount", value: cartDiscountAmount.toFixed(2) },
         { name: "__discount_code", value: cartDiscountCode || "Discount" },
+      ] : []),
+      // Paymob transaction traceability fields — mirrors what Paymob shows in their dashboard
+      ...(pd ? [
+        { name: "Transaction ID", value: pd.txnId },
+        { name: "Payment Method", value: "Credit/Debit Card" },
+        { name: "Amount", value: `${(pd.amountCents / 100).toFixed(2)} EGP` },
+        { name: "Transaction Type", value: "Payment" },
+        { name: "Payment Source", value: "Paymob Application" },
+        { name: "Other References", value: pd.intentId ?? "" },
+        { name: "Status", value: "Successful" },
+        { name: "Date Created", value: pdDate },
+        { name: "Last Updated", value: pdDate },
       ] : []),
     ],
     ...(cartDiscountAmount > 0.01 ? {
@@ -850,7 +719,81 @@ export async function createDraftOrder(params: {
 }
 
 /**
- * Create a Shopify order for COD payments.
+ * Record a Paymob payment transaction on a Shopify order so the order's
+ * financial_status becomes "paid".
+ *
+ * IMPORTANT: Shopify's REST API does NOT allow setting financial_status via
+ * PUT /orders/{id}.json — that field is read-only and computed from
+ * transactions.  The only supported way to mark an order as paid is to POST
+ * a transaction with kind:"sale" and status:"success".
+ *
+ * Without this step the order stays "pending" and Bosta (and Shopify) treat
+ * it as Cash on Delivery.
+ *
+ * Throws on failure so callers can retry.
+ */
+export async function recordShopifyPaymentTransaction(params: {
+  orderId: number;
+  amount: string;   // total order amount as a string (e.g. "949.00")
+  paymobTxnId?: string | null;
+  storeDomain: string;
+  adminToken: string;
+}): Promise<void> {
+  const { orderId, amount, paymobTxnId, storeDomain, adminToken } = params;
+  const headers = { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken };
+  const baseUrl = `https://${storeDomain}/admin/api/2024-04/orders/${orderId}`;
+  const now = new Date().toISOString();
+
+  // Completing a draft order creates a "pending" transaction automatically.
+  // Shopify rejects kind:"sale" if any transaction already exists.
+  // Solution: if a pending transaction exists, capture it; otherwise post a sale.
+  let pendingTxnId: number | null = null;
+  const txnListRes = await fetch(`${baseUrl}/transactions.json?fields=id,kind,status`, { headers });
+  if (txnListRes.ok) {
+    const txnData = await txnListRes.json() as { transactions?: { id: number; kind: string; status: string }[] };
+    const pending = (txnData.transactions ?? []).find(
+      (t) => t.kind === "pending" && t.status === "success",
+    );
+    if (pending) pendingTxnId = pending.id;
+  }
+
+  const body: Record<string, unknown> = {
+    kind: pendingTxnId ? "capture" : "sale",
+    status: "success",
+    gateway: "Paymob",
+    amount,
+    currency: "EGP",
+    processed_at: now,
+    ...(pendingTxnId ? { parent_id: pendingTxnId } : {}),
+  };
+  if (paymobTxnId) {
+    body.authorization = paymobTxnId;
+    body.receipt = {
+      paymob_txn_id: paymobTxnId,
+      payment_method: "Credit/Debit Card",
+      transaction_type: "Payment",
+      payment_source: "Paymob Application",
+      status: "Successful",
+      date_created: now,
+      last_updated: now,
+    };
+  }
+
+  logger.info({ orderId, kind: body.kind, pendingTxnId }, "recordShopifyPaymentTransaction: posting transaction");
+  const res = await fetch(`${baseUrl}/transactions.json`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ transaction: body }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`recordShopifyPaymentTransaction: Shopify returned ${res.status}: ${text}`);
+  }
+  logger.info({ orderId, paymobTxnId, amount, kind: body.kind }, "recordShopifyPaymentTransaction: transaction posted — order marked paid");
+}
+
+/**
+ * Create a Shopify order for COD or Card payments.
  *
  * NOTE: We used to POST directly to /orders.json with discount_codes, but
  * Shopify's Orders API accepts discount_codes only for tracking — it does NOT
@@ -858,17 +801,27 @@ export async function createDraftOrder(params: {
  * discounted price, Shopify showed full price). We now create a draft order
  * with applied_discount (which correctly reduces the total) and complete it
  * immediately. Discount usage is tracked ourselves via recordDiscountCodeUse().
+ *
+ * For card orders, after completion we POST a transaction (kind:sale) so that
+ * Shopify computes financial_status as "paid". PUT /orders/{id}.json with
+ * financial_status is silently ignored by Shopify — transactions are the only
+ * supported mechanism.
  */
 export async function createShopifyDirectOrder(params: {
   lines: OrderLine[];
   customer: CustomerInfo;
-  paymentMethod: "cod";
+  paymentMethod: "cod" | "card";
   cartId?: string;
   discountCode?: string;
   extraTags?: string;
   attribution?: OrderAttribution;
+  financialStatus?: "pending" | "paid";
+  /** Paymob transaction ID — used as the transaction receipt and for note traceability */
+  paymobTxnId?: string;
+  /** Full Paymob transaction details — stored in order note_attributes for reconciliation */
+  paymobDetails?: { txnId: string; amountCents: number; intentId?: string };
 }): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string; shippingAmount?: string }> {
-  return createDraftOrder({
+  const result = await createDraftOrder({
     lines: params.lines,
     customer: params.customer,
     paymentMethod: params.paymentMethod,
@@ -877,5 +830,52 @@ export async function createShopifyDirectOrder(params: {
     extraTags: params.extraTags,
     complete: true,
     attribution: params.attribution,
+    paymobDetails: params.paymobDetails,
   });
+
+  // Mark the order as paid by posting a payment transaction.
+  // financial_status is a computed field in Shopify — PUT /orders/{id}.json
+  // cannot change it. The only correct mechanism is POST transactions.json
+  // with kind:"sale" and status:"success".
+  // Retries once after 3 s if the first attempt fails.
+  if (params.paymentMethod === "card" && params.financialStatus === "paid") {
+    const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+    const adminToken = await getShopifyAdminToken();
+    if (storeDomain && adminToken) {
+      let lastErr: unknown;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          await recordShopifyPaymentTransaction({
+            orderId: result.orderId,
+            amount: result.total,
+            paymobTxnId: params.paymobTxnId,
+            storeDomain,
+            adminToken,
+          });
+          lastErr = undefined;
+          break; // success — exit retry loop
+        } catch (err) {
+          lastErr = err;
+          logger.warn({ err, orderId: result.orderId, attempt }, "createShopifyDirectOrder: payment transaction attempt failed");
+          if (attempt < 2) {
+            await new Promise((r) => setTimeout(r, 3000));
+          }
+        }
+      }
+      if (lastErr) {
+        // Both attempts failed — log loudly so it surfaces for manual fix via admin panel
+        logger.error({ err: lastErr, orderId: result.orderId, paymobTxnId: params.paymobTxnId }, "createShopifyDirectOrder: payment transaction failed after 2 attempts — order will remain Payment Pending; use admin Record Payment button");
+      }
+    }
+  }
+
+  return {
+    orderNumber: result.orderNumber,
+    orderId: result.orderId,
+    total: result.total,
+    lineItems: result.lineItems,
+    discountAmount: result.discountAmount,
+    discountCode: result.discountCode,
+    shippingAmount: result.shippingAmount,
+  };
 }

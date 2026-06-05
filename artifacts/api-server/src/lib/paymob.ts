@@ -1,276 +1,207 @@
 import crypto from "crypto";
+import { getPaymobConfig } from "./paymobConfig";
 import { logger } from "./logger";
 
-const PAYMOB_BASE = "https://accept.paymob.com";
-
-export interface PaymobConfig {
-  secretKey: string;
-  publicKey: string;
-  integrationId: string;
-  hmacSecret: string;
-}
-
-export function getPaymobConfig(): PaymobConfig {
-  return {
-    secretKey: process.env.PAYMOB_SECRET_KEY ?? "",
-    publicKey: process.env.PAYMOB_PUBLIC_KEY ?? "",
-    integrationId: process.env.PAYMOB_INTEGRATION_ID ?? "",
-    hmacSecret: process.env.PAYMOB_HMAC_SECRET ?? "",
-  };
-}
-
-export interface PaymobBillingData {
-  first_name: string;
-  last_name: string;
-  phone_number: string;
-  email: string;
-  street: string;
-  building: string;
-  floor: string;
-  apartment: string;
+export interface PaymobCustomer {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone: string;
+  address: string;
   city: string;
-  state: string;
-  country: string;
-  postal_code: string;
 }
 
-export interface PaymobIntentionParams {
+export interface CreatePaymentKeyParams {
   amountCents: number;
-  currency: string;
-  billingData: PaymobBillingData;
-  items: { name: string; amount: number; description: string; quantity: number }[];
-  specialReference: string;
-  notificationUrl: string;
-  redirectionUrl: string;
-}
-
-export interface PaymobIntentionResult {
-  intentionId: string;
-  clientSecret: string;
-}
-
-/**
- * Creates a Paymob payment intention using the Intentions API.
- * Returns the intention ID and client secret for frontend redirect.
- *
- * Frontend redirect URL:
- *   https://accept.paymob.com/unifiedcheckout/?publicKey=<publicKey>&clientSecret=<clientSecret>
- */
-export async function createPaymobIntention(
-  params: PaymobIntentionParams,
-): Promise<PaymobIntentionResult> {
-  const config = getPaymobConfig();
-
-  if (!config.secretKey) {
-    throw new Error("PAYMOB_SECRET_KEY is not configured");
-  }
-
-  const body = {
-    amount: params.amountCents,
-    currency: params.currency,
-    payment_methods: [parseInt(config.integrationId, 10)],
-    items: params.items,
-    billing_data: params.billingData,
-    customer: {
-      first_name: params.billingData.first_name,
-      last_name: params.billingData.last_name,
-      email: params.billingData.email,
-    },
-    special_reference: params.specialReference,
-    notification_url: params.notificationUrl,
-    redirection_url: params.redirectionUrl,
-  };
-
-  logger.info(
-    { specialReference: params.specialReference, amountCents: params.amountCents },
-    "Creating Paymob intention",
-  );
-
-  const res = await fetch(`${PAYMOB_BASE}/v1/intention/`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Token ${config.secretKey}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    logger.error({ status: res.status, text }, "Paymob intention creation failed");
-    throw new Error(`Paymob intention failed (${res.status}): ${text}`);
-  }
-
-  const data = await res.json() as {
-    id?: string;
-    client_secret?: string;
-  };
-
-  if (!data.id || !data.client_secret) {
-    throw new Error("Paymob intention response missing id or client_secret");
-  }
-
-  logger.info(
-    { intentionId: data.id, specialReference: params.specialReference },
-    "Paymob intention created",
-  );
-
-  return {
-    intentionId: data.id,
-    clientSecret: data.client_secret,
-  };
-}
-
-export interface PaymobTransaction {
-  id: number;
-  pending: boolean;
-  amount_cents: number;
-  success: boolean;
-  is_auth: boolean;
-  is_capture: boolean;
-  is_standalone_payment: boolean;
-  is_voided: boolean;
-  is_refunded: boolean;
-  is_3d_secure: boolean;
-  integration_id: number;
-  has_parent_transaction: boolean;
-  order: {
-    id: number;
-    merchant_order_id?: string;
-    currency?: string;
-  };
-  created_at: string;
-  currency: string;
-  error_occured: boolean;
-  owner: number;
-  source_data: {
-    pan?: string;
-    sub_type?: string;
-    type?: string;
-  };
-  hmac?: string;
-}
-
-/**
- * Verifies the HMAC signature on a Paymob transaction webhook.
- *
- * The HMAC is computed as HMAC-SHA512 of a specific concatenation of
- * transaction fields using the hmacSecret as the key.
- */
-export function verifyPaymobHmac(
-  txn: PaymobTransaction,
-  receivedHmac: string,
-): boolean {
-  const { hmacSecret } = getPaymobConfig();
-  if (!hmacSecret) {
-    logger.warn("PAYMOB_HMAC_SECRET not configured — skipping HMAC verification");
-    return false;
-  }
-
-  const boolStr = (v: boolean) => String(v);
-
-  const concatenated = [
-    String(txn.amount_cents),
-    String(txn.created_at),
-    String(txn.currency),
-    boolStr(txn.error_occured),
-    boolStr(txn.has_parent_transaction),
-    String(txn.id),
-    String(txn.integration_id),
-    boolStr(txn.is_3d_secure),
-    boolStr(txn.is_auth),
-    boolStr(txn.is_capture),
-    boolStr(txn.is_refunded),
-    boolStr(txn.is_standalone_payment),
-    boolStr(txn.is_voided),
-    String(txn.order.id),
-    String(txn.owner),
-    boolStr(txn.pending),
-    String(txn.source_data.pan ?? ""),
-    String(txn.source_data.sub_type ?? ""),
-    String(txn.source_data.type ?? ""),
-    boolStr(txn.success),
-  ].join("");
-
-  const computed = crypto
-    .createHmac("sha512", hmacSecret)
-    .update(concatenated)
-    .digest("hex");
-
-  return crypto.timingSafeEqual(
-    Buffer.from(computed.toLowerCase()),
-    Buffer.from(receivedHmac.toLowerCase()),
-  );
-}
-
-/**
- * Returns the Paymob unified checkout URL for the given client secret.
- */
-export function getPaymobCheckoutUrl(clientSecret: string): string {
-  const { publicKey } = getPaymobConfig();
-  return `${PAYMOB_BASE}/unifiedcheckout/?publicKey=${encodeURIComponent(publicKey)}&clientSecret=${encodeURIComponent(clientSecret)}`;
-}
-
-export interface LegacyPaymobPaymentResult {
-  iframeUrl: string;
-  paymobOrderId: number;
-}
-
-/**
- * Creates a Paymob payment using the legacy API (auth → order → payment_key → iframe).
- *
- * This flow produces transactions with Origin "Application" that resolve to
- * Success or Declined after 3DS — unlike the Intentions v1 / Pixel flow which
- * uses a Shopify-type integration and leaves transactions permanently Pending.
- */
-export async function createLegacyPaymobPayment(params: {
-  amountCents: number;
-  currency: string;
   merchantOrderId: string;
-  billingData: PaymobBillingData;
-  items: { name: string; amount_cents: number; description: string; quantity: number }[];
-  notificationUrl: string;
-  redirectionUrl: string;
-}): Promise<LegacyPaymobPaymentResult> {
-  const iframeId = process.env.PAYMOB_IFRAME_ID;
-  if (!iframeId) throw new Error("PAYMOB_IFRAME_ID not configured");
+  customer: PaymobCustomer;
+  callbackUrl?: string;
+  redirectionUrl?: string;
+}
 
-  const { integrationId } = getPaymobConfig();
-  if (!integrationId) throw new Error("PAYMOB_INTEGRATION_ID not configured");
+export interface PaymobPaymentKeyResult {
+  iframeUrl: string;
+}
 
-  logger.info(
-    { merchantOrderId: params.merchantOrderId, amountCents: params.amountCents },
-    "Creating legacy Paymob payment",
-  );
+/**
+ * Legacy Paymob 3-step payment key flow:
+ * 1. POST /api/auth/tokens → auth_token
+ * 2. POST /api/ecommerce/orders → paymob_order_id
+ * 3. POST /api/acceptance/payment_keys → payment_token
+ * 4. Embed iframe: accept.paymob.com/api/acceptance/iframes/{iframeId}?payment_token={token}
+ */
+export async function createPaymobPaymentKey(
+  params: CreatePaymentKeyParams,
+): Promise<PaymobPaymentKeyResult> {
+  const config = getPaymobConfig();
+  if (!config.apiKey) {
+    throw new Error("Paymob API key is not configured");
+  }
+  if (!config.integrationId) {
+    throw new Error("Paymob integration ID is not configured");
+  }
+  if (!config.iframeId) {
+    throw new Error("Paymob iframe ID is not configured");
+  }
 
-  // Step 1 — auth token
-  const authToken = await getPaymobAuthToken();
+  const integrationIdNum = parseInt(config.integrationId, 10);
 
-  // Step 2 — create Paymob order (merchant_order_id = our checkoutToken)
-  const orderRes = await fetch(`${PAYMOB_BASE}/api/ecommerce/orders`, {
+  // Step 1: Authentication
+  const authRes = await fetch("https://accept.paymob.com/api/auth/tokens", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ api_key: config.apiKey }),
+  });
+  if (!authRes.ok) {
+    const text = await authRes.text();
+    logger.error({ status: authRes.status, text }, "Paymob legacy auth failed");
+    throw new Error(`Paymob auth error (${authRes.status}): ${text}`);
+  }
+  const authData = await authRes.json() as { token?: string };
+  const authToken = authData.token;
+  if (!authToken) {
+    throw new Error("Paymob auth returned no token");
+  }
+  logger.info("Paymob legacy auth token obtained");
+
+  // Step 2: Order Registration
+  const orderRes = await fetch("https://accept.paymob.com/api/ecommerce/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       auth_token: authToken,
-      delivery_needed: false,
-      merchant_order_id: params.merchantOrderId,
+      delivery_needed: "false",
       amount_cents: params.amountCents,
-      currency: params.currency,
-      items: params.items,
+      currency: "EGP",
+      merchant_order_id: params.merchantOrderId,
+      items: [
+        {
+          name: "Moi Order",
+          amount_cents: params.amountCents,
+          description: "Fashion order",
+          quantity: 1,
+        },
+      ],
     }),
   });
-
   if (!orderRes.ok) {
-    const text = await orderRes.text().catch(() => "");
-    throw new Error(`Paymob order creation failed (${orderRes.status}): ${text}`);
+    const text = await orderRes.text();
+    logger.error({ status: orderRes.status, text }, "Paymob order registration failed");
+    throw new Error(`Paymob order error (${orderRes.status}): ${text}`);
+  }
+  const orderData = await orderRes.json() as { id?: number };
+  const paymobOrderId = orderData.id;
+  if (!paymobOrderId) {
+    throw new Error("Paymob order registration returned no ID");
+  }
+  logger.info({ paymobOrderId }, "Paymob legacy order registered");
+
+  // Step 3: Payment Key
+  const pkBody: Record<string, unknown> = {
+    auth_token: authToken,
+    amount_cents: params.amountCents,
+    expiration: 3600,
+    order_id: paymobOrderId,
+    billing_data: {
+      first_name: params.customer.firstName,
+      last_name: params.customer.lastName,
+      email: params.customer.email ?? "NA",
+      phone_number: params.customer.phone,
+      street: params.customer.address,
+      city: params.customer.city,
+      country: "EG",
+      state: "NA",
+      postal_code: "NA",
+      apartment: "NA",
+      floor: "NA",
+      building: "NA",
+    },
+    currency: "EGP",
+    integration_id: integrationIdNum,
+    lock_order_when_paid: false,
+  };
+  if (params.callbackUrl) {
+    pkBody["callback_url"] = params.callbackUrl;
+  }
+  if (params.redirectionUrl) {
+    pkBody["redirection_url"] = params.redirectionUrl;
   }
 
-  const orderData = await orderRes.json() as { id?: number };
-  if (!orderData.id) throw new Error("Paymob order response missing id");
-  const paymobOrderId = orderData.id;
+  const pkRes = await fetch("https://accept.paymob.com/api/acceptance/payment_keys", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(pkBody),
+  });
+  if (!pkRes.ok) {
+    const text = await pkRes.text();
+    logger.error({ status: pkRes.status, text }, "Paymob payment key creation failed");
+    throw new Error(`Paymob payment key error (${pkRes.status}): ${text}`);
+  }
+  const pkData = await pkRes.json() as { token?: string };
+  const paymentToken = pkData.token;
+  if (!paymentToken) {
+    throw new Error("Paymob payment key returned no token");
+  }
+  logger.info({ hasToken: true }, "Paymob legacy payment key obtained");
 
-  // Step 3 — get payment key
-  const keyRes = await fetch(`${PAYMOB_BASE}/api/acceptance/payment_keys`, {
+  const iframeUrl = `https://accept.paymob.com/api/acceptance/iframes/${config.iframeId}?payment_token=${paymentToken}`;
+
+  return { iframeUrl };
+}
+
+/**
+ * Creates a Paymob legacy payment key specifically for the Apple Pay direct flow.
+ * Uses the configured Apple Pay integration ID (falls back to card integration ID).
+ * Returns the raw payment token used in POST /api/acceptance/payments/pay.
+ */
+export async function createApplePayPaymentKeyRaw(params: {
+  amountCents: number;
+  merchantOrderId: string;
+}): Promise<{ paymentToken: string }> {
+  const config = getPaymobConfig();
+  if (!config.apiKey) throw new Error("Paymob API key is not configured");
+
+  const rawIntegrationId = config.applePayIntegrationId || config.integrationId;
+  if (!rawIntegrationId) throw new Error("Paymob Apple Pay integration ID is not configured");
+  const integrationIdNum = parseInt(rawIntegrationId, 10);
+
+  // Step 1: Auth
+  const authRes = await fetch("https://accept.paymob.com/api/auth/tokens", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ api_key: config.apiKey }),
+  });
+  if (!authRes.ok) {
+    const text = await authRes.text();
+    throw new Error(`Paymob auth error (${authRes.status}): ${text}`);
+  }
+  const authData = await authRes.json() as { token?: string };
+  const authToken = authData.token;
+  if (!authToken) throw new Error("Paymob auth returned no token");
+
+  // Step 2: Order Registration
+  const orderRes = await fetch("https://accept.paymob.com/api/ecommerce/orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      auth_token: authToken,
+      delivery_needed: "false",
+      amount_cents: params.amountCents,
+      currency: "EGP",
+      merchant_order_id: params.merchantOrderId,
+      items: [{ name: "Moi Order", amount_cents: params.amountCents, description: "Fashion order", quantity: 1 }],
+    }),
+  });
+  if (!orderRes.ok) {
+    const text = await orderRes.text();
+    throw new Error(`Paymob order error (${orderRes.status}): ${text}`);
+  }
+  const orderData = await orderRes.json() as { id?: number };
+  const paymobOrderId = orderData.id;
+  if (!paymobOrderId) throw new Error("Paymob order registration returned no ID");
+
+  // Step 3: Payment Key with Apple Pay integration ID
+  const pkRes = await fetch("https://accept.paymob.com/api/acceptance/payment_keys", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -278,149 +209,307 @@ export async function createLegacyPaymobPayment(params: {
       amount_cents: params.amountCents,
       expiration: 3600,
       order_id: paymobOrderId,
-      billing_data: params.billingData,
-      currency: params.currency,
-      integration_id: parseInt(integrationId, 10),
+      billing_data: {
+        first_name: "Apple",
+        last_name: "Pay",
+        email: "NA",
+        phone_number: "NA",
+        street: "NA",
+        city: "Cairo",
+        country: "EG",
+        state: "NA",
+        postal_code: "NA",
+        apartment: "NA",
+        floor: "NA",
+        building: "NA",
+      },
+      currency: "EGP",
+      integration_id: integrationIdNum,
       lock_order_when_paid: false,
-      notification_url: params.notificationUrl,
-      redirection_url: params.redirectionUrl,
     }),
   });
-
-  if (!keyRes.ok) {
-    const text = await keyRes.text().catch(() => "");
-    throw new Error(`Paymob payment key creation failed (${keyRes.status}): ${text}`);
+  if (!pkRes.ok) {
+    const text = await pkRes.text();
+    throw new Error(`Paymob Apple Pay payment key error (${pkRes.status}): ${text}`);
   }
+  const pkData = await pkRes.json() as { token?: string };
+  const paymentToken = pkData.token;
+  if (!paymentToken) throw new Error("Paymob Apple Pay payment key returned no token");
 
-  const keyData = await keyRes.json() as { token?: string };
-  if (!keyData.token) throw new Error("Paymob payment key response missing token");
-
-  const iframeUrl = `${PAYMOB_BASE}/api/acceptance/iframes/${iframeId}?payment_token=${keyData.token}`;
-
-  logger.info(
-    { paymobOrderId, merchantOrderId: params.merchantOrderId },
-    "Legacy Paymob payment created",
-  );
-
-  return { iframeUrl, paymobOrderId };
+  logger.info({ hasToken: true, integrationId: rawIntegrationId }, "Paymob Apple Pay payment key obtained");
+  return { paymentToken };
 }
 
-/**
- * Obtains a short-lived Paymob auth token using the legacy API key.
- * Required for transaction inquiry and other non-Intentions endpoints.
- */
-async function getPaymobAuthToken(): Promise<string> {
-  const apiKey = process.env.PAYMOB_API_KEY ?? "";
-  if (!apiKey) throw new Error("PAYMOB_API_KEY not configured");
+// In-process auth token cache — avoids re-authenticating on every status poll.
+let _cachedAuthToken: { token: string; expiresAt: number } | null = null;
 
-  const res = await fetch(`${PAYMOB_BASE}/api/auth/tokens`, {
+async function getPaymobAuthToken(apiKey: string): Promise<string> {
+  if (_cachedAuthToken && Date.now() < _cachedAuthToken.expiresAt) {
+    return _cachedAuthToken.token;
+  }
+  const res = await fetch("https://accept.paymob.com/api/auth/tokens", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ api_key: apiKey }),
   });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Paymob auth failed (${res.status}): ${text}`);
-  }
-
+  if (!res.ok) throw new Error(`Paymob auth failed: ${res.status}`);
   const data = await res.json() as { token?: string };
-  if (!data.token) throw new Error("No token in Paymob auth response");
+  if (!data.token) throw new Error("Paymob auth: no token returned");
+  // Paymob auth tokens are valid for 1 hour; cache for 50 minutes.
+  _cachedAuthToken = { token: data.token, expiresAt: Date.now() + 50 * 60 * 1000 };
   return data.token;
 }
 
 /**
- * Attempts to capture (finalize) a pending Paymob transaction.
+ * Directly queries Paymob for the latest completed transaction on an order
+ * identified by our internal merchantOrderId. Used as a fallback when the
+ * server-to-server webhook has not arrived (e.g. network issues or config
+ * mismatch). Returns null if no completed transaction is found or on any error.
  *
- * Shopify-type integrations leave transactions in Pending state when the
- * Shopify payment callback fails ("Order has no shopify_payment"). Calling
- * the capture endpoint forces the transaction to Success/Captured state,
- * bypassing the Shopify callback requirement.
- *
- * Endpoint: POST /api/acceptance/void_refund/capture
+ * Tries Bearer token auth (newer Paymob API style) first; falls back to the
+ * legacy auth_token query-parameter style if the Bearer approach fails.
  */
-export async function capturePaymobTransaction(
-  transactionId: number,
-  amountCents: number,
-): Promise<{ success: boolean; captured: boolean }> {
+export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Promise<{
+  success: boolean;
+  txnId: string;
+  amountCents: number;
+} | null> {
+  const config = getPaymobConfig();
+  if (!config.apiKey) return null;
   try {
-    const authToken = await getPaymobAuthToken();
-    const res = await fetch(`${PAYMOB_BASE}/api/acceptance/void_refund/capture`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        auth_token: authToken,
-        transaction_id: transactionId,
-        amount_cents: amountCents,
-      }),
-    });
+    const token = await getPaymobAuthToken(config.apiKey);
+    const url = `https://accept.paymob.com/api/ecommerce/orders?merchant_order_id=${encodeURIComponent(merchantOrderId)}`;
 
-    const text = await res.text().catch(() => "");
-    let data: Record<string, unknown> = {};
-    try { data = JSON.parse(text) as Record<string, unknown>; } catch { /* ignore */ }
+    // Attempt 1: Bearer auth in Authorization header (newer Paymob API).
+    // Attempt 2: auth_token as query param (legacy).
+    // Attempt 3: Bearer using secret key directly (Paymob Intentions API style).
+    const attempts: Array<() => Promise<Response>> = [
+      () => fetch(url, { headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } }),
+      () => fetch(`${url}&auth_token=${encodeURIComponent(token)}`, { headers: { "Content-Type": "application/json" } }),
+      ...(config.secretKey ? [() => fetch(url, { headers: { "Authorization": `Bearer ${config.secretKey}`, "Content-Type": "application/json" } })] : []),
+    ];
 
-    logger.info(
-      { transactionId, amountCents, status: res.status, success: data.success, pending: data.pending },
-      "Paymob capture attempt",
-    );
-
-    if (!res.ok) {
-      logger.warn({ status: res.status, body: text, transactionId }, "Paymob capture request failed");
-      return { success: false, captured: false };
+    let res: Response | null = null;
+    for (const attempt of attempts) {
+      const r = await attempt();
+      if (r.ok) { res = r; break; }
+      const text = await r.text().catch(() => "");
+      logger.warn({ status: r.status, text, merchantOrderId }, "queryPaymobByMerchantOrderId: attempt failed, trying next auth strategy");
     }
 
-    // A successful capture returns success: true, pending: false
-    const captured = data.success === true && data.pending === false;
-    return { success: res.ok, captured };
+    if (!res) {
+      logger.warn({ merchantOrderId }, "queryPaymobByMerchantOrderId: all auth strategies failed");
+      return null;
+    }
+
+    const body = await res.json() as {
+      results?: Array<{
+        id: number;
+        amount_cents?: number;
+        transactions?: Array<{ id: number; success: boolean; pending: boolean; amount_cents?: number }>;
+      }>;
+    };
+    const orders = body.results ?? [];
+    logger.info({ merchantOrderId, orderCount: orders.length }, "queryPaymobByMerchantOrderId: orders found");
+    if (orders.length === 0) return null;
+
+    // Paymob's paginated orders list API does NOT embed transactions — the
+    // `transactions` array is always empty in the list response. We must
+    // separately query each order's transactions via the transactions endpoint.
+    for (const order of orders) {
+      const inlineCount = (order.transactions ?? []).length;
+      logger.info({ orderId: order.id, inlineTxnCount: inlineCount }, "queryPaymobByMerchantOrderId: checking order (will fetch transactions separately)");
+
+      // Fetch transactions for this order using the acceptance/transactions endpoint.
+      // Try same 3 auth strategies.
+      const txnUrl = `https://accept.paymob.com/api/acceptance/transactions?order_id=${order.id}`;
+      const txnAttempts: Array<() => Promise<Response>> = [
+        () => fetch(txnUrl, { headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } }),
+        () => fetch(`${txnUrl}&auth_token=${encodeURIComponent(token)}`, { headers: { "Content-Type": "application/json" } }),
+        ...(config.secretKey ? [() => fetch(txnUrl, { headers: { "Authorization": `Bearer ${config.secretKey}`, "Content-Type": "application/json" } })] : []),
+      ];
+
+      let txnRes: Response | null = null;
+      for (const attempt of txnAttempts) {
+        const r = await attempt();
+        if (r.ok) { txnRes = r; break; }
+        const text = await r.text().catch(() => "");
+        logger.warn({ status: r.status, text, orderId: order.id }, "queryPaymobByMerchantOrderId: txn fetch attempt failed, trying next auth strategy");
+      }
+
+      if (!txnRes) {
+        logger.warn({ orderId: order.id }, "queryPaymobByMerchantOrderId: all auth strategies failed for transactions endpoint");
+        continue;
+      }
+
+      const txnBody = await txnRes.json() as {
+        results?: Array<{ id: number; success: boolean; pending: boolean; amount_cents?: number }>;
+      };
+      const txns = txnBody.results ?? [];
+      logger.info({ orderId: order.id, txnCount: txns.length }, "queryPaymobByMerchantOrderId: transactions fetched");
+
+      const resolved = txns.find((t) => !t.pending);
+      if (resolved) {
+        logger.info({ txnId: resolved.id, success: resolved.success, orderId: order.id }, "queryPaymobByMerchantOrderId: resolved transaction found");
+        return {
+          success: resolved.success,
+          txnId: String(resolved.id),
+          amountCents: resolved.amount_cents ?? order.amount_cents ?? 0,
+        };
+      }
+    }
+    logger.info({ merchantOrderId }, "queryPaymobByMerchantOrderId: no resolved transaction yet");
+    return null;
   } catch (err) {
-    logger.error({ err, transactionId }, "Paymob capture threw");
-    return { success: false, captured: false };
+    logger.warn({ err, merchantOrderId }, "queryPaymobByMerchantOrderId: unexpected error");
+    return null;
   }
 }
 
 /**
- * Queries Paymob transactions by merchant_order_id (our checkoutToken / special_reference).
- * Returns the first successful, non-pending transaction, or null if none found.
+ * Fetches a specific Paymob transaction by its numeric ID and verifies it
+ * belongs to the given merchantOrderId. Used by paymob-sync as an alternative
+ * to the order-level query when the client provides a txnId from the relay page.
  *
- * Used by the Pixel verify-payment flow where the frontend calls back after
- * afterPaymentComplete fires, instead of waiting for the webhook.
+ * Returns null on any error or if the transaction does not match.
  */
-export async function findSuccessfulPaymobTransaction(
-  merchantOrderId: string,
-): Promise<PaymobTransaction | null> {
-  const token = await getPaymobAuthToken();
+export async function verifyPaymobTransactionById(txnId: string, expectedMerchantOrderId: string): Promise<{
+  success: boolean;
+  txnId: string;
+  amountCents: number;
+} | null> {
+  const config = getPaymobConfig();
+  if (!config.apiKey) return null;
+  const numericId = parseInt(txnId, 10);
+  if (isNaN(numericId) || numericId <= 0) return null;
+  try {
+    const token = await getPaymobAuthToken(config.apiKey);
+    const url = `https://accept.paymob.com/api/acceptance/transactions/${numericId}`;
 
-  // NOTE: trailing slash causes 404 — do NOT add it.
-  const url = `${PAYMOB_BASE}/api/acceptance/transactions?merchant_order_id=${encodeURIComponent(merchantOrderId)}&page_size=10`;
+    const attempts: Array<() => Promise<Response>> = [
+      () => fetch(url, { headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } }),
+      () => fetch(`${url}?auth_token=${encodeURIComponent(token)}`, { headers: { "Content-Type": "application/json" } }),
+      ...(config.secretKey ? [() => fetch(url, { headers: { "Authorization": `Bearer ${config.secretKey}`, "Content-Type": "application/json" } })] : []),
+    ];
 
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+    let res: Response | null = null;
+    for (const attempt of attempts) {
+      const r = await attempt();
+      if (r.ok) { res = r; break; }
+      const text = await r.text().catch(() => "");
+      logger.warn({ status: r.status, text, txnId }, "verifyPaymobTransactionById: attempt failed, trying next auth strategy");
+    }
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    logger.error({ status: res.status, text, merchantOrderId }, "Paymob transaction inquiry failed");
+    if (!res) {
+      logger.warn({ txnId, expectedMerchantOrderId }, "verifyPaymobTransactionById: all auth strategies failed");
+      return null;
+    }
+
+    const txn = await res.json() as {
+      id?: number;
+      success?: boolean;
+      pending?: boolean;
+      amount_cents?: number;
+      order?: { merchant_order_id?: string; amount_cents?: number };
+    };
+
+    // Verify this transaction belongs to our intent
+    const actualMerchantOrderId = txn.order?.merchant_order_id;
+    if (actualMerchantOrderId !== expectedMerchantOrderId) {
+      logger.warn(
+        { txnId, expectedMerchantOrderId, actualMerchantOrderId },
+        "verifyPaymobTransactionById: merchant_order_id mismatch — rejecting",
+      );
+      return null;
+    }
+
+    if (txn.pending) {
+      logger.info({ txnId, expectedMerchantOrderId }, "verifyPaymobTransactionById: transaction still pending");
+      return null;
+    }
+
+    return {
+      success: txn.success === true,
+      txnId: String(txn.id ?? numericId),
+      amountCents: txn.amount_cents ?? txn.order?.amount_cents ?? 0,
+    };
+  } catch (err) {
+    logger.warn({ err, txnId, expectedMerchantOrderId }, "verifyPaymobTransactionById: unexpected error");
     return null;
   }
+}
 
-  const data = await res.json() as { results?: PaymobTransaction[] } | PaymobTransaction[];
-  const results: PaymobTransaction[] = Array.isArray(data)
-    ? data
-    : (data as { results?: PaymobTransaction[] }).results ?? [];
+/**
+ * Verifies a Paymob HMAC-SHA512 webhook signature.
+ *
+ * Paymob v1 sends transaction fields at the top level.
+ * Paymob v2 (Unified Checkout) wraps them inside an `obj` key.
+ * This function handles both forms.
+ */
+export function verifyPaymobHmac(
+  payload: Record<string, unknown>,
+  signature: string,
+): boolean {
+  const config = getPaymobConfig();
+  if (!config.hmacSecret) return false;
 
-  logger.info(
-    { merchantOrderId, count: results.length, statuses: results.map((t) => ({ id: t.id, success: t.success, pending: t.pending, error: t.error_occured })) },
-    "Paymob transaction inquiry results",
-  );
+  // Paymob v2 wraps the transaction object under `obj`
+  const txn = (payload.obj && typeof payload.obj === "object")
+    ? (payload.obj as Record<string, unknown>)
+    : payload;
 
-  // Prefer a fully confirmed transaction (success=true, pending=false).
-  // Fall back to a pending transaction with no error — this happens with
-  // Shopify-type integrations (e.g. 5658307) where the transaction is left
-  // in pending state because Shopify's payment callback can't confirm it,
-  // even though the card was actually charged.
-  return (
-    results.find((t) => t.success && !t.pending) ??
-    results.find((t) => t.pending && !t.error_occured && t.amount_cents > 0) ??
-    null
-  );
+  const HMAC_FIELDS = [
+    "amount_cents",
+    "created_at",
+    "currency",
+    "error_occured",
+    "has_parent_transaction",
+    "id",
+    "integration_id",
+    "is_3d_secure",
+    "is_auth",
+    "is_capture",
+    "is_refunded",
+    "is_standalone_payment",
+    "is_voided",
+    "order",
+    "owner",
+    "pending",
+    "source_data.pan",
+    "source_data.sub_type",
+    "source_data.type",
+    "success",
+  ];
+
+  const concatenated = HMAC_FIELDS.map((field) => {
+    const parts = field.split(".");
+    let val: unknown = txn;
+    for (const part of parts) {
+      val = (val as Record<string, unknown>)?.[part];
+    }
+    if (val === undefined || val === null) return "";
+    if (typeof val === "object") return "";
+    return String(val);
+  }).join("");
+
+  const computed = crypto
+    .createHmac("sha512", config.hmacSecret)
+    .update(concatenated)
+    .digest("hex");
+
+  try {
+    return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(signature));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Extracts the transaction fields from a Paymob webhook payload.
+ * Handles both top-level (v1) and obj-wrapped (v2) formats.
+ */
+export function extractPaymobTxn(payload: Record<string, unknown>): Record<string, unknown> {
+  return (payload.obj && typeof payload.obj === "object")
+    ? (payload.obj as Record<string, unknown>)
+    : payload;
 }
