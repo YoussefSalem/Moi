@@ -145,15 +145,15 @@ export function Footer({ onNavigate }: FooterProps) {
                 { label: "Return Policy", page: "return" as const },
                 { label: "Delivery Policy", page: "delivery" as const },
               ].map((link) => (
-                <button
+                <a
                   key={link.page}
-                  type="button"
-                  onClick={() => onNavigate?.(link.page)}
+                  href={`/${link.page}`}
+                  onClick={(e) => { e.preventDefault(); onNavigate?.(link.page); }}
                   className="text-[9px] tracking-[0.25em] uppercase text-white/35 hover:text-white/70 transition-colors duration-300"
                   style={{ fontFamily: "'Montserrat', sans-serif" }}
                 >
                   {link.label}
-                </button>
+                </a>
               ))}
             </div>
 
