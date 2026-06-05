@@ -201,6 +201,15 @@ export async function createPaymobIntentionKey(
   if (!config.publicKey) throw new Error("Paymob public key is not configured");
   if (!config.integrationId) throw new Error("Paymob integration ID is not configured");
 
+  logger.info(
+    {
+      secretKeyPrefix: config.secretKey.slice(0, 12),
+      publicKeyPrefix: config.publicKey.slice(0, 12),
+      integrationId: config.integrationId,
+    },
+    "Paymob credential prefixes",
+  );
+
   const integrationIdNum = parseInt(config.integrationId, 10);
 
   const body: Record<string, unknown> = {
@@ -263,7 +272,11 @@ export async function createPaymobIntentionKey(
   if (!clientSecret) throw new Error("Paymob intention returned no client_secret");
 
   logger.info(
-    { merchantOrderId: params.merchantOrderId },
+    {
+      merchantOrderId: params.merchantOrderId,
+      clientSecretLength: clientSecret.length,
+      clientSecretPrefix: clientSecret.slice(0, 16),
+    },
     "Paymob intention created",
   );
 
