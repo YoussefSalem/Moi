@@ -1534,7 +1534,7 @@ export function CheckoutPage() {
                               </div>
                               <div className="flex items-end justify-between mt-4">
                                 <span style={{ fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(30,24,20,0.46)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {line.quantity}</span>
-                                <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "21px", fontWeight: 700, color: "#1e1814" }}>{formatShopifyLinePrice(line)}</span>
+                                <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "15px", fontWeight: 700, color: "#1e1814" }}>{formatShopifyLinePrice(line)}</span>
                               </div>
                             </div>
                           </div>
@@ -1560,7 +1560,7 @@ export function CheckoutPage() {
                             </div>
                             <div className="flex items-end justify-between mt-4">
                               <span style={{ fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(30,24,20,0.46)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {item.quantity}</span>
-                              <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "21px", fontWeight: 700, color: "#1e1814" }}>{fmt(item.priceAmount * item.quantity)}</span>
+                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "15px", fontWeight: 700, color: "#1e1814" }}>{fmt(item.priceAmount * item.quantity)}</span>
                             </div>
                           </div>
                         </div>
@@ -1577,7 +1577,7 @@ export function CheckoutPage() {
                           <p style={{ fontSize: "11px", color: "rgba(47,102,68,0.75)", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{promoApplied.code} — -{fmt(savings)}</p>
                         </div>
                       </div>
-                      <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "20px", color: "#2f6644", fontWeight: 700 }}>{Math.round((savings / subtotalAmount) * 100)}% off</span>
+                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "13px", color: "#2f6644", fontWeight: 700, letterSpacing: "0.04em" }}>{Math.round((savings / subtotalAmount) * 100)}% off</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
@@ -1605,7 +1605,7 @@ export function CheckoutPage() {
                   <div className="flex justify-between items-center py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
                     <span style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Shipping</span>
                     <span style={{ fontSize: "15px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
-                      {freeShipping ? <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "17px", fontStyle: "italic", fontWeight: 400, color: "#6b8f5e" }}>Complimentary</span> : fmt(SHIPPING_EGP)}
+                      {freeShipping ? <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "13px", fontWeight: 600, color: "#6b8f5e", letterSpacing: "0.06em", textTransform: "uppercase" }}>Free</span> : fmt(SHIPPING_EGP)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center pt-5 pb-2">
@@ -1613,7 +1613,7 @@ export function CheckoutPage() {
                       <p style={{ fontSize: "10px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, marginBottom: 3 }}>Total</p>
                       <p style={{ fontSize: "11px", letterSpacing: "0.14em", color: "rgba(30,24,20,0.4)", fontFamily: "'Montserrat', sans-serif" }}>Incl. VAT & fees</p>
                     </div>
-                    <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "30px", fontWeight: 700, color: "#1e1814", letterSpacing: "0.01em", lineHeight: 1 }}>
+                    <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "22px", fontWeight: 700, color: "#1e1814", letterSpacing: "0.02em", lineHeight: 1 }}>
                       {orderResult?.total ?? fmt(totalAmount)}
                     </span>
                   </div>
@@ -1852,7 +1852,7 @@ export function CheckoutPage() {
                                 <span style={{ fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(30,24,20,0.46)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
                                   Qty {line.quantity}
                                 </span>
-                                <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "21px", fontWeight: 700, color: "#1e1814", letterSpacing: "0.01em" }}>
+                                <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "15px", fontWeight: 700, color: "#1e1814" }}>
                                   {formatShopifyLinePrice(line)}
                                 </span>
                               </div>
@@ -1886,7 +1886,7 @@ export function CheckoutPage() {
                               <span style={{ fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(30,24,20,0.46)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
                                 Qty {item.quantity}
                               </span>
-                              <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "21px", fontWeight: 700, color: "#1e1814", letterSpacing: "0.01em" }}>
+                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "15px", fontWeight: 700, color: "#1e1814" }}>
                                 {fmt(item.priceAmount * item.quantity)}
                               </span>
                             </div>
@@ -1921,7 +1921,7 @@ export function CheckoutPage() {
                           </div>
                         </div>
                         {subtotalAmount > 0 && (
-                          <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "20px", color: "#2f6644", fontWeight: 700 }}>
+                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "13px", color: "#2f6644", fontWeight: 700, letterSpacing: "0.04em" }}>
                             {Math.round((savings / subtotalAmount) * 100)}% off
                           </span>
                         )}
@@ -1967,7 +1967,7 @@ export function CheckoutPage() {
                     <span style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Shipping</span>
                     <span style={{ fontSize: "15px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
                       {freeShipping
-                        ? <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "17px", fontStyle: "italic", fontWeight: 400, color: "#6b8f5e" }}>Complimentary</span>
+                        ? <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "13px", fontWeight: 600, color: "#6b8f5e", letterSpacing: "0.06em", textTransform: "uppercase" }}>Free</span>
                         : fmt(SHIPPING_EGP)}
                     </span>
                   </div>
@@ -1978,7 +1978,7 @@ export function CheckoutPage() {
                       <p style={{ fontSize: "10px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, marginBottom: 3 }}>Total</p>
                       <p style={{ fontSize: "11px", letterSpacing: "0.14em", color: "rgba(30,24,20,0.4)", fontFamily: "'Montserrat', sans-serif" }}>Incl. VAT & fees</p>
                     </div>
-                    <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "30px", fontWeight: 700, color: "#1e1814", letterSpacing: "0.01em", lineHeight: 1 }}>
+                    <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "22px", fontWeight: 700, color: "#1e1814", letterSpacing: "0.02em", lineHeight: 1 }}>
                       {fmt(totalAmount)}
                     </span>
                   </div>
@@ -2206,35 +2206,25 @@ export function CheckoutPage() {
                     </div>
                   )}
 
-                  {/* Mobile-sticky Place Order CTA */}
-                  <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 px-5 pb-6 pt-3" style={{ backgroundColor: "#efe6da", borderTop: "1px solid rgba(30,24,20,0.10)" }}>
-                    <button
-                      type="submit"
-                      className="w-full py-4 transition-opacity active:opacity-70"
-                      style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
-                    >
-                      Place Order
-                    </button>
-                    <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "8px", letterSpacing: "0.12em" }}>
-                      By placing your order you agree to our terms of service.
-                    </p>
+                  {/* Fixed Place Order CTA — all screen sizes */}
+                  <div className="fixed bottom-0 left-0 right-0 z-30 px-5 pb-6 pt-3" style={{ backgroundColor: "#efe6da", borderTop: "1px solid rgba(30,24,20,0.10)" }}>
+                    <div className="max-w-lg mx-auto">
+                      <button
+                        type="submit"
+                        className="w-full py-4 transition-opacity active:opacity-70 hover:opacity-80"
+                        style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+                      >
+                        Place Order
+                      </button>
+                      <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "8px", letterSpacing: "0.12em" }}>
+                        By placing your order you agree to our terms of service.
+                      </p>
+                    </div>
                   </div>
-
-                  {/* Desktop Place Order button (non-sticky) */}
-                  <button
-                    type="submit"
-                    className="hidden md:block w-full mt-8 py-4 transition-opacity hover:opacity-80"
-                    style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
-                  >
-                    Place Order
-                  </button>
-                  {/* spacer so content isn't hidden behind the sticky bar on mobile */}
-                  <div className="md:hidden h-28" />
+                  {/* spacer so content isn't hidden behind the fixed bar */}
+                  <div className="h-28" />
                 </form>
 
-                <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.58)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "14px", letterSpacing: "0.18em" }} className="hidden md:block">
-                  By placing your order you agree to our terms of service.
-                </p>
                 </>)}
               </div>
             </div>
