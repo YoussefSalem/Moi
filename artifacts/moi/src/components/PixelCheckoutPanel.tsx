@@ -34,6 +34,7 @@ export function PixelCheckoutPanel({
   const [errorMsg, setErrorMsg] = useState("");
   const initializedRef = useRef(false);
   const mountedRef = useRef(true);
+  const completedRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -41,6 +42,66 @@ export function PixelCheckoutPanel({
       mountedRef.current = false;
     };
   }, []);
+
+  // Background polling fallback — catches payments where Paymob fires an
+  // internal error (e.g. "Order has no shopify_payment" from a Shopify-type
+  // integration) so afterPaymentComplete never fires, yet the card WAS charged.
+  // We start polling verify-payment 20 s after the form loads and keep going
+  // every 8 s until we find a transaction, hit an error, or time out (8 min).
+  useEffect(() => {
+    // Only poll once the form is visible and not already handled
+    if (status === "loading") return;
+    if (status === "processing" || status === "declined" || status === "error") return;
+
+    let stopped = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const deadline = Date.now() + 8 * 60 * 1000;
+
+    async function poll() {
+      if (stopped || !mountedRef.current || Date.now() > deadline) return;
+      // Don't interfere if afterPaymentComplete already kicked off
+      if (status === "processing") return;
+
+      try {
+        const res = await fetch("/api/paymob/verify-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ checkoutToken }),
+        });
+        if (!mountedRef.current || stopped) return;
+
+        if (res.ok) {
+          const data = await res.json() as {
+            success?: boolean;
+            orderNumber?: number;
+            total?: string;
+            shopifyOrderId?: number;
+          };
+          if (data.success && data.orderNumber && data.total && data.shopifyOrderId) {
+            if (!completedRef.current) {
+              completedRef.current = true;
+              onSuccess({ orderNumber: data.orderNumber, total: data.total, shopifyOrderId: data.shopifyOrderId });
+            }
+            return; // done
+          }
+        }
+        // 402 = no transaction yet, keep polling; anything else, keep polling
+      } catch { /* network glitch — retry next cycle */ }
+
+      if (!stopped && mountedRef.current) {
+        timeoutId = setTimeout(poll, 8000);
+      }
+    }
+
+    // Give the user 20 s to fill the form before the first check
+    timeoutId = setTimeout(poll, 20000);
+
+    return () => {
+      stopped = true;
+      clearTimeout(timeoutId);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, checkoutToken]);
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -115,11 +176,14 @@ export function PixelCheckoutPanel({
               if (!mountedRef.current) return;
 
               if (res.ok && data.success && data.orderNumber && data.total && data.shopifyOrderId) {
-                onSuccess({
-                  orderNumber: data.orderNumber,
-                  total: data.total,
-                  shopifyOrderId: data.shopifyOrderId,
-                });
+                if (!completedRef.current) {
+                  completedRef.current = true;
+                  onSuccess({
+                    orderNumber: data.orderNumber,
+                    total: data.total,
+                    shopifyOrderId: data.shopifyOrderId,
+                  });
+                }
               } else if (res.status === 402) {
                 // Genuine decline — no transaction found at all
                 setStatus("declined");
