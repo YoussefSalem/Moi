@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { ENABLE_CARD_PAYMENTS, ENABLE_APPLE_PAY } from "@/config/features";
 import { ShopifyApplePayButton } from "./ShopifyApplePayButton";
@@ -1456,7 +1457,10 @@ export function CheckoutPage() {
   const isCardCheckoutStep = step === "card-checkout" || (step === "form" && !!paymobIframeUrl);
   const loadingText = paymentMethod === "card" ? "Preparing payment…" : "Placing your order…";
 
+  const showPlaceOrderBar = checkoutOpen && step === "form" && !paymobIframeUrl;
+
   return (
+    <>
     <AnimatePresence>
       {checkoutOpen && (
         <motion.div
@@ -2108,7 +2112,7 @@ export function CheckoutPage() {
                   Delivery Details
                 </p>
 
-                <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-5">
+                <form id="checkout-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
                       <label style={labelStyle}>First Name</label>
@@ -2206,21 +2210,6 @@ export function CheckoutPage() {
                     </div>
                   )}
 
-                  {/* Fixed Place Order CTA — all screen sizes */}
-                  <div className="fixed bottom-0 left-0 right-0 z-30 px-5 pb-6 pt-3" style={{ backgroundColor: "#efe6da", borderTop: "1px solid rgba(30,24,20,0.10)" }}>
-                    <div className="max-w-lg mx-auto">
-                      <button
-                        type="submit"
-                        className="w-full py-4 transition-opacity active:opacity-70 hover:opacity-80"
-                        style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
-                      >
-                        Place Order
-                      </button>
-                      <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "8px", letterSpacing: "0.12em" }}>
-                        By placing your order you agree to our terms of service.
-                      </p>
-                    </div>
-                  </div>
                   {/* spacer so content isn't hidden behind the fixed bar */}
                   <div className="h-28" />
                 </form>
@@ -2232,6 +2221,24 @@ export function CheckoutPage() {
         </motion.div>
       )}
     </AnimatePresence>
+    {showPlaceOrderBar && createPortal(
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999, backgroundColor: "#efe6da", borderTop: "1px solid rgba(30,24,20,0.10)", padding: "12px 20px 24px" }}>
+        <div style={{ maxWidth: 512, margin: "0 auto" }}>
+          <button
+            type="submit"
+            form="checkout-form"
+            style={{ width: "100%", padding: "16px", backgroundColor: "#1e1814", color: "#fff", fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, border: "none", cursor: "pointer" }}
+          >
+            Place Order
+          </button>
+          <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "8px", letterSpacing: "0.12em" }}>
+            By placing your order you agree to our terms of service.
+          </p>
+        </div>
+      </div>,
+      document.body
+    )}
+    </>
   );
 }
 
