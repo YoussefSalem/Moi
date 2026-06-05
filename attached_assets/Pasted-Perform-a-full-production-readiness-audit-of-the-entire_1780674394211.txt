@@ -1,0 +1,54 @@
+Perform a full production readiness audit of the entire codebase before publishing.
+
+Requirements:
+
+• Run a complete typecheck and verify there are zero TypeScript, build, runtime, console, hydration, or lint-related issues.
+• Review every page, component, route, API endpoint, hook, utility, service, and configuration file.
+• Identify and remove any dead code, unused imports, unused components, unreachable code paths, duplicate logic, or obsolete files.
+• Verify all checkout, payment, order creation, order confirmation, inventory, shipping, discount, and customer flows work correctly end-to-end.
+• Check for logic bugs even if the code compiles successfully.
+• Verify there are no broken links, missing assets, missing images, invalid routes, or navigation issues.
+
+Email & Notifications:
+• Audit all Resend email triggers.
+• Confirm every email is sent exactly when intended.
+• Verify order confirmation emails contain all required order information:
+
+* Order number
+* Customer details
+* Products ordered
+* Quantities
+* Pricing breakdown
+* Shipping information
+* Payment method
+  • Confirm emails render correctly on mobile and desktop.
+  • Ensure duplicate emails cannot be sent accidentally.
+
+Order Experience:
+• Verify the Order Placed / Thank You page displays purchased products correctly.
+• Confirm product images, variants, quantities, pricing, and totals are accurate.
+• Ensure page refreshes and revisits do not break the experience.
+
+Mobile Optimization:
+• Review the entire website from a mobile-first perspective.
+• Test common viewport sizes (320px, 375px, 390px, 414px, 430px).
+• Eliminate overflow, layout shifts, clipped content, oversized elements, horizontal scrolling, spacing inconsistencies, and awkward interactions.
+• Ensure buttons, forms, drawers, modals, checkout steps, product pages, cart, and navigation are optimized for touch devices.
+• Verify typography, image sizing, spacing, and checkout flows feel polished on phones.
+
+Performance & Stability:
+• Check for slow renders, unnecessary re-renders, memory leaks, race conditions, and inefficient queries.
+• Verify loading, error, and empty states exist where required.
+• Confirm all API calls handle failures gracefully.
+• Verify no edge cases can break checkout or order creation.
+
+Final Deliverable:
+Provide a production-readiness report containing:
+
+1. All issues found.
+2. Severity level for each issue.
+3. Exact files affected.
+4. Recommended fixes.
+5. Confirmation of anything verified as working correctly.
+
+Do not make assumptions. Inspect the actual codebase and verify behavior before reporting. The goal is a production-ready deployment with no known issues.
