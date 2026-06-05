@@ -4,6 +4,7 @@ import {
   createLegacyPaymobPayment,
   verifyPaymobHmac,
   findSuccessfulPaymobTransaction,
+  capturePaymobTransaction,
   type PaymobTransaction,
 } from "../lib/paymob";
 import {
@@ -525,6 +526,24 @@ router.post("/paymob/verify-payment", async (req, res) => {
   }
 
   const paymobTxnId = String(txn.id);
+
+  // If the transaction is pending (Shopify-type integration callback failed),
+  // attempt to capture it so it resolves to Success in Paymob dashboard.
+  if (txn.pending && !txn.success) {
+    req.log.info(
+      { transactionId: txn.id, amountCents: txn.amount_cents },
+      "verify-payment: transaction is pending — attempting capture",
+    );
+    const captureResult = await capturePaymobTransaction(txn.id, txn.amount_cents);
+    if (captureResult.captured) {
+      req.log.info({ transactionId: txn.id }, "verify-payment: capture succeeded — transaction is now Success");
+    } else {
+      req.log.warn(
+        { transactionId: txn.id, captureResult },
+        "verify-payment: capture did not fully resolve — proceeding anyway",
+      );
+    }
+  }
 
   await updatePaymobIntent(intent.id, { status: "paid", paymobTxnId }).catch((err) =>
     req.log.error({ err }, "verify-payment: failed to mark intent as paid"),

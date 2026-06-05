@@ -330,6 +330,55 @@ async function getPaymobAuthToken(): Promise<string> {
 }
 
 /**
+ * Attempts to capture (finalize) a pending Paymob transaction.
+ *
+ * Shopify-type integrations leave transactions in Pending state when the
+ * Shopify payment callback fails ("Order has no shopify_payment"). Calling
+ * the capture endpoint forces the transaction to Success/Captured state,
+ * bypassing the Shopify callback requirement.
+ *
+ * Endpoint: POST /api/acceptance/void_refund/capture
+ */
+export async function capturePaymobTransaction(
+  transactionId: number,
+  amountCents: number,
+): Promise<{ success: boolean; captured: boolean }> {
+  try {
+    const authToken = await getPaymobAuthToken();
+    const res = await fetch(`${PAYMOB_BASE}/api/acceptance/void_refund/capture`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        auth_token: authToken,
+        transaction_id: transactionId,
+        amount_cents: amountCents,
+      }),
+    });
+
+    const text = await res.text().catch(() => "");
+    let data: Record<string, unknown> = {};
+    try { data = JSON.parse(text) as Record<string, unknown>; } catch { /* ignore */ }
+
+    logger.info(
+      { transactionId, amountCents, status: res.status, success: data.success, pending: data.pending },
+      "Paymob capture attempt",
+    );
+
+    if (!res.ok) {
+      logger.warn({ status: res.status, body: text, transactionId }, "Paymob capture request failed");
+      return { success: false, captured: false };
+    }
+
+    // A successful capture returns success: true, pending: false
+    const captured = data.success === true && data.pending === false;
+    return { success: res.ok, captured };
+  } catch (err) {
+    logger.error({ err, transactionId }, "Paymob capture threw");
+    return { success: false, captured: false };
+  }
+}
+
+/**
  * Queries Paymob transactions by merchant_order_id (our checkoutToken / special_reference).
  * Returns the first successful, non-pending transaction, or null if none found.
  *
