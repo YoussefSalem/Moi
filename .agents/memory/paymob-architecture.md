@@ -47,3 +47,9 @@ HMAC-SHA512 with `PAYMOB_HMAC_SECRET` as key. The message is 20 specific transac
 - `completeShopifyDraftOrder` does NOT return `shippingAmount` — approximate from total threshold
 
 **Why:** Shopify would throw "Order has no Shopify payment" errors if payment transaction APIs are used without a real Shopify payment provider. Paymob is the payment processor; Shopify only needs the order.
+
+## Critical bugs fixed (2026-06-05)
+
+- **Trailing slash bug**: `findSuccessfulPaymobTransaction` used `/api/acceptance/transactions/?merchant_order_id=...` — the trailing slash returns a 404 HTML page, not JSON. Correct endpoint has no trailing slash.
+- **Shopify-type integration pending state**: Integration 5658307 (Shopify-type) marks transactions as `pending=true, success=false` because its Shopify payment callback fails with "Order has no shopify_payment". The card IS charged. Both `findSuccessfulPaymobTransaction` and the webhook handler now accept `pending && !error_occured && amount_cents > 0` as a valid payment.
+- **Draft completion without payment_pending**: Removed `payment_pending=true` from `completeShopifyDraftOrder` — completing without it marks Shopify order as "Paid" directly. Fallback to `payment_pending=true` + manual transaction if 422.
