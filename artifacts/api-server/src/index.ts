@@ -44,13 +44,17 @@ app.listen(port, (err) => {
     : "Resend config resolved");
 
   // Log Paymob configuration presence (values masked) for observability
+  const sk = (process.env["PAYMOB_SECRET_KEY"] ?? "").trim();
+  const pk = (process.env["PAYMOB_PUBLIC_KEY"] ?? "").trim();
   logger.info({
-    paymobApiKey: !!process.env["PAYMOB_API_KEY"],
-    paymobPublicKey: !!process.env["PAYMOB_PUBLIC_KEY"],
-    paymobSecretKey: !!process.env["PAYMOB_SECRET_KEY"],
-    paymobIntegrationId: !!process.env["PAYMOB_INTEGRATION_ID"],
-    paymobHmacSecret: !!process.env["PAYMOB_HMAC_SECRET"],
-    paymobIframeId: process.env["PAYMOB_IFRAME_ID"] || "(missing)",
+    paymobApiKey: !!process.env["PAYMOB_API_KEY"]?.trim(),
+    paymobPublicKeyLength: pk.length,
+    paymobPublicKeyPrefix: pk.slice(0, 8) || "(empty)",
+    paymobSecretKeyLength: sk.length,
+    paymobSecretKeyPrefix: sk.slice(0, 8) || "(empty)",
+    paymobIntegrationId: (process.env["PAYMOB_INTEGRATION_ID"] ?? "").trim() || "(missing)",
+    paymobHmacSecret: !!process.env["PAYMOB_HMAC_SECRET"]?.trim(),
+    paymobIframeId: (process.env["PAYMOB_IFRAME_ID"] ?? "").trim() || "(missing)",
   }, "Paymob config resolved");
 
   // Register Shopify webhooks for automatic restock notifications

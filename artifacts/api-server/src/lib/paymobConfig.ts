@@ -26,14 +26,15 @@ function readConfigFile(): Partial<PaymobConfig> {
 
 export function getPaymobConfig(): PaymobConfig {
   const file = readConfigFile();
+  const trim = (v?: string) => (v ?? "").trim();
   return {
-    apiKey: file.apiKey ?? process.env.PAYMOB_API_KEY ?? "",
-    secretKey: file.secretKey ?? process.env.PAYMOB_SECRET_KEY ?? "",
-    publicKey: file.publicKey ?? process.env.PAYMOB_PUBLIC_KEY ?? "",
-    integrationId: file.integrationId ?? process.env.PAYMOB_INTEGRATION_ID ?? "",
-    hmacSecret: file.hmacSecret ?? process.env.PAYMOB_HMAC_SECRET ?? "",
-    iframeId: file.iframeId ?? process.env.PAYMOB_IFRAME_ID ?? "",
-    applePayIntegrationId: file.applePayIntegrationId ?? process.env.PAYMOB_APPLE_PAY_INTEGRATION_ID ?? "",
+    apiKey: trim(file.apiKey ?? process.env.PAYMOB_API_KEY),
+    secretKey: trim(file.secretKey ?? process.env.PAYMOB_SECRET_KEY),
+    publicKey: trim(file.publicKey ?? process.env.PAYMOB_PUBLIC_KEY),
+    integrationId: trim(file.integrationId ?? process.env.PAYMOB_INTEGRATION_ID),
+    hmacSecret: trim(file.hmacSecret ?? process.env.PAYMOB_HMAC_SECRET),
+    iframeId: trim(file.iframeId ?? process.env.PAYMOB_IFRAME_ID),
+    applePayIntegrationId: trim(file.applePayIntegrationId ?? process.env.PAYMOB_APPLE_PAY_INTEGRATION_ID),
   };
 }
 
