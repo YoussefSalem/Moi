@@ -19,7 +19,7 @@ import { sendEmail, buildOrderConfirmationEmail } from "../lib/email";
 import { sendWhatsApp } from "../lib/integrations";
 import { logger } from "../lib/logger";
 import { parseEGP } from "@workspace/utils";
-import type { PaymobTransaction } from "./paymob.service";
+import { captureTransaction, type PaymobTransaction } from "./paymob.service";
 import type { CustomerInfo } from "../lib/shopifyOrder";
 
 export interface WebhookProcessResult {
@@ -89,6 +89,25 @@ export async function processPaymobWebhook(
       logger.info({ intentId: intent.id, txnId }, "webhook.service: payment failed — marked intent as failed");
     }
     return { processed: false, reason: "payment_not_successful" };
+  }
+
+  // ── Capture pending transactions (Shopify-type integration) ──────────────
+  // When Paymob is configured as "Shopify" integration type, the transaction
+  // arrives as pending=true because Paymob tries to confirm via Shopify's
+  // payment callback which returns "Order has no shopify_payment." — the card
+  // IS charged. Call capture to force the transaction to Success in Paymob.
+  if (txn.pending && !txn.success) {
+    logger.info(
+      { txnId, amountCents: txn.amount_cents },
+      "webhook.service: transaction is pending (Shopify-type integration) — attempting capture",
+    );
+    const captureResult = await captureTransaction(txn.id, txn.amount_cents);
+    logger.info(
+      { txnId, captured: captureResult.captured },
+      captureResult.captured
+        ? "webhook.service: capture succeeded — transaction resolved to Success"
+        : "webhook.service: capture did not fully resolve — proceeding with order anyway",
+    );
   }
 
   // ── Mark intent as paid ──────────────────────────────────────────────────

@@ -1,0 +1,114 @@
+The error means exactly what it says: in the GraphQL schema you’re using, the Order type does not have a field called shopify_payment (or likely even shopifyPayment).
+
+You’re probably mixing up:
+
+A webhook topic like orders/shopify_payment or
+Some internal/REST concept
+with a GraphQL field on the Order object.
+
+You can see the official Order type for the Admin GraphQL API here:
+Order object – Admin GraphQL API
+
+shopify_payment is not listed as a field there.
+
+What’s going wrong
+
+Most likely one of these is true:
+
+You copied a name from a webhook topic or REST docs
+For example, there are webhook topics such as orders/shopify_protect_eligibility_changed, etc. Those names do not map 1:1 to GraphQL fields.
+
+You expected a snake_case field name
+Shopify’s GraphQL schema uses camelCase, not snake_case. So a hypothetical field would be shopifyPayment, not shopify_payment. But in this case, even shopifyPayment is not a valid field on Order in the Admin GraphQL schema.
+
+You’re looking for “payment info” and assumed there’s a shopify_payment field
+Payment-related info is exposed in other ways, like transactions, financial status, etc.
+
+How to fix it (what to use instead)
+
+It depends what you were expecting shopify_payment to give you.
+
+Here are the common alternatives for Admin GraphQL Order:
+
+1. Basic payment status / gateway info
+
+Use fields like:
+
+displayFinancialStatus
+financialStatus
+paymentGatewayNames
+Example:
+Operation
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+query GetOrderPaymentInfo($id: ID!) {
+  order(id: $id) {
+    id
+    name
+    financialStatus
+    displayFinancialStatus
+    paymentGatewayNames
+  }
+}
+These fields are documented under the Order object:
+Order object – Admin GraphQL API
+
+2. Transaction-level payment data
+
+For detailed payment events (authorizations, captures, refunds, etc.), use transactions (REST) or the related GraphQL objects like Transaction via other connections. REST example docs are here:
+Transaction – Admin REST API
+
+In GraphQL, you might instead be working with Order → events or with returns/refunds mutations depending on what you’re after. There is no single shopify_payment field that encapsulates this.
+
+3. Shop Pay / Shopify Protect
+
+If you were trying to get Shopify Protect / Shop Pay-related info, Shopify has a field called shopifyProtect on Order (note: this is different from shopify_payment):
+
+See the release notes here:
+2023-10 release notes – Shopify Protect on Order
+
+Example query:
+Operation
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+query GetOrderProtectStatus($id: ID!) {
+  order(id: $id) {
+    id
+    name
+    shopifyProtect {
+      protectionStatus
+      protected
+    }
+  }
+}
+But again, this is shopifyProtect, not shopify_payment.
+
+What I recommend you do next
+
+Show me your current query / mutation
+Paste the failing GraphQL operation you’re running (and which API: Admin vs Storefront, and which version header you’re using, like 2024-07 or 2025-01). I can rewrite it with valid fields.
+
+Decide what data you actually need:
+
+“Is this order paid / partially paid / refunded?” → use financialStatus / displayFinancialStatus
+“Which gateway handled the payment?” → use paymentGatewayNames
+“Detailed payment events (auth/capture/refund)” → likely need transactions or refund/return objects
+“Shop Pay / Shopify Protect fraud coverage info” → use shopifyProtect
+If you paste your current query and the error response you’re seeing, I’ll rewrite a valid Admin GraphQL operation for you with the right fields and explain each part.

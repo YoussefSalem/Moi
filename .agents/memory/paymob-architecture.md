@@ -42,6 +42,9 @@ HMAC-SHA512 with `PAYMOB_HMAC_SECRET` as key. The message is 20 specific transac
 - 5658307 — test, VPC, Shopify-type — legacy iframe works; Pixel/Intentions does NOT work
 - PAYMOB_IFRAME_ID = 1041673 — legacy hosted payment page iframe
 
+## Pending transaction capture (critical)
+When the webhook arrives with `pending=true && success=false` (Shopify-type integration callback failure), the webhook handler MUST call `capturePaymobTransaction(txn.id, txn.amount_cents)` before completing the Shopify draft. Without this, the transaction stays "Pending" in the Paymob dashboard forever even though the card was charged. The capture call is now present in both `src/routes/paymob.ts` (webhook handler) and `src/services/webhook.service.ts`. `verify-payment` had this fix already.
+
 ## Shopify draft completion for card
 `completeShopifyDraftOrder()` does NOT call any Shopify payment transaction API. Completes the draft directly; no `payment_pending=true`. Fallback to `payment_pending=true` + manual transaction if 422.
 

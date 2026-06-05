@@ -359,6 +359,24 @@ router.post("/paymob/webhook", async (req, res) => {
 
   const paymobTxnId = String(txn.id);
 
+  // When Paymob is configured as "Shopify" integration type, the transaction
+  // arrives as pending=true because Paymob tries to confirm via Shopify's
+  // payment callback which returns "Order has no shopify_payment." — the card
+  // IS charged. Call capture to force the transaction to Success in Paymob.
+  if (txn.pending && !txn.success) {
+    req.log.info(
+      { txnId: txn.id, amountCents: txn.amount_cents },
+      "Paymob webhook: transaction is pending (Shopify-type integration) — attempting capture",
+    );
+    const captureResult = await capturePaymobTransaction(txn.id, txn.amount_cents);
+    req.log.info(
+      { txnId: txn.id, captured: captureResult.captured },
+      captureResult.captured
+        ? "Paymob webhook: capture succeeded — transaction resolved to Success"
+        : "Paymob webhook: capture did not fully resolve — proceeding with order anyway",
+    );
+  }
+
   await updatePaymobIntent(intent.id, {
     status: "paid",
     paymobTxnId,
