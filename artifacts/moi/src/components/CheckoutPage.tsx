@@ -1498,95 +1498,121 @@ export function CheckoutPage() {
             >
               {/* Left: compact order summary */}
               <div>
-                <p style={{ fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
-                  Order Summary
-                </p>
-                <div style={{ borderTop: "1px solid rgba(30,24,20,0.16)" }}>
+                <div className="flex items-center gap-3 mb-6">
+                  <ShoppingBag size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.5)", flexShrink: 0 }} />
+                  <p style={{ fontSize: "11px", letterSpacing: "0.38em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
+                    Order Summary
+                  </p>
+                  <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.1)" }} />
+                </div>
+                <div className="flex flex-col">
                   {lines
-                    ? lines.map((line) => {
+                    ? lines.map((line, idx) => {
                         const lineImg = resolveLineImage(line, localItems);
                         return (
-                        <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
-                          <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
-                            {lineImg && (
-                              <img src={lineImg} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                          <div key={line.id} className="flex gap-5 py-5" style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", borderTop: idx === 0 ? "1px solid rgba(30,24,20,0.08)" : "none" }}>
+                            <div className="flex-shrink-0 overflow-hidden" style={{ width: 96, height: 120, backgroundColor: "rgba(30,24,20,0.07)" }}>
+                              {lineImg ? (
+                                <img src={lineImg} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <ShoppingBag size={22} strokeWidth={1} style={{ color: "rgba(30,24,20,0.22)" }} />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
+                              <div>
+                                <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "19px", fontWeight: 600, color: "#1e1814", lineHeight: 1.25, letterSpacing: "0.01em" }}>
+                                  {line.merchandise.product.title}
+                                </p>
+                                {line.merchandise.title !== "Default Title" && (
+                                  <p style={{ fontSize: "10px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginTop: 6, fontWeight: 500 }}>
+                                    {line.merchandise.title}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-end justify-between mt-4">
+                                <span style={{ fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(30,24,20,0.46)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {line.quantity}</span>
+                                <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "21px", fontWeight: 700, color: "#1e1814" }}>{formatShopifyLinePrice(line)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    : localLines.map((item, idx) => (
+                        <div key={item.id} className="flex gap-5 py-5" style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", borderTop: idx === 0 ? "1px solid rgba(30,24,20,0.08)" : "none" }}>
+                          <div className="flex-shrink-0 overflow-hidden" style={{ width: 96, height: 120, backgroundColor: "rgba(30,24,20,0.07)" }}>
+                            {item.image ? (
+                              <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <ShoppingBag size={22} strokeWidth={1} style={{ color: "rgba(30,24,20,0.22)" }} />
+                              </div>
                             )}
                           </div>
-                          <div className="flex-1 flex flex-col justify-between min-w-0">
-                            <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{line.merchandise.product.title}</p>
-                            <div className="flex justify-between items-end">
-                              <span style={{ fontSize: "14px", color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif" }}>Qty {line.quantity}</span>
-                              <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{formatShopifyLinePrice(line)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      );})
-                    : localLines.map((item) => (
-                        <div key={item.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
-                          <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
-                            {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
-                          </div>
-                          <div className="flex-1 flex flex-col justify-between min-w-0">
+                          <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
                             <div>
-                              <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.title}</p>
-                              {item.color && <p style={{ fontSize: "14px", color: "#7a6e64", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{item.color}</p>}
+                              <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "19px", fontWeight: 600, color: "#1e1814", lineHeight: 1.25, letterSpacing: "0.01em" }}>{item.title}</p>
+                              {item.color && (
+                                <p style={{ fontSize: "10px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginTop: 6, fontWeight: 500 }}>{item.color}</p>
+                              )}
                             </div>
-                            <div className="flex justify-between items-end">
-                              <span style={{ fontSize: "14px", color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif" }}>Qty {item.quantity}</span>
-                              <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{fmt(item.priceAmount * item.quantity)}</span>
+                            <div className="flex items-end justify-between mt-4">
+                              <span style={{ fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(30,24,20,0.46)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {item.quantity}</span>
+                              <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "21px", fontWeight: 700, color: "#1e1814" }}>{fmt(item.priceAmount * item.quantity)}</span>
                             </div>
                           </div>
                         </div>
                       ))
                   }
                 </div>
-                <div className="mt-4 pt-4 space-y-3" style={{ borderTop: "1px solid rgba(30,24,20,0.12)" }}>
+                <div className="mt-1">
                   {savings > 0 && promoApplied && (
-                    <div style={{
-                      backgroundColor: "rgba(52,95,67,0.09)", border: "1px solid rgba(52,95,67,0.28)",
-                      borderRadius: "2px", padding: "8px 12px",
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div className="flex items-center justify-between px-4 py-3 mt-4" style={{ backgroundColor: "rgba(52,95,67,0.07)", border: "1px solid rgba(52,95,67,0.22)" }}>
+                      <div className="flex items-center gap-3">
                         <Tag size={11} strokeWidth={2} style={{ color: "#2f6644" }} />
                         <div>
-                          <p style={{ fontSize: "10px", color: "#2f6644", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>Promo applied</p>
-                          <p style={{ fontSize: "10px", color: "rgba(47,102,68,0.75)", fontFamily: "'Montserrat', sans-serif" }}>{promoApplied.code} — -{fmt(savings)}</p>
+                          <p style={{ fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#2f6644", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>Promo applied</p>
+                          <p style={{ fontSize: "11px", color: "rgba(47,102,68,0.75)", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{promoApplied.code} — -{fmt(savings)}</p>
                         </div>
                       </div>
-                      <div style={{ textAlign: "right" }}>
-                        <p style={{ fontSize: "15px", color: "#2f6644", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{Math.round((savings / subtotalAmount) * 100)}% off</p>
+                      <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "20px", color: "#2f6644", fontWeight: 700 }}>{Math.round((savings / subtotalAmount) * 100)}% off</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
+                    <span style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Subtotal</span>
+                    <span style={{ fontSize: "15px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>{fmt(discountedSubtotal)}</span>
+                  </div>
+                  {!freeShipping && discountedSubtotal > 0 && (
+                    <div className="py-3" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
+                      <div className="flex justify-between items-center mb-2">
+                        <p style={{ fontSize: "10px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e" }}>
+                          {new Intl.NumberFormat("en-EG").format(2000 - discountedSubtotal)} EGP to free delivery
+                        </p>
+                      </div>
+                      <div style={{ height: 2, backgroundColor: "rgba(107,143,94,0.18)", borderRadius: 1, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${Math.min(100, (discountedSubtotal / 2000) * 100)}%`, backgroundColor: "#6b8f5e", borderRadius: 1 }} />
                       </div>
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <span style={{ fontSize: "14px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
-                    <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(discountedSubtotal)}</span>
-                  </div>
-                  {!freeShipping && discountedSubtotal > 0 && (
-                    <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "#6b8f5e" }}>
-                      {new Intl.NumberFormat("en-EG", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(2000 - discountedSubtotal)} EGP away from free delivery
-                    </p>
-                  )}
                   {freeShipping && (
-                    <div style={{ backgroundColor: "rgba(248,252,245,0.9)", border: "1px solid rgba(160,190,150,0.35)", borderRadius: "2px", padding: "8px 12px", textAlign: "center" }}>
-                      <p style={{ fontSize: "11px", letterSpacing: "0.22em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e" }}>Free delivery unlocked</p>
+                    <div className="flex items-center gap-3 py-3" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
+                      <Check size={13} strokeWidth={2} style={{ color: "#6b8f5e" }} />
+                      <p style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e" }}>Free delivery unlocked</p>
                     </div>
                   )}
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <span style={{ fontSize: "16px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
-                      {!freeShipping && (
-                        <span style={{ fontSize: "19px", fontStyle: "italic", color: "rgba(107,143,94,0.85)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>— free over 2,000 EGP</span>
-                      )}
-                    </div>
-                    <span style={{ fontSize: "14px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
-                      {freeShipping ? <span style={{ fontSize: "14px", fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", fontWeight: 400 }}>Complimentary</span> : fmt(SHIPPING_EGP)}
+                  <div className="flex justify-between items-center py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
+                    <span style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Shipping</span>
+                    <span style={{ fontSize: "15px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
+                      {freeShipping ? <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "17px", fontStyle: "italic", fontWeight: 400, color: "#6b8f5e" }}>Complimentary</span> : fmt(SHIPPING_EGP)}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center pt-3" style={{ borderTop: "1px solid rgba(30,24,20,0.22)" }}>
-                    <span style={{ fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>Total</span>
-                    <span style={{ fontSize: "19px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.03em" }}>
+                  <div className="flex justify-between items-center pt-5 pb-2">
+                    <div>
+                      <p style={{ fontSize: "10px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, marginBottom: 3 }}>Total</p>
+                      <p style={{ fontSize: "11px", letterSpacing: "0.14em", color: "rgba(30,24,20,0.4)", fontFamily: "'Montserrat', sans-serif" }}>Incl. VAT & fees</p>
+                    </div>
+                    <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "30px", fontWeight: 700, color: "#1e1814", letterSpacing: "0.01em", lineHeight: 1 }}>
                       {orderResult?.total ?? fmt(totalAmount)}
                     </span>
                   </div>
@@ -1794,48 +1820,85 @@ export function CheckoutPage() {
             <div className="max-w-5xl mx-auto px-6 md:px-10 py-8 md:py-12 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
               {/* Left: Order Summary */}
               <div>
-                <p style={{ fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
-                  Order Summary
-                </p>
+                {/* Section heading */}
+                <div className="flex items-center gap-3 mb-6">
+                  <ShoppingBag size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.5)", flexShrink: 0 }} />
+                  <p style={{ fontSize: "11px", letterSpacing: "0.38em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
+                    Order Summary
+                  </p>
+                  <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.1)" }} />
+                </div>
 
-                <div style={{ borderTop: "1px solid rgba(30,24,20,0.16)" }}>
+                {/* Product lines */}
+                <div className="flex flex-col" style={{ gap: 0 }}>
                   {lines
-                    ? lines.map((line) => {
+                    ? lines.map((line, idx) => {
                         const lineImg = resolveLineImage(line, localItems);
                         return (
-                        <div key={line.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
-                          <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.1)" }}>
-                            {lineImg && (
-                              <img src={lineImg} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                            )}
-                          </div>
-                          <div className="flex-1 flex flex-col justify-between min-w-0">
-                            <div>
-                              <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{line.merchandise.product.title}</p>
-                              {line.merchandise.title !== "Default Title" && (
-                                <p style={{ fontSize: "14px", color: "#7a6e64", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{line.merchandise.title}</p>
+                          <div key={line.id} className="flex gap-5 py-5" style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", borderTop: idx === 0 ? "1px solid rgba(30,24,20,0.08)" : "none" }}>
+                            {/* Large product image */}
+                            <div className="flex-shrink-0 overflow-hidden" style={{ width: 96, height: 120, backgroundColor: "rgba(30,24,20,0.07)" }}>
+                              {lineImg ? (
+                                <img src={lineImg} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <ShoppingBag size={22} strokeWidth={1} style={{ color: "rgba(30,24,20,0.22)" }} />
+                                </div>
                               )}
                             </div>
-                            <div className="flex justify-between items-end">
-                              <span style={{ fontSize: "14px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {line.quantity}</span>
-                              <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{formatShopifyLinePrice(line)}</span>
+                            {/* Product info */}
+                            <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
+                              <div>
+                                <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "19px", fontWeight: 600, color: "#1e1814", lineHeight: 1.25, letterSpacing: "0.01em" }}>
+                                  {line.merchandise.product.title}
+                                </p>
+                                {line.merchandise.title !== "Default Title" && (
+                                  <p style={{ fontSize: "10px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginTop: 6, fontWeight: 500 }}>
+                                    {line.merchandise.title}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-end justify-between mt-4">
+                                <span style={{ fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(30,24,20,0.46)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
+                                  Qty {line.quantity}
+                                </span>
+                                <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "21px", fontWeight: 700, color: "#1e1814", letterSpacing: "0.01em" }}>
+                                  {formatShopifyLinePrice(line)}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );})
-                    : localLines.map((item) => (
-                        <div key={item.id} className="flex gap-4 py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.06)" }}>
-                          <div className="w-16 h-20 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.1)" }}>
-                            {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
+                        );
+                      })
+                    : localLines.map((item, idx) => (
+                        <div key={item.id} className="flex gap-5 py-5" style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", borderTop: idx === 0 ? "1px solid rgba(30,24,20,0.08)" : "none" }}>
+                          <div className="flex-shrink-0 overflow-hidden" style={{ width: 96, height: 120, backgroundColor: "rgba(30,24,20,0.07)" }}>
+                            {item.image ? (
+                              <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <ShoppingBag size={22} strokeWidth={1} style={{ color: "rgba(30,24,20,0.22)" }} />
+                              </div>
+                            )}
                           </div>
-                          <div className="flex-1 flex flex-col justify-between min-w-0">
+                          <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
                             <div>
-                              <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.title}</p>
-                              {item.color && <p style={{ fontSize: "14px", color: "#7a6e64", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{item.color}</p>}
+                              <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "19px", fontWeight: 600, color: "#1e1814", lineHeight: 1.25, letterSpacing: "0.01em" }}>
+                                {item.title}
+                              </p>
+                              {item.color && (
+                                <p style={{ fontSize: "10px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginTop: 6, fontWeight: 500 }}>
+                                  {item.color}
+                                </p>
+                              )}
                             </div>
-                            <div className="flex justify-between items-end">
-                              <span style={{ fontSize: "14px", color: "rgba(30,24,20,0.86)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {item.quantity}</span>
-                              <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{fmt(item.priceAmount * item.quantity)}</span>
+                            <div className="flex items-end justify-between mt-4">
+                              <span style={{ fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(30,24,20,0.46)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
+                                Qty {item.quantity}
+                              </span>
+                              <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "21px", fontWeight: 700, color: "#1e1814", letterSpacing: "0.01em" }}>
+                                {fmt(item.priceAmount * item.quantity)}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1843,149 +1906,134 @@ export function CheckoutPage() {
                   }
                 </div>
 
-                <div className="mt-4 space-y-3">
+                {/* Totals block */}
+                <div className="mt-1">
                   <AnimatePresence>
                     {promoApplied && savings > 0 && (
                       <motion.div
                         key="savings-row"
-                        initial={{ opacity: 0, scale: 0.96, y: -6 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.96, y: -6 }}
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
                         transition={{ type: "spring", stiffness: 340, damping: 28 }}
-                        style={{
-                          backgroundColor: "rgba(52,95,67,0.09)",
-                          border: "1px solid rgba(52,95,67,0.28)",
-                          borderRadius: "2px",
-                          padding: "10px 14px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "12px",
-                        }}
+                        className="flex items-center justify-between px-4 py-3 mt-4"
+                        style={{ backgroundColor: "rgba(52,95,67,0.07)", border: "1px solid rgba(52,95,67,0.22)" }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                          <div style={{
-                            width: "26px", height: "26px", borderRadius: "50%",
-                            backgroundColor: "rgba(52,95,67,0.14)",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            flexShrink: 0,
-                          }}>
-                            <Tag size={12} strokeWidth={2} style={{ color: "#2f6644" }} />
-                          </div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <span style={{
-                              fontSize: "11px", color: "#2f6644",
-                              fontFamily: "'Montserrat', sans-serif",
-                              letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700,
-                            }}>
+                        <div className="flex items-center gap-3">
+                          <Tag size={11} strokeWidth={2} style={{ color: "#2f6644", flexShrink: 0 }} />
+                          <div>
+                            <p style={{ fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#2f6644", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
                               Promo applied
-                            </span>
-                            <span style={{
-                              fontSize: "11px", color: "rgba(47,102,68,0.75)",
-                              fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em",
-                            }}>
+                            </p>
+                            <p style={{ fontSize: "11px", color: "rgba(47,102,68,0.75)", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>
                               {promoApplied.code} — -{fmt(savings)}
-                            </span>
+                            </p>
                           </div>
                         </div>
                         {subtotalAmount > 0 && (
-                          <span style={{
-                            fontSize: "15px", color: "#2f6644",
-                            fontFamily: "'Montserrat', sans-serif", fontWeight: 700,
-                            letterSpacing: "0.02em", flexShrink: 0,
-                          }}>
+                          <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "20px", color: "#2f6644", fontWeight: 700 }}>
                             {Math.round((savings / subtotalAmount) * 100)}% off
                           </span>
                         )}
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  <div className="flex justify-between">
-                    <span style={{ fontSize: "14px", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>Subtotal</span>
-                    <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif" }}>{fmt(discountedSubtotal)}</span>
+
+                  {/* Subtotal row */}
+                  <div className="flex justify-between items-center py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
+                    <span style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Subtotal</span>
+                    <span style={{ fontSize: "15px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>{fmt(discountedSubtotal)}</span>
                   </div>
-                  {/* "X away from free delivery" nudge */}
+
+                  {/* Free shipping nudge */}
                   {!freeShipping && discountedSubtotal > 0 && (
-                    <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "#6b8f5e" }}>
-                      {new Intl.NumberFormat("en-EG", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(2000 - discountedSubtotal)} EGP away from free delivery
-                    </p>
+                    <div className="py-3" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
+                      <div className="flex justify-between items-center mb-2">
+                        <p style={{ fontSize: "10px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e" }}>
+                          {new Intl.NumberFormat("en-EG").format(2000 - discountedSubtotal)} EGP to free delivery
+                        </p>
+                        <p style={{ fontSize: "10px", letterSpacing: "0.12em", fontFamily: "'Montserrat', sans-serif", color: "rgba(107,143,94,0.7)" }}>
+                          2,000 EGP
+                        </p>
+                      </div>
+                      <div style={{ height: 2, backgroundColor: "rgba(107,143,94,0.18)", borderRadius: 1, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${Math.min(100, (discountedSubtotal / 2000) * 100)}%`, backgroundColor: "#6b8f5e", borderRadius: 1, transition: "width 0.5s ease" }} />
+                      </div>
+                    </div>
                   )}
+
+                  {/* Free shipping unlocked */}
                   {freeShipping && (
-                    <div style={{
-                      backgroundColor: "rgba(248,252,245,0.9)",
-                      border: "1px solid rgba(160,190,150,0.35)",
-                      borderRadius: "2px",
-                      padding: "10px 14px",
-                      textAlign: "center",
-                    }}>
-                      <p style={{
-                        fontSize: "11px", letterSpacing: "0.22em", textTransform: "uppercase",
-                        fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e",
-                      }}>
+                    <div className="flex items-center gap-3 py-3" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
+                      <Check size={13} strokeWidth={2} style={{ color: "#6b8f5e", flexShrink: 0 }} />
+                      <p style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e" }}>
                         Free delivery unlocked
                       </p>
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <div className="flex items-center gap-2">
-                      <span style={{ fontSize: "16px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>Shipping</span>
-                      {!freeShipping && (
-                        <span style={{ fontSize: "19px", fontStyle: "italic", color: "rgba(107,143,94,0.85)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>— free over 2,000 EGP</span>
-                      )}
-                    </div>
-                    <span style={{ fontSize: "14px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
-                      {freeShipping ? (
-                        <span style={{ fontSize: "14px", fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", fontWeight: 400 }}>Complimentary</span>
-                      ) : fmt(SHIPPING_EGP)}
+
+                  {/* Shipping row */}
+                  <div className="flex justify-between items-center py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
+                    <span style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Shipping</span>
+                    <span style={{ fontSize: "15px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
+                      {freeShipping
+                        ? <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "17px", fontStyle: "italic", fontWeight: 400, color: "#6b8f5e" }}>Complimentary</span>
+                        : fmt(SHIPPING_EGP)}
                     </span>
                   </div>
-                  <div className="flex justify-between pt-3" style={{ borderTop: "1px solid rgba(30,24,20,0.22)" }}>
-                    <span style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.12em" }}>Total Amount</span>
-                    <span style={{ fontSize: "17px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.02em" }}>{fmt(totalAmount)}</span>
+
+                  {/* Total row — most prominent */}
+                  <div className="flex justify-between items-center pt-5 pb-2">
+                    <div>
+                      <p style={{ fontSize: "10px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, marginBottom: 3 }}>Total</p>
+                      <p style={{ fontSize: "11px", letterSpacing: "0.14em", color: "rgba(30,24,20,0.4)", fontFamily: "'Montserrat', sans-serif" }}>Incl. VAT & fees</p>
+                    </div>
+                    <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "30px", fontWeight: 700, color: "#1e1814", letterSpacing: "0.01em", lineHeight: 1 }}>
+                      {fmt(totalAmount)}
+                    </span>
                   </div>
                 </div>
 
+                {/* Promo / Gift Card */}
                 {SHOPIFY_CONFIGURED && (
-                  <div className="mt-6">
-                    <p style={{ fontSize: "14px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.88)", fontFamily: "'Montserrat', sans-serif", marginBottom: "10px" }}>
+                  <div className="mt-7 pt-6" style={{ borderTop: "1px solid rgba(30,24,20,0.1)" }}>
+                    <p style={{ fontSize: "10px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, marginBottom: "14px" }}>
                       Promo / Gift Card
                     </p>
-                    <div className="mt-3">
-                      {promoApplied ? (
-                        <div className="flex items-center justify-between py-2 px-3" style={{ backgroundColor: "rgba(90,122,90,0.08)", border: "1px solid rgba(90,122,90,0.2)" }}>
-                          <div className="flex items-center gap-2">
-                            <Check size={12} strokeWidth={2} style={{ color: "#5a7a5a" }} />
-                            <span style={{ fontSize: "14px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>{promoApplied.code}</span>
-                          </div>
-                          <button onClick={handleRemovePromo} style={{ fontSize: "14px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}>
-                            Remove
-                          </button>
+                    {promoApplied ? (
+                      <div className="flex items-center justify-between py-3 px-4" style={{ backgroundColor: "rgba(90,122,90,0.07)", border: "1px solid rgba(90,122,90,0.2)" }}>
+                        <div className="flex items-center gap-3">
+                          <Check size={13} strokeWidth={2} style={{ color: "#5a7a5a" }} />
+                          <span style={{ fontSize: "13px", color: "#5a7a5a", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.1em", fontWeight: 600 }}>{promoApplied.code}</span>
                         </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="Enter code"
-                            value={promoInput}
-                            onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); }}
-                            onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
-                            style={{ ...inputStyle, flex: 1 }}
-                            className="checkout-input"
-                          />
-                          <button
-                            onClick={handleApplyPromo}
-                            disabled={promoLoading || !promoInput.trim()}
-                            className="transition-opacity hover:opacity-70 disabled:opacity-40"
-                            style={{ fontSize: "14px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, padding: "0 12px", borderBottom: "1px solid rgba(30,24,20,0.18)" }}
-                          >
-                            {promoLoading ? "…" : "Apply"}
-                          </button>
-                        </div>
-                      )}
-                      {promoError && (
-                        <p style={{ fontSize: "14px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: 6, letterSpacing: "0.04em" }}>{promoError}</p>
-                      )}
-                    </div>
+                        <button onClick={handleRemovePromo} style={{ fontSize: "11px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", background: "none", border: "none", cursor: "pointer", padding: "4px 0" }}>
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-3 items-end">
+                        <input
+                          type="text"
+                          placeholder="Enter code"
+                          value={promoInput}
+                          onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); }}
+                          onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
+                          style={{ ...inputStyle, flex: 1 }}
+                          className="checkout-input"
+                        />
+                        <button
+                          onClick={handleApplyPromo}
+                          disabled={promoLoading || !promoInput.trim()}
+                          className="transition-opacity hover:opacity-70 disabled:opacity-40"
+                          style={{ fontSize: "11px", letterSpacing: "0.28em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, paddingBottom: "14px", background: "none", border: "none", borderBottom: "1px solid rgba(30,24,20,0.22)", cursor: "pointer", whiteSpace: "nowrap" }}
+                        >
+                          {promoLoading ? "…" : "Apply"}
+                        </button>
+                      </div>
+                    )}
+                    {promoError && (
+                      <p style={{ fontSize: "13px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginTop: 8, letterSpacing: "0.04em" }}>{promoError}</p>
+                    )}
                   </div>
                 )}
               </div>
