@@ -74,6 +74,7 @@ interface CartContextValue {
   closeCheckout: () => void;
   prefilledEmail: string | null;
   addToCart: (params: AddToCartParams) => Promise<string | null>;
+  buyNow: (params: AddToCartParams) => void;
   buyNowCheckoutUrl: (variantId: string, quantity?: number) => Promise<string | null>;
   removeItem: (idOrLineId: string) => Promise<void>;
   updateQuantity: (idOrLineId: string, quantity: number) => Promise<void>;
@@ -262,6 +263,55 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
     return resolvedCheckoutUrl;
   }, [ensureShopifyCart]);
+
+  // "Buy It Now" — replace cart with a single item and open checkout immediately.
+  // Opens checkout with local state right away (zero wait), then syncs the Shopify
+  // cart in the background. Avoids the clearCart()+addToCart() stale-closure race
+  // and prevents the cart drawer from flashing open.
+  const buyNow = useCallback((params: AddToCartParams): void => {
+    const qty = params.quantity ?? 1;
+    const key = `${params.variantId ?? params.title ?? "item"}-${params.size ?? ""}`;
+
+    // 1. Replace local cart immediately — no network wait
+    const newItem: LocalCartItem = {
+      id: key,
+      variantId: params.variantId ?? key,
+      title: params.title ?? "Item",
+      price: params.price ?? "",
+      priceAmount: params.priceAmount ?? 0,
+      compareAtPrice: params.compareAtPrice,
+      currencyCode: params.currencyCode ?? "EGP",
+      image: params.image ?? null,
+      size: params.size,
+      color: params.color,
+      quantity: qty,
+    };
+    saveLocalCart([newItem]);
+    setLocalItems([newItem]);
+    // Drop the old Shopify cart so checkout uses local fallback until background
+    // cart creation finishes.
+    setShopifyCart(null);
+    localStorage.removeItem(CART_ID_KEY);
+
+    // 2. Open checkout immediately — no spinner, no delay
+    setCartOpen(false);
+    if (typeof window !== "undefined" && window.location.pathname !== "/checkout") {
+      window.history.pushState({ checkout: true }, "", "/checkout");
+    }
+    setCheckoutOpen(true);
+
+    // 3. Create a fresh single-item Shopify cart in the background
+    if (SHOPIFY_CONFIGURED && params.variantId) {
+      createCartWithLines([{ merchandiseId: params.variantId, quantity: qty }])
+        .then((freshCart) => {
+          localStorage.setItem(CART_ID_KEY, freshCart.id);
+          setShopifyCart(freshCart);
+        })
+        .catch(() => {
+          // Local cart is the fallback — checkout still works without Shopify
+        });
+    }
+  }, []);
 
   // Express single-item checkout (e.g. Apple Pay): creates a brand-new, ephemeral
   // Shopify cart containing only this item and returns its checkoutUrl. The
@@ -540,6 +590,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       },
       prefilledEmail,
       addToCart,
+      buyNow,
       buyNowCheckoutUrl,
       removeItem,
       updateQuantity,

@@ -75,7 +75,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const pageColorName = fallback.name.includes(" — ")
     ? (fallback.name.split(" — ").pop() ?? "")
     : "";
-  const { addToCart, clearCart, openCheckout } = useCart();
+  const { addToCart, buyNow } = useCart();
   const { customer } = useCustomer();
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -214,16 +214,15 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     setTimeout(() => setAddedFeedback(false), 1800);
   };
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     if (isOutOfStock) return;
-    clearCart();
     trackAddToCart(
       selectedVariant?.id ?? product.variantId ?? "",
       product.name,
       1,
       parseEGP(String(effectivePrice)) || 0,
     );
-    await addToCart({
+    buyNow({
       variantId: selectedVariant?.id ?? product.variantId ?? "",
       title: product.name,
       price: effectivePrice,
@@ -234,7 +233,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       size: selectedSize || "One Size",
       color: product.name,
     });
-    openCheckout();
   };
 
 
