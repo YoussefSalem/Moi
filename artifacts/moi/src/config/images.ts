@@ -316,6 +316,15 @@ export const IMAGES = {
     colorLabel: "",
     description: "Three slim stacking bangles in a polished finish — worn together or layered freely. Lightweight, adjustable, and crafted to accompany every look.",
     price: "890 EGP",
+    variants: [
+      {
+        id: "trio-bangles-one-size",
+        title: "One Size",
+        availableForSale: false,
+        price: "890 EGP",
+        selectedOptions: [{ name: "Size", value: "One Size" }],
+      },
+    ],
     outer: "Material: Brass with gold-tone plating",
     lining: "Set of 3 bangles",
     ref: "ACC/001/TRB",

@@ -27,7 +27,7 @@ function slugify(str: string): string {
 
 interface ProductCardProps {
   product: ProductConfig;
-  onLookView: (product: ProductConfig) => void;
+  onLookView?: (product: ProductConfig) => void;
   onNavigateToProduct?: (handle: string) => void;
 }
 
@@ -400,24 +400,26 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
               {/* Image tap / swipe area */}
               <div className="relative w-full mx-auto">
                 {/* See the Look — desktop, above image */}
-                <motion.button
-                  type="button"
-                  onClick={() => {
-                    onLookView(product);
-                    trackProductImageInteraction(product.variantId ?? "", "click");
-                  }}
-                  className="hidden md:flex mb-3 w-full items-center justify-center gap-2"
-                  whileTap={{ scale: 0.98 }}
-                  variants={itemVariants}
-                >
-                  <span
-                    className="text-[9px] tracking-[0.38em] uppercase font-medium"
-                    style={{ color: "#7a6e64", fontFamily: "'Montserrat', sans-serif" }}
+                {!onNavigateToProduct && (
+                  <motion.button
+                    type="button"
+                    onClick={() => {
+                      onLookView?.(product);
+                      trackProductImageInteraction(product.variantId ?? "", "click");
+                    }}
+                    className="hidden md:flex mb-3 w-full items-center justify-center gap-2"
+                    whileTap={{ scale: 0.98 }}
+                    variants={itemVariants}
                   >
-                    See the Look
-                  </span>
-                  <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
-                </motion.button>
+                    <span
+                      className="text-[9px] tracking-[0.38em] uppercase font-medium"
+                      style={{ color: "#7a6e64", fontFamily: "'Montserrat', sans-serif" }}
+                    >
+                      See the Look
+                    </span>
+                    <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
+                  </motion.button>
+                )}
 
                 {/* Desktop: image + side arrows in a row — Mobile: swipe only */}
                 <div className="hidden md:flex items-center justify-center gap-4">
@@ -481,8 +483,10 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                       setDraggingGallery(false);
                       if (shouldSwipe) {
                         jumpGallery(delta < 0 ? 1 : -1);
+                      } else if (onNavigateToProduct) {
+                        onNavigateToProduct(product.slug);
                       } else {
-                        onLookView(product);
+                        onLookView?.(product);
                       }
                     }}
                     onPointerLeave={() => {
@@ -557,24 +561,26 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 </div>
 
                 {/* Mobile: just image, no arrows */}
-                <motion.button
-                  type="button"
-                  onClick={() => {
-                    onLookView(product);
-                    trackProductImageInteraction(product.variantId ?? "", "click");
-                  }}
-                  className="md:hidden mb-3 w-full flex items-center justify-center gap-2"
-                  whileTap={{ scale: 0.98 }}
-                  variants={itemVariants}
-                >
-                  <span
-                    className="text-[9px] tracking-[0.38em] uppercase font-medium"
-                    style={{ color: "#7a6e64", fontFamily: "'Montserrat', sans-serif" }}
+                {!onNavigateToProduct && (
+                  <motion.button
+                    type="button"
+                    onClick={() => {
+                      onLookView?.(product);
+                      trackProductImageInteraction(product.variantId ?? "", "click");
+                    }}
+                    className="md:hidden mb-3 w-full flex items-center justify-center gap-2"
+                    whileTap={{ scale: 0.98 }}
+                    variants={itemVariants}
                   >
-                    See the Look
-                  </span>
-                  <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
-                </motion.button>
+                    <span
+                      className="text-[9px] tracking-[0.38em] uppercase font-medium"
+                      style={{ color: "#7a6e64", fontFamily: "'Montserrat', sans-serif" }}
+                    >
+                      See the Look
+                    </span>
+                    <span style={{ color: "rgba(120,110,100,0.5)", fontSize: 11 }}>→</span>
+                  </motion.button>
+                )}
                 <div
                   className="md:hidden relative w-full mx-auto"
                   onPointerDown={(e) => {
@@ -614,8 +620,10 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     setDraggingGallery(false);
                     if (shouldSwipe) {
                       jumpGallery(delta < 0 ? 1 : -1);
+                    } else if (onNavigateToProduct) {
+                      onNavigateToProduct(product.slug);
                     } else {
-                      onLookView(product);
+                      onLookView?.(product);
                     }
                   }}
                   style={{ touchAction: "pan-y", userSelect: "none", WebkitUserSelect: "none", cursor: "pointer" }}
