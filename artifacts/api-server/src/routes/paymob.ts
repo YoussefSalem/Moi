@@ -363,17 +363,25 @@ router.post("/paymob/webhook", async (req, res) => {
   // arrives as pending=true because Paymob tries to confirm via Shopify's
   // payment callback which returns "Order has no shopify_payment." — the card
   // IS charged. Call capture to force the transaction to Success in Paymob.
+  //
+  // IMPORTANT: If capture fails, the transaction is genuinely pre-3DS (the
+  // customer hasn't authenticated yet). Do NOT create the order in that case.
   if (txn.pending && !txn.success) {
     req.log.info(
       { txnId: txn.id, amountCents: txn.amount_cents },
-      "Paymob webhook: transaction is pending (Shopify-type integration) — attempting capture",
+      "Paymob webhook: transaction is pending — attempting capture to confirm 3DS completion",
     );
     const captureResult = await capturePaymobTransaction(txn.id, txn.amount_cents);
+    if (!captureResult.captured) {
+      req.log.warn(
+        { txnId: txn.id },
+        "Paymob webhook: capture failed — transaction is pre-3DS or genuinely failed, NOT creating order",
+      );
+      return;
+    }
     req.log.info(
-      { txnId: txn.id, captured: captureResult.captured },
-      captureResult.captured
-        ? "Paymob webhook: capture succeeded — transaction resolved to Success"
-        : "Paymob webhook: capture did not fully resolve — proceeding with order anyway",
+      { txnId: txn.id },
+      "Paymob webhook: capture succeeded — card was charged, proceeding with order",
     );
   }
 
@@ -546,21 +554,30 @@ router.post("/paymob/verify-payment", async (req, res) => {
   const paymobTxnId = String(txn.id);
 
   // If the transaction is pending (Shopify-type integration callback failed),
-  // attempt to capture it so it resolves to Success in Paymob dashboard.
+  // attempt to capture it. If capture fails the customer has not completed
+  // 3DS yet — do NOT create the order, return 402 so the frontend keeps
+  // polling until the real success webhook fires.
   if (txn.pending && !txn.success) {
     req.log.info(
       { transactionId: txn.id, amountCents: txn.amount_cents },
-      "verify-payment: transaction is pending — attempting capture",
+      "verify-payment: transaction is pending — attempting capture to confirm 3DS completion",
     );
     const captureResult = await capturePaymobTransaction(txn.id, txn.amount_cents);
-    if (captureResult.captured) {
-      req.log.info({ transactionId: txn.id }, "verify-payment: capture succeeded — transaction is now Success");
-    } else {
+    if (!captureResult.captured) {
       req.log.warn(
-        { transactionId: txn.id, captureResult },
-        "verify-payment: capture did not fully resolve — proceeding anyway",
+        { transactionId: txn.id },
+        "verify-payment: capture failed — 3DS not yet complete, returning 402",
       );
+      res.status(402).json({
+        success: false,
+        error: "Payment authentication is still in progress. Please complete the OTP step.",
+      });
+      return;
     }
+    req.log.info(
+      { transactionId: txn.id },
+      "verify-payment: capture succeeded — card charged, proceeding with order",
+    );
   }
 
   await updatePaymobIntent(intent.id, { status: "paid", paymobTxnId }).catch((err) =>

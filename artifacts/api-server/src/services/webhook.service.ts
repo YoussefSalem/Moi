@@ -95,18 +95,26 @@ export async function processPaymobWebhook(
   // When Paymob is configured as "Shopify" integration type, the transaction
   // arrives as pending=true because Paymob tries to confirm via Shopify's
   // payment callback which returns "Order has no shopify_payment." — the card
-  // IS charged. Call capture to force the transaction to Success in Paymob.
+  // IS charged. Call capture to force the transaction to Success.
+  //
+  // IMPORTANT: If capture fails, the webhook fired before 3DS completed.
+  // Do NOT create the Shopify order — the real success webhook will fire later.
   if (txn.pending && !txn.success) {
     logger.info(
       { txnId, amountCents: txn.amount_cents },
-      "webhook.service: transaction is pending (Shopify-type integration) — attempting capture",
+      "webhook.service: transaction is pending — attempting capture to confirm 3DS completion",
     );
     const captureResult = await captureTransaction(txn.id, txn.amount_cents);
+    if (!captureResult.captured) {
+      logger.warn(
+        { txnId },
+        "webhook.service: capture failed — pre-3DS event or genuine failure, NOT creating order",
+      );
+      return { processed: false, reason: "capture_failed_pre_3ds" };
+    }
     logger.info(
-      { txnId, captured: captureResult.captured },
-      captureResult.captured
-        ? "webhook.service: capture succeeded — transaction resolved to Success"
-        : "webhook.service: capture did not fully resolve — proceeding with order anyway",
+      { txnId },
+      "webhook.service: capture succeeded — card was charged, proceeding with order",
     );
   }
 

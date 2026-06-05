@@ -92,73 +92,50 @@ export function PixelCheckoutPanel({
     if (!mountedRef.current) return;
 
     if (loadCountRef.current === 1) {
-      // First load — the payment form is now visible
+      // First load — the payment form is now visible.
       setStatus("ready");
-    } else {
-      // Second load — Paymob redirected after payment attempt;
-      // show processing overlay and immediately call verify-payment.
-      // If no transaction found (Shopify-type integration callback failed),
-      // fall back to complete-pending-card so the order is still placed.
-      if (completedRef.current) return;
-      setStatus("processing");
-      void (async () => {
-        try {
-          const verifyRes = await fetch("/api/paymob/verify-payment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ checkoutToken }),
-          });
-          if (!mountedRef.current) return;
+      return;
+    }
 
-          if (verifyRes.ok) {
-            const data = await verifyRes.json() as {
-              success?: boolean; orderNumber?: number; total?: string; shopifyOrderId?: number;
-            };
-            if (data.success && data.orderNumber && data.total && data.shopifyOrderId) {
-              if (!completedRef.current) {
-                completedRef.current = true;
-                onSuccess({ orderNumber: data.orderNumber, total: data.total, shopifyOrderId: data.shopifyOrderId });
-              }
-              return;
-            }
-          }
+    // 2nd+ load — Paymob redirected inside the iframe. This could be:
+    //   a) The 3DS OTP page (customer still needs to enter OTP) — keep iframe visible
+    //   b) The final redirect after 3DS completes — payment done
+    //
+    // We silently check verify-payment WITHOUT hiding the iframe. If payment
+    // is confirmed we show the success overlay. If not (3DS in progress or
+    // genuinely failed), we stay in "ready" state so the customer can keep
+    // interacting with the iframe (e.g. complete the OTP).
+    if (completedRef.current) return;
 
-          // 402 = no Paymob transaction (Shopify callback failed before charging).
-          // Complete the order as Payment Pending so the customer still gets confirmed.
-          if (verifyRes.status === 402) {
-            const pendingRes = await fetch("/api/paymob/complete-pending-card", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ checkoutToken }),
-            });
-            if (!mountedRef.current) return;
-            if (pendingRes.ok) {
-              const data = await pendingRes.json() as {
-                success?: boolean; orderNumber?: number; total?: string; shopifyOrderId?: number;
-              };
-              if (data.success && data.orderNumber && data.total && data.shopifyOrderId) {
-                if (!completedRef.current) {
-                  completedRef.current = true;
-                  onSuccess({ orderNumber: data.orderNumber, total: data.total, shopifyOrderId: data.shopifyOrderId });
-                }
-                return;
-              }
-            }
-            // complete-pending-card also failed — show generic error
-            if (mountedRef.current) {
-              setStatus("error");
-              setErrorMsg("Something went wrong placing your order. Please contact support.");
-            }
+    void (async () => {
+      try {
+        const verifyRes = await fetch("/api/paymob/verify-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ checkoutToken }),
+        });
+        if (!mountedRef.current || completedRef.current) return;
+
+        if (verifyRes.ok) {
+          const data = await verifyRes.json() as {
+            success?: boolean; orderNumber?: number; total?: string; shopifyOrderId?: number;
+          };
+          if (data.success && data.orderNumber && data.total && data.shopifyOrderId) {
+            completedRef.current = true;
+            setStatus("processing");
+            onSuccess({ orderNumber: data.orderNumber, total: data.total, shopifyOrderId: data.shopifyOrderId });
             return;
           }
-
-          // Other error — fall back to polling overlay
-          if (mountedRef.current) setStatus("ready");
-        } catch {
-          if (mountedRef.current) setStatus("ready");
         }
-      })();
-    }
+
+        // 402 = payment not confirmed yet (3DS still in progress, or genuine failure).
+        // Stay in "ready" so the iframe remains visible for OTP entry.
+        // The background polling loop (every 5 s) will catch it once confirmed.
+        if (mountedRef.current) setStatus("ready");
+      } catch {
+        if (mountedRef.current) setStatus("ready");
+      }
+    })();
   }
 
   return (
