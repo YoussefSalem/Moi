@@ -87,15 +87,14 @@ export function PixelCheckoutPanel({
             if (isValid && status !== "processing") setStatus("ready");
           },
 
-          afterPaymentComplete: async (response: Record<string, unknown>) => {
+          afterPaymentComplete: async (_response: Record<string, unknown>) => {
             if (!mountedRef.current) return;
 
-            if (response && response.success === false) {
-              setStatus("declined");
-              setErrorMsg("Your payment was declined. Please check your card details or try a different card.");
-              return;
-            }
-
+            // Always call verify-payment regardless of response.success.
+            // Integration 5658307 (Shopify-type) fires afterPaymentComplete
+            // with success:false because its Shopify callback fails — even
+            // though the card WAS charged. verify-payment checks Paymob
+            // directly and decides whether a real transaction exists.
             setStatus("processing");
 
             try {
@@ -121,6 +120,10 @@ export function PixelCheckoutPanel({
                   total: data.total,
                   shopifyOrderId: data.shopifyOrderId,
                 });
+              } else if (res.status === 402) {
+                // Genuine decline — no transaction found at all
+                setStatus("declined");
+                setErrorMsg("Your payment was declined. Please check your card details or try a different card.");
               } else {
                 setStatus("error");
                 setErrorMsg(data.error ?? "Could not confirm your payment. Please contact support.");
