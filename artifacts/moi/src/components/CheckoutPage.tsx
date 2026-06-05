@@ -1684,23 +1684,12 @@ export function CheckoutPage() {
 
                 {/* Payment surface — card iframe */}
                 <div style={{ borderRadius: "16px", overflow: "hidden" }}>
-                  <div className="max-h-[715px] md:max-h-[670px]" style={{ width: "100%", overflow: "hidden", position: "relative" }}>
-                    <PaymobIframe
-                      url={paymobIframeUrl}
-                      intentId={orderResult?.intentId}
-                      onSuccess={handleIframeSuccess}
-                      onFail={handleIframeFail}
-                    />
-                    <div style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: 20,
-                      background: "linear-gradient(to bottom, rgba(250,248,245,0), rgba(250,248,245,1))",
-                      pointerEvents: "none",
-                    }} />
-                  </div>
+                  <PaymobIframe
+                    url={paymobIframeUrl}
+                    intentId={orderResult?.intentId}
+                    onSuccess={handleIframeSuccess}
+                    onFail={handleIframeFail}
+                  />
                 </div>
 
                 {/* Security badge */}
@@ -3242,7 +3231,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
         onLoad={handleIframeLoad}
         style={{
           width: "100%",
-          height: 760,
+          height: "min(680px, calc(100svh - 80px))",
           border: "none",
           display: "block",
           ...iframeStyle,
