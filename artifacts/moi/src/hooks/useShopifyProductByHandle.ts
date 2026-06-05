@@ -15,14 +15,17 @@ export function useShopifyProductByHandle(
   const [product, setProduct] = useState<ProductConfig>(fallback);
   const [loading, setLoading] = useState(SHOPIFY_CONFIGURED);
 
+  const fallbackSlug = fallback.slug;
+
   useEffect(() => {
+    setProduct(fallback);
     if (!SHOPIFY_CONFIGURED) return;
     let cancelled = false;
     setLoading(true);
 
     // Color-suffixed handles like "moi-wavvy-light-blue" don't exist in Shopify;
     // use the base product slug from the fallback config to fetch the real product.
-    const shopifyHandle = fallback.slug ?? handle;
+    const shopifyHandle = fallbackSlug ?? handle;
     getProductByHandle(shopifyHandle)
       .then((shopifyProduct) => {
         if (cancelled) return;
@@ -36,7 +39,7 @@ export function useShopifyProductByHandle(
       });
 
     return () => { cancelled = true; };
-  }, [handle]);
+  }, [handle, fallbackSlug]);
 
   return { product, loading };
 }
