@@ -186,6 +186,88 @@ export async function createPaymobPaymentKey(
 }
 
 /**
+ * Paymob Unified Checkout / Intentions API flow (v1).
+ * Uses Secret Key Bearer auth — works with live Paymob accounts that no longer
+ * support the legacy API Key 3-step flow.
+ *
+ * 1. POST /v1/intention/ → client_secret
+ * 2. Embed: accept.paymob.com/unifiedcheckout/?publicKey=…&clientSecret=…
+ */
+export async function createPaymobIntentionKey(
+  params: CreatePaymentKeyParams,
+): Promise<PaymobPaymentKeyResult> {
+  const config = getPaymobConfig();
+  if (!config.secretKey) throw new Error("Paymob secret key is not configured");
+  if (!config.publicKey) throw new Error("Paymob public key is not configured");
+  if (!config.integrationId) throw new Error("Paymob integration ID is not configured");
+
+  const integrationIdNum = parseInt(config.integrationId, 10);
+
+  const body: Record<string, unknown> = {
+    amount: params.amountCents,
+    currency: "EGP",
+    payment_methods: [integrationIdNum],
+    items: [
+      {
+        name: "Moi Order",
+        amount: params.amountCents,
+        description: "Fashion order",
+        quantity: 1,
+      },
+    ],
+    billing_data: {
+      first_name: params.customer.firstName || "NA",
+      last_name: params.customer.lastName || "NA",
+      email: params.customer.email || "NA",
+      phone_number: params.customer.phone || "NA",
+      street: params.customer.address || "NA",
+      city: params.customer.city || "Cairo",
+      state: "NA",
+      country: "EG",
+      postal_code: "NA",
+      apartment: "NA",
+      floor: "NA",
+      building: "NA",
+    },
+    customer: {
+      first_name: params.customer.firstName || "NA",
+      last_name: params.customer.lastName || "NA",
+      email: params.customer.email || "NA",
+    },
+    merchant_order_ext_ref: params.merchantOrderId,
+  };
+
+  if (params.callbackUrl) body["notification_url"] = params.callbackUrl;
+  if (params.redirectionUrl) body["redirection_url"] = params.redirectionUrl;
+
+  const intentRes = await fetch("https://accept.paymob.com/v1/intention/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${config.secretKey}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!intentRes.ok) {
+    const text = await intentRes.text();
+    logger.error({ status: intentRes.status, text }, "Paymob intention creation failed");
+    throw new Error(`Paymob intention error (${intentRes.status}): ${text}`);
+  }
+
+  const data = await intentRes.json() as { client_secret?: string };
+  const clientSecret = data.client_secret;
+  if (!clientSecret) throw new Error("Paymob intention returned no client_secret");
+
+  logger.info({ merchantOrderId: params.merchantOrderId }, "Paymob intention created");
+
+  const iframeUrl =
+    `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(config.publicKey)}&clientSecret=${encodeURIComponent(clientSecret)}`;
+
+  return { iframeUrl };
+}
+
+/**
  * Creates a Paymob legacy payment key specifically for the Apple Pay direct flow.
  * Uses the configured Apple Pay integration ID (falls back to card integration ID).
  * Returns the raw payment token used in POST /api/acceptance/payments/pay.
