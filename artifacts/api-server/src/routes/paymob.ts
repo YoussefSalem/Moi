@@ -620,6 +620,136 @@ router.post("/paymob/verify-payment", async (req, res) => {
 });
 
 /**
+ * POST /api/paymob/complete-pending-card
+ *
+ * Completes the Shopify draft order as "Payment Pending" without requiring a
+ * confirmed Paymob transaction. Used when the payment gateway callback fails
+ * (e.g. Shopify-type integration in test mode) but the customer submitted the
+ * form and the order should still be placed.
+ *
+ * Idempotent: returns cached result if already completed.
+ */
+router.post("/paymob/complete-pending-card", async (req, res) => {
+  const body = req.body as { checkoutToken?: unknown };
+  const checkoutToken =
+    typeof body.checkoutToken === "string" ? body.checkoutToken.trim() : "";
+
+  if (!checkoutToken) {
+    res.status(400).json({ error: "Missing checkoutToken" });
+    return;
+  }
+
+  let intent;
+  try {
+    intent = await findPaymobIntentByCheckoutToken(checkoutToken);
+  } catch (err) {
+    req.log.error({ err, checkoutToken }, "complete-pending-card: DB lookup failed");
+    res.status(500).json({ error: "Could not look up payment." });
+    return;
+  }
+
+  if (!intent) {
+    res.status(404).json({ error: "Payment session not found." });
+    return;
+  }
+
+  if (intent.shopifyConfirmedOrderId && intent.shopifyOrderNumber) {
+    req.log.info(
+      { intentId: intent.id, orderNumber: intent.shopifyOrderNumber },
+      "complete-pending-card: already completed — returning cached result",
+    );
+    res.json({
+      success: true,
+      orderNumber: intent.shopifyOrderNumber,
+      total: intent.total,
+      shopifyOrderId: intent.shopifyConfirmedOrderId,
+    });
+    return;
+  }
+
+  if (!intent.shopifyOrderId) {
+    req.log.error({ intentId: intent.id }, "complete-pending-card: no shopifyOrderId");
+    res.status(500).json({ error: "Order data missing. Please contact support." });
+    return;
+  }
+
+  const shopifyResult = await completeShopifyDraftOrder(intent.shopifyOrderId, { paymentPending: true }).catch((err) => {
+    req.log.error({ err, draftOrderId: intent.shopifyOrderId }, "complete-pending-card: Shopify completion failed");
+    return null;
+  });
+
+  if (!shopifyResult) {
+    res.status(500).json({ error: "Could not finalize order. Please contact support." });
+    return;
+  }
+
+  const { orderId: confirmedOrderId, orderNumber, total, lineItems, discountAmount, discountCode } = shopifyResult;
+
+  await updatePaymobIntent(intent.id, {
+    status: "pending",
+    shopifyConfirmedOrderId: confirmedOrderId,
+    shopifyOrderNumber: orderNumber,
+  }).catch((err) => req.log.error({ err }, "complete-pending-card: failed to update confirmed order IDs"));
+
+  req.log.info(
+    { confirmedOrderId, orderNumber, intentId: intent.id },
+    "complete-pending-card: Shopify order completed as payment_pending",
+  );
+
+  res.json({ success: true, orderNumber, total, shopifyOrderId: confirmedOrderId });
+
+  void addShopifyOrderNote(
+    confirmedOrderId,
+    `Payment Status: Pending (card submitted — awaiting capture)\nPayment Method: Card (Paymob iframe)\nCheckout Token: ${checkoutToken}`,
+  ).catch(() => {/* non-fatal */});
+
+  if (intent.discountCode && discountAmount) {
+    void recordDiscountCodeUse(intent.discountCode, confirmedOrderId, orderNumber, "card");
+  }
+
+  const customer = intent.customer as CustomerInfo;
+  const shippingPrice = parseEGP(total) > 2000 ? "0.00" : "50.00";
+
+  if (customer?.email) {
+    const { html, text } = buildOrderConfirmationEmail({
+      orderNumber,
+      customerName: customer.firstName ?? "",
+      total,
+      paymentMethod: "Credit / Debit Card",
+      address: customer.address ?? "",
+      governorate: customer.governorate ?? "",
+      city: customer.city ?? "",
+      lineItems,
+      discountAmount: discountAmount ? discountAmount.toFixed(2) : undefined,
+      discountCode: discountCode || undefined,
+      shippingAmount: shippingPrice,
+    });
+    void sendEmail({
+      to: customer.email,
+      subject: `Your Moi order #${orderNumber} is confirmed`,
+      html,
+      text,
+    })
+      .then(() =>
+        req.log.info({ email: customer.email, orderNumber }, "complete-pending-card: confirmation email sent"),
+      )
+      .catch((err) =>
+        req.log.warn({ err, email: customer.email }, "complete-pending-card: confirmation email failed"),
+      );
+  }
+
+  if (customer?.phone) {
+    const shippingNum = parseFloat(shippingPrice);
+    const shippingNote =
+      shippingNum === 0 ? "Complimentary shipping" : `Includes ${shippingNum.toFixed(0)} EGP shipping`;
+    void sendWhatsApp(
+      customer.phone,
+      `✅ Your Moi order #${orderNumber} is confirmed!\n\nTotal: ${total} EGP (${shippingNote})\nPayment: Card — pending confirmation\n\nYour order is now being prepared. You'll receive a tracking update when it ships. Thank you for shopping with Moi. 🖤`,
+    );
+  }
+});
+
+/**
  * GET /api/paymob/status?token=<checkoutToken>
  *
  * Returns the current payment status for a card checkout session.

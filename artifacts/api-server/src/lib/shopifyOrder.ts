@@ -378,7 +378,7 @@ async function markShopifyOrderPaid(
   } catch { /* non-fatal — order is already created */ }
 }
 
-export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{ orderId: number; orderNumber: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string } | null> {
+export async function completeShopifyDraftOrder(draftOrderId: number, options?: { paymentPending?: boolean }): Promise<{ orderId: number; orderNumber: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string } | null> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return null;
@@ -434,6 +434,36 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
   // That caused discounts to be lost (frontend showed discounted price, Shopify showed
   // full price). We already track usage_count ourselves via recordDiscountCodeUse(),
   // so draft completion is the correct path.
+
+  // When paymentPending=true: complete as "Payment Pending" (payment not yet captured).
+  // Used when the payment gateway callback fails but the order should still be placed.
+  if (options?.paymentPending) {
+    const pendingRes = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/draft_orders/${draftOrderId}/complete.json?send_receipt=true&send_fulfillment_receipt=false&payment_pending=true`,
+      { method: "PUT", headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken } },
+    );
+    if (!pendingRes.ok) {
+      const errText = await pendingRes.text().catch(() => "");
+      logger.error({ status: pendingRes.status, body: errText }, "completeShopifyDraftOrder (payment_pending) failed");
+      return null;
+    }
+    const pendingData = await pendingRes.json() as { draft_order: { order_id: number; total_price: string } };
+    const pOrderId = pendingData.draft_order.order_id;
+    const pTotal = pendingData.draft_order.total_price;
+    const pOrderRes = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/orders/${pOrderId}.json?fields=order_number,line_items`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+    let pOrderNumber = pOrderId;
+    let pLineItems: ShopifyLineItem[] = [];
+    if (pOrderRes.ok) {
+      const pOrderData = await pOrderRes.json() as { order: { order_number: number; line_items: unknown[] } };
+      pOrderNumber = pOrderData.order.order_number ?? pOrderId;
+      pLineItems = (pOrderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
+    }
+    return { orderId: pOrderId, orderNumber: pOrderNumber, total: pTotal, lineItems: pLineItems, discountAmount: draftDiscountAmount, discountCode: draftDiscountCode };
+  }
+
   // Complete without payment_pending=true so Shopify marks the order as "Paid".
   // Completing via Admin API does not require a Shopify payment gateway — the
   // financial_status is set to "paid" directly because payment was already

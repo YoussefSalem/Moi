@@ -96,20 +96,23 @@ export function PixelCheckoutPanel({
       setStatus("ready");
     } else {
       // Second load — Paymob redirected after payment attempt;
-      // show processing overlay and immediately call verify-payment
+      // show processing overlay and immediately call verify-payment.
+      // If no transaction found (Shopify-type integration callback failed),
+      // fall back to complete-pending-card so the order is still placed.
       if (completedRef.current) return;
       setStatus("processing");
       void (async () => {
         try {
-          const res = await fetch("/api/paymob/verify-payment", {
+          const verifyRes = await fetch("/api/paymob/verify-payment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ checkoutToken }),
           });
           if (!mountedRef.current) return;
-          if (res.ok) {
-            const data = await res.json() as {
-              success?: boolean; orderNumber?: number; total?: string; shopifyOrderId?: number; error?: string;
+
+          if (verifyRes.ok) {
+            const data = await verifyRes.json() as {
+              success?: boolean; orderNumber?: number; total?: string; shopifyOrderId?: number;
             };
             if (data.success && data.orderNumber && data.total && data.shopifyOrderId) {
               if (!completedRef.current) {
@@ -119,13 +122,38 @@ export function PixelCheckoutPanel({
               return;
             }
           }
-          if (res.status === 402) {
-            setStatus("declined");
-            setErrorMsg("Your payment was declined. Please check your card details or try a different card.");
-          } else {
-            // Not yet completed — fall back to polling overlay
-            setStatus("ready");
+
+          // 402 = no Paymob transaction (Shopify callback failed before charging).
+          // Complete the order as Payment Pending so the customer still gets confirmed.
+          if (verifyRes.status === 402) {
+            const pendingRes = await fetch("/api/paymob/complete-pending-card", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ checkoutToken }),
+            });
+            if (!mountedRef.current) return;
+            if (pendingRes.ok) {
+              const data = await pendingRes.json() as {
+                success?: boolean; orderNumber?: number; total?: string; shopifyOrderId?: number;
+              };
+              if (data.success && data.orderNumber && data.total && data.shopifyOrderId) {
+                if (!completedRef.current) {
+                  completedRef.current = true;
+                  onSuccess({ orderNumber: data.orderNumber, total: data.total, shopifyOrderId: data.shopifyOrderId });
+                }
+                return;
+              }
+            }
+            // complete-pending-card also failed — show generic error
+            if (mountedRef.current) {
+              setStatus("error");
+              setErrorMsg("Something went wrong placing your order. Please contact support.");
+            }
+            return;
           }
+
+          // Other error — fall back to polling overlay
+          if (mountedRef.current) setStatus("ready");
         } catch {
           if (mountedRef.current) setStatus("ready");
         }
