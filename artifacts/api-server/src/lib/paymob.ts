@@ -203,10 +203,17 @@ export async function createPaymobIntentionKey(
 
   const integrationIdNum = parseInt(config.integrationId, 10);
 
+  // Include all provisioned integrations so the Unified Checkout shows every available tab.
+  // The card-type integrations (CAGG/VPC) are included alongside wallet (UIG) so the
+  // checkout can surface whichever payment methods the account supports.
+  const allIntegrationIds = [5693941, 5693942, 5693943].filter(
+    (id) => !isNaN(integrationIdNum) ? true : id === integrationIdNum,
+  );
+
   const body: Record<string, unknown> = {
     amount: params.amountCents,
     currency: "EGP",
-    payment_methods: [integrationIdNum],
+    payment_methods: allIntegrationIds,
     items: [
       {
         name: "Moi Order",
@@ -267,6 +274,11 @@ export async function createPaymobIntentionKey(
       merchantOrderId: params.merchantOrderId,
       clientSecretLength: clientSecret.length,
       clientSecretPrefix: clientSecret.slice(0, 16),
+      paymentKeys: (data.payment_keys ?? []).map((k) => ({
+        integration: k.integration,
+        iframe_id: k.iframe_id,
+        hasKey: !!k.key,
+      })),
     },
     "Paymob intention created",
   );
