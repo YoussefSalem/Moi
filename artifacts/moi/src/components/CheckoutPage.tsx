@@ -2035,28 +2035,43 @@ export function CheckoutPage() {
                   Payment Method
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-8">
-                  {AVAILABLE_PAYMENT_METHODS.filter((m) => m !== "apple-pay").map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setPaymentMethod(m)}
-                      className="text-left transition-all"
-                      style={{
-                        padding: "14px 12px",
-                        border: paymentMethod === m ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.15)",
-                        backgroundColor: paymentMethod === m ? "rgba(30,24,20,0.03)" : "transparent",
-                      }}
-                    >
-                      <div style={{ fontSize: "17px", marginBottom: "5px" }}>
-                        {m === "cod" ? "🚚" : m === "instapay" ? "📱" : "💳"}
+                  {AVAILABLE_PAYMENT_METHODS.filter((m) => m !== "apple-pay").map((m) => {
+                    const isCard = m === "card";
+                    return (
+                      <div key={m} style={{ position: "relative" }}>
+                        <button
+                          onClick={isCard ? undefined : () => setPaymentMethod(m)}
+                          className="text-left transition-all w-full"
+                          disabled={isCard}
+                          style={{
+                            padding: "14px 12px",
+                            border: paymentMethod === m ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.15)",
+                            backgroundColor: paymentMethod === m ? "rgba(30,24,20,0.03)" : "transparent",
+                            opacity: isCard ? 0.38 : 1,
+                            cursor: isCard ? "default" : "pointer",
+                            pointerEvents: isCard ? "none" : "auto",
+                            filter: isCard ? "grayscale(1)" : "none",
+                            width: "100%",
+                          }}
+                        >
+                          <div style={{ fontSize: "17px", marginBottom: "5px" }}>
+                            {m === "cod" ? "🚚" : m === "instapay" ? "📱" : "💳"}
+                          </div>
+                          <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
+                            {m === "cod" ? "Cash on Delivery" : m === "instapay" ? "InstaPay" : "Credit / Debit Card"}
+                          </p>
+                          <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", marginTop: "3px", lineHeight: 1.4 }}>
+                            {m === "cod" ? "Pay on arrival" : m === "instapay" ? "Bank transfer" : "Visa · Mastercard"}
+                          </p>
+                        </button>
+                        {isCard && (
+                          <p style={{ marginTop: "5px", fontSize: "12px", fontFamily: "cursive", color: "rgba(30,24,20,0.55)", lineHeight: 1.3 }}>
+                            Soon isA 💗
+                          </p>
+                        )}
                       </div>
-                      <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
-                        {m === "cod" ? "Cash on Delivery" : m === "instapay" ? "InstaPay" : "Credit / Debit Card"}
-                      </p>
-                      <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", marginTop: "3px", lineHeight: 1.4 }}>
-                        {m === "cod" ? "Pay on arrival" : m === "instapay" ? "Bank transfer" : "Visa · Mastercard"}
-                      </p>
-                    </button>
-                  ))}
+                    );
+                  })}
                   {/* Apple Pay tile — opens Shopify checkout popup where Apple Pay is handled natively */}
                   {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
                     <button
