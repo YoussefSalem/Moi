@@ -1,0 +1,148 @@
+There are two separate things you need to solve:
+
+Stop asking Shopify for a field that doesn’t exist (shopify_payment)
+Define a clean sync pattern between Paymob and Shopify that doesn’t rely on that field
+I’ll walk through both.
+
+1. Stop referencing shopify_payment on the Shopify side
+
+In the Shopify Admin REST API 2024-04, the Order resource simply does not have any shopify_payment field. That’s why you’re seeing an error like:
+
+Order has no shopify_payment
+That error is not coming from Shopify itself; it’s coming from one of:
+
+Your backend model / mapping code (e.g., a serializer or ORM expecting an order.shopify_payment property), or
+A third‑party integration / library that was written with the wrong assumption.
+Concrete fix:
+
+Anywhere in your backend code that reads from or writes to shopify_payment on an order object, remove it or replace it with one of:
+Your Paymob transaction fields (from Paymob API)
+Or a Shopify metafield / note_attributes you manage yourself
+Because your actual Shopify calls are:
+HTTP
+Copy
+1
+2
+3
+POST /admin/api/2024-04/draft_orders.json
+PUT  /admin/api/2024-04/draft_orders/{id}/complete.json
+GET  /admin/api/2024-04/orders/{orderId}.json?fields=order_number,line_items
+…none of these endpoints even support a shopify_payment field in their payload or responses. The only way you get “Order has no shopify_payment” is if your code (or a library) is trying to access order.shopify_payment after parsing Shopify’s JSON.
+
+So the first fix is:
+
+Locate the code path where order.shopify_payment is accessed.
+Remove that property from your order model, DTO, or serializer.
+Replace it with something you control (e.g. a paymob_transaction_id field you populate yourself – see next section).
+2. Correct way to sync Paymob ↔ Shopify without shopify_payment
+
+Given your flow:
+
+Source of truth for payments: Paymob
+Source of truth for orders & fulfillment: Shopify
+You want a clean way to:
+
+Link a Shopify draft/order to a Paymob transaction.
+Update Shopify only after Paymob confirms payment.
+Avoid ever needing a nonexistent shopify_payment structure from Shopify.
+2.1. When you create the draft order
+
+When you call:
+HTTP
+Copy
+1
+POST /admin/api/2024-04/draft_orders.json
+include some Paymob linkage you control, e.g.:
+
+note_attributes (REST field on DraftOrder/Order)
+Or an order metafield after creation
+For example (simplified):
+JSON
+Copy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+{
+  "draft_order": {
+    "line_items": [ /* ... */ ],
+    "customer": { /* ... */ },
+    "shipping_address": { /* ... */ },
+    "note_attributes": [
+      {
+        "name": "paymob_intent_id",
+        "value": "pmob_intent_123456"
+      }
+    ]
+  }
+}
+Docs:
+
+DraftOrder – Admin REST 2024-04
+note_attributes on orders/draft orders
+At this point:
+
+Shopify knows nothing about the payment yet.
+Your system knows: “Draft gid_xxx corresponds to Paymob intent pmob_intent_123456”.
+2.2. Run 3DS + capture on Paymob
+
+You already do this entirely in Paymob. The important part is:
+
+When Paymob sends you a success callback / webhook indicating a captured transaction, you:
+Look up your internal record by Paymob transaction/intent ID
+From that record, get the Shopify draft order ID
+No interaction with shopify_payment is needed or wanted here.
+
+2.3. Complete the draft order only after Paymob confirms success
+
+When Paymob marks the transaction as captured/paid, you complete the draft:
+HTTP
+Copy
+1
+PUT /admin/api/2024-04/draft_orders/{draft_order_id}/complete.json
+Docs:
+Complete a draft order – Admin REST 2024-04
+
+This creates a real Shopify order. Your logic can treat this as equivalent to “paid”, because you only call it when Paymob has definitively confirmed payment.
+
+If you want, you can:
+
+Add a note or metafield on the resulting order with Paymob transaction ID:
+via PUT /admin/api/2024-04/orders/{id}.json
+and set note_attributes or an order metafield
+Now you have a two‑way link:
+
+From Paymob → Shopify order (via stored order ID)
+From Shopify order → Paymob transaction (via stored Paymob transaction ID or intent ID)
+2.4. Answering “is this order paid” & “which gateway” without shopify_payment
+
+“Is this order paid?”
+You look at Paymob:
+If Paymob transaction is captured (or whatever final success state) → paid.
+Optionally cross‑check Shopify financial_status if you ever need:
+GET /admin/api/2024-04/orders/{id}.json?fields=financial_status
+“Which gateway?”
+Your architecture: if it’s a card order, the gateway is always Paymob (by design).
+If anyone needs this in Shopify, you can store paymob in:
+a metafield, or
+note_attributes (e.g. { name: "payment_gateway", value: "paymob" })
+Again, no shopify_payment field is involved.
+
+3. Checklist: how to stop seeing the error and keep everything in sync
+
+Search your codebase for shopify_payment
+
+Any model, DTO, serializer, or mapping that references order.shopify_payment or similar → remove it.
+If a third‑party library expects this, you must:
+Turn that feature off, or
+Patch/override that part of the integration.
+Ensure your REST cal...

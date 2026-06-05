@@ -584,6 +584,8 @@ export async function createDraftOrder(params: {
   complete?: boolean;
   /** Marketing attribution to pass to Shopify for channel/sales source reporting */
   attribution?: OrderAttribution;
+  /** Paymob checkout token (merchant_order_id) — stamped onto note_attributes for a visible Paymob↔Shopify link */
+  paymobCheckoutToken?: string;
 }): Promise<{ orderNumber: number; orderId: number; total: string; lineItems: ShopifyLineItem[]; draftOrderId?: number; discountAmount?: number; discountCode?: string; shippingAmount?: string }> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
@@ -703,6 +705,10 @@ export async function createDraftOrder(params: {
       { name: "payment_method", value: params.paymentMethod },
       { name: "customer_phone", value: params.customer.phone },
       { name: "governorate", value: params.customer.governorate },
+      ...(params.paymobCheckoutToken ? [
+        { name: "paymob_checkout_token", value: params.paymobCheckoutToken },
+        { name: "payment_gateway", value: "paymob" },
+      ] : []),
       ...(params.customer.postalCode ? [{ name: "postal_code", value: params.customer.postalCode }] : []),
       ...(cartDiscountAmount > 0.01 ? [
         { name: "__discount_amount", value: cartDiscountAmount.toFixed(2) },

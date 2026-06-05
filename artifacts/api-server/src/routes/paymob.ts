@@ -138,6 +138,11 @@ router.post("/paymob/create-payment", async (req, res) => {
       ? body.cartId.trim()
       : undefined;
 
+  // Generate the checkout token up front so it can be stamped onto the draft
+  // order's note_attributes — this gives a visible two-way Paymob↔Shopify link
+  // that survives draft completion (Shopify carries note_attributes to the order).
+  const checkoutToken = crypto.randomUUID();
+
   req.log.info({ lineCount: lines.length, discountCode, cartId }, "Card payment — creating draft order");
 
   let draftResult: Awaited<ReturnType<typeof createDraftOrder>>;
@@ -151,6 +156,7 @@ router.post("/paymob/create-payment", async (req, res) => {
       extraTags: "card-pending",
       complete: false,
       attribution: extractAttribution(body),
+      paymobCheckoutToken: checkoutToken,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Order creation failed";
@@ -173,7 +179,6 @@ router.post("/paymob/create-payment", async (req, res) => {
     return;
   }
 
-  const checkoutToken = crypto.randomUUID();
   const siteUrl = getSiteUrl();
   const notificationUrl = `${siteUrl}/api/paymob/webhook`;
   const redirectionUrl = `${siteUrl}/payment/return`;
