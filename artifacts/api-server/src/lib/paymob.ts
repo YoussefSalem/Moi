@@ -641,11 +641,32 @@ export function verifyPaymobHmac(
     .update(concatenated)
     .digest("hex");
 
-  try {
-    return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(signature));
-  } catch {
-    return false;
+  const match = (() => {
+    try {
+      return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(signature));
+    } catch {
+      return false;
+    }
+  })();
+
+  if (!match) {
+    logger.warn(
+      {
+        receivedLength: signature.length,
+        computedLength: computed.length,
+        receivedPrefix: signature.slice(0, 8),
+        computedPrefix: computed.slice(0, 8),
+        fieldsUsed: HMAC_FIELDS.map((f) => {
+          const parts = f.split(".");
+          let val: unknown = txn;
+          for (const part of parts) val = (val as Record<string, unknown>)?.[part];
+          return `${f}=${val === undefined || val === null ? "(missing)" : String(val).slice(0, 20)}`;
+        }),
+      },
+      "HMAC mismatch detail",
+    );
   }
+  return match;
 }
 
 /**
