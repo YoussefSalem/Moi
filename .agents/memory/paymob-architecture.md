@@ -6,50 +6,53 @@ description: How card payments via Paymob are implemented — no Shopify payment
 ## Rule
 Shopify is inventory/order management only. Paymob is the payment source of truth for card payments.
 
-## Flow
-1. `POST /api/paymob/create-payment` — creates Shopify draft (reserves inventory, gets total) + Paymob intention, saves to `paymob_intents` DB table, returns `clientSecret` + `publicKey`
-2. Frontend redirects to: `https://accept.paymob.com/unifiedcheckout/?publicKey=<pk>&clientSecret=<cs>`
-3. `POST /api/paymob/webhook` — verifies HMAC-SHA512, completes the Shopify draft order (no payment transaction), sends email/WhatsApp
-4. `GET /api/paymob/status?token=<checkoutToken>` — frontend polls for completion
+## Flow (legacy iframe — current implementation)
+1. `POST /api/paymob/create-payment` — creates Shopify draft (reserves inventory, gets total) + calls legacy Paymob API (auth → order → payment_key), saves to `paymob_intents` DB table, returns `iframeUrl` + `checkoutToken`
+2. Frontend shows `<iframe src={iframeUrl}>` — Paymob hosted payment page inside iframe
+3. On iframe 2nd load (Paymob redirect after payment), frontend immediately calls verify-payment
+4. `POST /api/paymob/verify-payment` — queries Paymob transactions API by merchant_order_id, completes the Shopify draft order if transaction found, sends email/WhatsApp
+5. `POST /api/paymob/webhook` — verifies HMAC-SHA512, also completes draft order (runs in parallel with verify-payment; idempotent)
+6. Frontend also polls verify-payment every 5 s as a fallback
+
+## Why legacy iframe, NOT Pixel/Intentions v1
+The Pixel (Intentions v1 API) with integration 5658307 (Shopify-type) triggers an internal Paymob `shopify_callback` after every 3DS, which fails with "Order has no shopify_payment" and leaves transactions permanently Pending (never Success/Declined — money never settled). The legacy iframe API with the same integration does NOT trigger the Shopify callback — transactions resolve to Success/Declined as normal. Evidence: June 2026 successful transactions (e.g. 471988307) used legacy iframe (Origin: "Application"), failed ones used Pixel (Origin: "OTHER").
+
+## Paymob legacy API flow
+1. POST `/api/auth/tokens` with `PAYMOB_API_KEY` → `auth_token`
+2. POST `/api/ecommerce/orders` with `merchant_order_id = checkoutToken` (UUID) → `paymobOrderId`
+3. POST `/api/acceptance/payment_keys` with `order_id`, `integration_id`, `notification_url`, `redirection_url` → `paymentToken`
+4. Iframe URL: `https://accept.paymob.com/api/acceptance/iframes/{PAYMOB_IFRAME_ID}?payment_token={paymentToken}`
 
 ## Correlation
-- `checkoutToken` (UUID) is stored in DB and passed as `special_reference` to Paymob
-- Webhook identifies the DB record via `transaction.order.merchant_order_id` = `checkoutToken`
+- `checkoutToken` (UUID) = `merchant_order_id` on the Paymob order
+- Webhook & verify-payment both find the DB record via `transaction.order.merchant_order_id` = `checkoutToken`
 
 ## Key files
-- `artifacts/api-server/src/lib/paymob.ts` — Paymob Intentions API + HMAC verification
-- `artifacts/api-server/src/routes/paymob.ts` — the 3 endpoints above
+- `artifacts/api-server/src/lib/paymob.ts` — `createLegacyPaymobPayment` + HMAC verification
+- `artifacts/api-server/src/routes/paymob.ts` — create-payment, webhook, verify-payment, status endpoints
+- `artifacts/moi/src/components/PixelCheckoutPanel.tsx` — iframe checkout panel (kept name for import compatibility)
 - `lib/db/src/schema/paymobIntents.ts` — DB schema (paymob_intents table)
-- `lib/db/src/index.ts` — insertPaymobIntent, findPaymobIntentByCheckoutToken, updatePaymobIntent
 
 ## HMAC verification
 HMAC-SHA512 with `PAYMOB_HMAC_SECRET` as key. The message is 20 specific transaction fields concatenated in a fixed order. See `verifyPaymobHmac()` in `paymob.ts`.
 
-**VPC/MIGS integrations send the HMAC as a URL query parameter** (`?hmac=...` appended to the webhook URL), NOT inside the transaction JSON body. UIG integrations send it inside `txn.hmac`. The webhook handler reads from `req.query.hmac` first, falls back to `txn.hmac`.
-
-## Integration types — critical lessons
-- **Shopify-type integration** (e.g. 5658307): Paymob hardcodes an internal call to `shopify_callback` after every payment regardless of webhook URL or `notification_url`. This cannot be overridden. Do NOT use for custom checkout — the customer sees "Order has no shopify_payment." error.
-- **VPC/Non-Shopify integration** (e.g. 5693943 "MIGS-online", live): Webhook fires correctly to `transaction_processed_callback`. HMAC arrives as query param. Full pipeline confirmed working.
-- **UIG/online_new integration** (e.g. 5700496): Returns 404 from Intentions API — incompatible with Intentions API.
-- Only ONE test integration per gateway type/currency is allowed. To get a test VPC Non-Shopify integration, the Shopify-type 5658307 must be deleted first to free the slot.
+**VPC/MIGS integrations send the HMAC as a URL query parameter** (`?hmac=...` appended to the webhook URL), NOT inside the transaction JSON body. Webhook handler reads from `req.query.hmac` first, falls back to `txn.hmac`.
 
 ## Integration IDs (as of June 2026)
-- 5658307 — test, VPC, **Shopify-type** (causes shopify_callback) — must delete to free test slot
-- 5693943 — **live**, VPC, Non-Shopify ("MIGS-online") — works fully, real cards only
-- 5700496 — test, UIG/online_new, Non-Shopify — incompatible with Intentions API
+- 5658307 — test, VPC, Shopify-type — legacy iframe works; Pixel/Intentions does NOT work
+- PAYMOB_IFRAME_ID = 1041673 — legacy hosted payment page iframe
 
 ## Shopify draft completion for card
-`completeShopifyDraftOrder()` in `shopifyOrder.ts` is reused — it does NOT call any Shopify payment transaction API; it just completes the draft which makes the order appear in Shopify Admin for fulfillment.
+`completeShopifyDraftOrder()` does NOT call any Shopify payment transaction API. Completes the draft directly; no `payment_pending=true`. Fallback to `payment_pending=true` + manual transaction if 422.
 
 ## Critical constraints
-- Never call Shopify payment transaction APIs (no captureShopifyPayment, authorizeShopifyPayment, etc.)
-- `createDraftOrder` accepts paymentMethod: "card" — tags as `card,moi-checkout,card-pending`
-- `completeShopifyDraftOrder` does NOT return `shippingAmount` — approximate from total threshold
+- Never call Shopify payment transaction APIs
+- Never use Pixel/Intentions v1 API with integration 5658307 — transactions stay Pending forever
+- `createDraftOrder` tags as `card,moi-checkout,card-pending`
 
-**Why:** Shopify would throw "Order has no Shopify payment" errors if payment transaction APIs are used without a real Shopify payment provider. Paymob is the payment processor; Shopify only needs the order.
-
-## Critical bugs fixed (2026-06-05)
-
-- **Trailing slash bug**: `findSuccessfulPaymobTransaction` used `/api/acceptance/transactions/?merchant_order_id=...` — the trailing slash returns a 404 HTML page, not JSON. Correct endpoint has no trailing slash.
-- **Shopify-type integration pending state**: Integration 5658307 (Shopify-type) marks transactions as `pending=true, success=false` because its Shopify payment callback fails with "Order has no shopify_payment". The card IS charged. Both `findSuccessfulPaymobTransaction` and the webhook handler now accept `pending && !error_occured && amount_cents > 0` as a valid payment.
-- **Draft completion without payment_pending**: Removed `payment_pending=true` from `completeShopifyDraftOrder` — completing without it marks Shopify order as "Paid" directly. Fallback to `payment_pending=true` + manual transaction if 422.
+## Env vars required
+- PAYMOB_API_KEY (legacy base64 JWT)
+- PAYMOB_INTEGRATION_ID (5658307 for test)
+- PAYMOB_IFRAME_ID (1041673)
+- PAYMOB_HMAC_SECRET
+- PAYMOB_SECRET_KEY / PAYMOB_PUBLIC_KEY (can remain set but unused for payment creation now)

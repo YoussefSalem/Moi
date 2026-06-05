@@ -271,7 +271,7 @@ export function CheckoutPage() {
   const [breakdownSnapshot, setBreakdownSnapshot] = useState<{ subtotal: number; savings: number; shippingCost: number; freeShipping: boolean } | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
-  const [pixelData, setPixelData] = useState<{ publicKey: string; clientSecret: string; checkoutToken: string } | null>(null);
+  const [pixelData, setPixelData] = useState<{ iframeUrl: string; checkoutToken: string } | null>(null);
   const isApplyingRef = useRef(false);
   const instapayTrackedRef = useRef(false);
   const codTrackedRef = useRef(false);
@@ -470,20 +470,18 @@ export function CheckoutPage() {
           }),
         });
         const data = await res.json() as {
-          clientSecret?: string;
-          publicKey?: string;
+          iframeUrl?: string;
           checkoutToken?: string;
           error?: string;
         };
-        if (!res.ok || !data.clientSecret || !data.publicKey || !data.checkoutToken) {
+        if (!res.ok || !data.iframeUrl || !data.checkoutToken) {
           setStep("form");
           setSubmitError(data.error ?? "Could not initiate payment. Please try again.");
           submittingRef.current = false;
           return;
         }
         setPixelData({
-          publicKey: data.publicKey,
-          clientSecret: data.clientSecret,
+          iframeUrl: data.iframeUrl,
           checkoutToken: data.checkoutToken,
         });
         setBreakdownSnapshot({ subtotal: subtotalAmount, savings, shippingCost, freeShipping });
@@ -998,8 +996,7 @@ export function CheckoutPage() {
                 {step === "card-pixel" && pixelData && (
                   <motion.div key="card-pixel" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.35 }} className="relative z-10">
                     <PixelCheckoutPanel
-                      publicKey={pixelData.publicKey}
-                      clientSecret={pixelData.clientSecret}
+                      iframeUrl={pixelData.iframeUrl}
                       checkoutToken={pixelData.checkoutToken}
                       onSuccess={(result) => {
                         clearCart();

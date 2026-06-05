@@ -1,9 +1,8 @@
 import { Router, type IRouter } from "express";
 import crypto from "crypto";
 import {
-  createPaymobIntention,
+  createLegacyPaymobPayment,
   verifyPaymobHmac,
-  getPaymobConfig,
   findSuccessfulPaymobTransaction,
   type PaymobTransaction,
 } from "../lib/paymob";
@@ -185,12 +184,13 @@ router.post("/paymob/create-payment", async (req, res) => {
     quantity: l.quantity,
   }));
 
-  let paymobIntentionId: string;
-  let clientSecret: string;
+  let iframeUrl: string;
+  let paymobOrderId: number;
   try {
-    const result = await createPaymobIntention({
+    const result = await createLegacyPaymobPayment({
       amountCents,
       currency: "EGP",
+      merchantOrderId: checkoutToken,
       billingData: {
         first_name: customer.firstName,
         last_name: customer.lastName,
@@ -202,15 +202,19 @@ router.post("/paymob/create-payment", async (req, res) => {
         country: "EG",
         postal_code: customer.postalCode ?? "NA",
       },
-      items,
-      specialReference: checkoutToken,
+      items: items.map((it) => ({
+        name: it.name,
+        amount_cents: amountCents,
+        description: it.description,
+        quantity: it.quantity,
+      })),
       notificationUrl,
       redirectionUrl,
     });
-    paymobIntentionId = result.intentionId;
-    clientSecret = result.clientSecret;
+    iframeUrl = result.iframeUrl;
+    paymobOrderId = result.paymobOrderId;
   } catch (err) {
-    req.log.error({ err }, "Card payment — Paymob intention creation failed");
+    req.log.error({ err }, "Card payment — legacy Paymob payment creation failed");
     res.status(502).json({ error: "Payment provider unavailable. Please try again." });
     return;
   }
@@ -218,7 +222,7 @@ router.post("/paymob/create-payment", async (req, res) => {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await insertPaymobIntent({
-      intentId: paymobIntentionId,
+      intentId: String(paymobOrderId),
       lines: lines as unknown as any,
       customer: customer as unknown as any,
       cartId: cartId ?? null,
@@ -231,21 +235,18 @@ router.post("/paymob/create-payment", async (req, res) => {
       checkoutToken,
     } as any);
   } catch (err) {
-    req.log.error({ err, paymobIntentionId }, "Card payment — DB insert failed");
+    req.log.error({ err, paymobOrderId }, "Card payment — DB insert failed");
   }
 
-  const { publicKey } = getPaymobConfig();
-
   req.log.info(
-    { draftOrderId, paymobIntentionId, checkoutToken, amountCents },
-    "Card payment — intention created successfully",
+    { draftOrderId, paymobOrderId, checkoutToken, amountCents },
+    "Card payment — legacy payment created successfully",
   );
 
   res.status(200).json({
     success: true,
     checkoutToken,
-    clientSecret,
-    publicKey,
+    iframeUrl,
     total,
     amountCents,
     draftOrderId,

@@ -208,6 +208,100 @@ export function getPaymobCheckoutUrl(clientSecret: string): string {
   return `${PAYMOB_BASE}/unifiedcheckout/?publicKey=${encodeURIComponent(publicKey)}&clientSecret=${encodeURIComponent(clientSecret)}`;
 }
 
+export interface LegacyPaymobPaymentResult {
+  iframeUrl: string;
+  paymobOrderId: number;
+}
+
+/**
+ * Creates a Paymob payment using the legacy API (auth → order → payment_key → iframe).
+ *
+ * This flow produces transactions with Origin "Application" that resolve to
+ * Success or Declined after 3DS — unlike the Intentions v1 / Pixel flow which
+ * uses a Shopify-type integration and leaves transactions permanently Pending.
+ */
+export async function createLegacyPaymobPayment(params: {
+  amountCents: number;
+  currency: string;
+  merchantOrderId: string;
+  billingData: PaymobBillingData;
+  items: { name: string; amount_cents: number; description: string; quantity: number }[];
+  notificationUrl: string;
+  redirectionUrl: string;
+}): Promise<LegacyPaymobPaymentResult> {
+  const iframeId = process.env.PAYMOB_IFRAME_ID;
+  if (!iframeId) throw new Error("PAYMOB_IFRAME_ID not configured");
+
+  const { integrationId } = getPaymobConfig();
+  if (!integrationId) throw new Error("PAYMOB_INTEGRATION_ID not configured");
+
+  logger.info(
+    { merchantOrderId: params.merchantOrderId, amountCents: params.amountCents },
+    "Creating legacy Paymob payment",
+  );
+
+  // Step 1 — auth token
+  const authToken = await getPaymobAuthToken();
+
+  // Step 2 — create Paymob order (merchant_order_id = our checkoutToken)
+  const orderRes = await fetch(`${PAYMOB_BASE}/api/ecommerce/orders`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      auth_token: authToken,
+      delivery_needed: false,
+      merchant_order_id: params.merchantOrderId,
+      amount_cents: params.amountCents,
+      currency: params.currency,
+      items: params.items,
+    }),
+  });
+
+  if (!orderRes.ok) {
+    const text = await orderRes.text().catch(() => "");
+    throw new Error(`Paymob order creation failed (${orderRes.status}): ${text}`);
+  }
+
+  const orderData = await orderRes.json() as { id?: number };
+  if (!orderData.id) throw new Error("Paymob order response missing id");
+  const paymobOrderId = orderData.id;
+
+  // Step 3 — get payment key
+  const keyRes = await fetch(`${PAYMOB_BASE}/api/acceptance/payment_keys`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      auth_token: authToken,
+      amount_cents: params.amountCents,
+      expiration: 3600,
+      order_id: paymobOrderId,
+      billing_data: params.billingData,
+      currency: params.currency,
+      integration_id: parseInt(integrationId, 10),
+      lock_order_when_paid: false,
+      notification_url: params.notificationUrl,
+      redirection_url: params.redirectionUrl,
+    }),
+  });
+
+  if (!keyRes.ok) {
+    const text = await keyRes.text().catch(() => "");
+    throw new Error(`Paymob payment key creation failed (${keyRes.status}): ${text}`);
+  }
+
+  const keyData = await keyRes.json() as { token?: string };
+  if (!keyData.token) throw new Error("Paymob payment key response missing token");
+
+  const iframeUrl = `${PAYMOB_BASE}/api/acceptance/iframes/${iframeId}?payment_token=${keyData.token}`;
+
+  logger.info(
+    { paymobOrderId, merchantOrderId: params.merchantOrderId },
+    "Legacy Paymob payment created",
+  );
+
+  return { iframeUrl, paymobOrderId };
+}
+
 /**
  * Obtains a short-lived Paymob auth token using the legacy API key.
  * Required for transaction inquiry and other non-Intentions endpoints.
