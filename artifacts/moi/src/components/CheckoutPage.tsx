@@ -179,7 +179,7 @@ interface OrderBreakdown {
   total?: number;
 }
 
-const SHIPPING_EGP = import.meta.env.PROD ? 50 : 0;
+const SHIPPING_EGP = 50;
 const GOVERNORATES = [
   "Cairo","Giza","Alexandria","Dakahlia","Red Sea","Beheira","Fayoum","Gharbia",
   "Ismailia","Menofia","Minya","Qaliubiya","New Valley","Suez","Aswan","Assiut",
