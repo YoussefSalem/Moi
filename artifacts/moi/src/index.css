@@ -3,9 +3,13 @@
 
 /* ── Global rendering performance ───────────────────────────── */
 
-/* Let the browser use the fastest scroll path (no scroll-linked effects) */
+/* Keep native scroll on the compositor thread at the device's full
+   refresh rate (60 / 90 / 120 / 144 Hz). scroll-behavior: smooth
+   replaces the compositor path with a JS-driven animation that caps
+   at 60 Hz — so we leave it as 'auto' and handle any deliberate
+   smooth-scrolls with individual element overrides. */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 /* Promote the root stacking context onto the GPU immediately */
@@ -14,6 +18,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   padding-top: var(--header-offset, 0);
+  /* Prevent rubber-band / pull-to-refresh from fighting the compositor
+     at the top and bottom of the page — keeps scroll latency near zero */
+  overscroll-behavior-y: none;
 }
 
 /* Mobile touch: remove blue flash, eliminate 300ms tap delay globally */
@@ -52,9 +59,13 @@ header[class*="fixed"] {
   isolation: isolate;
 }
 
-/* Animated motion elements: pre-promote to compositor layer */
+/* Animated motion elements: pre-promote to compositor layer.
+   translateZ(0) forces GPU rasterisation; will-change tells the browser
+   to allocate the layer BEFORE the first scroll frame so there is no
+   mid-scroll promotion flash at any refresh rate. */
 [data-framer-motion] {
   transform: translateZ(0);
+  will-change: transform;
 }
 
 /* Sections containing heavy content: contain layout recalculations */
