@@ -25,6 +25,9 @@ export interface PaymobBillingData {
   phone_number: string;
   email: string;
   street: string;
+  building: string;
+  floor: string;
+  apartment: string;
   city: string;
   state: string;
   country: string;
