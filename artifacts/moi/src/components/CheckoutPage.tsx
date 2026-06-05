@@ -2042,24 +2042,33 @@ export function CheckoutPage() {
                 <p style={{ fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "16px" }}>
                   Payment Method
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-8">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-8" style={{ alignItems: "start" }}>
                   {AVAILABLE_PAYMENT_METHODS.filter((m) => m !== "apple-pay").map((m) => {
                     const isCard = m === "card";
+                    const selected = paymentMethod === m;
                     return (
                       <div key={m} style={{ position: "relative" }}>
                         <button
                           onClick={isCard ? undefined : () => setPaymentMethod(m)}
-                          className="text-left transition-all w-full"
+                          className="text-left w-full"
                           disabled={isCard}
                           style={{
                             padding: "14px 12px",
-                            border: paymentMethod === m ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.15)",
-                            backgroundColor: paymentMethod === m ? "rgba(30,24,20,0.03)" : "transparent",
+                            height: "96px",
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "center",
+                            border: selected ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.15)",
+                            backgroundColor: selected ? "rgba(30,24,20,0.04)" : "transparent",
                             opacity: isCard ? 0.38 : 1,
                             cursor: isCard ? "default" : "pointer",
                             pointerEvents: isCard ? "none" : "auto",
                             filter: isCard ? "grayscale(1)" : "none",
                             width: "100%",
+                            transform: selected ? "scale(1.05)" : "scale(1)",
+                            boxShadow: selected ? "0 2px 12px rgba(30,24,20,0.10)" : "none",
+                            transition: "transform 0.18s ease, box-shadow 0.18s ease, border 0.12s ease, background-color 0.12s ease",
+                            zIndex: selected ? 1 : 0,
                           }}
                         >
                           <div style={{ fontSize: "17px", marginBottom: "5px" }}>
@@ -2085,14 +2094,19 @@ export function CheckoutPage() {
                     <button
                       type="button"
                       onClick={triggerApplePayDirectInit}
-                      className="text-left transition-all"
+                      className="text-left"
                       style={{
                         padding: "14px 12px",
-                        border: paymentMethod === "apple-pay" ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.15)",
-                        backgroundColor: paymentMethod === "apple-pay" ? "rgba(30,24,20,0.03)" : "transparent",
+                        height: "96px",
                         display: "flex",
                         flexDirection: "column",
-                        gap: 0,
+                        justifyContent: "center",
+                        border: paymentMethod === "apple-pay" ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.15)",
+                        backgroundColor: paymentMethod === "apple-pay" ? "rgba(30,24,20,0.04)" : "transparent",
+                        transform: paymentMethod === "apple-pay" ? "scale(1.05)" : "scale(1)",
+                        boxShadow: paymentMethod === "apple-pay" ? "0 2px 12px rgba(30,24,20,0.10)" : "none",
+                        transition: "transform 0.18s ease, box-shadow 0.18s ease, border 0.12s ease, background-color 0.12s ease",
+                        zIndex: paymentMethod === "apple-pay" ? 1 : 0,
                       }}
                     >
                       <div style={{ marginBottom: "5px" }}>
