@@ -740,8 +740,12 @@ export function CheckoutPage() {
       submittingRef.current = false;
       return;
     }
-    if (!/^\d{7,15}$/.test(form.phone.replace(/\D/g, ""))) {
-      setSubmitError("Please enter a valid phone number.");
+    const phoneDigits = form.phone.replace(/\D/g, "");
+    const isValidPhone =
+      (phoneDigits.length === 11 && phoneDigits.startsWith("01")) ||
+      (phoneDigits.length === 12 && phoneDigits.startsWith("201"));
+    if (!isValidPhone) {
+      setSubmitError("Please enter a valid Egyptian phone number (e.g. 01200520083 or +20 1200520083).");
       submittingRef.current = false;
       return;
     }
