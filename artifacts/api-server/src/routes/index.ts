@@ -18,6 +18,8 @@ import abandonedCartsRouter from "./abandonedCarts";
 import metaCapiRouter from "./metaCapi";
 import anthropicRouter from "./anthropic/index";
 import paymobRouter from "./paymob";
+import checkoutRoute from "./checkout.route";
+import paymobWebhookRoute from "./paymobWebhook.route";
 
 const router: IRouter = Router();
 
@@ -40,5 +42,7 @@ router.use(abandonedCartsRouter);
 router.use(metaCapiRouter);
 router.use(anthropicRouter);
 router.use(paymobRouter);
+router.use(checkoutRoute);
+router.use(paymobWebhookRoute);
 
 export default router;
