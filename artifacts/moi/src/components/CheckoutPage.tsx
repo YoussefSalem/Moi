@@ -2053,8 +2053,8 @@ export function CheckoutPage() {
                           className="text-left w-full"
                           disabled={isCard}
                           style={{
-                            padding: "14px 12px",
-                            height: "96px",
+                            padding: "18px 14px",
+                            height: "112px",
                             display: "flex",
                             flexDirection: "column",
                             justifyContent: "center",
@@ -2082,7 +2082,7 @@ export function CheckoutPage() {
                           </p>
                         </button>
                         {isCard && (
-                          <p style={{ marginTop: "5px", fontSize: "12px", fontFamily: "cursive", color: "rgba(30,24,20,0.55)", lineHeight: 1.3 }}>
+                          <p style={{ marginTop: "6px", fontSize: "12px", fontFamily: "cursive", color: "rgba(30,24,20,0.55)", lineHeight: 1.3, textAlign: "center" }}>
                             Soon isA 💗
                           </p>
                         )}
@@ -2096,8 +2096,8 @@ export function CheckoutPage() {
                       onClick={triggerApplePayDirectInit}
                       className="text-left"
                       style={{
-                        padding: "14px 12px",
-                        height: "96px",
+                        padding: "18px 14px",
+                        height: "112px",
                         display: "flex",
                         flexDirection: "column",
                         justifyContent: "center",
