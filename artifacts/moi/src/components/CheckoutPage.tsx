@@ -194,12 +194,14 @@ const inputStyle: React.CSSProperties = {
   border: "none",
   borderBottom: "1px solid rgba(30,24,20,0.22)",
   outline: "none",
-  padding: "10px 0",
-  fontSize: "15px",
+  padding: "14px 0",
+  fontSize: "16px",
   color: "#1e1814",
   fontWeight: 500,
   fontFamily: "'Montserrat', sans-serif",
   letterSpacing: "0.025em",
+  WebkitAppearance: "none",
+  borderRadius: 0,
 };
 
 
@@ -2054,7 +2056,7 @@ export function CheckoutPage() {
                 </p>
 
                 <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-5">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
                       <label style={labelStyle}>First Name</label>
                       <input type="text" name="given-name" value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} style={inputStyle} autoComplete="given-name" className="checkout-input" />
@@ -2067,7 +2069,7 @@ export function CheckoutPage() {
 
                   <div className="flex flex-col gap-1">
                     <label style={labelStyle}>Phone Number</label>
-                    <input type="tel" name="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} style={inputStyle} autoComplete="tel" placeholder="01X XXXX XXXX" className="checkout-input" />
+                    <input type="tel" name="tel" inputMode="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} style={inputStyle} autoComplete="tel" placeholder="01X XXXX XXXX" className="checkout-input" />
                   </div>
 
                   <div className="flex flex-col gap-1">
@@ -2094,7 +2096,7 @@ export function CheckoutPage() {
                     <input type="text" name="street-address" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} style={inputStyle} autoComplete="street-address" className="checkout-input" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 items-end">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                     <div className="flex flex-col gap-1 relative">
                       <label style={labelStyle}>Governorate</label>
                       <button type="button" onClick={() => setGovernorateOpen((o) => !o)} style={governorateInputStyle} className="checkout-input">
@@ -2151,16 +2153,33 @@ export function CheckoutPage() {
                     </div>
                   )}
 
+                  {/* Mobile-sticky Place Order CTA */}
+                  <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 px-5 pb-6 pt-3" style={{ backgroundColor: "#efe6da", borderTop: "1px solid rgba(30,24,20,0.10)" }}>
+                    <button
+                      type="submit"
+                      className="w-full py-4 transition-opacity active:opacity-70"
+                      style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
+                    >
+                      Place Order
+                    </button>
+                    <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "8px", letterSpacing: "0.12em" }}>
+                      By placing your order you agree to our terms of service.
+                    </p>
+                  </div>
+
+                  {/* Desktop Place Order button (non-sticky) */}
                   <button
                     type="submit"
-                    className="w-full mt-8 py-4 transition-opacity hover:opacity-80"
+                    className="hidden md:block w-full mt-8 py-4 transition-opacity hover:opacity-80"
                     style={{ backgroundColor: "#1e1814", color: "#fff", fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
                   >
                     Place Order
                   </button>
+                  {/* spacer so content isn't hidden behind the sticky bar on mobile */}
+                  <div className="md:hidden h-28" />
                 </form>
 
-                <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.58)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "14px", letterSpacing: "0.18em" }}>
+                <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.58)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "14px", letterSpacing: "0.18em" }} className="hidden md:block">
                   By placing your order you agree to our terms of service.
                 </p>
                 </>)}
