@@ -112,6 +112,9 @@ function AppContent() {
       v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === colorName)
     );
     const variantId = variant?.id ?? product.variantId ?? handle;
+    const sizeValue = variant?.selectedOptions.find(
+      (o) => o.name.toLowerCase() === "size" || o.name.toLowerCase() === "titre"
+    )?.value ?? "One Size";
     cart.addToCart({
       variantId,
       title: product.name,
@@ -120,7 +123,7 @@ function AppContent() {
       compareAtPrice: variant?.compareAtPrice,
       currencyCode: "EGP",
       image,
-      size: "One Size",
+      size: sizeValue,
       color: colorName,
     });
   }

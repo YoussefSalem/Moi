@@ -77,7 +77,14 @@ router.post("/orders/paymob-init", async (req, res) => {
 
   req.log.info({ lineCount: lines.length }, "Paymob init — computing total from Storefront cart");
 
-  const cart = await fetchStorefrontCart(cartId);
+  let cart: Awaited<ReturnType<typeof fetchStorefrontCart>>;
+  try {
+    cart = await fetchStorefrontCart(cartId);
+  } catch (err) {
+    req.log.error({ err, cartId }, "Paymob init — fetchStorefrontCart threw");
+    res.status(400).json({ error: "Could not load your cart. Please try again." });
+    return;
+  }
   if (!cart) {
     res.status(400).json({ error: "Could not load your cart. Please try again." });
     return;

@@ -430,25 +430,29 @@ router.post("/admin/card-orders/:id/approve", async (req, res) => {
   const intent = rows[0];
   if (!intent) { res.status(404).json({ error: "Order not found" }); return; }
   if (intent.status !== "completed") { res.status(409).json({ error: "Order not in completed state" }); return; }
-  if (intent.adminApproved) {
+  if (intent.adminApproved && intent.shopifyConfirmedOrderId) {
+    // Already fully approved — idempotent success
     res.status(200).json({ ok: true, orderId: intent.shopifyConfirmedOrderId, orderNumber: intent.shopifyConfirmedOrderId, alreadyApproved: true });
     return;
   }
+  // If adminApproved=true but shopifyConfirmedOrderId=null, Shopify failed last time — allow retry below.
   if (!intent.shopifyOrderId) { res.status(409).json({ error: "No Shopify order linked — payment may still be processing" }); return; }
 
-  // Atomic guard: flip adminApproved BEFORE calling Shopify to prevent two concurrent
-  // admin requests from both completing the same draft order.
-  const guardRows = await db
-    .update(paymobIntents)
-    .set({ adminApproved: true, adminApprovedAt: new Date() })
-    .where(and(eq(paymobIntents.id, id), eq(paymobIntents.adminApproved, false)))
-    .returning({ id: paymobIntents.id });
+  if (!intent.adminApproved) {
+    // Atomic guard: flip adminApproved BEFORE calling Shopify to prevent two concurrent
+    // admin requests from both completing the same draft order.
+    const guardRows = await db
+      .update(paymobIntents)
+      .set({ adminApproved: true, adminApprovedAt: new Date() })
+      .where(and(eq(paymobIntents.id, id), eq(paymobIntents.adminApproved, false)))
+      .returning({ id: paymobIntents.id });
 
-  if (guardRows.length === 0) {
-    // Another request won the race — re-fetch and return current state
-    const latest = await db.select({ shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId }).from(paymobIntents).where(eq(paymobIntents.id, id)).limit(1);
-    res.status(200).json({ ok: true, orderId: latest[0]?.shopifyConfirmedOrderId, orderNumber: latest[0]?.shopifyConfirmedOrderId, alreadyApproved: true });
-    return;
+    if (guardRows.length === 0) {
+      // Another request won the race — re-fetch and return current state
+      const latest = await db.select({ shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId }).from(paymobIntents).where(eq(paymobIntents.id, id)).limit(1);
+      res.status(200).json({ ok: true, orderId: latest[0]?.shopifyConfirmedOrderId, orderNumber: latest[0]?.shopifyConfirmedOrderId, alreadyApproved: true });
+      return;
+    }
   }
 
   req.log.info({ id, orderId: intent.shopifyOrderId }, "card-orders approve: completing Shopify order");

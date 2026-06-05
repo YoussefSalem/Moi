@@ -164,53 +164,55 @@ router.post("/restock/check-and-notify", async (req, res) => {
     "X-Shopify-Storefront-Access-Token": storefrontToken,
   };
 
-  for (const variantId of uniqueVariantIds) {
-    try {
-      const gqlRes = await fetch(endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          query: `
-            query CheckVariant($id: ID!) {
-              node(id: $id) {
-                ... on ProductVariant {
-                  id
-                  availableForSale
-                }
+  try {
+    const gqlRes = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        query: `
+          query CheckVariants($ids: [ID!]!) {
+            nodes(ids: $ids) {
+              ... on ProductVariant {
+                id
+                availableForSale
               }
             }
-          `,
-          variables: { id: variantId },
-        }),
-      });
-      const json = await gqlRes.json() as {
-        data?: { node?: { id: string; availableForSale: boolean } };
-      };
-      if (json.data?.node?.availableForSale) {
-        availableVariantIds.add(variantId);
+          }
+        `,
+        variables: { ids: uniqueVariantIds },
+      }),
+    });
+    const json = await gqlRes.json() as {
+      data?: { nodes?: ({ id: string; availableForSale: boolean } | null)[] };
+    };
+    for (const node of json.data?.nodes ?? []) {
+      if (node?.availableForSale) {
+        availableVariantIds.add(node.id);
       }
-    } catch (err) {
-      req.log.warn({ err, variantId }, "Failed to check variant availability");
     }
+  } catch (err) {
+    req.log.warn({ err }, "Failed to batch-check variant availability");
   }
 
   let notified = 0;
   const now = new Date();
 
-  for (const sub of pending) {
-    if (!availableVariantIds.has(sub.variantId)) continue;
-    try {
-      await sendRestockEmail(sub.email, sub.productTitle, sub.variantTitle);
-      await db
-        .update(restockNotifications)
-        .set({ notifiedAt: now })
-        .where(eq(restockNotifications.id, sub.id));
-      notified++;
-      req.log.info({ id: sub.id, email: sub.email }, "Restock email sent");
-    } catch (err) {
-      req.log.error({ err, id: sub.id }, "Failed to send restock email");
-    }
-  }
+  const eligible = pending.filter((sub) => availableVariantIds.has(sub.variantId));
+  await Promise.all(
+    eligible.map(async (sub) => {
+      try {
+        await sendRestockEmail(sub.email, sub.productTitle, sub.variantTitle);
+        await db
+          .update(restockNotifications)
+          .set({ notifiedAt: now })
+          .where(eq(restockNotifications.id, sub.id));
+        notified++;
+        req.log.info({ id: sub.id, email: sub.email }, "Restock email sent");
+      } catch (err) {
+        req.log.error({ err, id: sub.id }, "Failed to send restock email");
+      }
+    }),
+  );
 
   res.status(200).json({ notified, checked: uniqueVariantIds.length });
 });

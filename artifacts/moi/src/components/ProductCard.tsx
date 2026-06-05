@@ -151,7 +151,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
     if (firstColor) setSelectedColor(firstColor);
     const firstSize = sizeOption?.values[0];
     if (firstSize) setSelectedSize(firstSize);
-  });
+  }, [product.variants, colorOption, sizeOption]);
 
   const selectedVariant: VariantOption | undefined = useMemo(() => {
     if (!hasShopifyVariants || !product.variants) return undefined;
