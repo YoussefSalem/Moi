@@ -1,0 +1,40 @@
+Integrate Paymob as a payment method into the application.
+
+This is not a Shopify integration, so do not use any Shopify-specific payment flows, SDKs, plugins, or assumptions. Build the integration as a fully custom implementation based on Paymob's official API documentation:
+
+Paymob Developer Documentation
+
+Requirements
+Follow Paymob's latest official API documentation exactly.
+Implement the complete payment flow using Paymob's recommended API integration approach.
+Use the current Payment Intention flow as the foundation of the integration. Paymob's documented flow is:
+Create a payment intention from the backend.
+Launch the checkout experience using the returned client secret.
+Handle customer payment completion.
+Process webhook/callback notifications.
+Verify callback authenticity using HMAC validation.
+Implement both success and failure payment handling.
+Implement secure webhook processing and HMAC signature verification.
+Store and update payment statuses based on webhook events rather than frontend redirects, as Paymob recommends webhooks as the source of truth.
+Ensure the implementation is production-ready, secure, and follows Paymob best practices.
+Use environment variables for all credentials and secrets.
+Add proper error handling, logging, and retry mechanisms where appropriate.
+Support future expansion for additional Paymob payment methods (cards, wallets, BNPL, etc.) without requiring major refactoring.
+Keep the architecture clean and maintainable, separating:
+Payment service layer
+API/client layer
+Webhook handling
+Business logic
+Frontend checkout integration
+Deliverables
+Backend Paymob integration
+Checkout/payment initiation flow
+Webhook endpoint implementation
+HMAC verification
+Payment status synchronization
+Configuration documentation
+Testing instructions for Paymob Sandbox and Production environments
+
+Do not use mock implementations or placeholders. Build the integration according to Paymob's official documentation and ensure every endpoint, payload, and security requirement matches the latest Paymob specifications.
+
+Once the implementation is complete, provide a list of the required credentials and configuration values. I will then provide the Paymob API keys, secret keys, integration IDs, and any other required credentials.
