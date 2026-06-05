@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
-import { createPaymobPaymentKey } from "../lib/paymob";
+import { createPaymobIntentionKey } from "../lib/paymob";
 import { fetchStorefrontCart, type OrderLine, type CustomerInfo, type OrderAttribution } from "../lib/shopifyOrder";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
@@ -122,7 +122,7 @@ router.post("/orders/paymob-init", async (req, res) => {
 
   let result: { iframeUrl: string };
   try {
-    result = await createPaymobPaymentKey({
+    result = await createPaymobIntentionKey({
       amountCents,
       merchantOrderId: intentId,
       customer: {
