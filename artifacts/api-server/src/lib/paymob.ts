@@ -263,18 +263,13 @@ export async function createPaymobIntentionKey(
   if (!clientSecret) throw new Error("Paymob intention returned no client_secret");
 
   logger.info(
-    { merchantOrderId: params.merchantOrderId, hasPaymentKeys: Array.isArray(data.payment_keys) },
+    { merchantOrderId: params.merchantOrderId },
     "Paymob intention created",
   );
 
-  // Prefer the specific iframe token from payment_keys (matches iframe 1041673) so
-  // the branded legacy iframe is shown instead of the generic Unified Checkout.
-  const paymentKeyEntry = data.payment_keys?.find((k) => k.key) ?? data.payment_keys?.[0];
-  const paymentToken = paymentKeyEntry?.key;
-
-  const iframeUrl = paymentToken
-    ? `https://accept.paymob.com/api/acceptance/iframes/${config.iframeId}?payment_token=${paymentToken}`
-    : `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(config.publicKey)}&clientSecret=${encodeURIComponent(clientSecret)}`;
+  // Use Unified Checkout — works correctly with live credentials.
+  const iframeUrl =
+    `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(config.publicKey)}&clientSecret=${encodeURIComponent(clientSecret)}`;
 
   return { iframeUrl };
 }
