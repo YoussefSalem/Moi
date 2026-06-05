@@ -2878,6 +2878,7 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const overlayInnerRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef<HTMLDivElement>(null);
   const loadCountRef = useRef(0);
   const resolvedRef = useRef(false);
   // Set to true when we show a *temporary* processing overlay to cover Paymob's
@@ -2989,6 +2990,10 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
 
   const handleIframeLoad = useCallback(() => {
     loadCountRef.current += 1;
+    // Hide the initial loading screen on first load.
+    if (loadCountRef.current === 1 && loadingRef.current) {
+      loadingRef.current.style.display = "none";
+    }
     // If a temporary overlay was shown to cover an intermediate-state JSON
     // (e.g. "Pending 3DS Authorization"), remove it unconditionally on the
     // next page load so the 3DS authentication page is always visible —
@@ -3243,6 +3248,75 @@ function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobI
           ...iframeStyle,
         }}
       />
+
+      {/* Initial loading screen — visible until first onLoad fires */}
+      <div
+        ref={loadingRef}
+        style={{
+          display: "flex",
+          position: "absolute",
+          inset: 0,
+          background: "#faf8f5",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 20,
+          zIndex: 10,
+        }}
+      >
+        <div style={{ position: "relative", width: 48, height: 48 }}>
+          {/* Outer ring */}
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "50%",
+            border: "1.5px solid rgba(30,24,20,0.1)",
+          }} />
+          {/* Spinning arc */}
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "50%",
+            border: "1.5px solid transparent",
+            borderTopColor: "#1e1814",
+            animation: "moi-spin 0.9s linear infinite",
+          }} />
+          {/* Lock icon centre */}
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(30,24,20,0.45)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <p style={{
+            fontFamily: "'Montserrat', sans-serif",
+            fontSize: "10px",
+            letterSpacing: "0.3em",
+            textTransform: "uppercase",
+            color: "rgba(30,24,20,0.5)",
+            marginBottom: 6,
+          }}>
+            Loading Payment Form
+          </p>
+          <p style={{
+            fontFamily: "'Montserrat', sans-serif",
+            fontSize: "9px",
+            letterSpacing: "0.14em",
+            color: "rgba(30,24,20,0.3)",
+          }}>
+            Secured by Paymob · 256-bit SSL
+          </p>
+        </div>
+      </div>
+
       {/* Overlay is always in the DOM but hidden — shown via ref for zero re-render latency.
           Inner content starts as a spinner ("Processing") and is replaced dynamically with
           success or failure messaging so no raw Paymob data is ever visible to the user. */}
