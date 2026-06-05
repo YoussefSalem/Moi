@@ -534,6 +534,17 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                         )}
                       </AnimatePresence>
 
+                      {/* Out-of-stock banner */}
+                      {isOutOfStock && (
+                        <div
+                          className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center py-2"
+                          style={{ background: "rgba(30,24,20,0.52)", backdropFilter: "blur(2px)" }}
+                        >
+                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.6rem", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(250,248,245,0.92)", fontWeight: 500 }}>
+                            Sold Out
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
