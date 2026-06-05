@@ -11,6 +11,42 @@ export interface PaymobCustomer {
   city: string;
 }
 
+export interface PaymobBillingData {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone_number?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+}
+
+/**
+ * Maps Paymob billing_data (from Apple Pay shippingContact) to our CustomerInfo shape.
+ * Falls back to "NA" placeholders for missing required fields.
+ */
+export function mapPaymobBillingToCustomer(billing: PaymobBillingData): {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone: string;
+  address: string;
+  city: string;
+  governorate: string;
+} {
+  const email = billing.email?.trim();
+  return {
+    firstName: billing.first_name?.trim() || "NA",
+    lastName: billing.last_name?.trim() || "NA",
+    email: email && email !== "NA" ? email : undefined,
+    phone: billing.phone_number?.trim() || "NA",
+    address: billing.street?.trim() || "NA",
+    city: billing.city?.trim() || "Cairo",
+    governorate: billing.state?.trim() || "NA",
+  };
+}
+
 export interface CreatePaymentKeyParams {
   amountCents: number;
   merchantOrderId: string;
@@ -161,9 +197,7 @@ export async function createApplePayPaymentKeyRaw(params: {
   const config = getPaymobConfig();
   if (!config.apiKey) throw new Error("Paymob API key is not configured");
 
-  const rawIntegrationId = config.applePayIntegrationId || config.integrationId;
-  if (!rawIntegrationId) throw new Error("Paymob Apple Pay integration ID is not configured");
-  const integrationIdNum = parseInt(rawIntegrationId, 10);
+  const integrationIdNum = parseInt(config.integrationId, 10);
 
   // Step 1: Auth
   const authRes = await fetch("https://accept.paymob.com/api/auth/tokens", {
@@ -236,7 +270,7 @@ export async function createApplePayPaymentKeyRaw(params: {
   const paymentToken = pkData.token;
   if (!paymentToken) throw new Error("Paymob Apple Pay payment key returned no token");
 
-  logger.info({ hasToken: true, integrationId: rawIntegrationId }, "Paymob Apple Pay payment key obtained");
+  logger.info({ hasToken: true, integrationId: integrationIdNum }, "Paymob Apple Pay payment key obtained");
   return { paymentToken };
 }
 
@@ -273,6 +307,8 @@ export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Pro
   success: boolean;
   txnId: string;
   amountCents: number;
+  billingData?: PaymobBillingData;
+  sourceDataSubType?: string;
 } | null> {
   const config = getPaymobConfig();
   if (!config.apiKey) return null;
@@ -343,7 +379,14 @@ export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Pro
       }
 
       const txnBody = await txnRes.json() as {
-        results?: Array<{ id: number; success: boolean; pending: boolean; amount_cents?: number }>;
+        results?: Array<{
+          id: number;
+          success: boolean;
+          pending: boolean;
+          amount_cents?: number;
+          billing_data?: PaymobBillingData;
+          source_data?: { type?: string; sub_type?: string };
+        }>;
       };
       const txns = txnBody.results ?? [];
       logger.info({ orderId: order.id, txnCount: txns.length }, "queryPaymobByMerchantOrderId: transactions fetched");
@@ -355,6 +398,8 @@ export async function queryPaymobByMerchantOrderId(merchantOrderId: string): Pro
           success: resolved.success,
           txnId: String(resolved.id),
           amountCents: resolved.amount_cents ?? order.amount_cents ?? 0,
+          billingData: resolved.billing_data,
+          sourceDataSubType: resolved.source_data?.sub_type,
         };
       }
     }
@@ -377,6 +422,8 @@ export async function verifyPaymobTransactionById(txnId: string, expectedMerchan
   success: boolean;
   txnId: string;
   amountCents: number;
+  billingData?: PaymobBillingData;
+  sourceDataSubType?: string;
 } | null> {
   const config = getPaymobConfig();
   if (!config.apiKey) return null;
@@ -411,6 +458,8 @@ export async function verifyPaymobTransactionById(txnId: string, expectedMerchan
       pending?: boolean;
       amount_cents?: number;
       order?: { merchant_order_id?: string; amount_cents?: number };
+      billing_data?: PaymobBillingData;
+      source_data?: { type?: string; sub_type?: string };
     };
 
     // Verify this transaction belongs to our intent
@@ -432,6 +481,8 @@ export async function verifyPaymobTransactionById(txnId: string, expectedMerchan
       success: txn.success === true,
       txnId: String(txn.id ?? numericId),
       amountCents: txn.amount_cents ?? txn.order?.amount_cents ?? 0,
+      billingData: txn.billing_data,
+      sourceDataSubType: txn.source_data?.sub_type,
     };
   } catch (err) {
     logger.warn({ err, txnId, expectedMerchantOrderId }, "verifyPaymobTransactionById: unexpected error");

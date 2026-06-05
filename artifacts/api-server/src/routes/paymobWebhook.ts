@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
-import { verifyPaymobHmac, extractPaymobTxn } from "../lib/paymob";
+import { verifyPaymobHmac, extractPaymobTxn, mapPaymobBillingToCustomer, type PaymobBillingData } from "../lib/paymob";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
 import { processPaymobSuccess } from "../lib/processPaymobSuccess";
@@ -77,11 +77,29 @@ router.post("/webhooks/paymob", async (req, res) => {
 
   req.log.info({ intentId, paymobTxnId }, "Paymob webhook: processing successful payment");
 
+  // Extract Apple Pay billing data to populate customer info (shippingContact from Apple Pay sheet)
+  const webhookBillingData = txn.billing_data as PaymobBillingData | undefined;
+  const webhookSourceSubType = typeof (txn.source_data as Record<string, unknown> | undefined)?.sub_type === "string"
+    ? (txn.source_data as Record<string, unknown>).sub_type as string
+    : undefined;
+  const webhookIsApplePay = webhookSourceSubType?.toUpperCase() === "APPLE_PAY";
+
+  if (webhookBillingData && intentId) {
+    const applePayCustomer = mapPaymobBillingToCustomer(webhookBillingData);
+    if (applePayCustomer.firstName !== "NA" || applePayCustomer.email) {
+      await db.update(paymobIntents)
+        .set({ customer: applePayCustomer as unknown as Record<string, unknown> })
+        .where(and(eq(paymobIntents.intentId, intentId), eq(paymobIntents.status, "pending")))
+        .catch((err: unknown) => req.log.warn({ err, intentId }, "Paymob webhook: failed to update customer from billing_data"));
+    }
+  }
+
   try {
     await processPaymobSuccess({
       intentId,
       paymobTxnId,
       amountCents: typeof amountCents === "number" ? amountCents : 0,
+      paymentChannel: webhookIsApplePay ? "apple-pay" : "card",
     });
   } catch (err) {
     req.log.error({ err, intentId, paymobTxnId }, "Paymob webhook processing error");

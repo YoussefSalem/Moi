@@ -5,13 +5,9 @@ import { instapayProofs, abandonedCarts, paymobIntents } from "@workspace/db/sch
 import { eq, desc, and, gte, lte, count, isNull, inArray } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
 import {
-  addShopifyOrderNote,
   tagShopifyOrder,
   sendWhatsApp,
   getShopifyAdminToken,
-  createBostaShipment,
-  createShopifyFulfillment,
-  addShopifyFulfillmentEvent,
 } from "../lib/integrations";
 import { getMaskedConfig, savePaymobConfig, type PaymobConfig } from "../lib/paymobConfig";
 import { listDiscountCodeUses } from "@workspace/db";
@@ -24,14 +20,17 @@ const router: IRouter = Router();
 
 /**
  * Derives a scoped session token from ADMIN_SECRET using HMAC-SHA256.
- * The raw secret never leaves the server — only this derived token is
- * sent to the browser as the bearer credential.
+ * Format: base64url(expiresAtMs) + "." + base64url(HMAC(secret, "moi-admin-session-v1:" + base64url(expiresAtMs)))
+ * The expiry is embedded in the token so the middleware can enforce it server-side
+ * without a session store. The raw secret never leaves the server.
  */
-function deriveSessionToken(adminSecret: string): string {
-  return crypto
+function deriveSessionToken(adminSecret: string, expiresAt: number): string {
+  const payload = Buffer.from(String(expiresAt)).toString("base64url");
+  const sig = crypto
     .createHmac("sha256", adminSecret)
-    .update("moi-admin-session-v1")
+    .update(`moi-admin-session-v1:${payload}`)
     .digest("base64url");
+  return `${payload}.${sig}`;
 }
 
 export function requireAdminAuth(req: Request, res: Response, next: NextFunction): void {
@@ -41,25 +40,43 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
     return;
   }
   const auth = req.headers.authorization;
-  const expectedToken = deriveSessionToken(adminSecret);
   const provided = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
   if (!provided) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
-  try {
-    const ok = crypto.timingSafeEqual(
-      Buffer.from(provided),
-      Buffer.from(expectedToken),
-    );
-    if (!ok) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-  } catch {
+
+  // Token format: <payload>.<sig> where payload = base64url(expiresAtMs)
+  const dotIdx = provided.lastIndexOf(".");
+  if (dotIdx === -1) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+
+  const payload = provided.slice(0, dotIdx);
+  const sig = provided.slice(dotIdx + 1);
+  const expectedSig = crypto
+    .createHmac("sha256", adminSecret)
+    .update(`moi-admin-session-v1:${payload}`)
+    .digest("base64url");
+
+  let sigOk = false;
+  try {
+    sigOk = crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig));
+  } catch { /* length mismatch = invalid */ }
+
+  if (!sigOk) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  // Enforce server-side expiry
+  const expiresAt = parseInt(Buffer.from(payload, "base64url").toString(), 10);
+  if (isNaN(expiresAt) || Date.now() > expiresAt) {
+    res.status(401).json({ error: "Session expired" });
+    return;
+  }
+
   next();
 }
 
@@ -80,8 +97,8 @@ router.post("/admin/login", (req, res) => {
     res.status(401).json({ error: "Incorrect PIN." });
     return;
   }
-  const token = deriveSessionToken(adminSecret);
   const expiresAt = Date.now() + 8 * 60 * 60 * 1000;
+  const token = deriveSessionToken(adminSecret, expiresAt);
   res.status(200).json({ token, expiresAt });
 });
 
@@ -154,10 +171,26 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
-  const rows = await db.select().from(instapayProofs).where(eq(instapayProofs.id, id)).limit(1);
-  const proof = rows[0];
-  if (!proof) { res.status(404).json({ error: "Proof not found" }); return; }
-  if (proof.status === "approved") { res.status(409).json({ error: "Already approved" }); return; }
+  // Atomic claim: flip status to 'approved' BEFORE any external API calls so two
+  // concurrent admin requests cannot both complete the same Shopify draft order.
+  const claimed = await db
+    .update(instapayProofs)
+    .set({ status: "approved", reviewedAt: new Date() })
+    .where(and(eq(instapayProofs.id, id), eq(instapayProofs.status, "pending")))
+    .returning();
+
+  if (claimed.length === 0) {
+    const current = await db
+      .select({ id: instapayProofs.id, status: instapayProofs.status })
+      .from(instapayProofs)
+      .where(eq(instapayProofs.id, id))
+      .limit(1);
+    if (!current[0]) { res.status(404).json({ error: "Proof not found" }); return; }
+    const msg = current[0].status === "approved" ? "Already approved" : `Cannot approve — status is '${current[0].status}'`;
+    res.status(409).json({ error: msg });
+    return;
+  }
+  const proof = claimed[0]!;
 
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
@@ -188,81 +221,13 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
   await tagShopifyOrder(orderId, "instapay-admin-approved");
   await tagShopifyOrder(orderId, "instapay");
 
-  // Step 3: Check if already fulfilled by Shopify Bosta app (skip duplicate Bosta)
-  let alreadyFulfilled = false;
-  if (storeDomain && adminToken) {
-    try {
-      const orderRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=fulfillment_status,shipping_address,note_attributes`,
-        { headers: { "X-Shopify-Access-Token": adminToken! } },
-      );
-      if (orderRes.ok) {
-        const orderData = await orderRes.json() as {
-          order: { fulfillment_status?: string | null | undefined; shipping_address?: { city?: string; address1?: string }; note_attributes?: { name: string; value: string }[] };
-        };
-        alreadyFulfilled = Boolean(orderData.order.fulfillment_status);
-        if (alreadyFulfilled) {
-          req.log.info({ orderId }, "InstaPay order auto-fulfilled by Shopify Bosta app on approval");
-        }
-      }
-    } catch (err) {
-      req.log.error({ err }, "Could not check Shopify fulfillment status on approve");
-    }
-  }
+  // Step 3: Bosta dispatch is intentionally skipped. The Bosta Shopify app
+  // automatically syncs any orders that enter Shopify.
 
-  // Step 4: Create Bosta shipment (skip if already fulfilled by Bosta app)
-  let city = "Cairo";
-  let address = "";
-  if (!alreadyFulfilled && proof.customerPhone && proof.customerName) {
-    const nameParts = proof.customerName.trim().split(" ");
-    const firstName = nameParts[0] ?? proof.customerName;
-    const lastName = nameParts.slice(1).join(" ") || firstName;
-
-    try {
-      const orderRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=shipping_address`,
-        { headers: { "X-Shopify-Access-Token": adminToken! } },
-      );
-      if (orderRes.ok) {
-        const orderData = await orderRes.json() as {
-          order: { shipping_address?: { city?: string; address1?: string } };
-        };
-        city = orderData.order.shipping_address?.city ?? city;
-        address = orderData.order.shipping_address?.address1 ?? "";
-      }
-    } catch (err) {
-      req.log.warn({ err }, "Could not fetch shipping address from Shopify on approve; using defaults");
-    }
-
-    try {
-      const trackingNumber = await createBostaShipment({
-        firstName,
-        lastName,
-        phone: proof.customerPhone,
-        address,
-        city,
-        orderReference: `#${orderNumber}`,
-        codAmount: 0,
-      });
-
-      if (trackingNumber) {
-        void addShopifyOrderNote(orderId, `Bosta tracking: ${trackingNumber}\nPayment: Instapay (admin approved)`);
-        void tagShopifyOrder(orderId, `bosta-${trackingNumber}`);
-        const fulfillmentId = await createShopifyFulfillment(orderId, trackingNumber);
-        if (fulfillmentId) {
-          void addShopifyFulfillmentEvent(orderId, fulfillmentId, "in_transit");
-        }
-        req.log.info({ trackingNumber, orderId }, "Bosta shipment created on InstaPay approval");
-      }
-    } catch (err) {
-      req.log.error({ err }, "Bosta shipment creation failed on approve");
-    }
-  }
-
-  // Step 5: Fetch customer email + shipping address from Shopify order for email
+  // Step 4: Fetch customer email + shipping address from Shopify order for email
   let customerEmail = "";
   let shipAddress = "";
-  let shipCity = city;
+  let shipCity = "Cairo";
   let shipGov = "";
   if (storeDomain && adminToken) {
     try {
@@ -275,8 +240,8 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
           order: { email?: string; shipping_address?: { address1?: string; city?: string; province?: string } };
         };
         customerEmail = o.order.email ?? "";
-        shipAddress = o.order.shipping_address?.address1 ?? address;
-        shipCity = o.order.shipping_address?.city ?? city;
+        shipAddress = o.order.shipping_address?.address1 ?? "";
+        shipCity = o.order.shipping_address?.city ?? "Cairo";
         shipGov = o.order.shipping_address?.province ?? "";
       }
     } catch (err) {
@@ -308,10 +273,10 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
       .catch((err) => req.log.warn({ err, email: customerEmail }, "InstaPay confirmed email failed"));
   }
 
-  // Step 7: Update DB with real order IDs
+  // Step 7: Update DB with real Shopify order IDs (status/reviewedAt already set by atomic claim above)
   await db
     .update(instapayProofs)
-    .set({ status: "approved", reviewedAt: new Date(), shopifyOrderId: orderId, shopifyOrderNumber: orderNumber })
+    .set({ shopifyOrderId: orderId, shopifyOrderNumber: orderNumber })
     .where(eq(instapayProofs.id, id));
 
   req.log.info({ id, shopifyOrderId: orderId, shopifyOrderNumber: orderNumber }, "InstaPay proof approved — draft completed to real order");
@@ -460,16 +425,31 @@ router.post("/admin/card-orders/:id/approve", async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
+  // Read the intent to get shopifyOrderId and validate pre-conditions.
   const rows = await db.select().from(paymobIntents).where(eq(paymobIntents.id, id)).limit(1);
   const intent = rows[0];
   if (!intent) { res.status(404).json({ error: "Order not found" }); return; }
   if (intent.status !== "completed") { res.status(409).json({ error: "Order not in completed state" }); return; }
   if (intent.adminApproved) {
-    // Already auto-approved — return the existing order details
     res.status(200).json({ ok: true, orderId: intent.shopifyConfirmedOrderId, orderNumber: intent.shopifyConfirmedOrderId, alreadyApproved: true });
     return;
   }
   if (!intent.shopifyOrderId) { res.status(409).json({ error: "No Shopify order linked — payment may still be processing" }); return; }
+
+  // Atomic guard: flip adminApproved BEFORE calling Shopify to prevent two concurrent
+  // admin requests from both completing the same draft order.
+  const guardRows = await db
+    .update(paymobIntents)
+    .set({ adminApproved: true, adminApprovedAt: new Date() })
+    .where(and(eq(paymobIntents.id, id), eq(paymobIntents.adminApproved, false)))
+    .returning({ id: paymobIntents.id });
+
+  if (guardRows.length === 0) {
+    // Another request won the race — re-fetch and return current state
+    const latest = await db.select({ shopifyConfirmedOrderId: paymobIntents.shopifyConfirmedOrderId }).from(paymobIntents).where(eq(paymobIntents.id, id)).limit(1);
+    res.status(200).json({ ok: true, orderId: latest[0]?.shopifyConfirmedOrderId, orderNumber: latest[0]?.shopifyConfirmedOrderId, alreadyApproved: true });
+    return;
+  }
 
   req.log.info({ id, orderId: intent.shopifyOrderId }, "card-orders approve: completing Shopify order");
 
@@ -483,13 +463,10 @@ router.post("/admin/card-orders/:id/approve", async (req, res) => {
     return;
   }
 
+  // adminApproved/adminApprovedAt already set by the atomic guard above; just record the confirmed order ID
   await db
     .update(paymobIntents)
-    .set({
-      adminApproved: true,
-      adminApprovedAt: new Date(),
-      shopifyConfirmedOrderId: result.orderId,
-    })
+    .set({ shopifyConfirmedOrderId: result.orderId })
     .where(eq(paymobIntents.id, id));
 
   req.log.info({ id, orderId: intent.shopifyOrderId, confirmedOrderId: result.orderId, orderNumber: result.orderNumber }, "card-orders approve: order completed");
@@ -514,99 +491,6 @@ router.post("/admin/card-orders/:id/decline", async (req, res) => {
 
   req.log.info({ id, paymobTxnId: intent.paymobTxnId }, "card-orders decline: order declined by admin");
   res.status(200).json({ ok: true });
-});
-
-// POST /admin/card-orders/:id/dispatch — create Bosta shipment and mark dispatched
-router.post("/admin/card-orders/:id/dispatch", async (req, res) => {
-  const id = parseInt(String(req.params.id), 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-
-  const rows = await db.select().from(paymobIntents).where(eq(paymobIntents.id, id)).limit(1);
-  const intent = rows[0];
-  if (!intent) { res.status(404).json({ error: "Order not found" }); return; }
-  if (intent.status !== "completed") { res.status(409).json({ error: "Order not completed" }); return; }
-  if (!intent.adminApproved) { res.status(409).json({ error: "Order must be approved before dispatch — click Approve first to confirm the Shopify order" }); return; }
-  if (intent.bostaDispatched) { res.status(409).json({ error: "Already dispatched" }); return; }
-
-  // Use the confirmed real order ID for Shopify operations; fall back to draft ID
-  const shopifyOrderId = intent.shopifyConfirmedOrderId ?? intent.shopifyOrderId;
-  if (!shopifyOrderId) { res.status(409).json({ error: "No Shopify order linked" }); return; }
-
-  const customer = intent.customer as {
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
-    address?: string;
-    city?: string;
-  };
-
-  if (!customer.firstName || !customer.address) {
-    res.status(422).json({ error: "Missing customer address data" });
-    return;
-  }
-
-  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = await getShopifyAdminToken();
-
-  // Fetch shipping address from the confirmed Shopify order
-  let address = customer.address;
-  let city = customer.city ?? "Cairo";
-  if (storeDomain && adminToken) {
-    try {
-      const orderRes = await fetch(
-        `https://${storeDomain}/admin/api/2024-04/orders/${shopifyOrderId}.json?fields=shipping_address`,
-        { headers: { "X-Shopify-Access-Token": adminToken } },
-      );
-      if (orderRes.ok) {
-        const orderData = await orderRes.json() as {
-          order: { shipping_address?: { address1?: string; city?: string } };
-        };
-        address = orderData.order.shipping_address?.address1 ?? address;
-        city = orderData.order.shipping_address?.city ?? city;
-      }
-    } catch (err) {
-      req.log.warn({ err }, "card-orders dispatch: could not fetch Shopify address, using intent data");
-    }
-  }
-
-  const orderRef = `#${intent.paymobTxnId ?? intent.intentId}`;
-
-  try {
-    const trackingNumber = await createBostaShipment({
-      firstName: customer.firstName,
-      lastName: customer.lastName ?? customer.firstName,
-      phone: customer.phone ?? "",
-      address,
-      city,
-      orderReference: orderRef,
-      codAmount: 0,
-    });
-
-    if (!trackingNumber) {
-      res.status(502).json({ error: "Bosta did not return a tracking number" });
-      return;
-    }
-
-    // Update intent
-    await db
-      .update(paymobIntents)
-      .set({ bostaDispatched: true, bostaTrackingNumber: trackingNumber, bostaDispatchedAt: new Date() })
-      .where(eq(paymobIntents.id, id));
-
-    // Tag Shopify order + add note + create fulfillment (fire-and-forget)
-    void addShopifyOrderNote(shopifyOrderId, `Bosta tracking: ${trackingNumber}\nPayment: Paymob Card (admin dispatched)`);
-    void tagShopifyOrder(shopifyOrderId, `bosta-${trackingNumber}`);
-    const fulfillmentId = await createShopifyFulfillment(shopifyOrderId, trackingNumber);
-    if (fulfillmentId) {
-      void addShopifyFulfillmentEvent(shopifyOrderId, fulfillmentId, "in_transit");
-    }
-
-    req.log.info({ id, trackingNumber, shopifyOrderId }, "card-orders: Bosta shipment dispatched");
-    res.status(200).json({ ok: true, trackingNumber });
-  } catch (err) {
-    req.log.error({ err }, "card-orders dispatch: Bosta shipment creation failed");
-    res.status(500).json({ error: "Failed to create Bosta shipment" });
-  }
 });
 
 // ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
-import { queryPaymobByMerchantOrderId } from "../lib/paymob";
+import { queryPaymobByMerchantOrderId, mapPaymobBillingToCustomer } from "../lib/paymob";
 import { processPaymobSuccess } from "../lib/processPaymobSuccess";
 
 const router: IRouter = Router();
@@ -74,12 +74,22 @@ router.get("/orders/paymob-status/:intentId", async (req, res) => {
             { intentId, txnId: result.txnId, amountCents: result.amountCents },
             "paymob-status: direct lookup found successful payment — processing order",
           );
+          // Update customer from Apple Pay billing_data if available
+          if (result.billingData) {
+            const applePayCustomer = mapPaymobBillingToCustomer(result.billingData);
+            await db.update(paymobIntents)
+              .set({ customer: applePayCustomer as unknown as Record<string, unknown> })
+              .where(eq(paymobIntents.intentId, intentId))
+              .catch((err: unknown) => req.log.warn({ err, intentId }, "paymob-status: failed to update customer from billing_data"));
+          }
+          const paymentChannelStatus = result.sourceDataSubType?.toUpperCase() === "APPLE_PAY" ? "apple-pay" as const : "card" as const;
           // Process the successful payment: creates Shopify order, sends
           // confirmation email + WhatsApp, marks intent completed. Idempotent.
           await processPaymobSuccess({
             intentId,
             paymobTxnId: result.txnId,
             amountCents: result.amountCents,
+            paymentChannel: paymentChannelStatus,
           }).catch((err: unknown) =>
             req.log.error({ err, intentId }, "paymob-status: processPaymobSuccess error"),
           );

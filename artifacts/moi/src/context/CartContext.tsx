@@ -74,11 +74,13 @@ interface CartContextValue {
   closeCheckout: () => void;
   prefilledEmail: string | null;
   addToCart: (params: AddToCartParams) => Promise<string | null>;
+  buyNowCheckoutUrl: (variantId: string, quantity?: number) => Promise<string | null>;
   removeItem: (idOrLineId: string) => Promise<void>;
   updateQuantity: (idOrLineId: string, quantity: number) => Promise<void>;
   applyDiscount: (code: string) => Promise<{ applicable: boolean; code: string; discountAmount: number }>;
   clearCart: () => void;
   replaceRecoveredCart: (items: RecoveredItem[], email?: string) => Promise<void>;
+  checkoutUrl: string | null;
   formatShopifyLinePrice: (line: ShopifyCartLine) => string;
   cartTotal: string;
   cartRawTotal: string;
@@ -173,6 +175,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addToCart = useCallback(async (params: AddToCartParams): Promise<string | null> => {
     const qty = params.quantity ?? 1;
     setLoading(true);
+    let resolvedCheckoutUrl: string | null = null;
     try {
       // Shopify sync — best-effort; local cart always succeeds regardless
       if (SHOPIFY_CONFIGURED && params.variantId) {
@@ -180,6 +183,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           const c = await ensureShopifyCart();
           const updated = await addCartLines(c.id, [{ merchandiseId: params.variantId, quantity: qty }]);
           setShopifyCart(updated);
+          resolvedCheckoutUrl = updated.checkoutUrl ?? null;
         } catch {
           // Shopify failure must not block local cart; silently fall through
         }
@@ -256,8 +260,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-    return null;
+    return resolvedCheckoutUrl;
   }, [ensureShopifyCart]);
+
+  // Express single-item checkout (e.g. Apple Pay): creates a brand-new, ephemeral
+  // Shopify cart containing only this item and returns its checkoutUrl. The
+  // shopper's persistent cart is left untouched, so cancelling Apple Pay loses
+  // nothing. Avoids the clearCart()+addToCart() race (stale cart contents).
+  const buyNowCheckoutUrl = useCallback(async (variantId: string, quantity = 1): Promise<string | null> => {
+    if (!SHOPIFY_CONFIGURED || !variantId) return null;
+    try {
+      const cart = await createCartWithLines([{ merchandiseId: variantId, quantity }]);
+      return cart.checkoutUrl ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const removeItem = useCallback(async (idOrLineId: string) => {
     setLoading(true);
@@ -522,11 +540,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       },
       prefilledEmail,
       addToCart,
+      buyNowCheckoutUrl,
       removeItem,
       updateQuantity,
       applyDiscount,
       clearCart,
       replaceRecoveredCart,
+      checkoutUrl: shopifyCart?.checkoutUrl ?? null,
       formatShopifyLinePrice,
       cartTotal,
       cartRawTotal,

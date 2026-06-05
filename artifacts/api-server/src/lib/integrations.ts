@@ -149,16 +149,16 @@ async function fetchBostaCities(apiKey: string): Promise<BostaCity[]> {
   if (_bostaCityCache) return _bostaCityCache;
   try {
     const res = await fetch("https://app.bosta.co/api/v2/cities", {
-      headers: { Authorization: `Bearer ${apiKey}` },
+      headers: { Authorization: apiKey },
     });
     if (!res.ok) {
       logger.warn({ status: res.status }, "fetchBostaCities: non-2xx from Bosta cities API");
       return [];
     }
     const data = await res.json() as unknown;
-    const list = (data as { data?: unknown })?.data;
+    const list = (data as { data?: { list?: unknown } })?.data?.list;
     if (!Array.isArray(list)) {
-      logger.warn({ data }, "fetchBostaCities: unexpected response shape — data.data is not an array");
+      logger.warn({ data }, "fetchBostaCities: unexpected response shape — data.data.list is not an array");
       _bostaCityCache = [];
       return [];
     }
@@ -171,30 +171,35 @@ async function fetchBostaCities(apiKey: string): Promise<BostaCity[]> {
 }
 
 /**
- * Resolves a user-entered city string to the exact Bosta city name.
+ * Resolves a user-entered city string to the Bosta city object {_id, name}.
  * First normalises via the static map, then validates against Bosta's live city list.
- * Falls back to the normalised name if the API is unavailable.
+ * Returns null if the cities API is unavailable (caller should fall back gracefully).
  */
-export async function resolveBostaCityName(
+async function resolveBostaCityObject(
   cityInput: string,
   apiKey: string,
-): Promise<string> {
+): Promise<{ _id: string; name: string } | null> {
   const normalised = normalizeCityName(cityInput);
   const cities = await fetchBostaCities(apiKey);
-  if (cities.length === 0) return normalised;
+  if (cities.length === 0) return null;
 
   // Exact match first
   const exact = cities.find(
     (c) => c.name.toLowerCase() === normalised.toLowerCase(),
   );
-  if (exact) return exact.name;
+  if (exact) return { _id: exact._id, name: exact.name };
 
   // Partial match fallback
   const partial = cities.find((c) =>
     c.name.toLowerCase().includes(normalised.toLowerCase()) ||
     normalised.toLowerCase().includes(c.name.toLowerCase()),
   );
-  return partial?.name ?? normalised;
+  if (partial) return { _id: partial._id, name: partial.name };
+
+  // No match — use Cairo as default rather than silently failing
+  const cairo = cities.find((c) => c.name === "Cairo");
+  logger.warn({ cityInput, normalised }, "resolveBostaCityObject: city not found — falling back to Cairo");
+  return cairo ? { _id: cairo._id, name: cairo.name } : null;
 }
 
 export async function sendWhatsApp(phone: string, message: string): Promise<void> {
@@ -228,6 +233,7 @@ export async function createBostaShipment(params: {
   city: string;
   orderReference: string;
   codAmount?: number;
+  items?: { title: string; variant_title: string | null; quantity: number }[];
 }): Promise<string | null> {
   const apiKey = process.env.BOSTA_API_KEY;
   if (!apiKey) {
@@ -236,25 +242,33 @@ export async function createBostaShipment(params: {
   }
 
   try {
-    const resolvedCity = await resolveBostaCityName(params.city, apiKey);
+    const cityObj = await resolveBostaCityObject(params.city, apiKey);
     const formatted = formatPhone(params.phone);
 
     const res = await fetch("https://app.bosta.co/api/v2/deliveries", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: apiKey,
       },
       body: JSON.stringify({
         type: 10,
         specs: { packageType: "Parcel", size: "SMALL" },
+        dropOffAddress: {
+          city: cityObj ?? { _id: "", name: params.city },
+          firstLine: params.address,
+        },
         receiver: {
           firstName: params.firstName,
           lastName: params.lastName,
           phone: formatted,
-          address: { city: resolvedCity, firstLine: params.address },
         },
-        notes: `Moi Order ${params.orderReference}`,
+        notes: [
+          `Moi Order ${params.orderReference}`,
+          ...(params.items && params.items.length > 0
+            ? [params.items.map((i) => `${i.variant_title ?? i.title} x${i.quantity}`).join(", ")]
+            : []),
+        ].join(" — "),
         ...(params.codAmount && params.codAmount > 0 ? { cod: params.codAmount } : {}),
       }),
     });
@@ -429,35 +443,69 @@ export async function findOrderByTrackingNote(
 
 export async function createShopifyFulfillment(
   orderId: number,
-  trackingNumber: string,
+  trackingNumber?: string,
 ): Promise<number | null> {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return null;
 
   try {
+    // Shopify 2022-07+ requires line_items_by_fulfillment_order so items appear
+    // on the fulfillment. First fetch the order's open fulfillment orders.
+    const foRes = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/fulfillment_orders.json`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+    type FulfillmentOrderLine = { id: number; quantity: number };
+    type FulfillmentOrder = { id: number; status: string; line_items: FulfillmentOrderLine[] };
+    const foData = foRes.ok
+      ? (await foRes.json() as { fulfillment_orders: FulfillmentOrder[] })
+      : null;
+
+    const openFOs = foData?.fulfillment_orders.filter((fo) => fo.status === "open") ?? [];
+
+    const fulfillmentBody: Record<string, unknown> = {
+      notify_customer: false,
+    };
+
+    if (openFOs.length > 0) {
+      fulfillmentBody.line_items_by_fulfillment_order = openFOs.map((fo) => ({
+        fulfillment_order_id: fo.id,
+        fulfillment_order_line_items: fo.line_items.map((li) => ({
+          id: li.id,
+          quantity: li.quantity,
+        })),
+      }));
+    }
+
+    if (trackingNumber) {
+      fulfillmentBody.tracking_info = {
+        number: trackingNumber,
+        company: "Bosta",
+        url: `https://app.bosta.co/track-order/${trackingNumber}`,
+      };
+    }
+
     const res = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}/fulfillments.json`,
+      `https://${storeDomain}/admin/api/2024-04/fulfillments.json`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Shopify-Access-Token": adminToken,
         },
-        body: JSON.stringify({
-          fulfillment: {
-            tracking_number: trackingNumber,
-            tracking_company: "Bosta",
-            tracking_url: `https://app.bosta.co/track-order/${trackingNumber}`,
-            notify_customer: false,
-          },
-        }),
+        body: JSON.stringify({ fulfillment: fulfillmentBody }),
       },
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      logger.warn({ orderId, status: res.status, errText }, "createShopifyFulfillment: Shopify returned error");
+      return null;
+    }
     const data = await res.json() as { fulfillment: { id: number } };
     return data.fulfillment.id;
-  } catch {
+  } catch (err) {
+    logger.warn({ err, orderId }, "createShopifyFulfillment: unexpected error");
     return null;
   }
 }

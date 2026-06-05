@@ -1,12 +1,7 @@
 import { Router, type IRouter } from "express";
 import {
   sendWhatsApp,
-  createBostaShipment,
-  addShopifyOrderNote,
-  tagShopifyOrder,
   completeShopifyCheckout,
-  createShopifyFulfillment,
-  addShopifyFulfillmentEvent,
 } from "../lib/integrations";
 import {
   createDraftOrder,
@@ -284,30 +279,9 @@ router.post("/orders/create", async (req, res) => {
       `✅ Your Moi order #${orderNumber} has been placed!\n\nTotal: ${total} EGP (${whatsappShippingNote})\nPayment: Cash on Delivery\n\nOur team will contact you shortly. Thank you for shopping with Moi. 🖤`,
     );
 
-    const trackingNumber = await createBostaShipment({
-      firstName: customer.firstName,
-      lastName: customer.lastName,
-      phone: customer.phone,
-      address: customer.address,
-      city: customer.city,
-      orderReference: `#${orderNumber}`,
-      codAmount: parseEGP(total),
-    });
-
-    if (trackingNumber) {
-      void addShopifyOrderNote(orderId, `Bosta tracking: ${trackingNumber}`);
-      void tagShopifyOrder(orderId, `bosta-${trackingNumber}`);
-      req.log.info({ trackingNumber, orderNumber }, "Bosta COD shipment created");
-
-      // Create a Shopify fulfillment immediately so the Bosta Shopify App sees
-      // the order as already fulfilled and does NOT create a competing Bosta
-      // shipment (which would have cod: 0 / "No Cash Collection"). This mirrors
-      // the card-orders and instapay dispatch flows in admin.ts.
-      const fulfillmentId = await createShopifyFulfillment(orderId, trackingNumber);
-      if (fulfillmentId) {
-        void addShopifyFulfillmentEvent(orderId, fulfillmentId, "in_transit");
-      }
-    }
+    // NOTE: Bosta dispatch is intentionally skipped for all payment methods.
+    // The Bosta Shopify app automatically syncs any orders that enter Shopify.
+    // We just need to make sure the orders are sent correctly from our side.
 
     // Mark the Shopify abandoned checkout as complete (fire-and-forget)
     if (checkoutToken) {

@@ -1,0 +1,132 @@
+You are a senior Shopify theme developer and full-stack engineer. Your job is to convert an existing React + Express + PostgreSQL e-commerce web application into a fully functional Shopify theme.
+
+Here is the project structure you are working with:
+- artifacts/moi/ — React + Vite + Framer Motion frontend
+- artifacts/api-server/ — Express + Drizzle ORM + PostgreSQL backend
+- artifacts/mockup-sandbox/ — Canvas design sandbox
+
+════════════════════════════════════════
+PHASE 1 — AUDIT
+════════════════════════════════════════
+1. Scan all files under artifacts/moi/src/
+2. List every page/route found in the React Router config
+3. List every API endpoint called from the frontend
+4. List every data model used (products, users, orders, etc.)
+5. List every animation or transition effect (Framer Motion)
+6. Output a full audit report as AUDIT.md in the project root
+
+════════════════════════════════════════
+PHASE 2 — SCAFFOLD SHOPIFY THEME
+════════════════════════════════════════
+Create the following folder structure at /shopify-theme/:
+
+shopify-theme/
+├── layout/
+│   └── theme.liquid
+├── templates/
+│   ├── index.json
+│   ├── product.json
+│   ├── collection.json
+│   ├── cart.json
+│   ├── page.json
+│   └── page.ambassador.json
+├── sections/
+│   ├── header.liquid
+│   ├── footer.liquid
+│   ├── hero.liquid
+│   └── ambassador-form.liquid
+├── snippets/
+│   └── product-card.liquid
+├── assets/
+│   ├── theme.css
+│   └── theme.js
+└── config/
+    └── settings_schema.json
+
+════════════════════════════════════════
+PHASE 3 — CONVERT EACH PAGE
+════════════════════════════════════════
+For every page discovered in Phase 1:
+- Convert the React JSX component into the equivalent Liquid template
+- Replace all React state/props with Shopify Liquid objects (product, collection, cart, etc.)
+- Replace React Router  tags with Liquid {{ routes.* }} URLs
+- Preserve all layout, structure, and visual hierarchy exactly as in the original
+- Output each file to the correct location in /shopify-theme/
+
+════════════════════════════════════════
+PHASE 4 — CONVERT STYLES & ANIMATIONS
+════════════════════════════════════════
+1. Extract all CSS/styling from React components and Tailwind classes
+2. Convert to standard CSS in assets/theme.css
+3. Replace all Framer Motion animations with:
+   - CSS keyframes and transitions where possible
+   - Intersection Observer + class toggling for scroll-triggered effects
+   - motion.dev (vanilla JS, CDN) for complex gesture animations
+4. Load motion.dev from CDN in theme.liquid if needed:
+   
+
+════════════════════════════════════════
+PHASE 5 — AMBASSADOR FORM + RESEND API
+════════════════════════════════════════
+1. Build the Ambassador form in sections/ambassador-form.liquid
+   - Replicate all original form fields exactly
+   - On submit, POST form data to /apps/ambassador (Shopify App Proxy URL)
+   - Show a success/error message to the user after submission
+
+2. Create a serverless function at /resend-function/index.js:
+   - Framework: Vercel serverless (Node.js)
+   - On POST request, read form fields from req.body
+   - Call the Resend API to send an email notification
+   - Use this exact Resend code pattern:
+     const { Resend } = require('resend');
+     const resend = new Resend(process.env.RESEND_API_KEY);
+     await resend.emails.send({
+       from: 'ambassador@yourdomain.com',
+       to: process.env.NOTIFY_EMAIL,
+       subject: 'New Ambassador Application',
+       html: buildEmailHTML(formData)
+     });
+   - Return { success: true } on 200 or { error: message } on 500
+   - Create a vercel.json config file for the function
+   - Create a .env.example with RESEND_API_KEY and NOTIFY_EMAIL
+
+3. Update sections/ambassador-form.liquid to POST to the Vercel function URL
+
+════════════════════════════════════════
+PHASE 6 — DATA MIGRATION SCRIPTS
+════════════════════════════════════════
+1. Write a Node.js script at /scripts/export-products.js that:
+   - Connects to the existing PostgreSQL database using the Drizzle schema
+   - Exports all products to /exports/products.csv
+   - Formats columns to match Shopify's product CSV import format:
+     Handle, Title, Body (HTML), Vendor, Type, Tags, Published,
+     Option1 Name, Option1 Value, Variant Price, Variant SKU,
+     Image Src, Image Position
+
+2. Write a README section in AUDIT.md explaining how to import the CSV into Shopify
+
+════════════════════════════════════════
+PHASE 7 — FINAL CHECKS
+════════════════════════════════════════
+1. Run shopify theme check on /shopify-theme/ if Shopify CLI is available
+2. Generate a CHECKLIST.md with:
+   - [ ] Every page converted
+   - [ ] All nav links use Liquid routes
+   - [ ] Cart uses Shopify AJAX Cart API
+   - [ ] All images reference assets/ or external URLs
+   - [ ] Ambassador form posts to Vercel function
+   - [ ] Resend function deployed and .env vars set
+   - [ ] Products CSV imported into Shopify
+   - [ ] Theme pushed to Shopify store via: shopify theme push
+3. Output a DONE.md summarising what was built, what needs manual review, and next steps
+
+════════════════════════════════════════
+RULES
+════════════════════════════════════════
+- Never delete original source files
+- Work only inside /shopify-theme/ and /resend-function/ and /scripts/
+- After each phase, print a one-line summary: "Phase N complete — X files created"
+- If you cannot read a file, note it in AUDIT.md and continue
+- Preserve all original visual design, copy, and functionality exactly
+
+Begin with Phase 1 now.

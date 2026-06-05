@@ -51,5 +51,5 @@ Thumbs.db
 # Spec Kit - agent folder may contain credentials/auth tokens
 .claude/
 
-# Payment provider certificate files (private keys must never be committed)
+# Apple Pay certificate files (private keys must never be committed)
 private-certs/

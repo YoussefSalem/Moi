@@ -1,0 +1,216 @@
+Act as a senior QA engineer, Shopify expert, UX/UI reviewer, security auditor, SEO specialist, and conversion rate optimization expert.
+
+Perform a COMPLETE and EXTREMELY detailed audit of the entire website and identify EVERYTHING that is missing, broken, inconsistent, unfinished, or could be improved before launch.
+
+Your task is to deeply inspect and review:
+
+1. FRONTEND / UI / UX
+
+* Mobile responsiveness on all screen sizes
+* Desktop responsiveness
+* Tablet responsiveness
+* Spacing consistency
+* Padding and margins
+* Alignment issues
+* Font consistency
+* Button consistency
+* Hover states
+* Loading states
+* Skeleton loaders
+* Empty states
+* Animations and transitions
+* Visual hierarchy
+* Accessibility
+* Contrast ratios
+* Sticky headers
+* Navigation usability
+* Hamburger menu functionality
+* Product card consistency
+* Image quality and cropping
+* Icon consistency
+* Form design
+* Checkout flow experience
+* Cart experience
+* Popup behavior
+* Toast notifications
+* Error messages
+* Success states
+* Scroll behavior
+* Footer completeness
+* Header completeness
+* Brand consistency
+* Luxury/premium feel
+* Any element that feels unfinished
+
+2. SHOPIFY FUNCTIONALITY
+
+* Product setup
+* Variant handling
+* Inventory tracking
+* Product availability
+* Collections
+* Filters
+* Search functionality
+* Product recommendations
+* Related products
+* Cart logic
+* Discount code handling
+* Checkout functionality
+* Customer accounts
+* OTP login flow
+* Guest checkout
+* Order creation
+* Order statuses
+* Draft orders
+* Shipping setup
+* Tax setup
+* Email notifications
+* Abandoned cart setup
+* Payment methods
+* Instapay flow
+* Cash on delivery flow
+* Shopify backend integration
+* App conflicts
+* Metafields
+* Policies pages
+* Legal pages
+* Domain setup
+* SSL setup
+* Analytics integration
+* Pixel setup
+* Conversion tracking
+
+3. PERFORMANCE
+
+* Page speed
+* Lighthouse performance
+* Largest Contentful Paint
+* CLS issues
+* Unoptimized images
+* Lazy loading
+* JavaScript issues
+* Hydration issues
+* Unused CSS
+* Bundle size optimization
+* Memory leaks
+* API latency
+* Slow components
+* Shopify liquid inefficiencies
+
+4. SEO
+
+* Meta titles
+* Meta descriptions
+* Open Graph tags
+* Structured data
+* Product schema
+* Sitemap
+* Robots.txt
+* Image alt text
+* Heading hierarchy
+* Keyword optimization
+* Internal linking
+* Canonical URLs
+* Broken links
+* Redirect issues
+* Duplicate content
+* Indexing issues
+
+5. SECURITY & RELIABILITY
+
+* Exposed API keys
+* Environment variable leaks
+* Authentication vulnerabilities
+* Rate limiting
+* Spam prevention
+* Form validation
+* XSS vulnerabilities
+* CSRF vulnerabilities
+* Checkout security
+* Admin security risks
+* Webhook validation
+* File upload validation
+* Error handling
+* Fallback states
+* Edge case handling
+
+6. CONVERSION RATE OPTIMIZATION
+
+* Trust signals
+* Product page optimization
+* CTA visibility
+* Add-to-cart flow
+* Checkout friction
+* Mobile conversion optimization
+* Urgency/scarcity
+* Social proof
+* Customer reassurance
+* Shipping communication
+* Return/refund communication
+* FAQ placement
+* Product storytelling
+* Visual conversion blockers
+
+7. CONTENT REVIEW
+
+* Grammar mistakes
+* Spelling mistakes
+* Placeholder text
+* “Coming soon” sections
+* Missing product descriptions
+* Missing policies
+* Broken images
+* Missing icons
+* Empty pages
+* Inconsistent tone of voice
+* Generic copywriting
+* Brand identity consistency
+
+8. TEST ALL USER FLOWS
+   Test and verify:
+
+* Sign up
+* OTP login
+* Logout
+* Password reset
+* Add to cart
+* Remove from cart
+* Checkout
+* Instapay upload proof flow
+* COD order flow
+* Order confirmation
+* Email notifications
+* Mobile navigation
+* Search
+* Filtering
+* Collection browsing
+* Product zoom
+* Product variants
+* Failed payment states
+* Empty cart states
+* Slow internet behavior
+
+9. FINAL OUTPUT FORMAT
+   Provide:
+
+* Critical issues
+* High priority issues
+* Medium priority issues
+* Low priority improvements
+* UX recommendations
+* CRO recommendations
+* Security concerns
+* SEO improvements
+* Performance improvements
+* Missing launch essentials
+* Final launch readiness score out of 100
+
+For every issue include:
+
+* Problem
+* Why it matters
+* Severity
+* Exact fix recommendation
+* Example improvement if applicable
+
+Be EXTREMELY strict and detailed. Assume this is a luxury ecommerce brand preparing for launch and nothing should be overlooked.

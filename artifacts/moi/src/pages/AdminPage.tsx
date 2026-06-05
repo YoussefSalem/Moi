@@ -22,6 +22,15 @@ interface Proof {
   hasScreenshot: boolean;
 }
 
+interface PaymobConfigMask {
+  apiKey: string;
+  secretKey: string;
+  publicKey: string;
+  integrationId: string;
+  hmacSecret: string;
+  iframeId: string;
+  applePayIntegrationId: string;
+}
 
 const mono: React.CSSProperties = {
   fontFamily: "'Montserrat', sans-serif",
@@ -508,6 +517,258 @@ function ProofGallery({
         <ScreenshotModal proofId={lightboxId} token={token} onClose={() => setLightboxId(null)} />
       )}
     </>
+  );
+}
+
+interface Transaction {
+  id: number;
+  transactionId: string;
+  paymobTxnId: string | null;
+  dateCreated: string;
+  amount: string;
+  paymentType: "Card";
+  paymentSource: string;
+  origin: string;
+  status: string;
+  shopifyOrderNumber: number | null;
+  shopifyOrderId: number | null;
+  shopifyOrderUrl: string | null;
+  transactionType: string;
+  lastUpdated: string;
+  customerName: string | null;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  bostaDispatched: boolean;
+  bostaTrackingNumber: string | null;
+  bostaDispatchedAt: string | null;
+}
+
+function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string | null) => void }) {
+  const [txns, setTxns] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"all" | "paid" | "unpaid">("all");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/transactions", { headers: apiHeaders(token) });
+      if (res.status === 401 || res.status === 403) {
+        sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_EXPIRY_KEY); onAuth?.(null); return;
+      }
+      if (!res.ok) { setError(`Failed to load transactions. (${res.status})`); setLoading(false); return; }
+      const data = await res.json() as { transactions: Transaction[] };
+      setTxns(data.transactions);
+    } catch { setError("Network error."); }
+    finally { setLoading(false); }
+  }, [token, onAuth]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const filtered = txns.filter((t) => {
+    if (filterStatus === "paid") return t.status === "completed";
+    if (filterStatus === "unpaid") return t.status !== "completed";
+    return true;
+  });
+  const paidCount = txns.filter((t) => t.status === "completed").length;
+
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-GB", {
+    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <p style={{ fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700 }}>
+            Paymob Transactions
+          </p>
+          <span style={{ ...mono, fontSize: "12px", color: "rgba(30,24,20,0.5)" }}>
+            {paidCount} paid
+          </span>
+        </div>
+        <button onClick={() => void load()} style={{ display: "flex", alignItems: "center", gap: 6, ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)" }}>
+          <RefreshCw size={12} strokeWidth={2} /> Refresh
+        </button>
+      </div>
+
+      <div className="flex gap-2 mb-5 flex-wrap">
+        {([["all", "All"], ["paid", "Paid"], ["unpaid", "Not Paid"]] as const).map(([s, label]) => (
+          <button
+            key={s}
+            onClick={() => setFilterStatus(s)}
+            style={{ ...btn, backgroundColor: filterStatus === s ? "#1e1814" : "transparent", color: filterStatus === s ? "#fff" : "rgba(30,24,20,0.6)", border: "1px solid rgba(30,24,20,0.18)", padding: "6px 12px" }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {error && <p style={{ fontSize: "14px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginBottom: 12 }}>{error}</p>}
+      {loading && <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Loading…</p>}
+
+      {!loading && filtered.length === 0 && (
+        <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}>No transactions found.</p>
+      )}
+
+      {!loading && filtered.length > 0 && (
+        <div style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <table style={{ minWidth: 800, borderCollapse: "collapse", width: "100%" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", backgroundColor: "#faf8f5" }}>
+                {["Transaction ID", "Customer", "Amount", "Status", "Shopify #"].map((h) => (
+                  <th key={h} style={{ ...mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, textAlign: "left", padding: "10px 14px", whiteSpace: "nowrap" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((t, i) => {
+                const isPaid = t.status === "completed";
+                const isLast = i === filtered.length - 1;
+                return (
+                  <tr key={t.id} style={{ borderBottom: isLast ? "none" : "1px solid rgba(30,24,20,0.05)" }}>
+                    <td style={{ ...mono, fontSize: 12, color: "#1e1814", padding: "12px 14px", whiteSpace: "nowrap", fontWeight: 600 }}>
+                      {t.paymobTxnId ?? <span style={{ fontSize: 10, color: "rgba(30,24,20,0.35)" }}>{t.transactionId.slice(0, 16)}…</span>}
+                      <div style={{ fontSize: 10, color: "rgba(30,24,20,0.4)", fontWeight: 400, marginTop: 2 }}>{fmtDate(t.dateCreated)}</div>
+                    </td>
+                    <td style={{ ...mono, fontSize: 11, color: "#1e1814", padding: "12px 14px" }}>
+                      {t.customerName && <div style={{ fontWeight: 600 }}>{t.customerName}</div>}
+                      {t.customerPhone && <div style={{ color: "rgba(30,24,20,0.55)", marginTop: 1 }}>{t.customerPhone}</div>}
+                      {t.customerEmail && <div style={{ color: "rgba(30,24,20,0.45)", fontSize: 10, marginTop: 1 }}>{t.customerEmail}</div>}
+                    </td>
+                    <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 700, padding: "12px 14px", whiteSpace: "nowrap" }}>{t.amount}&nbsp;EGP</td>
+                    <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
+                      <span style={{ ...mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px", backgroundColor: isPaid ? "rgba(45,110,45,0.12)" : "rgba(180,60,40,0.1)", color: isPaid ? "#2d6e2d" : "#b43c28" }}>
+                        {isPaid ? "PAID" : "NOT PAID"}
+                      </span>
+                    </td>
+                    <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 700, padding: "12px 14px", whiteSpace: "nowrap" }}>
+                      {t.shopifyOrderNumber || t.shopifyOrderId ? (
+                        t.shopifyOrderUrl ? (
+                          <a
+                            href={t.shopifyOrderUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: "#1e1814", textDecoration: "underline", textDecorationColor: "rgba(30,24,20,0.3)" }}
+                          >
+                            {t.shopifyOrderNumber ? `#${t.shopifyOrderNumber}` : `ID ${String(t.shopifyOrderId)}`}
+                          </a>
+                        ) : (
+                          t.shopifyOrderNumber ? `#${t.shopifyOrderNumber}` : <span style={{ fontSize: 10, color: "rgba(30,24,20,0.4)" }}>ID {String(t.shopifyOrderId)}</span>
+                        )
+                      ) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SettingsTab({ token, onAuth }: { token: string; onAuth?: (t: string | null) => void }) {
+  const [config, setConfig] = useState<Record<string, string>>({});
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  const fields: { key: string; label: string; placeholder: string; sensitive?: boolean; hint?: string }[] = [
+    { key: "apiKey", label: "Paymob API Key", placeholder: "Enter to update", sensitive: true },
+    { key: "secretKey", label: "Paymob Secret Key", placeholder: "Enter to update", sensitive: true },
+    { key: "publicKey", label: "Paymob Public Key", placeholder: "Enter to update", sensitive: true },
+    { key: "integrationId", label: "Integration ID (Card)", placeholder: "Numeric ID, e.g. 123456", hint: "Must be the numeric Integration ID from your Paymob dashboard (Integrations → Online Card → ID column). Not the API key." },
+    { key: "hmacSecret", label: "HMAC Secret", placeholder: "Enter to update", sensitive: true },
+    { key: "iframeId", label: "Iframe ID", placeholder: "e.g. 1041673", hint: "The numeric Iframe ID from your Paymob dashboard (Iframes section). Used for the legacy card payment form." },
+    { key: "applePayIntegrationId", label: "Apple Pay Integration ID", placeholder: "Numeric ID, e.g. 789012", hint: "The numeric Integration ID for Apple Pay from your Paymob dashboard (Integrations → Apple Pay → ID column). Only shown on Apple-capable devices." },
+  ];
+
+  useEffect(() => {
+    fetch("/api/admin/paymob-config", { headers: apiHeaders(token) })
+      .then((r) => {
+        if (r.status === 401 || r.status === 403) {
+          sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_EXPIRY_KEY); onAuth?.(null); return null;
+        }
+        return r.json() as Promise<Record<string, string>>;
+      })
+      .then((d) => { if (d) { setConfig(d); setLoading(false); } })
+      .catch(() => setLoading(false));
+  }, [token, onAuth]);
+
+  async function handleSave() {
+    const patch: Record<string, string> = {};
+    for (const f of fields) {
+      if (form[f.key]?.trim()) patch[f.key] = form[f.key].trim();
+    }
+    if (Object.keys(patch).length === 0) return;
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/paymob-config", {
+        method: "POST",
+        headers: apiHeaders(token),
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) { setError("Save failed."); return; }
+      const updated = await res.json() as Record<string, string>;
+      setConfig(updated);
+      setForm({});
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch {
+      setError("Network error.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) return <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Loading…</p>;
+
+  return (
+    <div>
+      <p style={{ fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 700, marginBottom: "20px" }}>
+        Paymob Configuration
+      </p>
+      <div className="flex flex-col gap-4">
+        {fields.map((f) => (
+          <div key={f.key}>
+            <label style={label}>
+              {f.label}
+              {config[f.key] === "configured" && (
+                <span style={{ marginLeft: 8, color: "#2d6e2d", fontWeight: 700 }}>✓ configured</span>
+              )}
+            </label>
+            <input
+              type={f.sensitive ? "password" : "text"}
+              placeholder={f.placeholder}
+              value={form[f.key] ?? ""}
+              onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+              style={inputStyle}
+              autoComplete="off"
+            />
+            {f.hint && (
+              <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", marginTop: "5px", lineHeight: 1.5 }}>
+                {f.hint}
+              </p>
+            )}
+          </div>
+        ))}
+        {error && <p style={{ fontSize: "12px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif" }}>{error}</p>}
+        {saved && <p style={{ fontSize: "12px", color: "#2d6e2d", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.08em" }}>✓ Saved successfully</p>}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{ ...btn, backgroundColor: "#1e1814", color: "#fff", padding: "12px", opacity: saving ? 0.6 : 1 }}
+        >
+          {saving ? "Saving…" : "Save Changes"}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -1091,6 +1352,7 @@ function DiscountsTab({ token, onAuth }: { token: string; onAuth?: (t: string | 
   const methodLabel = (m: string | null) => {
     if (!m) return "—";
     if (m === "cod") return "COD";
+    if (m === "card") return "Card";
     if (m === "instapay") return "InstaPay";
     return m;
   };
@@ -1410,7 +1672,7 @@ function useAuth() {
 
 export function AdminPage() {
   const { token, setToken, logout } = useAuth();
-  const [tab, setTab] = useState<"analytics" | "proofs" | "abandoned" | "discounts">("analytics");
+  const [tab, setTab] = useState<"analytics" | "proofs" | "transactions" | "abandoned" | "discounts" | "settings">("analytics");
 
   if (!token) {
     return <PinGate onAuth={setToken} />;
@@ -1435,7 +1697,7 @@ export function AdminPage() {
 
       {/* Tabs */}
       <div style={{ borderBottom: "1px solid rgba(30,24,20,0.16)", backgroundColor: "#fff", paddingLeft: 24, overflowX: "auto", whiteSpace: "nowrap" }}>
-        {(["analytics", "proofs", "abandoned", "discounts"] as const).map((t) => (
+        {(["analytics", "proofs", "transactions", "abandoned", "discounts", "settings"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1450,7 +1712,7 @@ export function AdminPage() {
               borderRadius: 0,
             }}
           >
-            {t === "analytics" ? "Analytics" : t === "proofs" ? "InstaPay" : t === "abandoned" ? "Abandoned Carts" : "Discounts"}
+            {t === "analytics" ? "Analytics" : t === "proofs" ? "InstaPay" : t === "transactions" ? "Transactions" : t === "abandoned" ? "Abandoned Carts" : t === "discounts" ? "Discounts" : "Settings"}
           </button>
         ))}
       </div>
@@ -1466,13 +1728,21 @@ export function AdminPage() {
             <motion.div key="proofs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <ProofsTab token={token} onAuth={setToken} />
             </motion.div>
+          ) : tab === "transactions" ? (
+            <motion.div key="transactions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <TransactionsTab token={token} onAuth={setToken} />
+            </motion.div>
           ) : tab === "abandoned" ? (
             <motion.div key="abandoned" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <AbandonedCartsTab token={token} onAuth={setToken} />
             </motion.div>
-          ) : (
+          ) : tab === "discounts" ? (
             <motion.div key="discounts" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <DiscountsTab token={token} onAuth={setToken} />
+            </motion.div>
+          ) : (
+            <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <SettingsTab token={token} onAuth={setToken} />
             </motion.div>
           )}
         </AnimatePresence>

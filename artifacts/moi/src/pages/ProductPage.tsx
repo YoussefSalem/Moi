@@ -14,6 +14,8 @@ import { trackAddToCart } from "@/lib/analytics";
 import { trackViewContent } from "@/lib/metaPixel";
 import { trackTikTokViewContent } from "@/lib/tiktokPixel";
 import { getStockCount } from "@/lib/stock";
+import { ENABLE_APPLE_PAY } from "@/config/features";
+import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
 
 function slugify(str: string): string {
   return str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -447,7 +449,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               </h1>
 
               {/* Stock count */}
-              {stockCount && !isOutOfStock && (
+              {stockCount && (
                 <div className="mb-2" style={{ marginTop: -2 }}>
                   <span
                     style={{
@@ -707,6 +709,25 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     Buy It Now
                   </motion.button>
 
+                  {/* Apple Pay quick-buy — opens Shopify checkout popup where Apple Pay is handled natively */}
+                  {ENABLE_APPLE_PAY && (
+                    <ShopifyApplePayButton
+                      variantId={selectedVariant?.id ?? product.variantId ?? ""}
+                      quantity={1}
+                      priceEGP={parseEGP(String(effectivePrice)) || 0}
+                      disabled={isOutOfStock}
+                      style={{ width: "100%" }}
+                      onSuccess={(orderNumber, total) => {
+                        toast.success(
+                          `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
+                          { duration: 5000 },
+                        );
+                      }}
+                      onError={(msg) => {
+                        toast.error(msg, { duration: 4000 });
+                      }}
+                    />
+                  )}
                 </div>
               )}
 
