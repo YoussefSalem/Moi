@@ -33,10 +33,10 @@ jobs:
             ${{ runner.os }}-
 
       - name: Install dependencies
-        working-directory: ./moi
+        working-directory: .
         run: npm ci
 
       - name: Build and Publish to Oxygen
-        run: npx shopify hydrogen deploy --path ./moi
+        run: npx shopify hydrogen deploy 
         env:
           SHOPIFY_HYDROGEN_DEPLOYMENT_TOKEN: ${{ secrets.OXYGEN_DEPLOYMENT_TOKEN_1000144846 }}
