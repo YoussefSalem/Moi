@@ -1,0 +1,37 @@
+name: Storefront 1000145628
+on: [push]
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: Deploy to Oxygen
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Install pnpm first so it is available
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      # 2. Setup Node.js without strict automatic cache lookups
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          check-latest: true
+
+      # 3. Force installation to bypass isolated Replit development catalogs
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile --ignore-workspace
+
+      # 4. Build and publish your exact code straight to your Shopify store
+      - name: Build and Publish to Oxygen
+        run: pnpm exec shopify hydrogen deploy
+        env:
+          SHOPIFY_HYDROGEN_DEPLOYMENT_TOKEN: ${{ secrets.OXYGEN_DEPLOYMENT_TOKEN_1000145628 }}
