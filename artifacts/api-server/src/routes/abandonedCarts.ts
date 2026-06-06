@@ -41,9 +41,16 @@ router.post("/abandoned-carts/start", async (req, res) => {
   }
 
   try {
+    const safeEmail = email.trim().toLowerCase();
+    // Cancel any previous "started" carts for this email so stale recovery
+    // emails are never sent if the customer comes back and starts over.
+    await db.update(abandonedCarts)
+      .set({ status: "cancelled", updatedAt: new Date() })
+      .where(and(eq(abandonedCarts.email, safeEmail), eq(abandonedCarts.status, "started")));
+
     const token = generateRecoveryToken();
     const [row] = await db.insert(abandonedCarts).values({
-      email: email.trim().toLowerCase(),
+      email: safeEmail,
       cartId: cartId ?? null,
       originalCartId: cartId ?? null,
       lineItems,

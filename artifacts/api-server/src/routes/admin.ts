@@ -946,6 +946,21 @@ router.post("/admin/abandoned-carts/:id/send-now", requireAdminAuth, async (req,
   }
 });
 
+// DELETE /admin/abandoned-carts/:id
+router.delete("/admin/abandoned-carts/:id", requireAdminAuth, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  try {
+    const deleted = await db.delete(abandonedCarts).where(eq(abandonedCarts.id, id)).returning({ id: abandonedCarts.id });
+    if (deleted.length === 0) { res.status(404).json({ error: "Cart not found" }); return; }
+    req.log.info({ id }, "abandoned-cart: deleted by admin");
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    req.log.error({ err, id }, "abandoned-cart: delete failed");
+    res.status(500).json({ error: "Failed to delete" });
+  }
+});
+
 // GET /admin/paymob-config
 router.get("/admin/paymob-config", (_req, res) => {
   res.status(200).json(getMaskedConfig());

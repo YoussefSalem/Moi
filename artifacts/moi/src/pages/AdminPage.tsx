@@ -1487,6 +1487,8 @@ function AbandonedCartsTab({ token, onAuth }: { token: string; onAuth?: (t: stri
     email_sent: { bg: "rgba(60,100,140,0.12)", text: "#2d5a7e" },
     clicked: { bg: "rgba(60,120,60,0.12)", text: "#2d6e2d" },
     recovered: { bg: "rgba(60,120,60,0.12)", text: "#2d6e2d" },
+    cancelled: { bg: "rgba(150,150,150,0.12)", text: "#777" },
+    failed: { bg: "rgba(180,60,40,0.10)", text: "#a03020" },
   };
 
   const formatDate = (d: string | null) => d
@@ -1607,7 +1609,7 @@ function AbandonedCartsTab({ token, onAuth }: { token: string; onAuth?: (t: stri
                       <tr key={item.id} style={{ borderBottom: i < items.length - 1 ? "1px solid rgba(30,24,20,0.05)" : "none" }}>
                         <td style={{ ...mono, fontSize: 14, color: "#1e1814", padding: "10px 14px", whiteSpace: "nowrap" }}>{item.email}</td>
                         <td style={{ ...mono, fontSize: 14, color: "rgba(30,24,20,0.7)", padding: "10px 14px", whiteSpace: "nowrap" }}>{item.lineItemsCount}</td>
-                        <td style={{ ...mono, fontSize: 14, color: "#1e1814", fontWeight: 600, padding: "10px 14px", whiteSpace: "nowrap" }}>{item.totalAmount}&nbsp;EGP</td>
+                        <td style={{ ...mono, fontSize: 14, color: "#1e1814", fontWeight: 600, padding: "10px 14px", whiteSpace: "nowrap" }}>{item.totalAmount}</td>
                         <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
                           <span style={{ ...mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px", backgroundColor: sc.bg, color: sc.text }}>
                             {item.status.replace("_", " ")}
@@ -1630,22 +1632,38 @@ function AbandonedCartsTab({ token, onAuth }: { token: string; onAuth?: (t: stri
                           {!isRecovered && formatDate(item.recoveredAt)}
                         </td>
                         <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                          {item.status === "started" && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            {item.status === "started" && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/admin/abandoned-carts/${item.id}/send-now`, { method: "POST", headers: apiHeaders(token) });
+                                    const data = await res.json() as { ok?: boolean; error?: string; recoveryUrl?: string };
+                                    if (!res.ok || data.error) { setError(data.error ?? "Failed to send"); return; }
+                                    alert(`Email sent to ${item.email}\nRecovery link: ${data.recoveryUrl ?? ""}`);
+                                    void load();
+                                  } catch { setError("Network error sending email."); }
+                                }}
+                                style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)", fontSize: 10, padding: "4px 8px" }}
+                              >
+                                Send Now
+                              </button>
+                            )}
                             <button
+                              title="Delete"
                               onClick={async () => {
+                                if (!window.confirm(`Delete abandoned cart for ${item.email}?`)) return;
                                 try {
-                                  const res = await fetch(`/api/admin/abandoned-carts/${item.id}/send-now`, { method: "POST", headers: apiHeaders(token) });
-                                  const data = await res.json() as { ok?: boolean; error?: string; recoveryUrl?: string };
-                                  if (!res.ok || data.error) { setError(data.error ?? "Failed to send"); return; }
-                                  alert(`Email sent to ${item.email}\nRecovery link: ${data.recoveryUrl ?? ""}`);
+                                  const res = await fetch(`/api/admin/abandoned-carts/${item.id}`, { method: "DELETE", headers: apiHeaders(token) });
+                                  if (!res.ok) { const d = await res.json() as { error?: string }; setError(d.error ?? "Failed to delete"); return; }
                                   void load();
-                                } catch { setError("Network error sending email."); }
+                                } catch { setError("Network error deleting cart."); }
                               }}
-                              style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)", fontSize: 10, padding: "4px 8px" }}
+                              style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(180,40,40,0.25)", color: "#c0392b", fontSize: 10, padding: "4px 6px", display: "flex", alignItems: "center" }}
                             >
-                              Send Now
+                              <Trash2 size={12} />
                             </button>
-                          )}
+                          </div>
                         </td>
                       </tr>
                     );
