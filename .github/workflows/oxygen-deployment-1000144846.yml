@@ -33,6 +33,7 @@ jobs:
             ${{ runner.os }}-
 
       - name: Install dependencies
+        working-directory: .
         run: npm ci
 
       - name: Build and Publish to Oxygen
