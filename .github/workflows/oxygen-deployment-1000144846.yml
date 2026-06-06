@@ -34,7 +34,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: .
-        run: npm ci
+        run: ls && npm ci
 
       - name: Build and Publish to Oxygen
         run: npx shopify hydrogen deploy
