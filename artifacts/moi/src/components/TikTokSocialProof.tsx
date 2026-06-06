@@ -77,6 +77,14 @@ const videos: VideoItem[] = [
     embedUrl: "https://www.tiktok.com/embed/v2/7641637259661430024",
     type: "video",
   },
+  {
+    title: "Moi moment",
+    handle: "@dinaayman52",
+    profileUrl: "https://www.tiktok.com/@dinaayman52",
+    caption: "Another real look in Moi — styled and worn.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7648005799708544276",
+    type: "carousel",
+  },
 ];
 
 export function TikTokSocialProof() {
