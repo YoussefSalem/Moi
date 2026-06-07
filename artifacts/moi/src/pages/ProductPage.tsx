@@ -705,7 +705,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                   </motion.button>
 
                   {/* Apple Pay quick-buy */}
-                  {ENABLE_APPLE_PAY && (
+                  {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
                     <>
                     <div className="flex items-center gap-3">
                       <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
