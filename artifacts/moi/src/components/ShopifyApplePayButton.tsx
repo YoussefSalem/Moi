@@ -10,7 +10,7 @@ const BTN_CSS = `
     -apple-pay-button-style: black;
     display: block;
     width: 100%;
-    height: 54px;
+    height: 50px;
     border: none;
     cursor: pointer;
     border-radius: 0;
