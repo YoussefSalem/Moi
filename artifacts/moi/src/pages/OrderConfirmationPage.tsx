@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, MessageCircle, Check, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { ShoppingBag, MessageCircle } from "lucide-react";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import LIGHT_BLUE_IMG from "@/assets/images/light-blue.jpg";
 import CASHMERE_IMG from "@/assets/images/cashmere-main-new.jpg";
@@ -32,8 +32,6 @@ interface OrderConfirmationData {
 interface OrderConfirmationPageProps {
   data?: OrderConfirmationData;
   onContinueShopping: () => void;
-  onTryAgain?: () => void;
-  paymentStatus?: "success" | "failed";
 }
 
 function fmt(n: number) {
@@ -180,20 +178,12 @@ function GoldShimmer() {
   );
 }
 
-export function OrderConfirmationPage({ data: propData, onContinueShopping, onTryAgain, paymentStatus }: OrderConfirmationPageProps) {
+export function OrderConfirmationPage({ data: propData, onContinueShopping }: OrderConfirmationPageProps) {
   const [data, setData] = useState<OrderConfirmationData | null>(propData ?? null);
   const [shopifyOrderNumber, setShopifyOrderNumber] = useState<number | string | null>(null);
   const [isDemo, setIsDemo] = useState(false);
   const [imagesReady, setImagesReady] = useState(false);
-  const [overlayVisible, setOverlayVisible] = useState(!!paymentStatus);
   const syncCalledRef = useRef(false);
-
-  // Auto-dismiss the status overlay after 1.4s
-  useEffect(() => {
-    if (!paymentStatus) return;
-    const t = setTimeout(() => setOverlayVisible(false), 1400);
-    return () => clearTimeout(t);
-  }, [paymentStatus]);
 
   useEffect(() => {
     if (propData) {
@@ -230,15 +220,9 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping, onTr
             : { subtotal: 0, savings: 0, shippingCost: 0, freeShipping: false };
           setData({ items: parsedItems, breakdown: parsedBreakdown, paymentMethod: methodRaw, intentId: intentIdFromUrl });
         } catch {
-          if (paymentStatus === "failed") {
-            setData({ items: [], breakdown: { subtotal: 0, savings: 0, shippingCost: 0, freeShipping: false }, paymentMethod: "card" });
-          } else {
-            setData(DEMO_DATA);
-            setIsDemo(true);
-          }
+          setData(DEMO_DATA);
+          setIsDemo(true);
         }
-      } else if (paymentStatus === "failed") {
-        setData({ items: [], breakdown: { subtotal: 0, savings: 0, shippingCost: 0, freeShipping: false }, paymentMethod: "card" });
       } else {
         setData(DEMO_DATA);
         setIsDemo(true);
@@ -250,7 +234,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping, onTr
      "moi_paymob_intent_id", "moi_checkout_form", "moi_paymob_result"].forEach((k) => {
       try { sessionStorage.removeItem(k); } catch { /* ignore */ }
     });
-  }, [propData, paymentStatus]);
+  }, [propData]);
 
   // Preload all product images before revealing the page
   useEffect(() => {
@@ -341,127 +325,10 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping, onTr
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#faf8f5", overflowX: "hidden" }}>
 
-      {/* Brief payment status overlay — auto-dismisses after 1.4s */}
-      <AnimatePresence>
-        {overlayVisible && paymentStatus && (
-          <motion.div
-            key="status-overlay"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.55, ease: [0.25, 0.1, 0.25, 1] }}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 400,
-              backgroundColor: "#faf8f5",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 20,
-            }}
-          >
-            <motion.div
-              initial={{ scale: 0.7, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: "50%",
-                backgroundColor: paymentStatus === "success"
-                  ? "rgba(47,102,68,0.1)"
-                  : "rgba(180,60,40,0.08)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {paymentStatus === "success"
-                ? <Check size={32} strokeWidth={1.8} style={{ color: "#2f6644" }} />
-                : <X size={32} strokeWidth={1.8} style={{ color: "#b43c28" }} />
-              }
-            </motion.div>
-            <motion.p
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.18, duration: 0.4 }}
-              style={{
-                fontFamily: "'Montserrat', sans-serif",
-                fontSize: "11px",
-                letterSpacing: "0.38em",
-                textTransform: "uppercase",
-                color: paymentStatus === "success" ? "rgba(47,102,68,0.85)" : "rgba(180,60,40,0.85)",
-              }}
-            >
-              {paymentStatus === "success" ? "Payment Confirmed" : "Payment Declined"}
-            </motion.p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <LoadingScreen ready={pageReady} />
+      <GoldShimmer />
 
-      {/* Failed payment state */}
-      {paymentStatus === "failed" && !overlayVisible && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-          style={{
-            minHeight: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "40px 24px",
-          }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", maxWidth: 380, width: "100%" }}>
-            <div style={{
-              width: 64,
-              height: 64,
-              borderRadius: "50%",
-              backgroundColor: "rgba(180,60,40,0.08)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 28,
-            }}>
-              <X size={28} strokeWidth={1.8} style={{ color: "#b43c28" }} />
-            </div>
-            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "11px", letterSpacing: "0.34em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", marginBottom: 10 }}>
-              Payment Unsuccessful
-            </p>
-            <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "38px", fontWeight: 700, color: "#1e1814", marginBottom: 14, lineHeight: 1.1 }}>
-              Payment Failed.
-            </h1>
-            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "14px", color: "rgba(30,24,20,0.62)", lineHeight: 1.75, maxWidth: 300, marginBottom: 40 }}>
-              Your payment could not be processed. Please try again or choose a different method.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
-              <button
-                onClick={onTryAgain}
-                style={{ width: "100%", padding: "16px 24px", backgroundColor: "#1e1814", color: "#faf8f5", fontFamily: "'Montserrat', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.28em", textTransform: "uppercase", border: "none", cursor: "pointer" }}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.82"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-              >
-                Try Again
-              </button>
-              <button
-                onClick={handleContinue}
-                style={{ width: "100%", padding: "15px 24px", backgroundColor: "transparent", color: "rgba(30,24,20,0.54)", fontFamily: "'Montserrat', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.28em", textTransform: "uppercase", border: "1px solid transparent", cursor: "pointer" }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = "#1e1814"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(30,24,20,0.54)"; }}
-              >
-                Continue Shopping
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      )}
-      {paymentStatus !== "failed" && <LoadingScreen ready={pageReady} />}
-      {paymentStatus !== "failed" && <GoldShimmer />}
-
-      {paymentStatus !== "failed" && isDemo && (
+      {isDemo && (
         <div style={{
           position: "fixed",
           top: 10,
@@ -482,7 +349,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping, onTr
         </div>
       )}
 
-      {paymentStatus !== "failed" && <motion.div
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
@@ -749,7 +616,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping, onTr
             Contact Support
           </button>
         </motion.div>
-      </motion.div>}
+      </motion.div>
     </div>
   );
 }
