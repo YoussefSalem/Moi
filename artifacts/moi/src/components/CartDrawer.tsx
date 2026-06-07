@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, ShoppingBag, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -212,6 +212,18 @@ export function CartDrawer() {
 
   const hasItems = (isShopify && (shopifyCart?.lines.nodes.length ?? 0) > 0) || localItems.length > 0;
 
+  // Keep the list mounted for 250ms after the last item is removed so the
+  // exit animation can finish before the empty state takes over.
+  const [visuallyHasItems, setVisuallyHasItems] = useState(hasItems);
+  useEffect(() => {
+    if (hasItems) {
+      setVisuallyHasItems(true);
+      return;
+    }
+    const t = setTimeout(() => setVisuallyHasItems(false), 260);
+    return () => clearTimeout(t);
+  }, [hasItems]);
+
   return (
     <AnimatePresence>
       {cartOpen && (
@@ -288,7 +300,7 @@ export function CartDrawer() {
 
             {/* Items */}
             <div className="flex-1 overflow-y-auto px-7 py-6">
-              {!hasItems ? (
+              {!visuallyHasItems ? (
                 <div className="flex flex-col items-center justify-center h-full gap-5 text-center">
                   <ShoppingBag size={36} strokeWidth={1} style={{ color: "rgba(30,24,20,0.2)" }} />
                   <p
@@ -332,9 +344,8 @@ export function CartDrawer() {
                     ? shopifyCart.lines.nodes.map((line) => (
                         <motion.li
                           key={line.id}
-                          layout
                           initial={false}
-                          exit={{ opacity: 0, x: 40, transition: { duration: 0.22, ease: "easeIn" } }}
+                          exit={{ opacity: 0, x: 32, transition: { duration: 0.2, ease: "easeIn" } }}
                           className="flex gap-4"
                           style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
                         >
@@ -413,9 +424,8 @@ export function CartDrawer() {
                     : localItems.map((item) => (
                         <motion.li
                           key={item.id}
-                          layout
                           initial={false}
-                          exit={{ opacity: 0, x: 40, transition: { duration: 0.22, ease: "easeIn" } }}
+                          exit={{ opacity: 0, x: 32, transition: { duration: 0.2, ease: "easeIn" } }}
                           className="flex gap-4"
                           style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
                         >
