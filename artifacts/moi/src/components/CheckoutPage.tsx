@@ -2099,8 +2099,16 @@ export function CheckoutPage() {
                             zIndex: selected ? 1 : 0,
                           }}
                         >
-                          <div style={{ fontSize: "17px", marginBottom: "5px" }}>
-                            {m === "cod" ? "🚚" : m === "instapay" ? "📱" : m === "wallet" ? "🏦" : "💳"}
+                          <div style={{ fontSize: "17px", marginBottom: "5px", display: "flex", alignItems: "center" }}>
+                            {m === "wallet" ? (
+                              <svg width="20" height="18" viewBox="0 0 20 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="0.75" y="4.75" width="18.5" height="12.5" rx="2.25" stroke="#1e1814" strokeWidth="1.3"/>
+                                <path d="M0.75 8.25H19.25" stroke="#1e1814" strokeWidth="1.3" strokeLinecap="round"/>
+                                <path d="M1 6C1 4.34 2.34 3 4 3H16C17.66 3 19 4.34 19 6" stroke="#1e1814" strokeWidth="1.3" strokeLinecap="round"/>
+                                <rect x="12.5" y="10.5" width="5.5" height="3.5" rx="1.1" fill="rgba(30,24,20,0.13)" stroke="#1e1814" strokeWidth="1.1"/>
+                                <circle cx="14.25" cy="12.25" r="0.7" fill="#1e1814"/>
+                              </svg>
+                            ) : m === "cod" ? "🚚" : m === "instapay" ? "📱" : "💳"}
                           </div>
                           <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
                             {m === "cod" ? "Cash on Delivery" : m === "instapay" ? "InstaPay" : m === "wallet" ? "Mobile Wallet" : "Credit / Debit Card"}
