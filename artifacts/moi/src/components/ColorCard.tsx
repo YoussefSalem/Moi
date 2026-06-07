@@ -55,6 +55,21 @@ export function ColorCard({
     : [image, ...(hoverImage ? [hoverImage] : [])]
   ).filter(Boolean);
 
+  // Deterministic scarcity — same hash logic as ProductCard so numbers never change on refresh
+  const scarcityCount = (() => {
+    let h = 0;
+    for (let i = 0; i < handle.length; i++) {
+      h = Math.imul(31, h) + handle.charCodeAt(i) | 0;
+    }
+    const buckets = [1, 2, 2, 3, 3, 3, 4, 4, 5];
+    return buckets[Math.abs(h) % buckets.length];
+  })();
+
+  const isSellingFast =
+    !outOfStock &&
+    handle.startsWith("moi-wavvy") &&
+    colorName.toLowerCase().replace(/\s+/g, "-").includes("light");
+
   function swipeBy(dir: 1 | -1) {
     setMobileIndex(i => (i + dir + allImages.length) % allImages.length);
   }
@@ -365,6 +380,38 @@ export function ColorCard({
               {price}
             </span>
           </div>
+
+          {/* Scarcity / urgency signals */}
+          {isSellingFast && (
+            <p
+              style={{
+                color: "#c83232",
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: "11px",
+                letterSpacing: "0.18em",
+                fontWeight: 500,
+                textShadow: "0 0 12px rgba(158,42,43,0.12)",
+                margin: 0,
+              }}
+            >
+              Selling Fast
+            </p>
+          )}
+          {!outOfStock && !isSellingFast && (
+            <p
+              style={{
+                color: "#c83232",
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: "11px",
+                letterSpacing: "0.18em",
+                fontWeight: 500,
+                textShadow: "0 0 12px rgba(158,42,43,0.12)",
+                margin: 0,
+              }}
+            >
+              Only {scarcityCount} left
+            </p>
+          )}
 
           {outOfStock ? (
             <button
