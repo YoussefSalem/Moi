@@ -2044,14 +2044,12 @@ export function CheckoutPage() {
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-8" style={{ alignItems: "start" }}>
                   {AVAILABLE_PAYMENT_METHODS.filter((m) => m !== "apple-pay").map((m) => {
-                    const isCard = m === "card";
                     const selected = paymentMethod === m;
                     return (
                       <div key={m} style={{ position: "relative" }}>
                         <button
-                          onClick={isCard ? undefined : () => setPaymentMethod(m)}
+                          onClick={() => setPaymentMethod(m)}
                           className="text-left w-full"
-                          disabled={isCard}
                           style={{
                             padding: "18px 14px",
                             height: "112px",
@@ -2060,10 +2058,6 @@ export function CheckoutPage() {
                             justifyContent: "center",
                             border: selected ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.15)",
                             backgroundColor: selected ? "rgba(30,24,20,0.04)" : "transparent",
-                            opacity: isCard ? 0.38 : 1,
-                            cursor: isCard ? "default" : "pointer",
-                            pointerEvents: isCard ? "none" : "auto",
-                            filter: isCard ? "grayscale(1)" : "none",
                             width: "100%",
                             transform: selected ? "scale(1.05)" : "scale(1)",
                             boxShadow: selected ? "0 2px 12px rgba(30,24,20,0.10)" : "none",
@@ -2081,11 +2075,6 @@ export function CheckoutPage() {
                             {m === "cod" ? "Pay on arrival" : m === "instapay" ? "Bank transfer" : "Visa · Mastercard"}
                           </p>
                         </button>
-                        {isCard && (
-                          <p style={{ marginTop: "6px", fontSize: "12px", fontFamily: "cursive", color: "rgba(30,24,20,0.55)", lineHeight: 1.3, textAlign: "center" }}>
-                            Soon isA 💗
-                          </p>
-                        )}
                       </div>
                     );
                   })}
