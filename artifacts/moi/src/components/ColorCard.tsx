@@ -231,7 +231,7 @@ export function ColorCard({
               WebkitTouchCallout: "none",
             } as React.CSSProperties}
           >
-            <ImageSkeleton variant="card" className="z-0" borderRadius={8} />
+            {!imgLoaded && <ImageSkeleton variant="card" className="z-0" borderRadius={8} />}
             <AnimatePresence initial={false} mode="sync">
               <motion.img
                 key={mobileIndex}

@@ -127,35 +127,37 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     });
   }, [handle]);
 
-  const sizeOption = product.variants
-    ? (() => {
-        const opt = product.variants[0]?.selectedOptions.find(
-          (o) => o.name.toLowerCase() === "size" || o.name.toLowerCase() === "titre",
-        );
-        if (!opt) return null;
-        const vals = [
-          ...new Set(
-            product.variants.map(
-              (v) => v.selectedOptions.find((o) => o.name.toLowerCase() === opt.name.toLowerCase())?.value,
-            ).filter(Boolean),
-          ),
-        ] as string[];
-        return { optionName: opt.name, values: vals };
-      })()
-    : null;
+  const sizeOption = useMemo(() => {
+    if (!product.variants) return null;
+    const opt = product.variants[0]?.selectedOptions.find(
+      (o) => o.name.toLowerCase() === "size" || o.name.toLowerCase() === "titre",
+    );
+    if (!opt) return null;
+    const vals = [
+      ...new Set(
+        product.variants.map(
+          (v) => v.selectedOptions.find((o) => o.name.toLowerCase() === opt.name.toLowerCase())?.value,
+        ).filter(Boolean),
+      ),
+    ] as string[];
+    return { optionName: opt.name, values: vals };
+  }, [product.variants]);
 
-  const displaySizes = sizeOption?.values.filter(
-    (s) => !["one size", "os", "default title", "one-size"].includes(s.toLowerCase()),
-  ) ?? [];
+  const displaySizes = useMemo(
+    () => sizeOption?.values.filter(
+      (s) => !["one size", "os", "default title", "one-size"].includes(s.toLowerCase()),
+    ) ?? [],
+    [sizeOption],
+  );
 
   const [selectedSize, setSelectedSize] = useState(() => displaySizes[0] ?? "");
   useEffect(() => { if (displaySizes[0]) setSelectedSize(displaySizes[0]); }, [product.slug]);
 
-  const galleryImages: string[] = (() => {
+  const galleryImages = useMemo<string[]>(() => {
     const film = product.filmstrip as string[];
     const raw = film?.length > 0 ? [product.productShot, ...film] : [product.productShot];
     return Array.from(new Set(raw));
-  })();
+  }, [product.productShot, product.filmstrip]);
 
   useEffect(() => { setThumbLoaded(new Array(galleryImages.length).fill(false)); }, [galleryImages.length, handle]);
 

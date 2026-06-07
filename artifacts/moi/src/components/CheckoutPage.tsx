@@ -6,36 +6,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED, cartBuyerIdentityUpdate } from "@/lib/shopify";
-import { IMAGES } from "@/config/images";
 import { parseEGP } from "@/lib/price";
 import { trackTikTokPurchase } from "@/lib/tiktokPixel";
 import { trackShopifyPurchase } from "@/lib/shopifyAnalytics";
 import { getAttribution } from "@/lib/adAttribution";
 import { trackCheckoutStep, trackCheckoutStepTime } from "@/lib/analytics";
 import type { ShopifyCartLine } from "@/lib/shopify";
-
-const PRODUCT_COLOR_MAP: Record<string, string> = {};
-const PRODUCT_SHOT_MAP: Record<string, string> = {};
-
-for (const cfg of Object.values(IMAGES)) {
-  if (!("name" in cfg) || !cfg.name) continue;
-  const rawNames = [cfg.name, ...("shopifyTitle" in cfg && cfg.shopifyTitle ? [cfg.shopifyTitle as string] : [])];
-  const names = rawNames.flatMap((n) => [n.toLowerCase(), n.toLowerCase().replace(/\./g, "").trim()]);
-  if ("productShot" in cfg && cfg.productShot) {
-    for (const n of names) PRODUCT_SHOT_MAP[n] = cfg.productShot;
-  }
-  if ("colorImages" in cfg && cfg.colorImages) {
-    for (const [color, url] of Object.entries(cfg.colorImages as Record<string, string>)) {
-      for (const n of names) {
-        PRODUCT_COLOR_MAP[`${n}::${color.toLowerCase()}`] = url;
-      }
-    }
-  }
-}
-
-function normalizeTitle(t: string) {
-  return t.toLowerCase().replace(/\./g, "").trim();
-}
+import { resolveLineImage, normalizeTitle } from "@/lib/productImages";
 
 // Public image URLs for emails (Vite-hashed /assets/ paths only work in the browser)
 // Images served via the API server (/api/images/) so they are always available
@@ -52,46 +29,6 @@ const PUBLIC_COLOR_IMAGES: Record<string, string> = {
   mint:         `${BASE_IMG}/mint.jpg`,
   "light blue": `${BASE_IMG}/light-blue-main.webp`,
 };
-
-function resolveLineImage(line: ShopifyCartLine, localItems?: { variantId: string; color?: string; image?: string | null }[]): string | null {
-  const variantId = line.merchandise.id;
-  const localMatch = localItems?.find((li) => li.variantId === variantId);
-
-  const rawTitle = line.merchandise.product.title ?? "";
-  const normTitle = normalizeTitle(rawTitle);
-
-  // Size-like option names to skip when scanning for the color option
-  const SIZE_OPTION_NAMES = new Set(["size", "titre", "taille", "tamanho", "gr\u00f6\u00dfe"]);
-
-  // Candidate colors: local storage first (most reliable), then Shopify selectedOptions
-  const colorCandidates: string[] = [];
-  if (localMatch?.color) colorCandidates.push(localMatch.color.toLowerCase());
-  for (const opt of (line.merchandise.selectedOptions ?? [])) {
-    if (!SIZE_OPTION_NAMES.has(opt.name.toLowerCase())) {
-      colorCandidates.push(opt.value.toLowerCase());
-    }
-  }
-
-  // 1. Product + color map lookup (hashed bundle URL, always fresh)
-  for (const color of colorCandidates) {
-    const hit = PRODUCT_COLOR_MAP[`${normTitle}::${color}`]
-      ?? PRODUCT_COLOR_MAP[`${rawTitle.toLowerCase()}::${color}`];
-    if (hit) return hit;
-  }
-
-  // 2. Product-level shot
-  const productHit = PRODUCT_SHOT_MAP[normTitle] ?? PRODUCT_SHOT_MAP[rawTitle.toLowerCase()];
-  if (productHit) return productHit;
-
-  // 3. Shopify CDN image
-  if (line.merchandise.image?.url) return line.merchandise.image.url;
-  if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
-
-  // 4. Last resort: stale localStorage URL
-  if (localMatch?.image) return localMatch.image;
-
-  return null;
-}
 
 /** Convert any internal image URL to a public URL that works in emails. */
 function resolveEmailImage(line: ShopifyCartLine, localItems?: { variantId: string; color?: string; image?: string | null }[]): string | null {

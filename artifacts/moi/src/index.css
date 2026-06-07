@@ -68,10 +68,9 @@ header[class*="fixed"] {
   will-change: transform;
 }
 
-/* Sections containing heavy content: contain layout recalculations */
-section {
-  contain: layout style;
-}
+/* Do not apply a blanket `contain` rule on sections — it would clip
+   absolutely-positioned descendants and break z-index stacking for overlays.
+   Individual sections that need paint isolation should opt in explicitly. */
 
 @keyframes shimmer-sweep {
   0%   { background-position: -200% 0; }
@@ -356,6 +355,12 @@ section {
   0% { transform: translateX(-120%); }
   50% { transform: translateX(120%); }
   100% { transform: translateX(120%); }
+}
+
+/* ── WhatsApp button pulse animation ────────────────────────── */
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.2); }
 }
 
 /* ── Apple Pay button — single canonical source ──────────────── */

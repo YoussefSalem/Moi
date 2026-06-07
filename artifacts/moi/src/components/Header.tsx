@@ -153,14 +153,6 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
                   </motion.span>
                 )}
               </AnimatePresence>
-              {itemCount === 0 && (
-                <span
-                  className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full text-[9px] font-medium flex items-center justify-center"
-                  style={{ backgroundColor: iconColor, color: iconColor === "#fff" ? "#1e1814" : "#fff" }}
-                >
-                  0
-                </span>
-              )}
             </button>
           </div>
         </div>

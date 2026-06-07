@@ -1,3 +1,4 @@
+// @refresh reset
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   type ShopifyCart,
@@ -90,7 +91,11 @@ interface CartContextValue {
   isShopify: boolean;
 }
 
-export const CartContext = createContext<CartContextValue | null>(null);
+// CartContext is intentionally NOT exported — consumers must use `useCart()`.
+// Keeping it unexported prevents Fast Refresh from treating this file as
+// "mixed exports" (components + non-component values) which would force a
+// full page remount on every hot update instead of a component-level refresh.
+const CartContext = createContext<CartContextValue | null>(null);
 
 function loadLocalCart(): LocalCartItem[] {
   try {
@@ -133,6 +138,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const initRef = useRef(false);
   const checkoutInitRef = useRef(false);
+
+  // Keep localItemsRef in sync each render — async closures (removeItem rollback)
+  // read this instead of capturing a potentially-stale closure over localItems.
+  const localItemsRef = useRef(localItems);
+  localItemsRef.current = localItems;
 
   // Per-item in-flight guard: prevents stacked network calls from rapid taps.
   // Key is the item id (local composite key) or Shopify line GID.
@@ -390,7 +400,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // ── Optimistic removal — update state IMMEDIATELY so the exit animation
     // plays right away instead of freezing for ~1s waiting on the network. ──
     const prevCart = shopifyCartRef.current;
-    const prevLocal = localItems;
+    const prevLocal = localItemsRef.current;
 
     if (SHOPIFY_CONFIGURED && shopifyCartRef.current) {
       // Build an optimistic cart with the line removed
@@ -431,7 +441,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return updated;
     });
     updatingRef.current.delete(idOrLineId);
-  }, [shopifyCart, localItems, setCart]);
+  }, [setCart]);
 
   const updateQuantity = useCallback(async (idOrLineId: string, quantity: number) => {
     if (quantity <= 0) { await removeItem(idOrLineId); return; }
@@ -442,9 +452,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     updatingRef.current.set(idOrLineId, true);
     setLoading(true);
     try {
-      if (SHOPIFY_CONFIGURED && shopifyCart) {
+      if (SHOPIFY_CONFIGURED && shopifyCartRef.current) {
         try {
-          const updated = await updateCartLines(shopifyCart.id, [{ id: idOrLineId, quantity }]);
+          const updated = await updateCartLines(shopifyCartRef.current.id, [{ id: idOrLineId, quantity }]);
           setCart(updated);
           // When Shopify is active, idOrLineId is a Shopify CartLine GID, NOT the local
           // composite key. Derive the affected variantId from the updated Shopify cart
@@ -475,7 +485,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       updatingRef.current.delete(idOrLineId);
       setLoading(false);
     }
-  }, [shopifyCart, removeItem]);
+  }, [removeItem]);
 
   const applyDiscount = useCallback(async (code: string): Promise<{ applicable: boolean; code: string; discountAmount: number }> => {
     if (!SHOPIFY_CONFIGURED) throw new Error("Shopify not configured");

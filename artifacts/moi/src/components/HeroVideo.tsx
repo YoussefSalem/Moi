@@ -51,18 +51,27 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
     if (!video) return;
     video.muted = true;
     video.playsInline = true;
+    let cancelled = false;
     const play = async () => {
       try { await video.play(); }
-      catch { setVideoFailed(true); setLoaded(true); }
+      catch { if (!cancelled) { setVideoFailed(true); setLoaded(true); } }
     };
+    const handleCanPlay = () => { if (!cancelled) { setLoaded(true); play(); } };
+    const handleError = () => { if (!cancelled) { setVideoFailed(true); setLoaded(true); } };
     if (video.readyState >= 3) {
       setLoaded(true);
       play();
     } else {
-      video.oncanplay = () => { setLoaded(true); play(); };
-      video.onerror = () => { setVideoFailed(true); setLoaded(true); };
+      video.addEventListener("canplay", handleCanPlay, { once: true });
+      video.addEventListener("error", handleError, { once: true });
     }
-  }, [onReady]);
+    return () => {
+      cancelled = true;
+      video.removeEventListener("canplay", handleCanPlay);
+      video.removeEventListener("error", handleError);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <section

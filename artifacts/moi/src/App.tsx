@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
 import { parseEGP } from "@/lib/price";
@@ -104,6 +104,8 @@ function AppContent() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [heroReady, setHeroReady] = useState(false);
+  // Stable callback reference so HeroVideo's useEffect doesn't re-run on every render.
+  const handleHeroReady = useCallback(() => setHeroReady(true), []);
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
   // Scroll restoration: save position before navigating to a product, restore on back
   const savedScrollRef = useRef(0);
@@ -363,7 +365,7 @@ function AppContent() {
             </div>
           ) : page === "home" ? (
             <main>
-              <HeroVideo onReady={() => setHeroReady(true)} />
+              <HeroVideo onReady={handleHeroReady} />
 
               {/* Trust bar — 3 conversion points, minimal style */}
               <div

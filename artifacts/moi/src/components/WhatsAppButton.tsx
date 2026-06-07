@@ -3,13 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send } from "lucide-react";
 import { trackChatInteraction } from "@/lib/analytics";
 
-const PULSE_CSS = `
-@keyframes pulse-green {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.2); }
-}
-`;
-
 const WHATSAPP_NUMBER = "201200520083";
 const WHATSAPP_MESSAGE = "Hi, I have a question about this product";
 
@@ -76,7 +69,6 @@ export function WhatsAppButton() {
 
   return (
     <>
-      <style>{PULSE_CSS}</style>
       <div style={{ position: "fixed", bottom: "max(20px, env(safe-area-inset-bottom) + 4px)", right: "max(20px, env(safe-area-inset-right) + 4px)", zIndex: 50 }}>
       <AnimatePresence>
         {open && (
