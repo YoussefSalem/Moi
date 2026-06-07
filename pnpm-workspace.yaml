@@ -6,6 +6,7 @@ packages:
 
 allowBuilds:
   esbuild: true
+  workerd: set this to true or false
 
 autoInstallPeers: false
 
@@ -127,4 +128,3 @@ overrides:
   rollup>@rollup/rollup-linux-x64-musl: '-'
   rollup>@rollup/rollup-openbsd-x64: '-'
   rollup>@rollup/rollup-openharmony-arm64: '-'
-
