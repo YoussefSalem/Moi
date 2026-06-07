@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
-import { createPaymobPaymentKey } from "../lib/paymob";
+import { createPaymobIntentionKey } from "../lib/paymob";
 import { fetchStorefrontCart, type OrderLine, type CustomerInfo, type OrderAttribution } from "../lib/shopifyOrder";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
@@ -118,18 +118,18 @@ router.post("/orders/paymob-init", async (req, res) => {
     checkoutToken,
   });
 
-  req.log.info({ intentId, amountCents, total }, "Paymob intent saved — creating legacy payment key");
+  req.log.info({ intentId, amountCents, total }, "Paymob intent saved — creating Unified Checkout intention");
 
   // Build callback and redirection URLs from the first configured domain.
-  // callback_url  = server-to-server transaction notification (POST from Paymob servers)
-  // redirection_url = where the browser/iframe navigates after payment completes
+  // notification_url = server-to-server transaction notification (POST from Paymob servers)
+  // redirection_url  = where the browser/iframe navigates after payment completes
   const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
   const callbackUrl = domain ? `https://${domain}/api/webhooks/paymob` : undefined;
   const redirectionUrl = domain ? `https://${domain}/paymob-relay.html` : undefined;
 
   let result: { iframeUrl: string };
   try {
-    result = await createPaymobPaymentKey({
+    result = await createPaymobIntentionKey({
       amountCents,
       merchantOrderId: intentId,
       customer: {
@@ -144,12 +144,12 @@ router.post("/orders/paymob-init", async (req, res) => {
       redirectionUrl,
     });
   } catch (err) {
-    req.log.error({ err, intentId }, "Paymob payment key creation failed");
+    req.log.error({ err, intentId }, "Paymob intention creation failed");
     res.status(500).json({ error: "Payment gateway unavailable. Please try again." });
     return;
   }
 
-  req.log.info({ intentId }, "Paymob legacy payment key created successfully");
+  req.log.info({ intentId }, "Paymob Unified Checkout intention created successfully");
 
   res.status(200).json({
     iframeUrl: result.iframeUrl,
