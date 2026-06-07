@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ShoppingBag, MessageCircle } from "lucide-react";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import LIGHT_BLUE_IMG from "@/assets/images/light-blue.jpg";
 import CASHMERE_IMG from "@/assets/images/cashmere-main-new.jpg";
 
@@ -181,6 +182,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
   const [data, setData] = useState<OrderConfirmationData | null>(propData ?? null);
   const [shopifyOrderNumber, setShopifyOrderNumber] = useState<number | string | null>(null);
   const [isDemo, setIsDemo] = useState(false);
+  const [imagesReady, setImagesReady] = useState(false);
   const syncCalledRef = useRef(false);
 
   useEffect(() => {
@@ -211,6 +213,24 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
       try { sessionStorage.removeItem(k); } catch { /* ignore */ }
     });
   }, [propData]);
+
+  // Preload all product images before revealing the page
+  useEffect(() => {
+    if (!data) return;
+    const srcs = data.items.map((i) => i.image).filter(Boolean) as string[];
+    if (srcs.length === 0) {
+      setImagesReady(true);
+      return;
+    }
+    let remaining = srcs.length;
+    const done = () => { remaining--; if (remaining <= 0) setImagesReady(true); };
+    srcs.forEach((src) => {
+      const img = new Image();
+      img.onload = done;
+      img.onerror = done; // don't block on broken images
+      img.src = src;
+    });
+  }, [data]);
 
   const intentId = data?.intentId ?? new URLSearchParams(window.location.search).get("intentId") ?? null;
   const txnId = new URLSearchParams(window.location.search).get("txnId") ?? undefined;
@@ -257,7 +277,9 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
     return () => { cancelled = true; };
   }, [intentId, shopifyOrderNumber]);
 
-  if (!data) return null;
+  const pageReady = data !== null && imagesReady;
+
+  if (!data) return <LoadingScreen ready={false} />;
 
   const { items, breakdown, paymentMethod } = data;
   const orderNum = shopifyOrderNumber ?? data.orderNumber;
@@ -271,26 +293,6 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
     onContinueShopping();
   };
 
-  const handleTrackOrder = () => {
-    // Navigate to order status when available
-    const orderStatusPath = "/order-status";
-    const exists = false; // Task #18 not yet live
-    if (exists) {
-      window.history.pushState(null, "", orderStatusPath);
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    } else {
-      import("sonner").then(({ toast }) => {
-        toast("Order tracking coming soon — we'll notify you via WhatsApp.", {
-          style: {
-            fontFamily: "'Montserrat', sans-serif",
-            fontSize: "12px",
-            letterSpacing: "0.06em",
-          },
-        });
-      }).catch(() => {});
-    }
-  };
-
   const handleContactSupport = () => {
     const whatsapp = "https://wa.me/201200520083";
     window.open(whatsapp, "_blank", "noopener,noreferrer");
@@ -300,6 +302,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#faf8f5", overflowX: "hidden" }}>
+      <LoadingScreen ready={pageReady} />
       <GoldShimmer />
 
       {isDemo && (
@@ -567,30 +570,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
             Continue Shopping
           </button>
 
-          {/* Track Order — secondary */}
-          <button
-            onClick={handleTrackOrder}
-            style={{
-              width: "100%",
-              padding: "16px 24px",
-              backgroundColor: "transparent",
-              border: "1px solid rgba(30,24,20,0.22)",
-              fontFamily: "'Montserrat', sans-serif",
-              fontSize: "11px",
-              fontWeight: 600,
-              letterSpacing: "0.28em",
-              textTransform: "uppercase",
-              color: "#1e1814",
-              cursor: "pointer",
-              transition: "opacity 0.2s ease",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.55"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-          >
-            Track Order
-          </button>
-
-          {/* Contact Support — tertiary text */}
+          {/* Contact Support — secondary text */}
           <button
             onClick={handleContactSupport}
             style={{
