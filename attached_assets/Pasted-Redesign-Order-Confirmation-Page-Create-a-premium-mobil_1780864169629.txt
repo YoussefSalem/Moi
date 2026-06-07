@@ -1,0 +1,109 @@
+Redesign Order Confirmation Page
+
+Create a premium, mobile-first Order Confirmation page that appears immediately after a successful order placement from any payment method:
+
+* Cash on Delivery (COD)
+* InstaPay
+* Card Payments
+* Mobile Wallets
+* Apple Pay
+
+Also create a standalone route:
+
+/ordermade
+
+so the page can be viewed and tested independently.
+
+Design Direction
+
+The page should feel luxurious, elegant, and premium, matching a high-end fashion brand.
+
+Avoid colorful party-style confetti.
+
+Instead, use a sophisticated celebration effect such as:
+
+* Gold shimmer particles
+* Luxury sparkle animation
+* Floating gold accents
+* Elegant light sweep effects
+* Premium fashion-brand style motion
+
+The animation should trigger automatically when the page loads.
+
+Layout
+
+Header Section
+
+Centered at the top:
+
+Order Confirmed
+
+or a more premium alternative such as:
+
+Your Order Has Been Reserved
+Thank You For Your Order
+You’re All Set
+
+Add a short message below:
+
+“Thank you for shopping with MOI. Your order has been successfully placed and is now being prepared.”
+
+Use a highly readable luxury-style font.
+
+Product Display
+
+The product section should be the visual focus of the page.
+
+Requirements:
+
+* Display product images in the highest available quality.
+* Images should be large and centered.
+* On mobile, optimize sizing so products remain prominent without excessive scrolling.
+* If there is one product:
+    * Show it centered.
+* If there are multiple products:
+    * Display them side-by-side.
+    * Align them perfectly.
+    * Keep equal spacing.
+    * Product name directly underneath each image.
+
+Use these demo products:
+
+1. Light Blue Wavvy
+2. Cashmere Versa Top
+
+Order Summary
+
+Below the products display:
+
+Order Breakdown
+
+Show:
+
+* Subtotal
+* Shipping
+* Payment Method
+* Order Number
+* Total
+
+Make the total visually prominent.
+
+CTA Section
+
+Add one or more premium-styled buttons:
+
+* Continue Shopping
+* Track Order
+* Contact Support
+
+Technical Requirements
+
+* Mobile-first design.
+* Optimized for iPhone screens.
+* Smooth animations.
+* Fast loading.
+* Fully responsive.
+* Modern luxury fashion aesthetic.
+* Maintain visual consistency with the existing MOI brand.
+
+The page should feel like a premium post-purchase experience, similar to luxury fashion brands rather than a standard ecommerce confirmation screen.

@@ -327,10 +327,14 @@ export function CartDrawer() {
                 </div>
               ) : (
                 <ul className="space-y-6">
+                  <AnimatePresence mode="popLayout" initial={false}>
                   {isShopify && shopifyCart && shopifyCart.lines.nodes.length > 0
                     ? shopifyCart.lines.nodes.map((line) => (
-                        <li
+                        <motion.li
                           key={line.id}
+                          layout
+                          initial={false}
+                          exit={{ opacity: 0, x: 40, transition: { duration: 0.22, ease: "easeIn" } }}
                           className="flex gap-4"
                           style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
                         >
@@ -367,14 +371,15 @@ export function CartDrawer() {
                                   {line.merchandise.title !== "Default Title" ? line.merchandise.title : ""}
                                 </p>
                               </div>
-                              <button
+                              <motion.button
                                 onClick={() => removeItem(line.id)}
-                                className="flex-shrink-0 w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50 mt-0.5"
+                                whileTap={{ scale: 0.75 }}
+                                className="flex-shrink-0 w-9 h-9 flex items-center justify-center mt-0.5"
                                 style={{ touchAction: "manipulation" }}
                                 aria-label="Remove"
                               >
                                 <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
-                              </button>
+                              </motion.button>
                             </div>
                             <div className="flex items-center justify-between mt-auto">
                               <QuantityControl
@@ -403,11 +408,14 @@ export function CartDrawer() {
                               </div>
                             </div>
                           </div>
-                        </li>
+                        </motion.li>
                       ))
                     : localItems.map((item) => (
-                        <li
+                        <motion.li
                           key={item.id}
+                          layout
+                          initial={false}
+                          exit={{ opacity: 0, x: 40, transition: { duration: 0.22, ease: "easeIn" } }}
                           className="flex gap-4"
                           style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
                         >
@@ -441,14 +449,15 @@ export function CartDrawer() {
                                   </p>
                                 )}
                               </div>
-                              <button
+                              <motion.button
                                 onClick={() => removeItem(item.id)}
-                                className="flex-shrink-0 w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50 mt-0.5"
+                                whileTap={{ scale: 0.75 }}
+                                className="flex-shrink-0 w-9 h-9 flex items-center justify-center mt-0.5"
                                 style={{ touchAction: "manipulation" }}
                                 aria-label="Remove"
                               >
                                 <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
-                              </button>
+                              </motion.button>
                             </div>
                             <div className="flex items-center justify-between mt-auto">
                               <QuantityControl
@@ -474,9 +483,10 @@ export function CartDrawer() {
                               </div>
                             </div>
                           </div>
-                        </li>
+                        </motion.li>
                       ))
                   }
+                  </AnimatePresence>
                 </ul>
               )}
             </div>
