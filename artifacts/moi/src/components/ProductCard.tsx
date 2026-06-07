@@ -248,6 +248,24 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
   const isOutOfStock = hasShopifyVariants && selectedVariant ? !selectedVariant.availableForSale : false;
 
+  // Deterministic scarcity count: hashes product slug + color so the number is
+  // stable across page loads (same combo always shows same count, never fluctuates).
+  const scarcityCount = (() => {
+    const key = `${product.slug}::${selectedColor.toLowerCase()}`;
+    let h = 0;
+    for (let i = 0; i < key.length; i++) {
+      h = Math.imul(31, h) + key.charCodeAt(i) | 0;
+    }
+    // Map to 1–5, weighted toward 2–4 so it feels realistic
+    const buckets = [1, 2, 2, 3, 3, 3, 4, 4, 5];
+    return buckets[Math.abs(h) % buckets.length];
+  })();
+
+  const isSellingFast =
+    !isOutOfStock &&
+    product.slug === "moi-wavvy" &&
+    selectedColor.toLowerCase().replace(/\s+/g, "-").includes("light");
+
   const displayColors = colorOption
     ? colorOption.values.map((name) => ({ name, swatch: swatchFor(name) }))
     : product.variants
@@ -994,6 +1012,39 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 </div>
               </motion.div>
 
+              {/* Scarcity / urgency signals */}
+              {!isOutOfStock && isSellingFast && (
+                <motion.p
+                  variants={itemVariants}
+                  className="mb-3"
+                  style={{
+                    color: "#c83232",
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: "11px",
+                    letterSpacing: "0.18em",
+                    fontWeight: 500,
+                    textShadow: "0 0 12px rgba(158,42,43,0.12)",
+                  }}
+                >
+                  Selling Fast
+                </motion.p>
+              )}
+              {!isOutOfStock && !isSellingFast && (
+                <motion.p
+                  variants={itemVariants}
+                  className="mb-3"
+                  style={{
+                    color: "#c83232",
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: "11px",
+                    letterSpacing: "0.18em",
+                    fontWeight: 500,
+                    textShadow: "0 0 12px rgba(158,42,43,0.12)",
+                  }}
+                >
+                  Only {scarcityCount} left
+                </motion.p>
+              )}
 
               {/* CTA */}
               <motion.div variants={itemVariants} className="w-full flex flex-col items-center">
