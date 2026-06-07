@@ -305,7 +305,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
 
   const { items, breakdown, paymentMethod } = data;
   const orderNum = shopifyOrderNumber ?? data.orderNumber;
-  const total = fmt(breakdown.subtotal - breakdown.savings + breakdown.shippingCost);
+  const total = fmt((Number(breakdown.subtotal) || 0) - (Number(breakdown.savings) || 0) + (Number(breakdown.shippingCost) || 0));
 
   const handleContinue = () => {
     ["moi_paymob_result", "moi_paymob_items", "moi_paymob_order_total",
