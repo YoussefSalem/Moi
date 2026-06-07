@@ -358,6 +358,24 @@ section {
   100% { transform: translateX(120%); }
 }
 
+/* ── Apple Pay button — single canonical source ──────────────── */
+.apple-pay-btn {
+  -webkit-appearance: -apple-pay-button;
+  -apple-pay-button-type: buy;
+  -apple-pay-button-style: black;
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  display: block;
+}
+
+.apple-pay-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @layer utilities {
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;

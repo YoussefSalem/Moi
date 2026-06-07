@@ -204,52 +204,13 @@ export function ShopifyApplePayButton({
 
   return (
     <div className={className} style={{ width: "100%", ...style }}>
-      <style dangerouslySetInnerHTML={{ __html: `
-        .ap-pay-wrap {
-          width: 100%;
-          background: transparent;
-          padding: 0;
-          margin-bottom: 12px;
-        }
-        .ap-pay-btn {
-          -webkit-appearance: -apple-pay-button;
-          -apple-pay-button-type: buy;
-          -apple-pay-button-style: black;
-          width: 100%;
-          height: 52px;
-          border-radius: 0;
-          border: none;
-          padding: 0;
-          margin: 0;
-          cursor: pointer;
-          /* Hard-reset every inherited property that warps native rendering */
-          font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 17px;
-          font-weight: 400;
-          font-style: normal;
-          line-height: normal;
-          letter-spacing: normal;
-          word-spacing: normal;
-          text-transform: none;
-          transform: none;
-          zoom: 1;
-          -webkit-text-size-adjust: 100%;
-          text-size-adjust: 100%;
-        }
-        .ap-pay-btn:disabled {
-          opacity: 0.4;
-          cursor: default;
-        }
-      ` }} />
-      <div className="ap-pay-wrap">
-        <button
-          type="button"
-          className="ap-pay-btn"
-          onClick={handlePay}
-          disabled={busy}
-          aria-label="Buy with Apple Pay"
-        />
-      </div>
+      <button
+        type="button"
+        className="apple-pay-btn"
+        onClick={handlePay}
+        disabled={busy}
+        aria-label="Buy with Apple Pay"
+      />
 
       {error && (
         <p style={{

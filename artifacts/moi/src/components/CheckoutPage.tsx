@@ -1786,50 +1786,12 @@ export function CheckoutPage() {
                       Express Checkout
                     </p>
 
-                    <style dangerouslySetInnerHTML={{ __html: `
-                      .ap-express-wrap {
-                        width: 100%;
-                        background: transparent;
-                        padding: 0;
-                        margin-bottom: 0;
-                      }
-                      .ap-express-btn {
-                        -webkit-appearance: -apple-pay-button;
-                        -apple-pay-button-type: buy;
-                        -apple-pay-button-style: black;
-                        width: 100%;
-                        height: 52px;
-                        border-radius: 0;
-                        border: none;
-                        padding: 0;
-                        margin: 0;
-                        cursor: pointer;
-                        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-                        font-size: 17px;
-                        font-weight: 400;
-                        font-style: normal;
-                        line-height: normal;
-                        letter-spacing: normal;
-                        word-spacing: normal;
-                        text-transform: none;
-                        transform: none;
-                        zoom: 1;
-                        -webkit-text-size-adjust: 100%;
-                        text-size-adjust: 100%;
-                      }
-                      .ap-express-btn:disabled {
-                        opacity: 0.4;
-                        cursor: default;
-                      }
-                    ` }} />
-                    <div className="ap-express-wrap">
-                      <button
-                        type="button"
-                        className="ap-express-btn"
-                        onClick={triggerApplePayDirectInit}
-                        aria-label="Buy with Apple Pay"
-                      />
-                    </div>
+                    <button
+                      type="button"
+                      className="apple-pay-btn"
+                      onClick={triggerApplePayDirectInit}
+                      aria-label="Buy with Apple Pay"
+                    />
 
                     <div style={{ display: "flex", alignItems: "center", gap: "14px", marginTop: "20px" }}>
                       <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.10)" }} />
