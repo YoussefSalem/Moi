@@ -333,6 +333,11 @@ header[class*="fixed"] {
   animation: lookImgFade 0.22s ease-out forwards;
 }
 
+@keyframes moiWaveScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 @keyframes moi-shine {
   0% { transform: translateX(-140%); opacity: 0; }
   18% { opacity: 0.65; }

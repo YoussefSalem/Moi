@@ -10,7 +10,7 @@ import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
 import { ProductColorSection } from "@/components/ProductColorSection";
-import { EditorialStrip } from "@/components/EditorialStrip";
+import { WavySeparator } from "@/components/WavySeparator";
 import { LookView } from "@/components/LookView";
 import { CartProvider, useCart } from "@/context/CartContext";
 import { CustomerProvider } from "@/context/CustomerContext";
@@ -401,7 +401,7 @@ function AppContent() {
                 />
               </div>
 
-              <EditorialStrip />
+              <WavySeparator />
 
               <ProductColorSection
                 id={product2.slug}
