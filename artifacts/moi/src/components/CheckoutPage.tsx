@@ -2073,7 +2073,76 @@ export function CheckoutPage() {
 
               {/* Right: Payment + Form */}
               <div>
-                {/* Payment method tiles */}
+
+                {/* ── Express Checkout (Apple Pay) ── */}
+                {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
+                  <div style={{ marginBottom: "28px" }}>
+                    <p style={{
+                      fontSize: "10px",
+                      letterSpacing: "0.3em",
+                      textTransform: "uppercase",
+                      color: "rgba(30,24,20,0.38)",
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontWeight: 400,
+                      textAlign: "center",
+                      marginBottom: "12px",
+                    }}>
+                      Express Checkout
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={triggerApplePayDirectInit}
+                      aria-label="Buy with Apple Pay"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "7px",
+                        width: "100%",
+                        height: "52px",
+                        backgroundColor: "#000",
+                        border: "none",
+                        cursor: "pointer",
+                        transition: "opacity 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.88"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+                    >
+                      <svg viewBox="0 0 814 1000" width="16" height="16" fill="white" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ flexShrink: 0, marginTop: "-1px" }}>
+                        <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46.7 790.7 0 663 0 541.8c0-207.2 135.4-316.7 269-316.7 70.8 0 129.9 43.1 172.8 43.1 42.2 0 108.1-45.6 190.5-45.6 30.5 0 110.7 2.6 170.3 65.8zm-108.2-170.7c-55.4 59.2-132.7 84.5-210 84.5-15.5 0-31-1.5-42.8-2.8 4.8-71.6 51.6-141.4 108-192.2 56.4-50.8 138.2-84.5 215.4-88.7 2.5 13.5 3.2 27.1 3.2 39.5 0 62.3-27 133.2-73.8 159.7z"/>
+                      </svg>
+                      <span style={{
+                        fontFamily: "'Montserrat', sans-serif",
+                        fontSize: "13px",
+                        fontWeight: 200,
+                        letterSpacing: "0.1em",
+                        color: "#fff",
+                        lineHeight: 1,
+                      }}>
+                        Pay
+                      </span>
+                    </button>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px", marginTop: "20px" }}>
+                      <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.10)" }} />
+                      <span style={{
+                        fontFamily: "'Montserrat', sans-serif",
+                        fontSize: "10px",
+                        letterSpacing: "0.2em",
+                        textTransform: "uppercase",
+                        color: "rgba(30,24,20,0.38)",
+                        fontWeight: 400,
+                        flexShrink: 0,
+                      }}>
+                        or
+                      </span>
+                      <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.10)" }} />
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Payment Method tiles ── */}
                 <p style={{ fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
                   Payment Method
                   <span style={{ fontSize: "13px", letterSpacing: 0, textTransform: "none", color: "#c9a0b4", opacity: 0.85 }}>✦</span>
@@ -2122,39 +2191,10 @@ export function CheckoutPage() {
                       </div>
                     );
                   })}
-                  {/* Apple Pay tile — spans 2 cols, thin black strip with Apple logo only */}
-                  {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
-                    <div
-                      className="col-span-2"
-                      role="button"
-                      tabIndex={0}
-                      aria-label="Pay with Apple Pay"
-                      onClick={triggerApplePayDirectInit}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") triggerApplePayDirectInit(); }}
-                      style={{
-                        height: "56px",
-                        backgroundColor: "#000",
-                        border: paymentMethod === "apple-pay" ? "1.5px solid #000" : "1px solid #000",
-                        transform: paymentMethod === "apple-pay" ? "scale(1.02)" : "scale(1)",
-                        boxShadow: paymentMethod === "apple-pay" ? "0 2px 14px rgba(0,0,0,0.22)" : "none",
-                        transition: "transform 0.18s ease, box-shadow 0.18s ease",
-                        zIndex: paymentMethod === "apple-pay" ? 1 : 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        outline: "none",
-                      }}
-                    >
-                      <svg viewBox="0 0 814 1000" width="20" height="20" fill="white" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46.7 790.7 0 663 0 541.8c0-207.2 135.4-316.7 269-316.7 70.8 0 129.9 43.1 172.8 43.1 42.2 0 108.1-45.6 190.5-45.6 30.5 0 110.7 2.6 170.3 65.8zm-108.2-170.7c-55.4 59.2-132.7 84.5-210 84.5-15.5 0-31-1.5-42.8-2.8 4.8-71.6 51.6-141.4 108-192.2 56.4-50.8 138.2-84.5 215.4-88.7 2.5 13.5 3.2 27.1 3.2 39.5 0 62.3-27 133.2-73.8 159.7z"/>
-                      </svg>
-                    </div>
-                  )}
                 </div>
 
-                {/* Delivery form — hidden when Apple Pay is selected */}
-                {paymentMethod !== "apple-pay" && (<>
+                {/* Delivery form */}
+                {true && (<>
                 <p style={{ fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "20px" }}>
                   Delivery Details
                 </p>
