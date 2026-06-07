@@ -205,6 +205,20 @@ export function ShopifyApplePayButton({
   return (
     <div className={className} style={{ width: "100%", ...style }}>
       <style dangerouslySetInnerHTML={{ __html: `
+        .ap-pay-wrap {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 52px;
+          background: #000;
+          cursor: pointer;
+        }
+        .ap-pay-wrap.ap-busy {
+          opacity: 0.4;
+          cursor: default;
+          pointer-events: none;
+        }
         .ap-pay-btn {
           -webkit-appearance: -apple-pay-button;
           -apple-pay-button-type: buy;
@@ -212,14 +226,13 @@ export function ShopifyApplePayButton({
           display: block;
           width: 100%;
           min-width: 200px;
-          min-height: 44px;
-          height: 52px;
+          height: 36px;
           border: none;
           border-radius: 0;
           padding: 0;
           margin: 0;
           cursor: pointer;
-          /* Isolate from all inherited CSS that distort native rendering */
+          pointer-events: none;
           font-family: -apple-system, BlinkMacSystemFont, sans-serif;
           font-size: initial;
           font-weight: initial;
@@ -233,18 +246,22 @@ export function ShopifyApplePayButton({
           -webkit-text-size-adjust: none;
           text-size-adjust: none;
         }
-        .ap-pay-btn:disabled {
-          opacity: 0.4;
-          cursor: default;
-        }
       ` }} />
-      <button
-        type="button"
-        className="ap-pay-btn"
-        onClick={handlePay}
-        disabled={busy}
+      <div
+        className={`ap-pay-wrap${busy ? " ap-busy" : ""}`}
+        onClick={busy ? undefined : handlePay}
+        role="button"
         aria-label="Buy with Apple Pay"
-      />
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handlePay(); }}
+      >
+        <button
+          type="button"
+          className="ap-pay-btn"
+          tabIndex={-1}
+          aria-hidden="true"
+        />
+      </div>
 
       {error && (
         <p style={{
