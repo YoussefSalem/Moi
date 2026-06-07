@@ -860,8 +860,8 @@ router.post("/admin/abandoned-carts/send-test", requireAdminAuth, async (req, re
         variant: i.variant,
       }))
     : [
-        { title: "Moi Wavvy", price: "1.690 EGP", quantity: 1, variant: "Beige", imageUrl: "https://buy-moi.com/images/beige.webp" },
-        { title: "Moi Versa Top", price: "1.690 EGP", quantity: 1, variant: "White", imageUrl: "https://buy-moi.com/images/white.webp" },
+        { title: "Moi Wavvy", price: "1.690 EGP", quantity: 1, variant: "Beige", imageUrl: "https://buy-moi.com/api/images/beige.jpg" },
+        { title: "Moi Versa Top", price: "1.690 EGP", quantity: 1, variant: "White", imageUrl: "https://buy-moi.com/api/images/white.jpg" },
       ];
   const totalAmount = body.totalAmount ?? sampleItems.reduce((sum, i) => sum + parseEGP(i.price) * i.quantity, 0).toFixed(3);
 

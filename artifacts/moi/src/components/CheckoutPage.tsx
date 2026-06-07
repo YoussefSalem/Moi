@@ -45,21 +45,23 @@ function normalizeTitle(t: string) {
 // window.location.origin auto-selects the right domain on dev vs production.
 const BASE_IMG = `${typeof window !== "undefined" ? window.location.origin : "https://buy-moi.com"}/api/images`;
 const PUBLIC_COLOR_IMAGES: Record<string, string> = {
+  // .jpg exists in /api/images/
   beige: `${BASE_IMG}/beige.jpg`,
   white: `${BASE_IMG}/white.jpg`,
   cashmere: `${BASE_IMG}/cashmere.jpg`,
   cashemere: `${BASE_IMG}/cashmere.jpg`,
   yellow: `${BASE_IMG}/yellow.jpg`,
   teal: `${BASE_IMG}/teal.jpg`,
-  "light blue": `${BASE_IMG}/light-blue-main.jpg`,
   navy: `${BASE_IMG}/navi.jpg`,
   mint: `${BASE_IMG}/mint.jpg`,
-  ivory: `${BASE_IMG}/ivory.jpg`,
-  sand: `${BASE_IMG}/sand.jpg`,
-  taupe: `${BASE_IMG}/taupe.jpg`,
-  espresso: `${BASE_IMG}/espresso.jpg`,
-  brown: `${BASE_IMG}/brown.jpg`,
-  black: `${BASE_IMG}/black.jpg`,
+  // only .webp exists in /api/images/ — use webp to avoid broken email images
+  "light blue": `${BASE_IMG}/light-blue-main.webp`,
+  ivory: `${BASE_IMG}/ivory.webp`,
+  sand: `${BASE_IMG}/sand.webp`,
+  taupe: `${BASE_IMG}/taupe.webp`,
+  espresso: `${BASE_IMG}/espresso.webp`,
+  brown: `${BASE_IMG}/brown.webp`,
+  black: `${BASE_IMG}/black.webp`,
 };
 
 function resolveLineImage(line: ShopifyCartLine, localItems?: { variantId: string; color?: string; image?: string | null }[]): string | null {
