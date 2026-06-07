@@ -49,4 +49,4 @@ jobs:
         run: cp ../../pnpm-lock.yaml .
 
       - name: Build and Publish to Oxygen
-        run: npx shopify hydrogen deploy --token ${{ secrets.OXYGEN_DEPLOYMENT_TOKEN_1000144846 }}
+        run: npx shopify hydrogen deploy --token ${{ secrets.OXYGEN_DEPLOYMENT_TOKEN_1000144846 }} --force
