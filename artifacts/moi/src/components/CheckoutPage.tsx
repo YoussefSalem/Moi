@@ -779,6 +779,7 @@ export function CheckoutPage() {
         return;
       }
       try {
+        try { sessionStorage.setItem("moi_checkout_form", JSON.stringify(form)); } catch { /* ignore */ }
         const res = await fetch("/api/orders/paymob-init", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1240,6 +1241,7 @@ export function CheckoutPage() {
     };
 
     try {
+      try { sessionStorage.setItem("moi_checkout_form", JSON.stringify(form)); } catch { /* ignore */ }
       const res = await fetch("/api/orders/paymob-init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1399,6 +1401,15 @@ export function CheckoutPage() {
           setStep("form");
           submittingRef.current = false;
           setSubmitError("Payment was declined. Please try again or choose a different payment method.");
+          // Restore form data saved before 3DS redirect so the user doesn't have to re-type
+          const savedFormRaw = sessionStorage.getItem("moi_checkout_form");
+          if (savedFormRaw) {
+            sessionStorage.removeItem("moi_checkout_form");
+            try {
+              const savedForm = JSON.parse(savedFormRaw) as typeof form;
+              setForm(savedForm);
+            } catch { /* ignore */ }
+          }
         }
         openCheckout();
       } catch {
