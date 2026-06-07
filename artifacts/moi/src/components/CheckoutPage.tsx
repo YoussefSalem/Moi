@@ -420,7 +420,7 @@ export function CheckoutPage() {
     const session = new AP(3, {
       countryCode: "EG",
       currencyCode: "EGP",
-      supportedNetworks: ["visa", "masterCard", "amex", "mada"],
+      supportedNetworks: ["visa", "masterCard", "amex"],
       merchantCapabilities: ["supports3DS"],
       requiredShippingContactFields: ["name", "email", "phone"],
       lineItems: shippingAmt > 0
@@ -2073,8 +2073,9 @@ export function CheckoutPage() {
               {/* Right: Payment + Form */}
               <div>
                 {/* Payment method tiles */}
-                <p style={{ fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "16px" }}>
+                <p style={{ fontSize: "14px", letterSpacing: "0.35em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
                   Payment Method
+                  <span style={{ fontSize: "13px", letterSpacing: 0, textTransform: "none", color: "#c9a0b4", opacity: 0.85 }}>✦</span>
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-8" style={{ alignItems: "start" }}>
                   {AVAILABLE_PAYMENT_METHODS.filter((m) => m !== "apple-pay").map((m) => {

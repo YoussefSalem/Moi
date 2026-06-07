@@ -75,7 +75,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const pageColorName = fallback.name.includes(" — ")
     ? (fallback.name.split(" — ").pop() ?? "")
     : "";
-  const { addToCart, buyNow } = useCart();
+  const { addToCart, buyNow, openCheckout } = useCart();
   const { customer } = useCustomer();
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -702,7 +702,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     Buy It Now
                   </motion.button>
 
-                  {/* Apple Pay quick-buy — opens Shopify checkout popup where Apple Pay is handled natively */}
+                  {/* Apple Pay quick-buy */}
                   {ENABLE_APPLE_PAY && (
                     <ShopifyApplePayButton
                       variantId={selectedVariant?.id ?? product.variantId ?? ""}
@@ -719,6 +719,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       onError={(msg) => {
                         toast.error(msg, { duration: 4000 });
                       }}
+                      onMoreOptions={() => openCheckout()}
                     />
                   )}
                 </div>

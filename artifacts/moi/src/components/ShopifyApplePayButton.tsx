@@ -7,13 +7,13 @@ const BTN_CSS = `
     -apple-pay-button-style: black;
     display: block;
     width: 100%;
-    height: 62px;
+    height: 52px;
     border: none;
     cursor: pointer;
-    border-radius: 8px;
+    border-radius: 4px;
   }
   .ap-buy-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.45;
     cursor: default;
   }
 `;
@@ -73,6 +73,7 @@ export interface ShopifyApplePayButtonProps {
   onSuccess?: (orderNumber: number | null, total?: string) => void;
   onCancel?: () => void;
   onError?: (msg: string) => void;
+  onMoreOptions?: () => void;
 }
 
 export function ShopifyApplePayButton({
@@ -80,7 +81,7 @@ export function ShopifyApplePayButton({
   lines: cartLines, totalEGP,
   disabled = false, className, style,
   discountCode,
-  onSuccess, onCancel, onError,
+  onSuccess, onCancel, onError, onMoreOptions,
 }: ShopifyApplePayButtonProps) {
   const [available, setAvailable] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -117,7 +118,7 @@ export function ShopifyApplePayButton({
     const session = new AP(3, {
       countryCode: "EG",
       currencyCode: "EGP",
-      supportedNetworks: ["visa", "masterCard", "amex", "mada"],
+      supportedNetworks: ["visa", "masterCard", "amex"],
       merchantCapabilities: ["supports3DS"],
       requiredShippingContactFields: ["name", "email", "phone"],
       total: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
@@ -202,40 +203,47 @@ export function ShopifyApplePayButton({
   if (!available || disabled) return null;
 
   return (
-    <div
-      className={className}
-      style={{
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        gap: 0,
-        ...style,
-      }}
-    >
+    <div className={className} style={{ width: "100%", ...style }}>
       <style dangerouslySetInnerHTML={{ __html: BTN_CSS }} />
 
-      <div
-        style={{
-          boxShadow: busy
-            ? "0 2px 8px rgba(0,0,0,0.12)"
-            : "0 4px 20px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.14)",
-          borderRadius: 8,
-          transition: "box-shadow 0.2s ease",
-          overflow: "hidden",
-        }}
-      >
+      <button
+        type="button"
+        className="ap-buy-btn"
+        onClick={handlePay}
+        disabled={busy}
+        aria-label="Buy with Apple Pay"
+      />
+
+      {onMoreOptions && (
         <button
           type="button"
-          className="ap-buy-btn"
-          onClick={handlePay}
-          disabled={busy}
-          aria-label="Buy with Apple Pay"
-        />
-      </div>
+          onClick={onMoreOptions}
+          style={{
+            display: "block",
+            width: "100%",
+            textAlign: "center",
+            marginTop: 11,
+            fontSize: 12,
+            color: "rgba(30,24,20,0.58)",
+            fontFamily: "'Montserrat', sans-serif",
+            letterSpacing: "0.06em",
+            textDecoration: "underline",
+            textUnderlineOffset: "3px",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            transition: "color 0.15s ease",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(30,24,20,0.85)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(30,24,20,0.58)"; }}
+        >
+          More payment options
+        </button>
+      )}
 
       {error && (
         <p style={{
-          marginTop: 10,
+          marginTop: 9,
           fontSize: 11,
           color: "rgba(30,24,20,0.54)",
           textAlign: "center",

@@ -561,6 +561,7 @@ export function CartDrawer() {
                     onError={(msg) => {
                       toast.error(msg, { duration: 4000 });
                     }}
+                    onMoreOptions={() => openCheckout()}
                   />
                 )}
                 <button
