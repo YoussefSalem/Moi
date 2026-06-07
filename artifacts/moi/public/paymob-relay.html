@@ -189,16 +189,60 @@
 
   <script>
   (function () {
-    var REDIRECT_DELAY = 7000;
-
     var params  = new URLSearchParams(window.location.search);
     var success = params.get('success') === 'true';
     var pending = !success && (params.get('pending') === 'true');
     var txnId   = params.get('id') || params.get('txn_id') || '';
 
-    // ── determine outcome ──────────────────────────────────────────────────
     var outcome = success ? 'success' : (pending ? 'pending' : 'fail');
 
+    // ── build postMessage payload ─────────────────────────────────────────
+    var msg = { type: 'PAYMOB_RESULT', success: success, pending: pending, transactionId: txnId };
+
+    // ── Case 1: inside an iframe ──────────────────────────────────────────
+    var sent = false;
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(msg, '*');
+        sent = true;
+      }
+    } catch (e) {}
+
+    // ── Case 2: popup window ──────────────────────────────────────────────
+    if (!sent) {
+      try {
+        if (window.opener) {
+          window.opener.postMessage(msg, '*');
+          sent = true;
+          setTimeout(function () { window.close(); }, 1400);
+        }
+      } catch (e) {}
+    }
+
+    // ── Case 3: top-level page (3DS navigated the main window) ───────────
+    if (!sent) {
+      var intentId = params.get('merchant_order_id') || '';
+      if (!intentId) {
+        try { intentId = sessionStorage.getItem('moi_paymob_intent_id') || ''; } catch (_) {}
+      }
+
+      if (outcome === 'fail') {
+        // Redirect immediately — show nothing, PaymentFailedPage is the UX.
+        window.location.replace('/payment/failed');
+        return;
+      }
+
+      // Success / Pending: redirect to the branded success page.
+      var dest = '/payment/success';
+      var destParams = [];
+      if (intentId) destParams.push('intentId=' + encodeURIComponent(intentId));
+      if (txnId) destParams.push('txnId=' + encodeURIComponent(txnId));
+      if (destParams.length) dest += '?' + destParams.join('&');
+      window.location.replace(dest);
+      return;
+    }
+
+    // ── Render result card (only for iframe/popup cases where relay stays visible) ──
     var OUTCOMES = {
       success: {
         iconClass: 'icon-success',
@@ -221,8 +265,6 @@
     };
 
     var o = OUTCOMES[outcome];
-
-    // ── render result card ────────────────────────────────────────────────
     var root = document.getElementById('root');
     if (root) {
       root.className = 'card';
@@ -230,57 +272,6 @@
         '<div class="icon-circle ' + o.iconClass + '">' + o.iconSvg + '</div>' +
         '<h2>' + o.title + '</h2>' +
         '<p class="sub">' + o.body + '</p>';
-    }
-
-    // ── build postMessage payload ─────────────────────────────────────────
-    var msg = { type: 'PAYMOB_RESULT', success: success, pending: pending, transactionId: txnId };
-
-    // ── try to reach parent / opener ─────────────────────────────────────
-    var sent = false;
-
-    // Case 1 — loaded inside an iframe on our own site
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage(msg, '*');
-        sent = true;
-      }
-    } catch (e) {}
-
-    // Case 2 — opened as a popup window
-    if (!sent) {
-      try {
-        if (window.opener) {
-          window.opener.postMessage(msg, '*');
-          sent = true;
-          setTimeout(function () { window.close(); }, 1400);
-        }
-      } catch (e) {}
-    }
-
-    // Case 3 — loaded as the top-level page (3DS navigated the main window).
-    if (!sent) {
-      // Resolve the intentId: Paymob appends merchant_order_id to the redirect URL,
-      // which equals the intentId we stored in sessionStorage before navigating away.
-      var intentId = params.get('merchant_order_id') || '';
-      if (!intentId) {
-        try { intentId = sessionStorage.getItem('moi_paymob_intent_id') || ''; } catch (_) {}
-      }
-
-      if (outcome === 'fail') {
-        // ── Failure: redirect to the branded failure page ──────────────────
-        // Preserve moi_checkout_form so the user doesn't have to re-type.
-        window.location.replace('/payment/failed');
-      } else {
-        // ── Success / Pending: redirect to the branded success page ───────
-        // Pass intentId and txnId as URL params so the success page can call
-        // paymob-sync without reading sessionStorage (avoids CheckoutPage race).
-        var dest = '/payment/success';
-        var destParams = [];
-        if (intentId) destParams.push('intentId=' + encodeURIComponent(intentId));
-        if (txnId) destParams.push('txnId=' + encodeURIComponent(txnId));
-        if (destParams.length) dest += '?' + destParams.join('&');
-        window.location.replace(dest);
-      }
     }
   })();
   </script>
