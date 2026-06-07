@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
-import { ENABLE_CARD_PAYMENTS, ENABLE_APPLE_PAY } from "@/config/features";
+import { ENABLE_CARD_PAYMENTS, ENABLE_WALLET_PAYMENTS, ENABLE_APPLE_PAY } from "@/config/features";
 import { ShopifyApplePayButton } from "./ShopifyApplePayButton";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
@@ -131,12 +131,13 @@ function resolveEmailImage(line: ShopifyCartLine, localItems?: { variantId: stri
   return null;
 }
 
-type PaymentMethod = "cod" | "instapay" | "card" | "apple-pay";
-/* Card + Apple Pay are gated by ENABLE_CARD_PAYMENTS / ENABLE_APPLE_PAY flags in @/config/features */
+type PaymentMethod = "cod" | "instapay" | "card" | "wallet" | "apple-pay";
+/* Card, Wallet + Apple Pay are gated by feature flags in @/config/features */
 const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = [
   "cod",
   "instapay",
   ...(ENABLE_CARD_PAYMENTS ? ["card" as PaymentMethod] : []),
+  ...(ENABLE_WALLET_PAYMENTS ? ["wallet" as PaymentMethod] : []),
   ...(ENABLE_APPLE_PAY ? ["apple-pay" as PaymentMethod] : []),
 ];
 type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm";
@@ -763,11 +764,17 @@ export function CheckoutPage() {
       city: form.city.trim(),
     };
 
-    // Card payment: call paymob-init → embed Paymob hosted checkout in-page via iframe
-    if (paymentMethod === "card") {
-      if (!ENABLE_CARD_PAYMENTS) {
+    // Card / Wallet payment: call paymob-init → embed Paymob Unified Checkout in-page via iframe
+    if (paymentMethod === "card" || paymentMethod === "wallet") {
+      if (paymentMethod === "card" && !ENABLE_CARD_PAYMENTS) {
         submittingRef.current = false;
         setSubmitError("Card payments are temporarily unavailable. Please choose another payment method.");
+        setStep("form");
+        return;
+      }
+      if (paymentMethod === "wallet" && !ENABLE_WALLET_PAYMENTS) {
+        submittingRef.current = false;
+        setSubmitError("Mobile wallet payments are temporarily unavailable. Please choose another payment method.");
         setStep("form");
         return;
       }
@@ -783,6 +790,7 @@ export function CheckoutPage() {
             discountCode: promoApplied?.code ?? null,
             attribution: buildOrderAttribution(),
             checkoutToken: shopifyCheckoutToken ?? null,
+            paymentType: paymentMethod,
           }),
         });
 
@@ -1193,13 +1201,11 @@ export function CheckoutPage() {
   const handleCancelCardCheckout = useCallback(() => {
     setPaymobIframeUrl(null);
     setStep("form");
-    setPaymentMethod("card");
     submittingRef.current = false;
   }, []);
 
   const handleRetryCard = useCallback(() => {
     setStep("form");
-    setPaymentMethod("card");
     submittingRef.current = false;
     // Re-initialize the Paymob iframe so the user can retry payment immediately
     // without re-entering their checkout form details.
@@ -1245,6 +1251,7 @@ export function CheckoutPage() {
           discountCode: promoApplied?.code ?? null,
           attribution: buildOrderAttribution(),
           checkoutToken: shopifyCheckoutToken ?? null,
+          paymentType: paymentMethod,
         }),
       });
 
@@ -1467,7 +1474,7 @@ export function CheckoutPage() {
   const isSuccessStep = step === "cod-confirm" || step === "card-confirm";
   const isConfirmStep = isSuccessStep || step === "instapay-confirm";
   const isCardCheckoutStep = step === "card-checkout" || (step === "form" && !!paymobIframeUrl);
-  const loadingText = paymentMethod === "card" ? "Preparing payment…" : "Placing your order…";
+  const loadingText = (paymentMethod === "card" || paymentMethod === "wallet") ? "Preparing payment…" : "Placing your order…";
 
   const showPlaceOrderBar = checkoutOpen && step === "form" && !paymobIframeUrl;
 
@@ -1717,7 +1724,7 @@ export function CheckoutPage() {
                         Payment
                       </p>
                       <p style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
-                        {paymentMethod === "apple-pay" ? "Apple Pay" : "Credit / Debit Card"}
+                        {paymentMethod === "apple-pay" ? "Apple Pay" : paymentMethod === "wallet" ? "Mobile Wallet" : "Credit / Debit Card"}
                       </p>
                     </div>
                   </div>
@@ -2093,13 +2100,13 @@ export function CheckoutPage() {
                           }}
                         >
                           <div style={{ fontSize: "17px", marginBottom: "5px" }}>
-                            {m === "cod" ? "🚚" : m === "instapay" ? "📱" : "💳"}
+                            {m === "cod" ? "🚚" : m === "instapay" ? "📱" : m === "wallet" ? "🏦" : "💳"}
                           </div>
                           <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
-                            {m === "cod" ? "Cash on Delivery" : m === "instapay" ? "InstaPay" : "Credit / Debit Card"}
+                            {m === "cod" ? "Cash on Delivery" : m === "instapay" ? "InstaPay" : m === "wallet" ? "Mobile Wallet" : "Credit / Debit Card"}
                           </p>
-                          <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", marginTop: "3px", lineHeight: 1.4 }}>
-                            {m === "cod" ? "Pay on arrival" : m === "instapay" ? "Bank transfer" : "Visa · Mastercard"}
+                          <p style={{ fontSize: "10px", color: "rgba(30,24,20,0.64)", fontFamily: "'Montserrat', sans-serif", marginTop: "3px", lineHeight: 1.45 }}>
+                            {m === "cod" ? "Pay on arrival" : m === "instapay" ? "Bank transfer" : m === "wallet" ? "Vodafone · Orange · e&" : "Visa · Mastercard"}
                           </p>
                         </button>
                       </div>

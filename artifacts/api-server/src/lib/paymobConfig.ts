@@ -11,6 +11,8 @@ export interface PaymobConfig {
   iframeId: string;
   /** Apple Pay integration ID from the Paymob dashboard (Unified Checkout) */
   applePayIntegrationId: string;
+  /** Mobile wallet integration ID (Vodafone Cash, Orange Cash, e& money, etc.) */
+  walletIntegrationId: string;
 }
 
 const CONFIG_FILE = join(process.cwd(), "paymob-config.json");
@@ -35,6 +37,7 @@ export function getPaymobConfig(): PaymobConfig {
     hmacSecret: trim(file.hmacSecret ?? process.env.PAYMOB_HMAC_SECRET),
     iframeId: trim(file.iframeId ?? process.env.PAYMOB_IFRAME_ID),
     applePayIntegrationId: trim(file.applePayIntegrationId ?? process.env.PAYMOB_APPLE_PAY_INTEGRATION_ID),
+    walletIntegrationId: trim(file.walletIntegrationId ?? process.env.PAYMOB_WALLET_INTEGRATION_ID ?? "5700496"),
   };
 }
 

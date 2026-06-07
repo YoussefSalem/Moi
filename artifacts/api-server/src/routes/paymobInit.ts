@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
 import { createPaymobIntentionKey } from "../lib/paymob";
+import { getPaymobConfig } from "../lib/paymobConfig";
 import { fetchStorefrontCart, type OrderLine, type CustomerInfo, type OrderAttribution } from "../lib/shopifyOrder";
 import { db } from "@workspace/db";
 import { paymobIntents } from "@workspace/db/schema";
@@ -17,6 +18,7 @@ router.post("/orders/paymob-init", async (req, res) => {
     discountCode?: unknown;
     attribution?: unknown;
     checkoutToken?: unknown;
+    paymentType?: unknown;
   };
 
   if (!Array.isArray(body.lines) || body.lines.length === 0) {
@@ -127,6 +129,10 @@ router.post("/orders/paymob-init", async (req, res) => {
   const callbackUrl = domain ? `https://${domain}/api/webhooks/paymob` : undefined;
   const redirectionUrl = domain ? `https://${domain}/paymob-relay.html` : undefined;
 
+  const paymobConfig = getPaymobConfig();
+  const isWallet = typeof body.paymentType === "string" && body.paymentType === "wallet";
+  const walletIntegrationIdNum = parseInt(paymobConfig.walletIntegrationId, 10);
+
   let result: { iframeUrl: string };
   try {
     result = await createPaymobIntentionKey({
@@ -142,6 +148,7 @@ router.post("/orders/paymob-init", async (req, res) => {
       },
       callbackUrl,
       redirectionUrl,
+      ...(isWallet && !isNaN(walletIntegrationIdNum) ? { integrationIdOverride: walletIntegrationIdNum } : {}),
     });
   } catch (err) {
     req.log.error({ err, intentId }, "Paymob intention creation failed");

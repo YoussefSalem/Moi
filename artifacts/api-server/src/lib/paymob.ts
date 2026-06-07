@@ -53,6 +53,8 @@ export interface CreatePaymentKeyParams {
   customer: PaymobCustomer;
   callbackUrl?: string;
   redirectionUrl?: string;
+  /** Override the default card integration ID (e.g. pass wallet integration ID) */
+  integrationIdOverride?: number;
 }
 
 export interface PaymobPaymentKeyResult {
@@ -201,7 +203,7 @@ export async function createPaymobIntentionKey(
   if (!config.publicKey) throw new Error("Paymob public key is not configured");
   if (!config.integrationId) throw new Error("Paymob integration ID is not configured");
 
-  const integrationIdNum = parseInt(config.integrationId, 10);
+  const integrationIdNum = params.integrationIdOverride ?? parseInt(config.integrationId, 10);
   if (isNaN(integrationIdNum)) throw new Error("Paymob integration ID is not a valid number");
 
   const allIntegrationIds = [integrationIdNum];
