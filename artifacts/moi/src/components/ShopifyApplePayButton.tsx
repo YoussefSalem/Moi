@@ -216,7 +216,22 @@ export function ShopifyApplePayButton({
           height: 52px;
           border: none;
           border-radius: 0;
+          padding: 0;
+          margin: 0;
           cursor: pointer;
+          /* Isolate from all inherited CSS that distort native rendering */
+          font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+          font-size: initial;
+          font-weight: initial;
+          font-style: initial;
+          line-height: initial;
+          letter-spacing: initial;
+          text-transform: none;
+          word-spacing: initial;
+          transform: none;
+          zoom: 1;
+          -webkit-text-size-adjust: none;
+          text-size-adjust: none;
         }
         .ap-pay-btn:disabled {
           opacity: 0.4;
