@@ -20,7 +20,7 @@ function isInAppBrowser() {
 export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { itemCount, openCart } = useCart();
+  const { itemCount, openCart, isAddingToCart } = useCart();
   const { customer, openAuth, openAccount, signOut } = useCustomer();
 
   useEffect(() => {
@@ -115,7 +115,27 @@ export function Header({ onNavigate, onSearch, dark, page }: HeaderProps) {
               className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-60 relative"
               onClick={openCart}
             >
-              <ShoppingBag size={18} strokeWidth={1.5} style={{ color: iconColor }} />
+              {/* Pulse ring — visible during the "adding to cart" window */}
+              <AnimatePresence>
+                {isAddingToCart && (
+                  <motion.span
+                    key="add-pulse"
+                    initial={{ scale: 0.5, opacity: 0.7 }}
+                    animate={{ scale: 2.2, opacity: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.45, ease: "easeOut" }}
+                    className="absolute inset-0 rounded-full pointer-events-none"
+                    style={{ border: `1.5px solid ${iconColor}` }}
+                  />
+                )}
+              </AnimatePresence>
+              <motion.span
+                animate={isAddingToCart ? { scale: [1, 1.25, 1], y: [0, -3, 0] } : { scale: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <ShoppingBag size={18} strokeWidth={1.5} style={{ color: iconColor }} />
+              </motion.span>
               <AnimatePresence>
                 {itemCount > 0 && (
                   <motion.span

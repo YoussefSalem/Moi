@@ -67,6 +67,7 @@ interface CartContextValue {
   cartOpen: boolean;
   checkoutOpen: boolean;
   loading: boolean;
+  isAddingToCart: boolean;
   itemCount: number;
   openCart: () => void;
   closeCart: () => void;
@@ -129,6 +130,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [prefilledEmail, setPrefilledEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const initRef = useRef(false);
   const checkoutInitRef = useRef(false);
 
@@ -233,8 +235,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return updated;
     });
 
-    // ── Step 2: Open cart drawer immediately ─────────────────────────────────
-    setCartOpen(true);
+    // ── Step 2: Brief "adding" window, then open cart ────────────────────────
+    // The 350ms pause lets the button's "Added ✓" feedback register before the
+    // drawer slides in, making the transition feel intentional instead of snappy.
+    setIsAddingToCart(true);
+    setTimeout(() => {
+      setIsAddingToCart(false);
+      setCartOpen(true);
+    }, 350);
 
     // ── Step 3: Analytics (non-blocking) ─────────────────────────────────────
     trackAddToCart({
@@ -666,6 +674,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       cartOpen,
       checkoutOpen,
       loading,
+      isAddingToCart,
       itemCount,
       openCart: () => {
         setCartOpen(true);
