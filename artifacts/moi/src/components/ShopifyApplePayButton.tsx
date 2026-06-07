@@ -109,9 +109,10 @@ export function ShopifyApplePayButton({
     const AP = getAP();
     if (!AP) return;
 
-    const lineItems: ApplePayLineItem[] = shippingAmt > 0
-      ? [{ label: "Shipping", amount: shippingAmt.toFixed(2) }]
-      : [];
+    const lineItems: ApplePayLineItem[] = [
+      { label: "Items", amount: subtotalEGP.toFixed(2) },
+      ...(shippingAmt > 0 ? [{ label: "Shipping", amount: shippingAmt.toFixed(2) }] : []),
+    ];
 
     // version 4 required for lineItems; type on lineItems requires v14+ so omit it
     const session = new AP(4, {
