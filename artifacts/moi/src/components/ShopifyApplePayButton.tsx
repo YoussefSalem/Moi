@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
+const SHIPPING_FEE = 50;
+const FREE_SHIPPING_THRESHOLD = 2000;
+
 const BTN_CSS = `
   .ap-buy-btn {
     -webkit-appearance: -apple-pay-button;
@@ -18,12 +21,18 @@ const BTN_CSS = `
   }
 `;
 
+interface ApplePayLineItem {
+  label: string;
+  amount: string;
+  type?: string;
+}
 interface ApplePayPaymentRequest {
   countryCode: string;
   currencyCode: string;
   supportedNetworks: string[];
   merchantCapabilities: string[];
   requiredShippingContactFields?: string[];
+  lineItems?: ApplePayLineItem[];
   total: { label: string; amount: string };
 }
 interface ApplePayContact {
@@ -97,31 +106,38 @@ export function ShopifyApplePayButton({
     if (busy || disabled) return;
 
     let lines: Array<{ variantId: string; quantity: number }>;
-    let totalCents: number;
-    let totalEGPVal: number;
+    let subtotalEGP: number;
 
     if (variantId && priceEGP != null) {
       lines = [{ variantId, quantity }];
-      totalEGPVal = priceEGP * quantity;
-      totalCents = Math.round(totalEGPVal * 100);
+      subtotalEGP = priceEGP * quantity;
     } else if (cartLines && cartLines.length > 0 && totalEGP != null) {
       lines = cartLines;
-      totalEGPVal = totalEGP;
-      totalCents = Math.round(totalEGP * 100);
+      subtotalEGP = totalEGP;
     } else {
       return;
     }
 
+    const isFreeShipping = subtotalEGP >= FREE_SHIPPING_THRESHOLD;
+    const shippingAmt = isFreeShipping ? 0 : SHIPPING_FEE;
+    const grandTotalEGP = subtotalEGP + shippingAmt;
+    const grandTotalCents = Math.round(grandTotalEGP * 100);
+
     const AP = getAP();
     if (!AP) return;
+
+    const lineItems: ApplePayLineItem[] = shippingAmt > 0
+      ? [{ label: "Shipping", amount: shippingAmt.toFixed(2), type: "final" }]
+      : [];
 
     const session = new AP(3, {
       countryCode: "EG",
       currencyCode: "EGP",
-      supportedNetworks: ["visa", "masterCard", "amex"],
+      supportedNetworks: ["visa", "masterCard"],
       merchantCapabilities: ["supports3DS"],
       requiredShippingContactFields: ["name", "email", "phone"],
-      total: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
+      lineItems,
+      total: { label: "Moi", amount: (grandTotalCents / 100).toFixed(2) },
     });
 
     intentIdRef.current = null;
@@ -133,7 +149,7 @@ export function ShopifyApplePayButton({
         const res = await fetch("/api/apple-pay/validate-merchant", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ validationURL, lines, totalAmountCents: totalCents, discountCode }),
+          body: JSON.stringify({ validationURL, lines, totalAmountCents: grandTotalCents, discountCode }),
         });
         const data = await res.json() as { merchantSession?: unknown; intentId?: string; error?: string };
         if (!res.ok || !data.merchantSession) throw new Error(data.error ?? "Merchant validation failed");
@@ -176,7 +192,7 @@ export function ShopifyApplePayButton({
         };
         if (data.success) {
           session.completePayment({ status: AP.STATUS_SUCCESS });
-          const totalStr = `${Math.round(totalEGPVal)} EGP`;
+          const totalStr = `${Math.round(grandTotalEGP)} EGP`;
           onSuccess?.(data.shopifyOrderNumber ?? null, totalStr);
         } else {
           session.completePayment({ status: AP.STATUS_FAILURE });
@@ -206,14 +222,6 @@ export function ShopifyApplePayButton({
     <div className={className} style={{ width: "100%", ...style }}>
       <style dangerouslySetInnerHTML={{ __html: BTN_CSS }} />
 
-      <button
-        type="button"
-        className="ap-buy-btn"
-        onClick={handlePay}
-        disabled={busy}
-        aria-label="Buy with Apple Pay"
-      />
-
       {onMoreOptions && (
         <button
           type="button"
@@ -222,11 +230,12 @@ export function ShopifyApplePayButton({
             display: "block",
             width: "100%",
             textAlign: "center",
-            marginTop: 11,
-            fontSize: 12,
-            color: "rgba(30,24,20,0.58)",
+            marginBottom: 10,
+            fontSize: 10,
+            color: "rgba(30,24,20,0.42)",
             fontFamily: "'Montserrat', sans-serif",
-            letterSpacing: "0.06em",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase" as const,
             textDecoration: "underline",
             textUnderlineOffset: "3px",
             background: "none",
@@ -234,12 +243,20 @@ export function ShopifyApplePayButton({
             cursor: "pointer",
             transition: "color 0.15s ease",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(30,24,20,0.85)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(30,24,20,0.58)"; }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(30,24,20,0.72)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(30,24,20,0.42)"; }}
         >
           More payment options
         </button>
       )}
+
+      <button
+        type="button"
+        className="ap-buy-btn"
+        onClick={handlePay}
+        disabled={busy}
+        aria-label="Buy with Apple Pay"
+      />
 
       {error && (
         <p style={{

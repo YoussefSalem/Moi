@@ -2121,43 +2121,31 @@ export function CheckoutPage() {
                       </div>
                     );
                   })}
-                  {/* Apple Pay tile — native -webkit-appearance button inside a selection-state wrapper */}
+                  {/* Apple Pay tile — native -webkit-appearance button, style tag inside wrapper to avoid ghost grid item */}
                   {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
-                    <>
-                      <style dangerouslySetInnerHTML={{ __html: `
-                        .ap-checkout-tile {
-                          -webkit-appearance: -apple-pay-button;
-                          -apple-pay-button-type: plain;
-                          -apple-pay-button-style: black;
-                          display: block;
-                          width: 100%;
-                          height: 100%;
-                          border: none;
-                          cursor: pointer;
-                          border-radius: 0;
-                        }
-                        .ap-checkout-tile:disabled { opacity: 0.5; cursor: default; }
-                      `}} />
-                      <div
-                        style={{
-                          height: "112px",
-                          border: paymentMethod === "apple-pay" ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.15)",
-                          transform: paymentMethod === "apple-pay" ? "scale(1.05)" : "scale(1)",
-                          boxShadow: paymentMethod === "apple-pay" ? "0 2px 12px rgba(30,24,20,0.10)" : "none",
-                          transition: "transform 0.18s ease, box-shadow 0.18s ease, border 0.12s ease",
-                          zIndex: paymentMethod === "apple-pay" ? 1 : 0,
-                          overflow: "hidden",
-                          position: "relative",
-                        }}
-                      >
-                        <button
-                          type="button"
-                          className="ap-checkout-tile"
-                          onClick={triggerApplePayDirectInit}
-                          aria-label="Apple Pay"
-                        />
-                      </div>
-                    </>
+                    <div
+                      style={{
+                        height: "112px",
+                        border: paymentMethod === "apple-pay" ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.15)",
+                        transform: paymentMethod === "apple-pay" ? "scale(1.05)" : "scale(1)",
+                        boxShadow: paymentMethod === "apple-pay" ? "0 2px 12px rgba(30,24,20,0.10)" : "none",
+                        transition: "transform 0.18s ease, box-shadow 0.18s ease, border 0.12s ease",
+                        zIndex: paymentMethod === "apple-pay" ? 1 : 0,
+                        overflow: "hidden",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <style dangerouslySetInnerHTML={{ __html: `.ap-checkout-tile { -webkit-appearance: -apple-pay-button; -apple-pay-button-type: plain; -apple-pay-button-style: black; display: block; border: none; cursor: pointer; border-radius: 0; } .ap-checkout-tile:disabled { opacity: 0.5; cursor: default; }` }} />
+                      <button
+                        type="button"
+                        className="ap-checkout-tile"
+                        onClick={triggerApplePayDirectInit}
+                        aria-label="Apple Pay"
+                        style={{ width: "72%", height: "40px" }}
+                      />
+                    </div>
                   )}
                 </div>
 
