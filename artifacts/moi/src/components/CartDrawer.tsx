@@ -558,6 +558,12 @@ export function CartDrawer() {
                   {loading ? "…" : "Checkout"}
                 </button>
                 {ENABLE_APPLE_PAY && shopifyCart && shopifyCart.lines.nodes.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" }}>or</span>
+                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                    </div>
                   <ShopifyApplePayButton
                     lines={shopifyCart.lines.nodes.map((l) => ({
                       variantId: l.merchandise.id,
@@ -583,6 +589,7 @@ export function CartDrawer() {
                     }}
                     onMoreOptions={() => openCheckout()}
                   />
+                  </>
                 )}
               </div>
             )}

@@ -704,6 +704,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
 
                   {/* Apple Pay quick-buy */}
                   {ENABLE_APPLE_PAY && (
+                    <>
+                    <div className="flex items-center gap-3">
+                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" }}>or</span>
+                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                    </div>
                     <ShopifyApplePayButton
                       variantId={selectedVariant?.id ?? product.variantId ?? ""}
                       quantity={1}
@@ -720,6 +726,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         toast.error(msg, { duration: 4000 });
                       }}
                     />
+                    </>
                   )}
                 </div>
               )}
