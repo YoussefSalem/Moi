@@ -146,7 +146,7 @@ const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = [
   ...(ENABLE_CARD_PAYMENTS ? ["card" as PaymentMethod] : []),
   ...(ENABLE_APPLE_PAY ? ["apple-pay" as PaymentMethod] : []),
 ];
-type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm" | "card-failed";
+type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm";
 type InstapaySubStep = "instructions" | "upload" | "review";
 
 interface OrderResult {
@@ -1396,7 +1396,9 @@ export function CheckoutPage() {
           clearCart();
           setStep("card-confirm");
         } else {
-          setStep("card-failed");
+          setStep("form");
+          submittingRef.current = false;
+          setSubmitError("Payment was declined. Please try again or choose a different payment method.");
         }
         openCheckout();
       } catch {
@@ -1459,7 +1461,7 @@ export function CheckoutPage() {
   }, [step, orderResult?.intentId, orderResult?.shopifyOrderNumber]);
 
   const isSuccessStep = step === "cod-confirm" || step === "card-confirm";
-  const isConfirmStep = isSuccessStep || step === "instapay-confirm" || step === "card-failed";
+  const isConfirmStep = isSuccessStep || step === "instapay-confirm";
   const isCardCheckoutStep = step === "card-checkout" || (step === "form" && !!paymobIframeUrl);
   const loadingText = paymentMethod === "card" ? "Preparing payment…" : "Placing your order…";
 
@@ -1834,13 +1836,6 @@ export function CheckoutPage() {
                 fmt,
                 total: orderResult?.total ? parseFloat(orderResult.total) || undefined : undefined,
               }}
-            />
-          ) : step === "card-failed" ? (
-            <CardFailed
-              orderResult={orderResult!}
-              onRetry={handleRetryCard}
-              onChooseDifferent={handleChooseDifferent}
-              onDone={handleDone}
             />
           ) : (
             <div className="max-w-5xl mx-auto px-6 md:px-10 py-8 md:py-12 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
@@ -2435,60 +2430,6 @@ function OrderConfirmedScreen({
   );
 }
 
-function CardFailed({
-  orderResult,
-  onRetry,
-  onChooseDifferent,
-  onDone,
-}: {
-  orderResult: OrderResult;
-  onRetry: () => void;
-  onChooseDifferent: () => void;
-  onDone: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-lg mx-auto px-8 py-16 text-center flex flex-col items-center gap-6"
-    >
-      <div style={{ width: 72, height: 72, borderRadius: "50%", backgroundColor: "rgba(192,57,43,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <X size={32} strokeWidth={1.5} style={{ color: "#c0392b" }} />
-      </div>
-      <div>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "40px", fontWeight: 600, color: "#c0392b", marginBottom: "14px" }}>
-          Payment Declined
-        </h1>
-        <p style={{ fontSize: "15px", color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.04em", lineHeight: 1.6 }}>
-          No charge was made. Please try again or use a different method.
-        </p>
-      </div>
-      <div className="flex flex-col gap-3 w-full" style={{ maxWidth: 380, margin: "0 auto" }}>
-        <button
-          onClick={onRetry}
-          className="w-full py-4 transition-opacity hover:opacity-80"
-          style={{ backgroundColor: "#c0392b", color: "#fff", fontSize: "14px", letterSpacing: "0.28em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}
-        >
-          Try Again
-        </button>
-        <button
-          onClick={onChooseDifferent}
-          className="w-full py-3 transition-opacity hover:opacity-80"
-          style={{ backgroundColor: "transparent", border: "1.5px solid #1e1814", color: "#1e1814", fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}
-        >
-          Different Method
-        </button>
-        <button
-          onClick={onDone}
-          className="w-full py-3 transition-opacity hover:opacity-60"
-          style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.62)", fontFamily: "'Montserrat', sans-serif", border: "1px solid rgba(30,24,20,0.14)" }}
-        >
-          Cancel
-        </button>
-      </div>
-    </motion.div>
-  );
-}
 
 function InstapayConfirmation({
   orderResult,
