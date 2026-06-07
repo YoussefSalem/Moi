@@ -510,7 +510,7 @@ export function CartDrawer() {
                 >
                   {loading ? "…" : "Checkout"}
                 </button>
-                {ENABLE_APPLE_PAY && shopifyCart && shopifyCart.lines.nodes.length > 0 && (
+                {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && shopifyCart && shopifyCart.lines.nodes.length > 0 && (
                   <>
                     <div className="flex items-center gap-3">
                       <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
