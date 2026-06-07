@@ -136,6 +136,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Key is the item id (local composite key) or Shopify line GID.
   const updatingRef = useRef<Map<string, boolean>>(new Map());
 
+  // Always-current mirror of shopifyCart state — readable inside async closures
+  // without stale-closure issues.
+  const shopifyCartRef = useRef<ShopifyCart | null>(null);
+  // Deduplicates concurrent cart creation: if two addToCart calls race while
+  // shopifyCart is null, they both await the same promise instead of each
+  // creating a separate Shopify cart.
+  const cartCreationRef = useRef<Promise<ShopifyCart> | null>(null);
+  // Serialises addCartLines calls so rapid "add item A, add item B" sequences
+  // never overwrite each other's setShopifyCart result.
+  const syncChainRef = useRef<Promise<void>>(Promise.resolve());
+
+  // Helper that keeps both the ref and state in sync.
+  const setCart = useCallback((c: ShopifyCart) => {
+    shopifyCartRef.current = c;
+    setShopifyCart(c);
+  }, []);
+
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
@@ -156,26 +173,34 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             if (hasAppliedCodes) {
               try {
                 const cleaned = await cartDiscountCodesUpdate(c.id, []);
-                setShopifyCart(cleaned);
+                setCart(cleaned);
               } catch {
-                setShopifyCart(c);
+                setCart(c);
               }
             } else {
-              setShopifyCart(c);
+              setCart(c);
             }
           })
           .catch(() => localStorage.removeItem(CART_ID_KEY));
       }
     }
-  }, []);
+  }, [setCart]);
 
   const ensureShopifyCart = useCallback(async (): Promise<ShopifyCart> => {
-    if (shopifyCart) return shopifyCart;
-    const newCart = await createCart();
-    localStorage.setItem(CART_ID_KEY, newCart.id);
-    setShopifyCart(newCart);
-    return newCart;
-  }, [shopifyCart]);
+    // Use the always-current ref so concurrent callers see a cart created by a
+    // sibling call that hasn't propagated to React state yet.
+    if (shopifyCartRef.current) return shopifyCartRef.current;
+    // Deduplicate: if another call is already creating the cart, piggyback on it.
+    if (cartCreationRef.current) return cartCreationRef.current;
+    cartCreationRef.current = createCart().then((newCart) => {
+      localStorage.setItem(CART_ID_KEY, newCart.id);
+      shopifyCartRef.current = newCart;
+      setShopifyCart(newCart);
+      cartCreationRef.current = null;
+      return newCart;
+    });
+    return cartCreationRef.current;
+  }, []);
 
   const addToCart = useCallback(async (params: AddToCartParams): Promise<string | null> => {
     const qty = params.quantity ?? 1;
@@ -255,24 +280,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       currencyCode: params.currencyCode ?? "EGP",
     });
 
-    // ── Step 4: Shopify sync in background — loading only for this part ───────
+    // ── Step 4: Shopify sync — serialised to prevent concurrent race ──────────
+    // syncChainRef ensures that if two addToCart calls happen in rapid succession
+    // (e.g. wavy top then versa top), the second awaits the first's addCartLines
+    // before running its own. Without this, both calls can race to create separate
+    // Shopify carts and the second setShopifyCart overwrites the first, hiding
+    // the earlier item in the drawer.
     let resolvedCheckoutUrl: string | null = null;
     if (SHOPIFY_CONFIGURED && params.variantId) {
       setLoading(true);
-      try {
+      const variantId = params.variantId;
+      const quantity = qty;
+      const op = syncChainRef.current.then(async () => {
         const c = await ensureShopifyCart();
-        const updated = await addCartLines(c.id, [{ merchandiseId: params.variantId, quantity: qty }]);
-        setShopifyCart(updated);
+        const updated = await addCartLines(c.id, [{ merchandiseId: variantId, quantity }]);
+        setCart(updated);
         resolvedCheckoutUrl = updated.checkoutUrl ?? null;
-      } catch {
-        // Shopify failure must not block local cart; silently fall through
-      } finally {
+      }).catch(() => {
+        // Shopify failure must not block local cart
+      }).finally(() => {
         setLoading(false);
-      }
+      });
+      syncChainRef.current = op;
+      await op;
     }
 
     return resolvedCheckoutUrl;
-  }, [ensureShopifyCart]);
+  }, [ensureShopifyCart, setCart]);
 
   // "Buy It Now" — replace cart with a single item and open checkout immediately.
   // Opens checkout with local state right away (zero wait), then syncs the Shopify
@@ -301,6 +335,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setLocalItems([newItem]);
     // Drop the old Shopify cart so checkout uses local fallback until background
     // cart creation finishes.
+    shopifyCartRef.current = null;
+    cartCreationRef.current = null;
     setShopifyCart(null);
     localStorage.removeItem(CART_ID_KEY);
 
@@ -316,7 +352,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       createCartWithLines([{ merchandiseId: params.variantId, quantity: qty }])
         .then((freshCart) => {
           localStorage.setItem(CART_ID_KEY, freshCart.id);
-          setShopifyCart(freshCart);
+          setCart(freshCart);
         })
         .catch(() => {
           // Local cart is the fallback — checkout still works without Shopify
@@ -348,7 +384,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         try {
           const prevLines = shopifyCart.lines.nodes;
           const updated = await removeCartLines(shopifyCart.id, [idOrLineId]);
-          setShopifyCart(updated);
+          setCart(updated);
           // Sync local items: find which variantIds were removed from Shopify and
           // purge them from localStorage. This fixes the bug where removing a
           // Shopify line (by CartLine GID) left the matching local item intact,
@@ -396,7 +432,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (SHOPIFY_CONFIGURED && shopifyCart) {
         try {
           const updated = await updateCartLines(shopifyCart.id, [{ id: idOrLineId, quantity }]);
-          setShopifyCart(updated);
+          setCart(updated);
           // When Shopify is active, idOrLineId is a Shopify CartLine GID, NOT the local
           // composite key. Derive the affected variantId from the updated Shopify cart
           // and sync local items by variantId so the drawer stays consistent.
@@ -436,7 +472,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // Pass [] to clear all codes — Shopify rejects [""] as an invalid code
     const codes = code.trim() ? [code] : [];
     const updated = await cartDiscountCodesUpdate(c.id, codes);
-    setShopifyCart(updated);
+    setCart(updated);
     const applied = updated.discountCodes.find((d) => d.code === code);
 
     // The Storefront API may return applicable:false when the cart is empty or
@@ -477,6 +513,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [ensureShopifyCart, localItems]);
 
   const clearCart = useCallback(() => {
+    shopifyCartRef.current = null;
+    cartCreationRef.current = null;
     setShopifyCart(null);
     setLocalItems([]);
     localStorage.removeItem(CART_ID_KEY);
@@ -498,6 +536,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     saveLocalCart(newLocalItems);
     setLocalItems(newLocalItems);
     localStorage.removeItem(CART_ID_KEY);
+    shopifyCartRef.current = null;
+    cartCreationRef.current = null;
     setShopifyCart(null);
     if (SHOPIFY_CONFIGURED) {
       const shopifyLines = items
@@ -507,7 +547,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         try {
           const newCart = await createCartWithLines(shopifyLines);
           localStorage.setItem(CART_ID_KEY, newCart.id);
-          setShopifyCart(newCart);
+          setCart(newCart);
         } catch {
           // fall through to local-only mode
         }
