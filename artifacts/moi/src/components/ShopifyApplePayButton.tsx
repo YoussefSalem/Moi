@@ -205,22 +205,35 @@ export function ShopifyApplePayButton({
   return (
     <div className={className} style={{ width: "100%", ...style }}>
       <style dangerouslySetInnerHTML={{ __html: `
+        .ap-pay-wrap {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 50px;
+          background: #000;
+          cursor: pointer;
+        }
+        .ap-pay-wrap.ap-busy {
+          opacity: 0.4;
+          cursor: default;
+          pointer-events: none;
+        }
         .ap-pay-btn {
           -webkit-appearance: -apple-pay-button;
           -apple-pay-button-type: buy;
           -apple-pay-button-style: black;
           display: block;
           width: 100%;
-          min-width: 200px;
-          height: 50px;
+          height: 30px;
           border: none;
           border-radius: 0;
           padding: 0;
           margin: 0;
-          cursor: pointer;
+          pointer-events: none;
           /* Hard-reset every inherited property that warps native rendering */
           font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 17px;
+          font-size: 15px;
           font-weight: 400;
           font-style: normal;
           line-height: normal;
@@ -232,18 +245,22 @@ export function ShopifyApplePayButton({
           -webkit-text-size-adjust: 100%;
           text-size-adjust: 100%;
         }
-        .ap-pay-btn:disabled {
-          opacity: 0.4;
-          cursor: default;
-        }
       ` }} />
-      <button
-        type="button"
-        className="ap-pay-btn"
-        onClick={handlePay}
-        disabled={busy}
+      <div
+        className={`ap-pay-wrap${busy ? " ap-busy" : ""}`}
+        onClick={busy ? undefined : handlePay}
+        role="button"
         aria-label="Buy with Apple Pay"
-      />
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handlePay(); }}
+      >
+        <button
+          type="button"
+          className="ap-pay-btn"
+          tabIndex={-1}
+          aria-hidden="true"
+        />
+      </div>
 
       {error && (
         <p style={{
