@@ -608,7 +608,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       openCheckout,
       closeCheckout: () => {
         if (typeof window !== "undefined" && window.location.pathname === "/checkout") {
-          window.history.back();
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            window.location.replace("/");
+          }
         } else {
           setCheckoutOpen(false);
           setPrefilledEmail(null);

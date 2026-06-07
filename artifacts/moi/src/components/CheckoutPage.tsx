@@ -1507,7 +1507,7 @@ export function CheckoutPage() {
                 {/* Back bar */}
                 <div style={{ display: "flex", alignItems: "center", padding: "0 16px", height: 52, borderBottom: "1px solid rgba(30,24,20,0.08)", flexShrink: 0 }}>
                   <button
-                    onClick={() => { setPaymobIframeUrl(null); setStep("form"); }}
+                    onClick={handleCancelCardCheckout}
                     style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", padding: "8px 0", cursor: "pointer" }}
                   >
                     <ArrowLeft size={16} strokeWidth={1.5} style={{ color: "#1e1814" }} />
