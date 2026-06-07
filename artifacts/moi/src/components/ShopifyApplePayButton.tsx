@@ -3,23 +3,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const SHIPPING_FEE = 50;
 const FREE_SHIPPING_THRESHOLD = 2000;
 
-const BTN_CSS = `
-  .ap-buy-btn {
-    -webkit-appearance: -apple-pay-button;
-    -apple-pay-button-type: buy;
-    -apple-pay-button-style: black;
-    display: block;
-    width: 100%;
-    height: 44px;
-    border: none;
-    cursor: pointer;
-    border-radius: 0;
-  }
-  .ap-buy-btn:disabled {
-    opacity: 0.45;
-    cursor: default;
-  }
-`;
 
 interface ApplePayLineItem {
   label: string;
@@ -221,43 +204,49 @@ export function ShopifyApplePayButton({
 
   return (
     <div className={className} style={{ width: "100%", ...style }}>
-      <style dangerouslySetInnerHTML={{ __html: BTN_CSS }} />
-
-      {onMoreOptions && (
-        <button
-          type="button"
-          onClick={onMoreOptions}
-          style={{
-            display: "block",
-            width: "100%",
-            textAlign: "center",
-            marginBottom: 10,
-            fontSize: 10,
-            color: "rgba(30,24,20,0.42)",
-            fontFamily: "'Montserrat', sans-serif",
-            letterSpacing: "0.14em",
-            textTransform: "uppercase" as const,
-            textDecoration: "underline",
-            textUnderlineOffset: "3px",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            transition: "color 0.15s ease",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(30,24,20,0.72)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(30,24,20,0.42)"; }}
-        >
-          More payment options
-        </button>
-      )}
-
       <button
         type="button"
-        className="ap-buy-btn"
         onClick={handlePay}
         disabled={busy}
         aria-label="Buy with Apple Pay"
-      />
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "6px",
+          width: "100%",
+          height: "44px",
+          backgroundColor: "#000",
+          border: "none",
+          cursor: busy ? "default" : "pointer",
+          opacity: busy ? 0.5 : 1,
+          transition: "opacity 0.15s ease",
+        }}
+      >
+        <span style={{
+          fontFamily: "'Montserrat', sans-serif",
+          fontSize: "13px",
+          fontWeight: 200,
+          letterSpacing: "0.08em",
+          color: "#fff",
+          lineHeight: 1,
+        }}>
+          Buy with
+        </span>
+        <svg viewBox="0 0 814 1000" width="14" height="14" fill="white" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ flexShrink: 0, marginTop: "-1px" }}>
+          <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46.7 790.7 0 663 0 541.8c0-207.2 135.4-316.7 269-316.7 70.8 0 129.9 43.1 172.8 43.1 42.2 0 108.1-45.6 190.5-45.6 30.5 0 110.7 2.6 170.3 65.8zm-108.2-170.7c-55.4 59.2-132.7 84.5-210 84.5-15.5 0-31-1.5-42.8-2.8 4.8-71.6 51.6-141.4 108-192.2 56.4-50.8 138.2-84.5 215.4-88.7 2.5 13.5 3.2 27.1 3.2 39.5 0 62.3-27 133.2-73.8 159.7z"/>
+        </svg>
+        <span style={{
+          fontFamily: "'Montserrat', sans-serif",
+          fontSize: "13px",
+          fontWeight: 200,
+          letterSpacing: "0.08em",
+          color: "#fff",
+          lineHeight: 1,
+        }}>
+          Pay
+        </span>
+      </button>
 
       {error && (
         <p style={{
