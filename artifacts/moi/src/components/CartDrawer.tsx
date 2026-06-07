@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, ShoppingBag, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -212,25 +212,6 @@ export function CartDrawer() {
 
   const hasItems = (isShopify && (shopifyCart?.lines.nodes.length ?? 0) > 0) || localItems.length > 0;
 
-  // Suppress item entrance animations while the drawer is sliding open.
-  // Once the drawer finishes (≈450ms), newly-added items animate in normally.
-  const drawerReadyRef = useRef(false);
-  const [drawerReady, setDrawerReady] = useState(false);
-  useEffect(() => {
-    if (!cartOpen) {
-      drawerReadyRef.current = false;
-      setDrawerReady(false);
-      return;
-    }
-    drawerReadyRef.current = false;
-    setDrawerReady(false);
-    const t = setTimeout(() => {
-      drawerReadyRef.current = true;
-      setDrawerReady(true);
-    }, 460);
-    return () => clearTimeout(t);
-  }, [cartOpen]);
-
   return (
     <AnimatePresence>
       {cartOpen && (
@@ -240,8 +221,8 @@ export function CartDrawer() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[90] bg-black/30 backdrop-blur-sm"
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[90] bg-black/40"
             onClick={closeCart}
           />
           <motion.aside
@@ -249,9 +230,9 @@ export function CartDrawer() {
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{ type: "tween", duration: 0.42, ease: [0.76, 0, 0.24, 1] }}
+            transition={{ type: "tween", duration: 0.38, ease: [0.76, 0, 0.24, 1] }}
             className="fixed top-0 right-0 bottom-0 z-[100] w-full max-w-[420px] flex flex-col"
-            style={{ backgroundColor: "#faf8f5" }}
+            style={{ backgroundColor: "#faf8f5", willChange: "transform" }}
           >
             {/* Header */}
             <div
@@ -308,12 +289,7 @@ export function CartDrawer() {
             {/* Items */}
             <div className="flex-1 overflow-y-auto px-7 py-6">
               {!hasItems ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="flex flex-col items-center justify-center h-full gap-5 text-center"
-                >
+                <div className="flex flex-col items-center justify-center h-full gap-5 text-center">
                   <ShoppingBag size={36} strokeWidth={1} style={{ color: "rgba(30,24,20,0.2)" }} />
                   <p
                     className="text-[11px] tracking-[0.25em] uppercase font-light"
@@ -348,16 +324,13 @@ export function CartDrawer() {
                   >
                     Continue Shopping
                   </button>
-                </motion.div>
+                </div>
               ) : (
                 <ul className="space-y-6">
                   {isShopify && shopifyCart && shopifyCart.lines.nodes.length > 0
-                    ? shopifyCart.lines.nodes.map((line, i) => (
-                        <motion.li
+                    ? shopifyCart.lines.nodes.map((line) => (
+                        <li
                           key={line.id}
-                          initial={drawerReady ? { opacity: 0, x: 12 } : false}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: drawerReady ? i * 0.05 : 0, duration: 0.22, ease: "easeOut" }}
                           className="flex gap-4"
                           style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
                         >
@@ -430,14 +403,11 @@ export function CartDrawer() {
                               </div>
                             </div>
                           </div>
-                        </motion.li>
+                        </li>
                       ))
-                    : localItems.map((item, i) => (
-                        <motion.li
+                    : localItems.map((item) => (
+                        <li
                           key={item.id}
-                          initial={drawerReady ? { opacity: 0, x: 12 } : false}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: drawerReady ? i * 0.05 : 0, duration: 0.22, ease: "easeOut" }}
                           className="flex gap-4"
                           style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
                         >
@@ -504,7 +474,7 @@ export function CartDrawer() {
                               </div>
                             </div>
                           </div>
-                        </motion.li>
+                        </li>
                       ))
                   }
                 </ul>
@@ -513,10 +483,7 @@ export function CartDrawer() {
 
             {/* Footer */}
             {hasItems && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
+              <div
                 className="px-7 py-6 flex flex-col gap-5"
                 style={{ borderTop: "1px solid rgba(30,24,20,0.08)" }}
               >
@@ -617,7 +584,7 @@ export function CartDrawer() {
                     onMoreOptions={() => openCheckout()}
                   />
                 )}
-              </motion.div>
+              </div>
             )}
           </motion.aside>
         </>
