@@ -19,7 +19,11 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
       ? shopifyImageUrls
       : [];
 
-  const productShot = featuredUrl ?? fallback.productShot;
+  // On color-specific pages, keep the color-accurate local productShot.
+  // Only use Shopify's featuredImage for generic (non-color) product pages.
+  const productShot = fallbackFilm.length > 0
+    ? fallback.productShot
+    : (featuredUrl ?? fallback.productShot);
 
   const extraShopifyImages = shopifyImageUrls
     .filter((url) => url !== featuredUrl)
