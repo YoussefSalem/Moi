@@ -1,0 +1,21 @@
+Hydrogen may not support the exact accelerated checkout experience you expect on product pages and cart drawers, so this must be validated with a prototype.
+InstaPay file uploads inside Shopify Checkout UI Extensions may have platform limitations and require a different architecture.
+Products, variants, collections, inventory, images, and metafields must exist in Shopify before the Hydrogen storefront can function.
+Existing customer accounts may require migration and password resets because Shopify cannot import password hashes from external systems.
+Historical orders need a defined strategy if customers are expected to see previous purchases in their accounts.
+The abandoned-cart system may break if it currently relies on custom cart logic rather than Shopify checkout events.
+All Shopify webhooks must be audited because payload structures and order lifecycles may differ from current assumptions.
+Meta Pixel, TikTok Pixel, GA4, and server-side conversion tracking must be fully validated to avoid attribution loss after launch.
+Custom attribution logic in adAttribution.ts must be preserved so campaign reporting remains accurate.
+Search functionality will need a dedicated migration because Hydrogen search behavior differs from a client-side SPA.
+SEO must be audited to preserve rankings, including metadata, structured data, canonical URLs, redirects, sitemap, and robots.txt.
+Core Web Vitals and performance should be benchmarked before and after migration to ensure Hydrogen actually improves user experience.
+DNS should not be switched to Shopify until all storefront, checkout, payment, analytics, and webhook testing is complete.
+The admin dashboard URL structure should be finalized upfront to avoid routing and operational confusion.
+The Replit storefront should remain online during migration and for at least two weeks after launch as a rollback option.
+A documented rollback plan must exist so the site can return to Replit within minutes if critical issues occur.
+Bosta shipment creation must be tested end-to-end using real Shopify orders before production launch.
+Resend order confirmations, InstaPay emails, and approval/rejection workflows must be verified against real Shopify events.
+Shopify checkout extensibility capabilities should be confirmed before development because some checkout customizations have platform restrictions.
+Real payment tests using Apple Pay, Paymob card payments, COD, and InstaPay should be completed before any domain cutover.
+The migration should not modify or replace the existing Express backend until the Hydrogen storefront has been stable in production for at least two weeks.
