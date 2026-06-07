@@ -45,5 +45,8 @@ jobs:
         working-directory: .
         run: pnpm install --no-frozen-lockfile
 
+      - name: Copy lockfile to Hydrogen directory
+        run: cp ../pnpm-lock.yaml .
+
       - name: Build and Publish to Oxygen
         run: npx shopify hydrogen deploy --token ${{ secrets.OXYGEN_DEPLOYMENT_TOKEN_1000144846 }}
