@@ -4,8 +4,8 @@ export function WavySeparator() {
       className="w-full overflow-hidden"
       style={{
         background: "linear-gradient(to bottom, #ffffff 0%, #f0ece6 100%)",
-        paddingTop: "5px",
-        paddingBottom: "10px",
+        paddingTop: "2px",
+        paddingBottom: "2px",
       }}
       aria-hidden="true"
     >
