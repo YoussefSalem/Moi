@@ -123,23 +123,24 @@ export function LookView({ product, onClose }: LookViewProps) {
     };
   }, [product]);
 
-  const handleAddToBag = async () => {
+  const handleAddToBag = () => {
     if (!product || addingToBag) return;
+    // Deduplicate: guard is set synchronously before any state update
     setAddingToBag(true);
-    try {
-      await addToCart({
-        variantId: product.variantId,
-        title: product.name,
-        price: product.price,
-        priceAmount: parseEGP(product.price),
-        currencyCode: "EGP",
-        image: product.look.model,
-      });
-      setAddedFeedback(true);
-      setTimeout(() => setAddedFeedback(false), 1800);
-    } finally {
+    setAddedFeedback(true);
+    // Fire-and-forget — cart opens immediately inside addToCart (optimistic)
+    void addToCart({
+      variantId: product.variantId,
+      title: product.name,
+      price: product.price,
+      priceAmount: parseEGP(product.price),
+      currencyCode: "EGP",
+      image: product.look.model,
+    });
+    setTimeout(() => {
       setAddingToBag(false);
-    }
+      setAddedFeedback(false);
+    }, 1800);
   };
 
   const availableImages = useMemo(() => {

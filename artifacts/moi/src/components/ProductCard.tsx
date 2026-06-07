@@ -36,6 +36,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
   const { customer } = useCustomer();
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const addingRef = useRef(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
   const dragStartXRef = useRef<number | null>(null);
@@ -293,15 +294,20 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
     direction > 0 ? nextGallery() : prevGallery();
   };
 
-  const handleAddToCart = async () => {
-    if (isOutOfStock) return;
+  const handleAddToCart = () => {
+    if (isOutOfStock || addingRef.current) return;
+    // Prevent duplicate taps — ref is synchronous unlike state
+    addingRef.current = true;
+    // Immediate visual feedback — button flips to "Added ✓" right away
+    setAddedFeedback(true);
     trackAddToCart(
       selectedVariant?.id ?? product.variantId ?? "",
       product.name,
       1,
       parseEGP(String(effectivePrice)) || 0,
     );
-    await addToCart({
+    // Fire-and-forget — cart opens immediately inside addToCart (optimistic)
+    void addToCart({
       variantId: selectedVariant?.id ?? product.variantId ?? "",
       title: product.name,
       price: effectivePrice,
@@ -316,8 +322,10 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
       description: `${selectedColor} · ${selectedSize}`,
       duration: 2500,
     });
-    setAddedFeedback(true);
-    setTimeout(() => setAddedFeedback(false), 1800);
+    setTimeout(() => {
+      addingRef.current = false;
+      setAddedFeedback(false);
+    }, 1800);
   };
 
   const subscribeToRestock = async (email: string): Promise<{ success: boolean; error?: string }> => {

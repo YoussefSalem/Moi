@@ -175,92 +175,97 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = useCallback(async (params: AddToCartParams): Promise<string | null> => {
     const qty = params.quantity ?? 1;
-    setLoading(true);
-    let resolvedCheckoutUrl: string | null = null;
-    try {
-      // Shopify sync — best-effort; local cart always succeeds regardless
-      if (SHOPIFY_CONFIGURED && params.variantId) {
-        try {
-          const c = await ensureShopifyCart();
-          const updated = await addCartLines(c.id, [{ merchandiseId: params.variantId, quantity: qty }]);
-          setShopifyCart(updated);
-          resolvedCheckoutUrl = updated.checkoutUrl ?? null;
-        } catch {
-          // Shopify failure must not block local cart; silently fall through
-        }
+
+    // ── Step 1: Optimistic local update — zero network wait ──────────────────
+    const key = `${params.variantId ?? params.title ?? "item"}-${params.size ?? ""}`;
+    setLocalItems((prev) => {
+      const existing = prev.find((i) => i.id === key);
+      let updated: LocalCartItem[];
+      if (existing) {
+        updated = prev.map((i) => i.id === key ? { ...i, quantity: i.quantity + qty } : i);
+      } else {
+        const newItem: LocalCartItem = {
+          id: key,
+          variantId: params.variantId ?? key,
+          title: params.title ?? "Item",
+          price: params.price ?? "",
+          priceAmount: params.priceAmount ?? 0,
+          compareAtPrice: params.compareAtPrice,
+          currencyCode: params.currencyCode ?? "EGP",
+          image: params.image ?? null,
+          size: params.size,
+          color: params.color,
+          quantity: qty,
+        };
+        updated = [...prev, newItem];
       }
-      const key = `${params.variantId ?? params.title ?? "item"}-${params.size ?? ""}`;
-      setLocalItems((prev) => {
-        const existing = prev.find((i) => i.id === key);
-        let updated: LocalCartItem[];
-        if (existing) {
-          updated = prev.map((i) => i.id === key ? { ...i, quantity: i.quantity + qty } : i);
-        } else {
-          const newItem: LocalCartItem = {
-            id: key,
-            variantId: params.variantId ?? key,
-            title: params.title ?? "Item",
-            price: params.price ?? "",
-            priceAmount: params.priceAmount ?? 0,
-            compareAtPrice: params.compareAtPrice,
-            currencyCode: params.currencyCode ?? "EGP",
-            image: params.image ?? null,
-            size: params.size,
-            color: params.color,
-            quantity: qty,
-          };
-          updated = [...prev, newItem];
-        }
-        saveLocalCart(updated);
-        return updated;
-      });
-      trackAddToCart({
-        content_name: params.title,
-        content_ids: params.variantId ? [params.variantId] : undefined,
+      saveLocalCart(updated);
+      return updated;
+    });
+
+    // ── Step 2: Open cart drawer immediately ─────────────────────────────────
+    setCartOpen(true);
+
+    // ── Step 3: Analytics (non-blocking) ─────────────────────────────────────
+    trackAddToCart({
+      content_name: params.title,
+      content_ids: params.variantId ? [params.variantId] : undefined,
+      currency: params.currencyCode ?? "EGP",
+      value: Number.isFinite(params.priceAmount) && (params.priceAmount ?? 0) > 0 ? params.priceAmount : undefined,
+      num_items: qty,
+    });
+    trackInternalAddToCart(
+      params.variantId ?? params.title ?? "unknown",
+      params.title ?? "Item",
+      qty,
+      Number.isFinite(params.priceAmount) && params.priceAmount != null ? params.priceAmount : 0
+    );
+    trackTikTokAddToCart({
+      content_name: params.title,
+      content_id: params.variantId,
+      currency: params.currencyCode,
+      value: params.priceAmount,
+      quantity: qty,
+    });
+    if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
+      (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "add_to_cart", {
         currency: params.currencyCode ?? "EGP",
-        value: Number.isFinite(params.priceAmount) && (params.priceAmount ?? 0) > 0 ? params.priceAmount : undefined,
-        num_items: qty,
-      });
-      trackInternalAddToCart(
-        params.variantId ?? params.title ?? "unknown",
-        params.title ?? "Item",
-        qty,
-        Number.isFinite(params.priceAmount) && params.priceAmount != null ? params.priceAmount : 0
-      );
-      trackTikTokAddToCart({
-        content_name: params.title,
-        content_id: params.variantId,
-        currency: params.currencyCode,
-        value: params.priceAmount,
-        quantity: qty,
-      });
-      // Google Analytics 4 — add_to_cart
-      if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
-        (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "add_to_cart", {
+        value: Number.isFinite(params.priceAmount) ? params.priceAmount : 0,
+        items: [{
+          item_id: params.variantId,
+          item_name: params.title,
+          quantity: qty,
+          price: params.priceAmount,
           currency: params.currencyCode ?? "EGP",
-          value: Number.isFinite(params.priceAmount) ? params.priceAmount : 0,
-          items: [{
-            item_id: params.variantId,
-            item_name: params.title,
-            quantity: qty,
-            price: params.priceAmount,
-            currency: params.currencyCode ?? "EGP",
-          }],
-        });
-      }
-      trackShopifyAddToCart({
-        variantId: params.variantId,
-        productTitle: params.title ?? "",
-        price: Number.isFinite(params.priceAmount) && params.priceAmount != null
-          ? params.priceAmount
-          : undefined,
-        quantity: qty,
-        currencyCode: params.currencyCode ?? "EGP",
+        }],
       });
-      setCartOpen(true);
-    } finally {
-      setLoading(false);
     }
+    trackShopifyAddToCart({
+      variantId: params.variantId,
+      productTitle: params.title ?? "",
+      price: Number.isFinite(params.priceAmount) && params.priceAmount != null
+        ? params.priceAmount
+        : undefined,
+      quantity: qty,
+      currencyCode: params.currencyCode ?? "EGP",
+    });
+
+    // ── Step 4: Shopify sync in background — loading only for this part ───────
+    let resolvedCheckoutUrl: string | null = null;
+    if (SHOPIFY_CONFIGURED && params.variantId) {
+      setLoading(true);
+      try {
+        const c = await ensureShopifyCart();
+        const updated = await addCartLines(c.id, [{ merchandiseId: params.variantId, quantity: qty }]);
+        setShopifyCart(updated);
+        resolvedCheckoutUrl = updated.checkoutUrl ?? null;
+      } catch {
+        // Shopify failure must not block local cart; silently fall through
+      } finally {
+        setLoading(false);
+      }
+    }
+
     return resolvedCheckoutUrl;
   }, [ensureShopifyCart]);
 
@@ -332,12 +337,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       if (SHOPIFY_CONFIGURED && shopifyCart) {
         try {
+          const prevLines = shopifyCart.lines.nodes;
           const updated = await removeCartLines(shopifyCart.id, [idOrLineId]);
           setShopifyCart(updated);
+          // Sync local items: find which variantIds were removed from Shopify and
+          // purge them from localStorage. This fixes the bug where removing a
+          // Shopify line (by CartLine GID) left the matching local item intact,
+          // causing it to reappear on the next session when the Shopify cart
+          // comes back empty.
+          const remainingVariantIds = new Set(updated.lines.nodes.map((l) => l.merchandise.id));
+          const removedVariantIds = new Set(
+            prevLines
+              .filter((l) => !remainingVariantIds.has(l.merchandise.id))
+              .map((l) => l.merchandise.id),
+          );
+          if (removedVariantIds.size > 0) {
+            setLocalItems((prev) => {
+              const filtered = prev.filter((i) => !removedVariantIds.has(i.variantId));
+              saveLocalCart(filtered);
+              return filtered;
+            });
+            return;
+          }
         } catch {
-          // line may be local-only
+          // line may be local-only — fall through to local filter below
         }
       }
+      // Local-only removal (no Shopify cart, or item was local-only)
       setLocalItems((prev) => {
         const updated = prev.filter((i) => i.id !== idOrLineId);
         saveLocalCart(updated);

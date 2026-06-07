@@ -84,6 +84,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const recsRef = useRef<HTMLDivElement>(null);
+  const addingRef = useRef(false);
 
   // Persistent stock indicator for all products
   const stockCount = useMemo(() => {
@@ -190,15 +191,20 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const effectivePrice = selectedVariant?.price ?? product.price;
   const effectiveCompareAtPrice = selectedVariant?.compareAtPrice ?? (product as unknown as { compareAtPrice?: string }).compareAtPrice;
 
-  const handleAddToCart = async () => {
-    if (isOutOfStock) return;
+  const handleAddToCart = () => {
+    if (isOutOfStock || addingRef.current) return;
+    // Prevent duplicate taps — ref is synchronous unlike state
+    addingRef.current = true;
+    // Immediate visual feedback
+    setAddedFeedback(true);
     trackAddToCart(
       selectedVariant?.id ?? product.variantId ?? "",
       product.name,
       1,
       parseEGP(String(effectivePrice)) || 0,
     );
-    await addToCart({
+    // Fire-and-forget — cart opens immediately inside addToCart (optimistic)
+    void addToCart({
       variantId: selectedVariant?.id ?? product.variantId ?? "",
       title: product.name,
       price: effectivePrice,
@@ -210,8 +216,10 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       color: product.name,
     });
     toast.success(`${product.name} added to bag`, { duration: 2500 });
-    setAddedFeedback(true);
-    setTimeout(() => setAddedFeedback(false), 1800);
+    setTimeout(() => {
+      addingRef.current = false;
+      setAddedFeedback(false);
+    }, 1800);
   };
 
   const handleBuyNow = () => {
