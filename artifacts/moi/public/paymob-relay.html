@@ -72,7 +72,7 @@
       max-width: 300px;
     }
 
-    /* ── CTA button (only shown when top-level) ── */
+    /* ── single CTA button (success / pending) ── */
     .cta {
       display: none;
       margin-top: 32px;
@@ -90,7 +90,48 @@
     }
     .cta:hover { opacity: 0.82; }
 
-    /* ── countdown bar (only shown when top-level) ── */
+    /* ── 3-button group (fail only) ── */
+    .fail-actions {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-top: 32px;
+      width: 100%;
+      max-width: 320px;
+    }
+    .fail-actions .btn {
+      width: 100%;
+      padding: 13px 20px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      text-align: center;
+    }
+    .fail-actions .btn-primary {
+      background: #1e1814;
+      color: #faf8f5;
+    }
+    .fail-actions .btn-primary:hover { opacity: 0.82; }
+    .fail-actions .btn-outline {
+      background: transparent;
+      color: #1e1814;
+      border: 1px solid #1e1814;
+    }
+    .fail-actions .btn-outline:hover { background: rgba(30,24,20,0.05); }
+    .fail-actions .btn-ghost {
+      background: transparent;
+      color: rgba(30,24,20,0.45);
+      border: 1px solid transparent;
+    }
+    .fail-actions .btn-ghost:hover { color: #1e1814; }
+
+    /* ── countdown bar (success / pending only) ── */
     .countdown-wrap {
       display: none;
       margin-top: 20px;
@@ -217,9 +258,8 @@
     }
 
     // Case 3 — loaded as the top-level page (3DS navigated the main window).
-    // Show a proper full-page result with a CTA and auto-redirect countdown.
     if (!sent) {
-      // Save result so the app can pick it up if needed
+      // Save result so the app can pick it up on return
       try {
         sessionStorage.setItem('moi_paymob_result', JSON.stringify(msg));
       } catch (_) {}
@@ -228,49 +268,79 @@
       var brand = document.getElementById('brand');
       if (brand) brand.style.display = 'block';
 
-      // Button label and destination are outcome-specific
-      var ctaLabel = success
-        ? 'Proceed to Order Information'
-        : 'Continue Shopping';
-      var ctaDest = '/';
+      if (outcome === 'fail') {
+        // ── Failure: show 3 action buttons, no auto-redirect ──────────────
+        var actions = document.createElement('div');
+        actions.className = 'fail-actions';
+        actions.style.display = 'flex';
 
-      var cta = document.createElement('a');
-      cta.href = ctaDest;
-      cta.className = 'cta';
-      cta.textContent = ctaLabel;
-      cta.style.display = 'inline-block';
-      document.body.appendChild(cta);
+        // TRY AGAIN — keep moi_paymob_result in storage so app re-opens checkout
+        var btnRetry = document.createElement('button');
+        btnRetry.className = 'btn btn-primary';
+        btnRetry.textContent = 'Try Again';
+        btnRetry.onclick = function () { window.location.replace('/'); };
 
-      // Add countdown
-      var cdWrap = document.createElement('div');
-      cdWrap.className = 'countdown-wrap';
-      cdWrap.style.display = 'block';
-      var cdText = document.createElement('span');
-      cdText.id = 'cd-text';
-      var initialLabel = success ? 'Proceeding to your order in 5s\u2026' : 'Redirecting in 5s\u2026';
-      cdText.textContent = initialLabel;
-      cdWrap.appendChild(cdText);
-      var bar = document.createElement('div');
-      bar.className = 'progress-bar';
-      var fill = document.createElement('div');
-      fill.className = 'progress-fill';
-      bar.appendChild(fill);
-      cdWrap.appendChild(bar);
-      document.body.appendChild(cdWrap);
+        // DIFFERENT METHOD — same flow, app shows checkout where user can switch method
+        var btnMethod = document.createElement('button');
+        btnMethod.className = 'btn btn-outline';
+        btnMethod.textContent = 'Different Method';
+        btnMethod.onclick = function () { window.location.replace('/'); };
 
-      // Countdown tick (5 seconds)
-      var secs = 5;
-      var tick = setInterval(function () {
-        secs--;
-        var el = document.getElementById('cd-text');
-        if (secs > 0) {
-          if (el) el.textContent = (success ? 'Proceeding to your order in ' : 'Redirecting in ') + secs + 's\u2026';
-        } else {
-          if (el) el.textContent = success ? 'Opening your order\u2026' : 'Redirecting\u2026';
-          clearInterval(tick);
-          window.location.replace(ctaDest);
-        }
-      }, 1000);
+        // CANCEL — clear storage so app does NOT re-open checkout
+        var btnCancel = document.createElement('button');
+        btnCancel.className = 'btn btn-ghost';
+        btnCancel.textContent = 'Cancel';
+        btnCancel.onclick = function () {
+          try { sessionStorage.removeItem('moi_paymob_result'); } catch (_) {}
+          window.location.replace('/');
+        };
+
+        actions.appendChild(btnRetry);
+        actions.appendChild(btnMethod);
+        actions.appendChild(btnCancel);
+        document.body.appendChild(actions);
+
+      } else {
+        // ── Success / Pending: single CTA + countdown ─────────────────────
+        var ctaLabel = success ? 'Proceed to Order Information' : 'Continue Shopping';
+        var ctaDest = '/';
+
+        var cta = document.createElement('a');
+        cta.href = ctaDest;
+        cta.className = 'cta';
+        cta.textContent = ctaLabel;
+        cta.style.display = 'inline-block';
+        document.body.appendChild(cta);
+
+        var cdWrap = document.createElement('div');
+        cdWrap.className = 'countdown-wrap';
+        cdWrap.style.display = 'block';
+        var cdText = document.createElement('span');
+        cdText.id = 'cd-text';
+        var initialLabel = success ? 'Proceeding to your order in 5s\u2026' : 'Redirecting in 5s\u2026';
+        cdText.textContent = initialLabel;
+        cdWrap.appendChild(cdText);
+        var bar = document.createElement('div');
+        bar.className = 'progress-bar';
+        var fill = document.createElement('div');
+        fill.className = 'progress-fill';
+        bar.appendChild(fill);
+        cdWrap.appendChild(bar);
+        document.body.appendChild(cdWrap);
+
+        var secs = 5;
+        var tick = setInterval(function () {
+          secs--;
+          var el = document.getElementById('cd-text');
+          if (secs > 0) {
+            if (el) el.textContent = (success ? 'Proceeding to your order in ' : 'Redirecting in ') + secs + 's\u2026';
+          } else {
+            if (el) el.textContent = success ? 'Opening your order\u2026' : 'Redirecting\u2026';
+            clearInterval(tick);
+            window.location.replace(ctaDest);
+          }
+        }, 1000);
+      }
     }
   })();
   </script>
