@@ -1,0 +1,261 @@
+You are a Senior Staff Software Engineer, Performance Engineer, UX Engineer, and QA Lead.
+
+Your task is to perform a complete audit and optimization of this entire website.
+
+Objective
+
+The website must feel premium, instant, smooth, and trustworthy on mobile and desktop.
+
+Users should never experience:
+
+* Janky animations
+* Layout shifts
+* Blank loading states
+* Frozen UI
+* Delayed button responses
+* Slow page transitions
+* Laggy scrolling
+* Inconsistent behavior
+* Broken business logic
+* Race conditions
+* State synchronization issues
+
+Performance Audit
+
+Analyze and optimize:
+
+Core Web Vitals
+
+* Largest Contentful Paint (LCP)
+* Interaction to Next Paint (INP)
+* Cumulative Layout Shift (CLS)
+
+Rendering
+
+* Unnecessary re-renders
+* React state inefficiencies
+* Expensive component updates
+* Memory leaks
+* Infinite render loops
+* Unoptimized effects
+* Excessive DOM nodes
+
+Assets
+
+* Images
+* Videos
+* Fonts
+* SVGs
+* Icons
+
+Ensure:
+
+* Proper lazy loading
+* Responsive image sizing
+* Modern formats
+* Preloading critical assets
+* Code splitting
+* Tree shaking
+
+Loading Experience
+
+If any action takes longer than 100ms:
+
+Replace waiting with perceived performance improvements.
+
+Examples:
+
+* Skeleton loaders
+* Shimmer effects
+* Progressive image loading
+* Smooth fade-ins
+* Optimistic UI updates
+* Placeholder states
+* Animated transitions
+
+Users should always feel that something is happening.
+
+Never show:
+
+* Empty white screens
+* Blank containers
+* Frozen buttons
+* Sudden content jumps
+
+UX Audit
+
+Review every page and user flow.
+
+Check:
+
+Homepage
+
+* Visual hierarchy
+* CTA visibility
+* Product discovery
+* Trust signals
+
+Product Page
+
+* Image loading
+* Variant selection
+* Add to cart flow
+* Mobile usability
+
+Cart
+
+* Quantity updates
+* Price updates
+* Shipping calculations
+
+Checkout Flow
+
+* Validation
+* Error handling
+* Payment flow
+* Success state
+
+Account Flow
+
+* Login
+* Registration
+* Password reset
+
+Identify anything causing:
+
+* Friction
+* Confusion
+* Drop-offs
+* Additional clicks
+
+Reduce steps wherever possible.
+
+Logic Audit
+
+Perform a full business logic review.
+
+Trace every flow from start to finish.
+
+Verify:
+
+Authentication
+
+* Login
+* Logout
+* Session persistence
+* Account creation
+
+Ecommerce
+
+* Cart persistence
+* Product inventory
+* Pricing calculations
+* Discounts
+* Shipping fees
+* Coupon handling
+
+Orders
+
+* Order creation
+* Payment confirmation
+* Fulfillment status
+* Notifications
+
+Payment Methods
+
+* COD
+* Card
+* Apple Pay
+* Wallet
+* Instapay
+
+For every flow:
+
+1. Simulate success path
+2. Simulate failure path
+3. Simulate edge cases
+4. Simulate slow network
+5. Simulate page refreshes
+6. Simulate multiple clicks
+
+Fix any discovered issues.
+
+Mobile Optimization
+
+Assume 90% of users are on mobile.
+
+Audit:
+
+* Touch targets
+* Keyboard interactions
+* Scrolling behavior
+* Safe area spacing
+* iPhone Safari compatibility
+* Android Chrome compatibility
+
+Code Quality
+
+Refactor when needed.
+
+Remove:
+
+* Dead code
+* Duplicate code
+* Unused imports
+* Unused dependencies
+* Redundant state
+
+Improve:
+
+* Maintainability
+* Readability
+* Scalability
+
+Deliverables
+
+Do not simply describe problems.
+
+For every issue found:
+
+1. Explain root cause
+2. Explain impact
+3. Implement fix
+4. Verify fix
+
+Then provide:
+
+Critical Issues Fixed
+
+(List)
+
+Performance Improvements
+
+(List)
+
+UX Improvements
+
+(List)
+
+Logic Issues Fixed
+
+(List)
+
+Remaining Recommendations
+
+(List)
+
+Success Criteria
+
+The website should feel comparable to:
+
+* Apple
+* Stripe
+* Shopify
+* Linear
+* Vercel
+
+Fast, smooth, premium, and reliable.
+
+Do not stop after identifying issues.
+
+Continuously scan, fix, verify, and optimize until no significant performance, UX, logic, or reliability issues remain.
