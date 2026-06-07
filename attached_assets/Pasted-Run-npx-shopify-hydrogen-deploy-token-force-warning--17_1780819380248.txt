@@ -1,0 +1,45 @@
+Run npx shopify hydrogen deploy --token *** --force
+  
+╭─ warning ────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│  No deployment description provided                                          │
+│                                                                              │
+│  Deploying uncommited changes, but no description has been provided. Use     │
+│  the  `--metadata-description` flag to provide a description. If no          │
+│  description is provided, the description defaults to  <sha> with            │
+│  additional changes  using the SHA of the last commit.                       │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+failed to load config from /home/runner/work/Moi-Hydrogen/Moi-Hydrogen/artifacts/moi-hydrogen/vite.config.mjs
+Building project...
+failed to load config from /home/runner/work/Moi-Hydrogen/Moi-Hydrogen/artifacts/moi-hydrogen/vite.config.mjs
+Build failed with: Build function failed with error: TypeError: hydrogen.preset is not a function, cancelling build.
+╭─ error ──────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│  Build function failed with error: TypeError: hydrogen.preset is not a       │
+│  function                                                                    │
+│                                                                              │
+│  To investigate the issue, examine this stack trace:                         │
+│    at (home/runner/work/Moi-Hydrogen/Moi-Hydrogen/node_modules/.pnpm/@shopi  │
+│    fy+cli@3.94.3/node_modules/@shopify/cli/dist/index.js:3015)               │
+│    at async LOt (home/runner/work/Moi-Hydrogen/Moi-Hydrogen/node_modules/.p  │
+│    npm/@shopify+cli@3.94.3/node_modules/@shopify/cli/dist/index.js:3015)     │
+│    at async fWr (home/runner/work/Moi-Hydrogen/Moi-Hydrogen/node_modules/.p  │
+│    npm/@shopify+cli@3.94.3/node_modules/@shopify/cli/dist/index.js:3033)     │
+│    at run (home/runner/work/Moi-Hydrogen/Moi-Hydrogen/node_modules/.pnpm/@s  │
+│    hopify+cli@3.94.3/node_modules/@shopify/cli/dist/index.js:3028)           │
+│    at _run (home/runner/work/Moi-Hydrogen/Moi-Hydrogen/node_modules/.pnpm/@  │
+│    shopify+cli@3.94.3/node_modules/@shopify/cli/dist/chunk-SVA22NZQ.js:579)  │
+│    at runCommand                                                             │
+│    (home/runner/work/Moi-Hydrogen/Moi-Hydrogen/node_modules/.pnpm/@shopify+  │
+│    cli@3.94.3/node_modules/@shopify/cli/dist/chunk-SVA22NZQ.js:565)          │
+│    at async O8t                                                              │
+│    (home/runner/work/Moi-Hydrogen/Moi-Hydrogen/node_modules/.pnpm/@shopify+  │
+│    cli@3.94.3/node_modules/@shopify/cli/dist/chunk-SVA22NZQ.js:579)          │
+│    at async sot (home/runner/work/Moi-Hydrogen/Moi-Hydrogen/node_modules/.p  │
+│    npm/@shopify+cli@3.94.3/node_modules/@shopify/cli/dist/index.js:2454)     │
+│    at async Eta (home/runner/work/Moi-Hydrogen/Moi-Hydrogen/node_modules/.p  │
+│    npm/@shopify+cli@3.94.3/node_modules/@shopify/cli/dist/index.js:4388)     │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+Error: Process completed with exit code 1.

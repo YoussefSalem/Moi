@@ -6,3 +6,4 @@
 - [Moi src-guard audit](moi-src-guard.md) — pattern for eliminating empty-string src= React warnings; which components are on the home page; pre-launch blockers still outstanding.
 - [COD order bugs root causes](cod-order-bugs.md) — COD "Paid" fixed by payment_pending=true on draft completion; Bosta 0 COD caused by missing BOSTA_API_KEY (silent null return); Bosta App creates competing shipments via Shopify webhook race.
 - [Apple Pay Shopify order population](apple-pay-order-population.md) — Paymob transaction API returns billing_data (Apple Pay shippingContact); must extract before processPaymobSuccess; paymobIntents.customer is NOT NULL so always store placeholder; Pixel SDK fast-path skips form so customer is only available from Paymob billing_data post-payment.
+- [Hydrogen Oxygen deployment quirks](hydrogen-oxygen-deploy.md) — lockfile copy, --force, pin to 2025.4.2, isbot named import, createStorefrontClient from @shopify/hydrogen not remix-oxygen.

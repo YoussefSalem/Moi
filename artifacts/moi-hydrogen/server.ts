@@ -1,9 +1,9 @@
 import {
   createRequestHandler,
   getStorefrontHeaders,
-  createStorefrontClient,
 } from "@shopify/remix-oxygen";
 import {
+  createStorefrontClient,
   createWithCache,
   CacheLong,
   CacheShort,
