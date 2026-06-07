@@ -1,0 +1,110 @@
+CART SYSTEM REBUILD PROMPT (SAFE + NON-BREAKING)
+
+You are working on a production e-commerce cart system. Your job is to fully audit, fix, and optimize the cart logic and UI for mobile and desktop, WITHOUT breaking any existing functionality or design.
+
+🎯 Primary Goal
+
+Make the cart:
+
+100% stable on mobile (no UI glitches, no duplicated updates, no lag)
+Correct in all calculations
+Correct in product separation (NO cross-product merging bugs)
+Fully reliable under fast user interactions (add/remove/quantity spam)
+Clean, predictable state management
+🚨 CRITICAL BUGS TO FIX (HIGH PRIORITY)
+1. ❌ Product merging bug
+
+Right now:
+
+Adding “Versa Top” then “Wavvy Top” incorrectly increments the same cart item
+
+Fix requirement:
+
+Each product MUST be uniquely identified by:
+productId
+variantId (if exists)
+color/size options (if applicable)
+
+👉 Never merge different products under any condition.
+
+2. ❌ Cart state corruption on mobile
+
+Issues:
+
+Double increments
+UI flickering
+Wrong quantity updates when tapping fast
+Delayed state sync
+
+Fix requirement:
+
+Ensure cart updates are:
+atomic (single source of truth)
+debounced or locked during update cycles
+not dependent on unstable UI state
+3. ❌ Incorrect quantity logic
+
+Ensure:
+
+button always increases only that exact cart line item
+button only decreases that exact line item
+No cross-item mutation
+4. ❌ Line item identity issues
+
+Fix cart so that each line item is uniquely keyed by:
+
+uniqueKey = productId + variantId + selectedOptions
+
+Never use:
+
+product name
+index in array
+UI position
+🧠 REQUIRED REFACTOR RULES
+State management
+Single source of truth for cart state
+No duplicated cart arrays or mirrored states
+Avoid uncontrolled local state overrides
+Update safety
+Prevent race conditions (rapid clicks must not break state)
+Ensure updates are synchronous or safely queued
+Avoid direct mutation of state objects
+UI stability (mobile-first)
+No layout shift when updating quantity
+No re-render loops
+No flickering totals or item duplication
+📱 MOBILE OPTIMIZATION REQUIREMENTS
+Touch interactions must be instant (<100ms perceived response)
+Buttons must not trigger double events
+No scroll jumping when cart updates
+Stable bottom sheet / drawer behavior (if used)
+🧮 CART CALCULATION RULES
+Total must always be derived from cart state (never stored separately)
+No hardcoded totals
+No stale cached values
+Recalculate from source-of-truth cart items every time
+🧪 EDGE CASES TO HANDLE
+Adding same product twice rapidly
+Switching variants quickly
+Removing item while update is pending
+Offline/slow network simulation
+Mobile Safari touch delay issues
+🧼 CLEANUP REQUIREMENTS
+Remove any duplicate cart logic
+Remove legacy or fallback cart states
+Remove any hardcoded or fake cart items
+Ensure no ghost items can appear
+🛑 NON-NEGOTIABLE
+Do NOT break existing checkout flow
+Do NOT change UI design unless required for stability
+Do NOT introduce new dependencies unless absolutely necessary
+Preserve all existing business logic outside cart
+✅ FINAL OUTPUT EXPECTATION
+
+After fixes:
+
+Cart behaves identically on desktop and mobile
+No product merging bugs
+No duplicate increments
+Smooth UX under fast interactions
+Clean, predictable state flow
