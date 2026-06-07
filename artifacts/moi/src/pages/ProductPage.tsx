@@ -719,7 +719,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       onError={(msg) => {
                         toast.error(msg, { duration: 4000 });
                       }}
-                      onMoreOptions={() => openCheckout()}
                     />
                   )}
                 </div>
