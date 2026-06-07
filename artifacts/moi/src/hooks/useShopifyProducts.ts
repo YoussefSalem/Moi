@@ -66,7 +66,15 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
   return {
     ...fallback,
     slug: fallback.slug,
-    name: shopify.title || fallback.name,
+    // If the fallback name carries a color suffix (e.g. "MOI VERSA TOP — Yellow"),
+    // preserve it so Shopify's generic product title doesn't strip the color.
+    name: (() => {
+      const base = shopify.title || fallback.name;
+      const colorSuffix = fallback.name.includes(" — ")
+        ? fallback.name.split(" — ").pop()
+        : null;
+      return colorSuffix ? `${base} — ${colorSuffix}` : base;
+    })(),
     description: shopify.description || fallback.description,
     price: priceFormatted || fallback.price,
     productShot,
