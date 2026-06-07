@@ -4,4 +4,4 @@
  */
 export const ENABLE_CARD_PAYMENTS = true;
 export const ENABLE_WALLET_PAYMENTS = true;
-export const ENABLE_APPLE_PAY = false; // true — disabled until Paymob goes live
+export const ENABLE_APPLE_PAY = true;

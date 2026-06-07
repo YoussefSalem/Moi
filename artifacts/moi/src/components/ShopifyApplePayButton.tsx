@@ -1,17 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 const BTN_CSS = `
-  .ap-express-btn {
+  .ap-buy-btn {
     -webkit-appearance: -apple-pay-button;
-    -apple-pay-button-type: plain;
+    -apple-pay-button-type: buy;
     -apple-pay-button-style: black;
-    display: block; width: 100%; height: 56px;
-    border: none; cursor: pointer; border-radius: 10px;
+    display: block;
+    width: 100%;
+    height: 62px;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
   }
-  .ap-express-btn:disabled { opacity: 0.55; cursor: default; }
+  .ap-buy-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
 `;
-
-// ── Minimal ApplePaySession types ────────────────────────────────────────────
 
 interface ApplePayPaymentRequest {
   countryCode: string;
@@ -55,8 +60,6 @@ function getAP(): APSessionCtor | undefined {
   return (window as unknown as { ApplePaySession?: APSessionCtor }).ApplePaySession;
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
-
 export interface ShopifyApplePayButtonProps {
   variantId?: string;
   quantity?: number;
@@ -89,9 +92,6 @@ export function ShopifyApplePayButton({
     setAvailable(!!(AP?.canMakePayments?.()));
   }, []);
 
-  // ── handlePay is intentionally synchronous ──────────────────────────────
-  // ApplePaySession.begin() MUST be called in the same synchronous call-stack
-  // as the user gesture (click). All async work happens inside session callbacks.
   const handlePay = useCallback(() => {
     if (busy || disabled) return;
 
@@ -202,26 +202,46 @@ export function ShopifyApplePayButton({
   if (!available || disabled) return null;
 
   return (
-    <div className={className} style={{ width: "100%", ...style }}>
+    <div
+      className={className}
+      style={{
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: 0,
+        ...style,
+      }}
+    >
       <style dangerouslySetInnerHTML={{ __html: BTN_CSS }} />
 
-      <p style={{
-        margin: "0 0 10px", fontSize: 13, color: "#6b7280",
-        textAlign: "center", letterSpacing: "0.02em", fontFamily: "inherit",
-      }}>
-        {busy ? "Processing\u2026" : "Express checkout"}
-      </p>
-      <button
-        type="button"
-        className="ap-express-btn"
-        onClick={handlePay}
-        disabled={busy}
-        aria-label="Buy with Apple Pay"
-      />
+      <div
+        style={{
+          boxShadow: busy
+            ? "0 2px 8px rgba(0,0,0,0.12)"
+            : "0 4px 20px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.14)",
+          borderRadius: 8,
+          transition: "box-shadow 0.2s ease",
+          overflow: "hidden",
+        }}
+      >
+        <button
+          type="button"
+          className="ap-buy-btn"
+          onClick={handlePay}
+          disabled={busy}
+          aria-label="Buy with Apple Pay"
+        />
+      </div>
+
       {error && (
         <p style={{
-          marginTop: 8, fontSize: 11, color: "rgba(30,24,20,0.6)",
-          textAlign: "center", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.03em",
+          marginTop: 10,
+          fontSize: 11,
+          color: "rgba(30,24,20,0.54)",
+          textAlign: "center",
+          fontFamily: "'Montserrat', sans-serif",
+          letterSpacing: "0.04em",
+          lineHeight: 1.5,
         }}>
           {error}
         </p>

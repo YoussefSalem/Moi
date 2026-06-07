@@ -36,7 +36,7 @@ export function getPaymobConfig(): PaymobConfig {
     integrationId: trim(file.integrationId ?? process.env.PAYMOB_INTEGRATION_ID),
     hmacSecret: trim(file.hmacSecret ?? process.env.PAYMOB_HMAC_SECRET),
     iframeId: trim(file.iframeId ?? process.env.PAYMOB_IFRAME_ID),
-    applePayIntegrationId: trim(file.applePayIntegrationId ?? process.env.PAYMOB_APPLE_PAY_INTEGRATION_ID),
+    applePayIntegrationId: trim(file.applePayIntegrationId ?? process.env.PAYMOB_APPLE_PAY_INTEGRATION_ID ?? "5709994"),
     walletIntegrationId: trim(file.walletIntegrationId ?? process.env.PAYMOB_WALLET_INTEGRATION_ID ?? "5700496"),
   };
 }
