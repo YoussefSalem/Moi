@@ -202,13 +202,9 @@ export async function createPaymobIntentionKey(
   if (!config.integrationId) throw new Error("Paymob integration ID is not configured");
 
   const integrationIdNum = parseInt(config.integrationId, 10);
+  if (isNaN(integrationIdNum)) throw new Error("Paymob integration ID is not a valid number");
 
-  // Include all provisioned integrations so the Unified Checkout shows every available tab.
-  // The card-type integrations (CAGG/VPC) are included alongside wallet (UIG) so the
-  // checkout can surface whichever payment methods the account supports.
-  const allIntegrationIds = [5693941, 5693942, 5693943].filter(
-    (id) => !isNaN(integrationIdNum) ? true : id === integrationIdNum,
-  );
+  const allIntegrationIds = [integrationIdNum];
 
   const body: Record<string, unknown> = {
     amount: params.amountCents,
