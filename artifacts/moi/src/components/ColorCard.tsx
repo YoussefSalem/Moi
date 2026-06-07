@@ -383,19 +383,53 @@ export function ColorCard({
 
           {/* Scarcity / urgency signals */}
           {isSellingFast && (
-            <p
+            <div
               style={{
-                color: "#c83232",
-                fontFamily: "'Montserrat', sans-serif",
-                fontSize: "11px",
-                letterSpacing: "0.18em",
-                fontWeight: 500,
-                textShadow: "0 0 12px rgba(158,42,43,0.12)",
-                margin: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                backgroundColor: "rgba(158,42,43,0.07)",
+                border: "1px solid rgba(158,42,43,0.2)",
+                borderRadius: 999,
+                padding: "4px 11px 4px 8px",
               }}
             >
-              Selling Fast
-            </p>
+              <span style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <motion.span
+                  animate={{ scale: [1, 2.2], opacity: [0.55, 0] }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeOut" }}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: "50%",
+                    backgroundColor: "#c83232",
+                    display: "block",
+                  }}
+                />
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    backgroundColor: "#c83232",
+                    display: "block",
+                    flexShrink: 0,
+                  }}
+                />
+              </span>
+              <span
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "9px",
+                  letterSpacing: "0.22em",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  color: "#c83232",
+                }}
+              >
+                Selling Fast
+              </span>
+            </div>
           )}
           {!outOfStock && !isSellingFast && (
             <p
