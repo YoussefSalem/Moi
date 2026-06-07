@@ -2127,10 +2127,11 @@ export function CheckoutPage() {
                     <div
                       style={{
                         height: "112px",
-                        border: paymentMethod === "apple-pay" ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.15)",
+                        backgroundColor: "#000",
+                        border: paymentMethod === "apple-pay" ? "1.5px solid #000" : "1px solid #000",
                         transform: paymentMethod === "apple-pay" ? "scale(1.05)" : "scale(1)",
-                        boxShadow: paymentMethod === "apple-pay" ? "0 2px 12px rgba(30,24,20,0.10)" : "none",
-                        transition: "transform 0.18s ease, box-shadow 0.18s ease, border 0.12s ease",
+                        boxShadow: paymentMethod === "apple-pay" ? "0 2px 12px rgba(30,24,20,0.22)" : "none",
+                        transition: "transform 0.18s ease, box-shadow 0.18s ease",
                         zIndex: paymentMethod === "apple-pay" ? 1 : 0,
                         display: "flex",
                         alignItems: "center",
@@ -2140,7 +2141,7 @@ export function CheckoutPage() {
                       }}
                       onClick={triggerApplePayDirectInit}
                     >
-                      <style dangerouslySetInnerHTML={{ __html: `.ap-checkout-tile { -webkit-appearance: -apple-pay-button; -apple-pay-button-type: plain; -apple-pay-button-style: black; display: block; width: 90px; height: 28px; border: none; cursor: pointer; border-radius: 0; pointer-events: none; } .ap-checkout-tile:disabled { opacity: 0.5; cursor: default; }` }} />
+                      <style dangerouslySetInnerHTML={{ __html: `.ap-checkout-tile { -webkit-appearance: -apple-pay-button; -apple-pay-button-type: plain; -apple-pay-button-style: black; display: block; width: 120px; height: 38px; border: none; cursor: pointer; border-radius: 0; pointer-events: none; } .ap-checkout-tile:disabled { opacity: 0.5; cursor: default; }` }} />
                       <button
                         type="button"
                         className="ap-checkout-tile"
