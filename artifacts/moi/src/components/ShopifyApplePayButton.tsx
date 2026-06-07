@@ -6,7 +6,7 @@ const FREE_SHIPPING_THRESHOLD = 2000;
 const BTN_CSS = `
   .ap-buy-btn {
     -webkit-appearance: -apple-pay-button;
-    -apple-pay-button-type: plain;
+    -apple-pay-button-type: buy;
     -apple-pay-button-style: black;
     display: block;
     width: 100%;
