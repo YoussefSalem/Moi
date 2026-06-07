@@ -39,18 +39,45 @@ export function PaymentSuccessPage({ intentId, txnId, onContinueShopping }: Paym
   const [total, setTotal] = useState<string>("");
   const [breakdown, setBreakdown] = useState<BreakdownSnapshot | null>(null);
   const syncCalledRef = useRef(false);
+  const redirectedRef = useRef(false);
 
   useEffect(() => {
     const itemsRaw = sessionStorage.getItem("moi_paymob_items");
     const totalRaw = sessionStorage.getItem("moi_paymob_order_total");
     const breakdownRaw = sessionStorage.getItem("moi_paymob_breakdown");
 
+    const paymentMethodRaw = sessionStorage.getItem("moi_paymob_payment_method") ?? "card";
+    let parsedItems: CartItem[] = [];
+    let parsedBreakdown: BreakdownSnapshot | null = null;
+
     if (itemsRaw) {
-      try { setItems(JSON.parse(itemsRaw) as CartItem[]); } catch { /* ignore */ }
+      try { parsedItems = JSON.parse(itemsRaw) as CartItem[]; setItems(parsedItems); } catch { /* ignore */ }
     }
     if (totalRaw) setTotal(totalRaw);
     if (breakdownRaw) {
-      try { setBreakdown(JSON.parse(breakdownRaw) as BreakdownSnapshot); } catch { /* ignore */ }
+      try { parsedBreakdown = JSON.parse(breakdownRaw) as BreakdownSnapshot; setBreakdown(parsedBreakdown); } catch { /* ignore */ }
+    }
+
+    // Redirect to /ordermade, passing data via sessionStorage so the unified page handles it
+    if (!redirectedRef.current) {
+      redirectedRef.current = true;
+      if (parsedBreakdown || parsedItems.length > 0) {
+        try {
+          sessionStorage.setItem("moi_order_confirmation", JSON.stringify({
+            items: parsedItems,
+            breakdown: parsedBreakdown ?? { subtotal: 0, savings: 0, shippingCost: 0, freeShipping: false },
+            paymentMethod: paymentMethodRaw,
+            intentId: intentId || undefined,
+          }));
+        } catch { /* ignore */ }
+      }
+      const search = new URLSearchParams();
+      if (intentId) search.set("intentId", intentId);
+      if (txnId) search.set("txnId", txnId);
+      const dest = `/ordermade${search.toString() ? `?${search.toString()}` : ""}`;
+      window.history.replaceState(null, "", dest);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      return;
     }
 
     // Clear all Paymob session keys upfront so CheckoutPage's mount-only effect

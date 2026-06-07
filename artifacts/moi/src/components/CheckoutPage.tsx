@@ -496,14 +496,19 @@ export function CheckoutPage() {
                 image: i.image ?? null,
                 price: i.price,
               }));
-          setOrderResult({
-            orderNumber: String(data.shopifyOrderNumber ?? ""),
-            shopifyOrderNumber: data.shopifyOrderNumber ?? undefined,
-            total: `${Math.round(totalEGP)} EGP`,
-            items: cartItemsSnapshot.length > 0 ? cartItemsSnapshot : undefined,
-          });
-          setStep("cod-confirm");
+          const apBreakdown = { subtotal: subTotal, savings: savingsAmt, shippingCost: shippingAmt, freeShipping: isFreeShipping };
+          try {
+            sessionStorage.setItem("moi_order_confirmation", JSON.stringify({
+              items: cartItemsSnapshot,
+              breakdown: apBreakdown,
+              paymentMethod: "apple-pay",
+              orderNumber: data.shopifyOrderNumber ?? "",
+            }));
+          } catch { /* ignore */ }
           clearCart();
+          closeCheckout();
+          window.history.pushState(null, "", "/ordermade");
+          window.dispatchEvent(new PopStateEvent("popstate"));
         } else {
           session.completePayment({ status: AP.STATUS_FAILURE });
           setSubmitError(data.error ?? "Payment was declined. Please try another card.");
@@ -839,6 +844,7 @@ export function CheckoutPage() {
         if (data.intentId) {
           sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
           sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
+          sessionStorage.setItem("moi_paymob_payment_method", paymentMethod);
           // Save breakdown + items so the confirmation screen has correct values after redirect
           sessionStorage.setItem("moi_paymob_breakdown", JSON.stringify({ subtotal: subtotalAmount, savings, shippingCost, freeShipping }));
           if (cartItemsSnapshot.length > 0) {
@@ -978,14 +984,32 @@ export function CheckoutPage() {
         return;
       }
 
-      setBreakdownSnapshot({ subtotal: subtotalAmount, savings, shippingCost, freeShipping });
-      setOrderResult({
-        orderNumber: data.orderNumber ?? "",
-        total: data.total ?? fmt(totalAmount),
-        shopifyOrderId: data.shopifyOrderId,
-        customerName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
-        customerPhone: form.phone.trim(),
-      });
+      const codItemsSnapshot = isShopify && shopifyCart
+        ? shopifyCart.lines.nodes.map((l) => ({
+            id: l.id,
+            title: l.merchandise.product.title,
+            variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
+            quantity: l.quantity,
+            image: resolveLineImage(l, localItems),
+            price: formatShopifyLinePrice(l),
+          }))
+        : localItems.map((i) => ({
+            id: i.id,
+            title: i.title,
+            variantTitle: null as string | null,
+            quantity: i.quantity,
+            image: i.image ?? null,
+            price: i.price,
+          }));
+      const codBreakdown = { subtotal: subtotalAmount, savings, shippingCost, freeShipping };
+      try {
+        sessionStorage.setItem("moi_order_confirmation", JSON.stringify({
+          items: codItemsSnapshot,
+          breakdown: codBreakdown,
+          paymentMethod: "cod",
+          orderNumber: data.orderNumber ?? "",
+        }));
+      } catch { /* ignore */ }
 
       clearCart();
       const purchaseValue = data.total ? parseEGP(data.total) || (Number.isFinite(totalAmount) ? totalAmount : 0) : (Number.isFinite(totalAmount) ? totalAmount : 0);
@@ -1018,8 +1042,10 @@ export function CheckoutPage() {
           });
         }
       }
-      setStep("cod-confirm");
       markAbandonedCartRecovered();
+      closeCheckout();
+      window.history.pushState(null, "", "/ordermade");
+      window.dispatchEvent(new PopStateEvent("popstate"));
     } catch {
       setStep("form");
       setSubmitError("Network error. Please check your connection and try again.");
@@ -1543,6 +1569,17 @@ export function CheckoutPage() {
                 if (instapayTrackedRef.current) return;
                 instapayTrackedRef.current = true;
 
+                const instapayItems = orderResult?.items ?? successItems;
+                const instapayBreakdown = breakdownSnapshot ?? { subtotal: subtotalAmount, savings, shippingCost, freeShipping };
+                try {
+                  sessionStorage.setItem("moi_order_confirmation", JSON.stringify({
+                    items: instapayItems,
+                    breakdown: instapayBreakdown,
+                    paymentMethod: "instapay",
+                    orderNumber: orderNumber ?? "",
+                  }));
+                } catch { /* ignore */ }
+
                 setOrderResult((prev) => prev ? { ...prev, orderNumber, shopifyOrderId, total } : prev);
                 sessionStorage.removeItem("moi_instapay_order_result");
                 clearCart();
@@ -1578,6 +1615,9 @@ export function CheckoutPage() {
                     items: proofOrderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })),
                   });
                 }
+                closeCheckout();
+                window.history.pushState(null, "", "/ordermade");
+                window.dispatchEvent(new PopStateEvent("popstate"));
               }}
               fmt={fmt}
             />
