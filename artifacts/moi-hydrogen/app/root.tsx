@@ -9,6 +9,7 @@ import {
   useRouteError,
 } from "@remix-run/react";
 import type { LoaderFunctionArgs } from "@shopify/remix-oxygen";
+import { useNonce } from "@shopify/hydrogen";
 import { Toaster } from "sonner";
 import stylesheet from "~/styles/app.css?url";
 import { useEffect } from "react";
@@ -45,6 +46,7 @@ export async function loader({ context }: LoaderFunctionArgs) {
 
 export default function App() {
   const data = useLoaderData<typeof loader>();
+  const nonce = useNonce();
 
   useEffect(() => {
     captureAttribution();
@@ -63,6 +65,7 @@ export default function App() {
         {/* Meta Pixel */}
         {data.ENV.PUBLIC_META_PIXEL_ID && (
           <script
+            nonce={nonce}
             dangerouslySetInnerHTML={{
               __html: `
                 !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -79,6 +82,7 @@ export default function App() {
         {/* TikTok Pixel */}
         {data.ENV.PUBLIC_TIKTOK_PIXEL_ID && (
           <script
+            nonce={nonce}
             dangerouslySetInnerHTML={{
               __html: `
                 !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=i,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load('${data.ENV.PUBLIC_TIKTOK_PIXEL_ID}');ttq.page();}(window,document,'ttq');
@@ -90,10 +94,12 @@ export default function App() {
         {data.ENV.PUBLIC_GA_MEASUREMENT_ID && (
           <>
             <script
+              nonce={nonce}
               async
               src={`https://www.googletagmanager.com/gtag/js?id=${data.ENV.PUBLIC_GA_MEASUREMENT_ID}`}
             />
             <script
+              nonce={nonce}
               dangerouslySetInnerHTML={{
                 __html: `
                   window.dataLayer=window.dataLayer||[];
@@ -108,6 +114,7 @@ export default function App() {
       </head>
       <body>
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `window.ENV = ${JSON.stringify(data.ENV)}`,
           }}
@@ -128,8 +135,8 @@ export default function App() {
             descriptionClassName: "text-white",
           }}
         />
-        <ScrollRestoration />
-        <Scripts />
+        <ScrollRestoration nonce={nonce} />
+        <Scripts nonce={nonce} />
       </body>
     </html>
   );

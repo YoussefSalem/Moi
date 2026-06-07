@@ -14,7 +14,7 @@
 
 const IMG = (name: string) => `/images/${name}`;
 
-const HERO_IMAGE = "/images/hero-image.jpeg";
+const HERO_IMAGE = "/hero-image.jpeg";
 
 const WHITE_MAIN    = IMG("white.jpg");
 const WHITE_ALT_ONE  = IMG("IMG_1996_1778613360425-opt.jpg");

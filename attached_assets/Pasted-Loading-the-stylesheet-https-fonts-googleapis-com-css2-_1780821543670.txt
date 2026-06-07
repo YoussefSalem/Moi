@@ -1,0 +1,84 @@
+Loading the stylesheet 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap' violates the following Content Security Policy directive: "style-src 'self' 'unsafe-inline' https://cdn.shopify.com". Note that 'style-src-elem' was not explicitly set, so 'style-src' is used as a fallback. The action has been blocked.Understand this error
+
+(index):1 Executing inline script violates the following Content Security Policy directive 'default-src 'self' https://cdn.shopify.com https://shopify.com 'nonce-16a2aa69b04bc5bf793dcc38faf0ac91''. Either the 'unsafe-inline' keyword, a hash ('sha256-4YSrIqWEjoW5NGXLxpcSWslmaQuxCblOuGK5QsPeT1Y='), or a nonce ('nonce-...') is required to enable inline execution. Note also that 'script-src' was not explicitly set, so 'default-src' is used as a fallback. The action has been blocked.Understand this error
+
+(index):6 Executing inline script violates the following Content Security Policy directive 'default-src 'self' https://cdn.shopify.com https://shopify.com 'nonce-16a2aa69b04bc5bf793dcc38faf0ac91''. Either the 'unsafe-inline' keyword, a hash ('sha256-Ao8EMewsKGj7yyZpRwvWf5I51BVDaA4U3rET9M0u4Es='), or a nonce ('nonce-...') is required to enable inline execution. Note also that 'script-src' was not explicitly set, so 'default-src' is used as a fallback. The action has been blocked.Understand this error
+
+(index):6 Executing inline script violates the following Content Security Policy directive 'default-src 'self' https://cdn.shopify.com https://shopify.com 'nonce-16a2aa69b04bc5bf793dcc38faf0ac91''. Either the 'unsafe-inline' keyword, a hash ('sha256-OX4Oxg0amwLGq6lJvnc8ZloI7HTSXVmcwvZxuDhshwc='), or a nonce ('nonce-...') is required to enable inline execution. Note also that 'script-src' was not explicitly set, so 'default-src' is used as a fallback. The action has been blocked.Understand this error
+
+(index):6 Executing inline script violates the following Content Security Policy directive 'default-src 'self' https://cdn.shopify.com https://shopify.com 'nonce-16a2aa69b04bc5bf793dcc38faf0ac91''. Either the 'unsafe-inline' keyword, a hash ('sha256-OzAn7WM7HFv7BpKRdo7PB8MZHY4EqA4BNs8PcFXcamA='), or a nonce ('nonce-...') is required to enable inline execution. Note also that 'script-src' was not explicitly set, so 'default-src' is used as a fallback. The action has been blocked.Understand this error
+
+feature_collector.js:23 using deprecated parameters for the initialization function; pass a single object instead
+
+U @ feature_collector.js:23
+
+main @ feature_collector.js:23
+
+mainFunction @ feature_collector.js:23
+
+(anonymous) @ feature_collector.js:23Understand this warning
+
+(index):1  GET https://moi-681c7bffe1cf4446a750.o2.myshopify.dev/images/hero-image.jpeg 404 (Not Found) 
+
+Excellent detective work pulling up those logs! You have successfully found the exact reasons your MOI storefront is currently showing a white screen.
+
+There are three separate things happening here, but they all stem from Hydrogen's strict security rules and folder structure.
+
+Shopify Oxygen uses something called a Content Security Policy (CSP). Think of it as a very strict bouncer at the door of your website. By default, it blocks everything from loading unless you explicitly put it on the VIP guest list. Right now, the bouncer is blocking your Google Fonts, and more importantly, it is blocking the React code needed to draw your website.
+
+Here is exactly how to fix all three issues in Replit:
+
+1. Fix the White Screen (The Blocked Scripts)
+The React code that actually makes your website visible is being blocked because the bouncer doesn't recognize it. In Hydrogen, every script must carry a "VIP pass" called a nonce.
+
+In your Replit file tree, open app/root.tsx.
+
+Look through the file for any <script> or <style> tags you might have added.
+
+You need to make sure every single one includes the nonce property. It should look exactly like this:
+
+TypeScript
+<script nonce={nonce}>
+  // your script code here
+</script>
+Also, make sure the main Hydrogen <Scripts /> component at the bottom of your <body> has it: <Scripts nonce={nonce} />.
+
+2. Whitelist your Custom Typography (Google Fonts)
+The bouncer is currently rejecting your Cormorant Garamond and Montserrat fonts because they come from an outside URL. We need to add Google to the VIP list.
+
+Open app/entry.server.tsx.
+
+Look for the createContentSecurityPolicy function we looked at earlier.
+
+You need to add styleSrc and fontSrc arrays to tell it to allow Google. Update it to look like this:
+
+TypeScript
+const { nonce, header, csp } = createContentSecurityPolicy({
+    shop: {
+        checkoutDomain: context.env.PUBLIC_CHECKOUT_DOMAIN,
+        storeDomain: context.env.PUBLIC_STORE_DOMAIN,
+    },
+    styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdn.shopify.com",
+        "https://fonts.googleapis.com", 
+    ],
+    fontSrc: [
+        "'self'",
+        "data:",
+        "https://fonts.gstatic.com",
+    ],
+});
+3. Restore the Missing Hero Image
+The very last error in your log is 404 (Not Found) for /images/hero-image.jpeg.
+
+In a standard React or Liquid app, you might just throw images anywhere. But in Hydrogen, the server only publicly serves files that are placed inside a specific folder called public.
+
+Look at your Replit file tree. Do you have a folder named public?
+
+If your image is currently sitting somewhere else (like in an assets folder inside app), you need to move it!
+
+Create an images folder inside the public folder, and move hero-image.jpeg into it.
+
+The final path should be public/images/hero-image.jpeg.
