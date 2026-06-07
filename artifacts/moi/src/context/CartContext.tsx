@@ -132,6 +132,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const initRef = useRef(false);
   const checkoutInitRef = useRef(false);
 
+  // Per-item in-flight guard: prevents stacked network calls from rapid taps.
+  // Key is the item id (local composite key) or Shopify line GID.
+  const updatingRef = useRef<Map<string, boolean>>(new Map());
+
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
@@ -177,7 +181,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const qty = params.quantity ?? 1;
 
     // ── Step 1: Optimistic local update — zero network wait ──────────────────
-    const key = `${params.variantId ?? params.title ?? "item"}-${params.size ?? ""}`;
+    // Key includes color so distinct-color variants are never merged into one line.
+    const key = `${params.variantId ?? params.title ?? "item"}-${params.color ?? ""}-${params.size ?? ""}`;
     setLocalItems((prev) => {
       const existing = prev.find((i) => i.id === key);
       let updated: LocalCartItem[];
@@ -275,7 +280,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // and prevents the cart drawer from flashing open.
   const buyNow = useCallback((params: AddToCartParams): void => {
     const qty = params.quantity ?? 1;
-    const key = `${params.variantId ?? params.title ?? "item"}-${params.size ?? ""}`;
+    // Key includes color so buy-now is consistent with addToCart identity.
+    const key = `${params.variantId ?? params.title ?? "item"}-${params.color ?? ""}-${params.size ?? ""}`;
 
     // 1. Replace local cart immediately — no network wait
     const newItem: LocalCartItem = {
@@ -333,6 +339,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const removeItem = useCallback(async (idOrLineId: string) => {
+    // Skip if a mutation is already in-flight for this item to prevent ghost lines.
+    if (updatingRef.current.get(idOrLineId)) return;
+    updatingRef.current.set(idOrLineId, true);
     setLoading(true);
     try {
       if (SHOPIFY_CONFIGURED && shopifyCart) {
@@ -370,28 +379,51 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return updated;
       });
     } finally {
+      updatingRef.current.delete(idOrLineId);
       setLoading(false);
     }
   }, [shopifyCart]);
 
   const updateQuantity = useCallback(async (idOrLineId: string, quantity: number) => {
     if (quantity <= 0) { await removeItem(idOrLineId); return; }
+
+    // Skip if a mutation is already in-flight for this item.
+    // This prevents rapid mobile taps from stacking network calls and corrupting quantity.
+    if (updatingRef.current.get(idOrLineId)) return;
+    updatingRef.current.set(idOrLineId, true);
     setLoading(true);
     try {
       if (SHOPIFY_CONFIGURED && shopifyCart) {
         try {
           const updated = await updateCartLines(shopifyCart.id, [{ id: idOrLineId, quantity }]);
           setShopifyCart(updated);
+          // When Shopify is active, idOrLineId is a Shopify CartLine GID, NOT the local
+          // composite key. Derive the affected variantId from the updated Shopify cart
+          // and sync local items by variantId so the drawer stays consistent.
+          const updatedLine = updated.lines.nodes.find((l) => l.id === idOrLineId);
+          if (updatedLine) {
+            const affectedVariantId = updatedLine.merchandise.id;
+            setLocalItems((prev) => {
+              const next = prev.map((i) =>
+                i.variantId === affectedVariantId ? { ...i, quantity } : i,
+              );
+              saveLocalCart(next);
+              return next;
+            });
+            return;
+          }
         } catch {
-          // line may be local-only
+          // line may be local-only — fall through to local update below
         }
       }
+      // Local-only update (no Shopify cart, or item was local-only)
       setLocalItems((prev) => {
         const updated = prev.map((i) => i.id === idOrLineId ? { ...i, quantity } : i);
         saveLocalCart(updated);
         return updated;
       });
     } finally {
+      updatingRef.current.delete(idOrLineId);
       setLoading(false);
     }
   }, [shopifyCart, removeItem]);
@@ -498,6 +530,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     ? shopifyItemCount
     : localItemCount;
 
+  // cartTotal, cartRawTotal, and cartSubtotal are always derived inline from
+  // current cart state — never stored in separate useState — so they are always
+  // fresh and can never be stale relative to shopifyCart or localItems.
   const shopifyTotal = shopifyCart
     ? formatMoney(shopifyCart.cost.totalAmount.amount, shopifyCart.cost.totalAmount.currencyCode)
     : "";

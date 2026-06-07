@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, ShoppingBag, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -138,6 +138,55 @@ function resolveLineImage(line: ShopifyCartLine, localItems: LocalCartItem[]): s
   if (localMatch?.image) return localMatch.image;
 
   return null;
+}
+
+// Quantity stepper extracted into its own component so useCallback handlers
+// hold stable references and React never passes stale closures to touch events.
+// touch-action: manipulation removes the 300ms Mobile Safari tap delay on the buttons.
+interface QuantityControlProps {
+  itemId: string;
+  quantity: number;
+  updateQuantity: (id: string, qty: number) => Promise<void>;
+}
+
+function QuantityControl({ itemId, quantity, updateQuantity }: QuantityControlProps) {
+  const handleDecrease = useCallback(() => {
+    updateQuantity(itemId, quantity - 1);
+  }, [itemId, quantity, updateQuantity]);
+
+  const handleIncrease = useCallback(() => {
+    updateQuantity(itemId, quantity + 1);
+  }, [itemId, quantity, updateQuantity]);
+
+  return (
+    <div
+      className="flex items-center"
+      style={{ border: "1px solid rgba(30,24,20,0.12)" }}
+    >
+      <button
+        onClick={handleDecrease}
+        className="w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50"
+        style={{ touchAction: "manipulation" }}
+        aria-label="Decrease"
+      >
+        <Minus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+      </button>
+      <span
+        className="w-9 h-9 flex items-center justify-center text-[12px] font-semibold"
+        style={{ color: "#17120f" }}
+      >
+        {quantity}
+      </span>
+      <button
+        onClick={handleIncrease}
+        className="w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50"
+        style={{ touchAction: "manipulation" }}
+        aria-label="Increase"
+      >
+        <Plus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+      </button>
+    </div>
+  );
 }
 
 export function CartDrawer() {
@@ -348,37 +397,18 @@ export function CartDrawer() {
                               <button
                                 onClick={() => removeItem(line.id)}
                                 className="flex-shrink-0 w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50 mt-0.5"
+                                style={{ touchAction: "manipulation" }}
                                 aria-label="Remove"
                               >
                                 <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
                               </button>
                             </div>
                             <div className="flex items-center justify-between mt-auto">
-                              <div
-                                className="flex items-center"
-                                style={{ border: "1px solid rgba(30,24,20,0.12)" }}
-                              >
-                                <button
-                                  onClick={() => updateQuantity(line.id, line.quantity - 1)}
-                                  className="w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50"
-                                  aria-label="Decrease"
-                                >
-                                  <Minus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-                                </button>
-                                <span
-                                  className="w-9 h-9 flex items-center justify-center text-[12px] font-semibold"
-                                  style={{ color: "#17120f" }}
-                                >
-                                  {line.quantity}
-                                </span>
-                                <button
-                                  onClick={() => updateQuantity(line.id, line.quantity + 1)}
-                                  className="w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50"
-                                  aria-label="Increase"
-                                >
-                                  <Plus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-                                </button>
-                              </div>
+                              <QuantityControl
+                                itemId={line.id}
+                                quantity={line.quantity}
+                                updateQuantity={updateQuantity}
+                              />
                               <div className="flex flex-col items-end" style={{ gap: 2 }}>
                                 {line.merchandise.compareAtPrice && (
                                   <span
@@ -444,37 +474,18 @@ export function CartDrawer() {
                               <button
                                 onClick={() => removeItem(item.id)}
                                 className="flex-shrink-0 w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50 mt-0.5"
+                                style={{ touchAction: "manipulation" }}
                                 aria-label="Remove"
                               >
                                 <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
                               </button>
                             </div>
                             <div className="flex items-center justify-between mt-auto">
-                              <div
-                                className="flex items-center"
-                                style={{ border: "1px solid rgba(30,24,20,0.12)" }}
-                              >
-                                <button
-                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                  className="w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50"
-                                  aria-label="Decrease"
-                                >
-                                  <Minus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-                                </button>
-                                <span
-                                  className="w-9 h-9 flex items-center justify-center text-[12px] font-semibold"
-                                  style={{ color: "#17120f" }}
-                                >
-                                  {item.quantity}
-                                </span>
-                                <button
-                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                  className="w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50"
-                                  aria-label="Increase"
-                                >
-                                  <Plus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-                                </button>
-                              </div>
+                              <QuantityControl
+                                itemId={item.id}
+                                quantity={item.quantity}
+                                updateQuantity={updateQuantity}
+                              />
                               <div className="flex flex-col items-end gap-0.5">
                                 {item.compareAtPrice && (
                                   <span
