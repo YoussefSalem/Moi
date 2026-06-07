@@ -14,6 +14,14 @@ interface VideoItem {
 
 const videos: VideoItem[] = [
   {
+    title: "Moi moment",
+    handle: "@dinaayman52",
+    profileUrl: "https://www.tiktok.com/@dinaayman52",
+    caption: "Another real look in Moi — styled and worn.",
+    embedUrl: "https://www.tiktok.com/embed/v2/7648005799708544276",
+    type: "carousel",
+  },
+  {
     title: "Moi fit check",
     handle: "@llifewitht",
     profileUrl: "https://www.tiktok.com/@llifewitht",
@@ -76,14 +84,6 @@ const videos: VideoItem[] = [
     caption: "Real, wearable outfits that translate from screen to wardrobe.",
     embedUrl: "https://www.tiktok.com/embed/v2/7641637259661430024",
     type: "video",
-  },
-  {
-    title: "Moi moment",
-    handle: "@dinaayman52",
-    profileUrl: "https://www.tiktok.com/@dinaayman52",
-    caption: "Another real look in Moi — styled and worn.",
-    embedUrl: "https://www.tiktok.com/embed/v2/7648005799708544276",
-    type: "carousel",
   },
 ];
 
