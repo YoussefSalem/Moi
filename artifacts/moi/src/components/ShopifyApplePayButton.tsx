@@ -10,10 +10,10 @@ const BTN_CSS = `
     -apple-pay-button-style: black;
     display: block;
     width: 100%;
-    height: 52px;
+    height: 48px;
     border: none;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 8px;
   }
   .ap-buy-btn:disabled {
     opacity: 0.45;
