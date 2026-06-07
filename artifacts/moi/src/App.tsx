@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
 import { parseEGP } from "@/lib/price";
@@ -99,6 +99,9 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [heroReady, setHeroReady] = useState(false);
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
+  // Scroll restoration: save position before navigating to a product, restore on back
+  const savedScrollRef = useRef(0);
+  const pendingScrollRef = useRef<number | null>(null);
   const cart = useCart();
 
   function handleColorCardAddToCart(handle: string, _image?: string) {
@@ -140,6 +143,7 @@ function AppContent() {
   const [scrollTarget, setScrollTarget] = useState<string>(() => parsePath().section ?? "");
 
   function navigateToProduct(handle: string) {
+    savedScrollRef.current = window.scrollY;
     setPage("product");
     setProductHandle(handle);
     window.history.pushState(null, "", `/products/${handle}`);
@@ -314,7 +318,11 @@ function AppContent() {
 
       <AnimatePresence
         mode="wait"
-        onExitComplete={() => window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior })}
+        onExitComplete={() => {
+          const target = pendingScrollRef.current;
+          pendingScrollRef.current = null;
+          window.scrollTo({ top: target ?? 0, behavior: "instant" as ScrollBehavior });
+        }}
       >
         <motion.div
           key={isProductPage ? `product-${productHandle}` : page}
@@ -328,7 +336,7 @@ function AppContent() {
         >
           {isProductPage ? (
             <div>
-              <ProductPage handle={productHandle} onBack={() => navigateTo("home")} onNavigate={navigateToProduct} />
+              <ProductPage handle={productHandle} onBack={() => { pendingScrollRef.current = savedScrollRef.current; navigateTo("home"); }} onNavigate={navigateToProduct} />
               <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
             </div>
           ) : page === "home" ? (

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, ArrowLeft, Bell, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { useShopifyProductByHandle } from "@/hooks/useShopifyProductByHandle";
 import { parseEGP } from "@/lib/price";
@@ -158,6 +158,15 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   })();
 
   useEffect(() => { setThumbLoaded(new Array(galleryImages.length).fill(false)); }, [galleryImages.length, handle]);
+
+  // Preload all gallery images so thumbnails and swipes are instant, no spinners
+  useEffect(() => {
+    galleryImages.forEach((src) => {
+      if (!src) return;
+      const img = new Image();
+      img.src = src;
+    });
+  }, [handle]);
 
   const mainImage = galleryImages[galleryIndex] ?? product.productShot;
 
@@ -407,35 +416,24 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       }}
                     >
                       <div className="relative w-full h-full">
-                        {/* Thumbnail image — hidden until loaded */}
+                        {/* Warm shimmer placeholder until image is ready */}
+                        {!thumbLoaded[i] && (
+                          <div className="absolute inset-0 overflow-hidden" style={{ background: "rgba(230,220,205,0.55)" }}>
+                            <div
+                              className="absolute inset-0"
+                              style={{ background: "linear-gradient(105deg, transparent 30%, rgba(245,240,232,0.75) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }}
+                            />
+                          </div>
+                        )}
                         <img
                           src={src}
                           alt={`View ${i + 1}`}
                           className="w-full h-full"
-                          style={{ objectFit: "cover", opacity: thumbLoaded[i] ? 1 : 0 }}
-                          loading="lazy"
-                          onLoad={() => setThumbLoaded(prev => {
-                            const next = [...prev];
-                            next[i] = true;
-                            return next;
-                          })}
-                          onError={() => setThumbLoaded(prev => {
-                            const next = [...prev];
-                            next[i] = true;
-                            return next;
-                          })}
+                          style={{ objectFit: "cover", opacity: thumbLoaded[i] ? 1 : 0, transition: "opacity 0.2s ease" }}
+                          loading="eager"
+                          onLoad={() => setThumbLoaded(prev => { const next = [...prev]; next[i] = true; return next; })}
+                          onError={() => setThumbLoaded(prev => { const next = [...prev]; next[i] = true; return next; })}
                         />
-                        {/* Circular spinner while loading */}
-                        {!thumbLoaded[i] && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-[rgba(30,24,20,0.04)]">
-                            <Loader2
-                              size={18}
-                              strokeWidth={1.5}
-                              className="animate-spin text-[rgba(30,24,20,0.3)]"
-                              style={{ animationDuration: "1s" }}
-                            />
-                          </div>
-                        )}
                       </div>
                     </button>
                   ))}
