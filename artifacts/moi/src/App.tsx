@@ -17,7 +17,7 @@ import { CustomerProvider } from "@/context/CustomerContext";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
-import { useRestockChecker } from "@/hooks/useRestockChecker";
+
 
 // Heavy components — loaded only when needed
 const AccessoriesPage = lazy(() => import("@/components/AccessoriesPage").then(m => ({ default: m.AccessoriesPage })));
@@ -42,11 +42,9 @@ const IS_APPLE_PAY_IFRAME = window.location.pathname === "/buy/apple-pay";
 type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product" | "notfound" | "checkout";
 const POLICY_PAGES: PageType[] = ["privacy", "refund", "return", "delivery"];
 
-const VALID_PRODUCTS: Record<string, string[] | null> = {
-  "moi-wavvy": ["light-blue", "navy", "mint"],
-  "moi-versa-top": ["white", "cashmere", "beige", "yellow", "teal"],
-  "trio-bangles": null,
-};
+// Known product slugs — used only for URL routing. Colors are derived live from
+// Shopify variants; we never hardcode which colors a product supports.
+const KNOWN_PRODUCT_SLUGS = ["moi-wavvy", "moi-versa-top", "trio-bangles"];
 
 const SECTION_PATH_MAP: Record<string, string> = {
   "/versa-top": "moi-versa-top",
@@ -58,15 +56,11 @@ function parsePath(): { page: PageType; productHandle: string; section?: string 
   const pathname = window.location.pathname;
   if (pathname.startsWith("/products/")) {
     const handle = pathname.slice("/products/".length);
-    const matchedProduct = Object.keys(VALID_PRODUCTS).find(
+    const matchedSlug = KNOWN_PRODUCT_SLUGS.find(
       (p) => handle === p || handle.startsWith(p + "-"),
     );
-    if (!matchedProduct) return { page: "notfound", productHandle: handle };
-    const validColors = VALID_PRODUCTS[matchedProduct];
-    if (validColors === null) return { page: "product", productHandle: handle }; // trio-bangles has no color variants
-    const colorSlug = handle.slice(matchedProduct.length + 1);
-    if (!colorSlug || validColors.includes(colorSlug)) return { page: "product", productHandle: handle };
-    return { page: "notfound", productHandle: handle };
+    if (!matchedSlug) return { page: "notfound", productHandle: handle };
+    return { page: "product", productHandle: handle };
   }
   if (pathname === "/checkout") return { page: "checkout", productHandle: "" };
   if (pathname === "/accessories") return { page: "accessories", productHandle: "" };
@@ -78,12 +72,26 @@ function parsePath(): { page: PageType; productHandle: string; section?: string 
   return { page: "home", productHandle: "" };
 }
 
-// Colours shown on the homepage for each product line.
-// product1 (moi-wavvy) → WAVVY line; product2 (moi-versa-top) → Versa Top line.
-const WAVVY_COLORS  = [{ name: "Light Blue" }, { name: "Navy" }, { name: "Mint" }];
-const VERSA_COLORS  = [{ name: "White" }, { name: "Cashmere" }, { name: "Beige" }, { name: "Yellow" }, { name: "Teal" }];
-
 const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2, IMAGES.product3 as ProductConfig];
+
+/** Derive the list of color names for a product from Shopify variants, falling
+ *  back to the local colorImages keys. This ensures the homepage always reflects
+ *  exactly what Shopify has — no hardcoded color lists. */
+function deriveColors(product: ProductConfig): { name: string }[] {
+  if (product.variants && product.variants.length > 0) {
+    const seen = new Set<string>();
+    const result: { name: string }[] = [];
+    for (const v of product.variants) {
+      const colorOpt = v.selectedOptions.find((o) => o.name.toLowerCase() === "color");
+      if (colorOpt && !seen.has(colorOpt.value)) {
+        seen.add(colorOpt.value);
+        result.push({ name: colorOpt.value });
+      }
+    }
+    if (result.length > 0) return result;
+  }
+  return Object.keys((product.colorImages ?? {}) as Record<string, string>).map((name) => ({ name }));
+}
 
 function AppContent() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);
@@ -91,7 +99,6 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [heroReady, setHeroReady] = useState(false);
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
-  useRestockChecker();
   const cart = useCart();
 
   function handleColorCardAddToCart(handle: string, _image?: string) {
@@ -196,13 +203,32 @@ function AppContent() {
   const product2 = products.find(p => p.slug === "moi-versa-top") ?? IMAGES.product2;
   const product3 = products.find(p => p.slug === "trio-bangles") ?? IMAGES.product3 as ProductConfig;
 
-  // Build search items: one entry per color variant, plus accessories
+  // Build search items: one entry per color variant derived from Shopify data
   const searchItems: SearchItem[] = useMemo(() => {
     const items: SearchItem[] = [];
-
     const allProducts: ProductConfig[] = [product1, product2, product3];
+
     for (const product of allProducts) {
-      if (product.slug === "trio-bangles") {
+      const colorImages = product.colorImages as Record<string, string> | undefined;
+
+      // Derive live colors from Shopify variants; fall back to colorImages keys
+      const colorNames: string[] = (() => {
+        if (product.variants && product.variants.length > 0) {
+          const seen = new Set<string>();
+          const result: string[] = [];
+          for (const v of product.variants) {
+            const colorOpt = v.selectedOptions.find((o) => o.name.toLowerCase() === "color");
+            if (colorOpt && !seen.has(colorOpt.value)) {
+              seen.add(colorOpt.value);
+              result.push(colorOpt.value);
+            }
+          }
+          if (result.length > 0) return result;
+        }
+        return Object.keys(colorImages ?? {});
+      })();
+
+      if (colorNames.length === 0) {
         items.push({
           id: product.slug,
           name: product.name,
@@ -214,29 +240,18 @@ function AppContent() {
         continue;
       }
 
-      const colorImages = product.colorImages as Record<string, string> | undefined;
-      const validColors = VALID_PRODUCTS[product.slug];
-      if (!validColors) continue;
-
-      // For each valid color slug, generate a variant search item
-      for (const colorSlug of validColors) {
-        const colorName = colorSlug
-          .split("-")
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join(" ");
+      for (const colorName of colorNames) {
+        const colorSlug = colorName.toLowerCase().replace(/\s+/g, "-");
         const handle = `${product.slug}-${colorSlug}`;
         const colorImage = colorImages?.[colorName] ?? product.productShot;
         const variant = product.variants?.find((v) =>
           v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === colorName)
         );
         const price = variant?.price ?? product.price;
-        const sizeOption = variant?.selectedOptions.find((o) => o.name.toLowerCase() === "size");
-        const subtitle = sizeOption ? `Size: ${sizeOption.value}` : undefined;
 
         items.push({
           id: handle,
           name: `${product.name} \u2014 ${colorName}`,
-          subtitle,
           handle,
           image: colorImage,
           price,
@@ -348,7 +363,7 @@ function AppContent() {
                   product={product1}
                   sectionTitle="MOI WAVVY"
                   sectionSubtitle="The ultimate throw-and-go. Light, breathable, and made for drifting."
-                  colors={WAVVY_COLORS}
+                  colors={deriveColors(product1)}
                   onNavigate={navigateToProduct}
                   onAddToCart={handleColorCardAddToCart}
                 />
@@ -361,7 +376,7 @@ function AppContent() {
                 product={product2}
                 sectionTitle="MOI VERSA TOP"
                 sectionSubtitle="Effortlessly versatile. A silhouette that moves with you, in every shade of summer."
-                colors={VERSA_COLORS}
+                colors={deriveColors(product2)}
                 onNavigate={navigateToProduct}
                 onAddToCart={handleColorCardAddToCart}
                 dark

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, ShoppingBag, Link2, Check } from "lucide-react";
-import { getStockCount } from "@/lib/stock";
+
 
 interface QuickPreviewProps {
   isOpen: boolean;
@@ -36,8 +36,6 @@ export function QuickPreview({
   const [imgIndex, setImgIndex] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [copied, setCopied] = useState(false);
-  const stockCount = getStockCount(handle.split("-")[0] ?? "", colorName);
-
   const dragStartX = useRef<number | null>(null);
   const dragLastX = useRef<number | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -359,20 +357,6 @@ export function QuickPreview({
                       {price}
                     </span>
                   </div>
-                  {stockCount !== null && (
-                    <span
-                      style={{
-                        fontFamily: "'Montserrat', sans-serif",
-                        fontSize: "0.62rem",
-                        letterSpacing: "0.14em",
-                        textTransform: "uppercase",
-                        color: "#c83232",
-                        fontWeight: 500,
-                      }}
-                    >
-                      Only {stockCount} left
-                    </span>
-                  )}
                 </div>
 
                 {/* Description */}

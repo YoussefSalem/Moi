@@ -13,7 +13,7 @@ import { ImageSkeleton } from "@/components/ImageSkeleton";
 import { trackAddToCart } from "@/lib/analytics";
 import { trackViewContent } from "@/lib/metaPixel";
 import { trackTikTokViewContent } from "@/lib/tiktokPixel";
-import { getStockCount } from "@/lib/stock";
+
 import { ENABLE_APPLE_PAY } from "@/config/features";
 import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
 
@@ -85,12 +85,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const recsRef = useRef<HTMLDivElement>(null);
   const addingRef = useRef(false);
-
-  // Persistent stock indicator for all products
-  const stockCount = useMemo(() => {
-    const color = pageColorName || product.name;
-    return getStockCount(handle.split("-")[0] ?? "", color);
-  }, [handle, pageColorName, product.name]);
 
   // SEO: update document head imperatively so meta is reliably in the <head>
   useEffect(() => {
@@ -465,23 +459,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               >
                 {product.name}
               </h1>
-
-              {/* Stock count */}
-              {stockCount && (
-                <div className="mb-2" style={{ marginTop: -2 }}>
-                  <span
-                    style={{
-                      fontFamily: "'Montserrat', sans-serif",
-                      fontSize: 10,
-                      color: "#c83232",
-                      letterSpacing: "0.04em",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Only {stockCount} left
-                  </span>
-                </div>
-              )}
 
               {/* Price */}
               <div className="flex flex-col" style={{ marginBottom: 20, gap: 2 }}>

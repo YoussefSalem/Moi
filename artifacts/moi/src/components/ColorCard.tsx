@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
 import { QuickPreview } from "@/components/QuickPreview";
-import { getStockCount } from "@/lib/stock";
 
 interface ColorCardProps {
   productName: string;
@@ -318,29 +317,6 @@ export function ColorCard({
                 {colorName}
               </span>
             </div>
-            {productName === "MOI WAVVY" && colorName === "Light Blue" && (
-              <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm flex-shrink-0"
-                style={{
-                  backgroundColor: "rgba(200, 50, 50, 0.08)",
-                  border: "1px solid rgba(200, 50, 50, 0.18)",
-                }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#c83232" }} />
-                <span
-                  style={{
-                    fontFamily: "'Montserrat', sans-serif",
-                    fontSize: "clamp(0.52rem, 1.4vw, 0.62rem)",
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    color: "#c83232",
-                    fontWeight: 500,
-                  }}
-                >
-                  Selling Fast
-                </span>
-              </span>
-            )}
           </div>
 
           <div className="flex flex-col items-center gap-0.5 md:flex-row md:items-center md:justify-center md:gap-6">
@@ -357,20 +333,6 @@ export function ColorCard({
             >
               {productName}
             </h3>
-            {!outOfStock && (
-              <span
-                style={{
-                  fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "clamp(0.56rem, 1.6vw, 0.71rem)",
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "#c83232",
-                  fontWeight: 500,
-                }}
-              >
-                Only {getStockCount(handle.split("-")[0] ?? "", colorName)} left
-              </span>
-            )}
           </div>
 
           <div className="text-center mt-auto flex flex-col items-center" style={{ gap: 2 }}>

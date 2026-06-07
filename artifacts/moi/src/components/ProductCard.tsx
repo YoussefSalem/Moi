@@ -19,8 +19,6 @@ import {
   trackAddToCart,
   trackRepeatedView,
 } from "@/lib/analytics";
-import { getStockCount } from "@/lib/stock";
-
 function slugify(str: string): string {
   return str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
@@ -140,9 +138,6 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
     () => sizeOption?.values[0] ?? "Small"
   );
 
-  // Persistent stock count for the selected color
-  const stockCount = getStockCount(product.slug ?? "", selectedColor);
-
   const prevVariantsRef = useRef<readonly VariantOption[] | undefined>(undefined);
   useEffect(() => {
     if (product.variants === prevVariantsRef.current) return;
@@ -170,18 +165,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
   const swatchFor = (name: string): string =>
     product.colorSwatches?.[name.toLowerCase()] ?? "#c8bdb5";
 
-  function getDefaultStock(color: string, size: string): number {
-    if (hasShopifyVariants) return -1;
-    if (!product.defaultInventory) return -1;
-    const colorKey = color.toLowerCase();
-    const colorInventory = product.defaultInventory[colorKey];
-    if (colorInventory === undefined) return -1;
-    return colorInventory[size] ?? 0;
-  }
-
   function isSizeAvailable(size: string): boolean {
-    const defaultStock = getDefaultStock(selectedColor, size);
-    if (defaultStock >= 0) return defaultStock > 0;
     if (!hasShopifyVariants || !product.variants) return true;
     return product.variants.some((v) => {
       const sizeMatch = v.selectedOptions.some(
@@ -262,11 +246,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
     setGalleryIndex(0);
   }, [selectedColor]);
 
-  const isOutOfStock = (() => {
-    const defaultStock = getDefaultStock(selectedColor, selectedSize);
-    if (defaultStock >= 0) return defaultStock <= 0;
-    return hasShopifyVariants && selectedVariant ? !selectedVariant.availableForSale : false;
-  })();
+  const isOutOfStock = hasShopifyVariants && selectedVariant ? !selectedVariant.availableForSale : false;
 
   const displayColors = colorOption
     ? colorOption.values.map((name) => ({ name, swatch: swatchFor(name) }))
@@ -1014,23 +994,6 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 </div>
               </motion.div>
 
-              {/* Scarcity count */}
-              {!isOutOfStock && (
-                <motion.p
-                  variants={itemVariants}
-                  className="mb-3"
-                  style={{
-                    color: "#c83232",
-                    fontFamily: "'Montserrat', sans-serif",
-                    fontSize: "11px",
-                    letterSpacing: "0.18em",
-                    fontWeight: 500,
-                    textShadow: "0 0 12px rgba(158,42,43,0.12)",
-                  }}
-                >
-                  Only {stockCount} left
-                </motion.p>
-              )}
 
               {/* CTA */}
               <motion.div variants={itemVariants} className="w-full flex flex-col items-center">
