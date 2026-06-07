@@ -1,6 +1,4 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { createPortal } from "react-dom";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { ENABLE_CARD_PAYMENTS, ENABLE_WALLET_PAYMENTS, ENABLE_APPLE_PAY } from "@/config/features";
 import { ShopifyApplePayButton } from "./ShopifyApplePayButton";
@@ -308,7 +306,6 @@ export function CheckoutPage() {
     checkoutUrl,
   } = useCart();
 
-  const isMobile = useIsMobile();
   const [step, setStep] = useState<Step>("form");
   const [emailError, setEmailError] = useState("");
 
@@ -324,9 +321,6 @@ export function CheckoutPage() {
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
   const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
-  const [paymentTimerActive, setPaymentTimerActive] = useState(false);
-  const [paymentTimerKey, setPaymentTimerKey] = useState(0);
-  const [sessionRefreshed, setSessionRefreshed] = useState(false);
   const [shopifyCheckoutToken, setShopifyCheckoutToken] = useState<string | null>(null);
   const isApplyingRef = useRef(false); // Prevents recursive re-apply while we update cart
   const paymobTrackedRef = useRef(false); // Prevents duplicate trackPurchase when iframe fires twice
@@ -765,7 +759,7 @@ export function CheckoutPage() {
       city: form.city.trim(),
     };
 
-    // Card / Wallet payment: call paymob-init → embed Paymob Unified Checkout in-page via iframe
+    // Card / Wallet payment: call paymob-init → redirect directly to Paymob Unified Checkout
     if (paymentMethod === "card" || paymentMethod === "wallet") {
       if (paymentMethod === "card" && !ENABLE_CARD_PAYMENTS) {
         submittingRef.current = false;
@@ -851,9 +845,8 @@ export function CheckoutPage() {
             sessionStorage.setItem("moi_paymob_items", JSON.stringify(cartItemsSnapshot));
           }
         }
-        paymobTrackedRef.current = false; // Reset guard for new card payment session
-        setPaymobIframeUrl(data.iframeUrl);
-        setStep("form"); // Return to form step — iframe renders inline on the same page
+        paymobTrackedRef.current = false;
+        window.location.href = data.iframeUrl;
       } catch {
         setStep("form");
         setSubmitError("Network error. Please check your connection and try again.");
@@ -1152,7 +1145,6 @@ export function CheckoutPage() {
     if (paymobTrackedRef.current) return;
     paymobTrackedRef.current = true;
 
-    setPaymentTimerActive(false);
     setPaymobIframeUrl(null);
     setStep("card-confirm");
     clearCart();
@@ -1183,15 +1175,6 @@ export function CheckoutPage() {
     }
   }, [clearCart, markAbandonedCartRecovered, isShopify, shopifyCart, localItems, totalAmount]);
 
-  const handleIframeFail = useCallback(() => {
-    setPaymentTimerActive(false);
-    setPaymobIframeUrl(null);
-    submittingRef.current = false;
-    // Auto-refresh the payment session so the user lands back on the card form.
-    // (Form state is still intact for in-app failures — unlike 3DS redirect failures
-    // which go directly to card-failed via the mount effect and handleRetryCard.)
-    refreshSessionRef.current();
-  }, []);
 
   const handleApplePayFail = useCallback(() => {
     setSubmitError("Apple Pay payment was declined or cancelled. Please try again.");
@@ -1220,9 +1203,6 @@ export function CheckoutPage() {
   }, []);
 
   const handleRefreshPaymobSession = useCallback(async () => {
-    setPaymentTimerActive(false);
-    setSessionRefreshed(false);
-    setPaymobIframeUrl(null);
     setStep("loading");
 
     const orderLines = isShopify && shopifyCart
@@ -1300,10 +1280,7 @@ export function CheckoutPage() {
         }
       }
       paymobTrackedRef.current = false;
-      setPaymentTimerKey((k) => k + 1);
-      setSessionRefreshed(true);
-      setPaymobIframeUrl(data.iframeUrl);
-      setStep("form");
+      window.location.href = data.iframeUrl;
     } catch {
       setStep("form");
       setSubmitError("Network error. Please check your connection and try again.");
@@ -1338,21 +1315,6 @@ export function CheckoutPage() {
       .finally(() => { isApplyingRef.current = false; });
   }, [shopifyCart?.lines.nodes.map((l) => `${l.id}:${l.quantity}`).join(",")]);
 
-  // Activate / deactivate the payment session timer based on whether the iframe is showing.
-  useEffect(() => {
-    if (paymobIframeUrl) {
-      setPaymentTimerActive(true);
-    } else {
-      setPaymentTimerActive(false);
-    }
-  }, [paymobIframeUrl]);
-
-  // Auto-clear "Session Refreshed" banner after 6 seconds.
-  useEffect(() => {
-    if (!sessionRefreshed) return;
-    const t = setTimeout(() => setSessionRefreshed(false), 6000);
-    return () => clearTimeout(t);
-  }, [sessionRefreshed]);
 
   // On mount: restore state if the user was redirected back from Paymob's 3DS page.
   // /api/paymob-return writes moi_paymob_result + sibling keys before redirecting to /.
@@ -1474,7 +1436,6 @@ export function CheckoutPage() {
 
   const isSuccessStep = step === "cod-confirm" || step === "card-confirm";
   const isConfirmStep = isSuccessStep || step === "instapay-confirm";
-  const isCardCheckoutStep = step === "card-checkout" || (step === "form" && !!paymobIframeUrl);
   const loadingText = (paymentMethod === "card" || paymentMethod === "wallet") ? "Preparing payment…" : "Placing your order…";
 
 
@@ -1497,13 +1458,13 @@ export function CheckoutPage() {
             style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}
           >
             <button
-              onClick={isSuccessStep ? handleSuccessDone : isConfirmStep ? handleDone : isCardCheckoutStep ? handleCancelCardCheckout : closeCheckout}
+              onClick={isSuccessStep ? handleSuccessDone : isConfirmStep ? handleDone : closeCheckout}
               className="flex items-center gap-2 transition-opacity hover:opacity-50"
               aria-label="Back"
             >
               <ArrowLeft size={16} strokeWidth={1.5} style={{ color: "#1e1814" }} />
               <span style={{ fontSize: "14px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.84)", fontFamily: "'Montserrat', sans-serif" }}>
-                {isConfirmStep ? "Continue shopping" : isCardCheckoutStep ? "Cancel" : "Back"}
+                {isConfirmStep ? "Continue shopping" : "Back"}
               </span>
             </button>
             <span style={{ fontSize: "14px", letterSpacing: "0.4em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
@@ -1512,271 +1473,7 @@ export function CheckoutPage() {
             <div style={{ width: 80 }} />
           </div>
 
-          {(step === "card-checkout" || step === "form") && paymobIframeUrl ? (
-            isMobile ? createPortal(
-              <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#faf8f5", display: "flex", flexDirection: "column" }}>
-                {/* Back bar */}
-                <div style={{ display: "flex", alignItems: "center", padding: "0 16px", height: 52, borderBottom: "1px solid rgba(30,24,20,0.08)", flexShrink: 0 }}>
-                  <button
-                    onClick={handleCancelCardCheckout}
-                    style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", padding: "8px 0", cursor: "pointer" }}
-                  >
-                    <ArrowLeft size={16} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-                    <span style={{ fontSize: "11px", letterSpacing: "0.22em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 600 }}>Back</span>
-                  </button>
-                </div>
-                {/* Full-height iframe — use explicit dvh so height doesn't collapse through unsized wrappers */}
-                <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
-                  <PaymobIframe
-                    url={paymobIframeUrl}
-                    intentId={orderResult?.intentId}
-                    onSuccess={handleIframeSuccess}
-                    onFail={handleIframeFail}
-                    iframeStyle={{ height: "calc(100dvh - 52px)", width: "100%" }}
-                  />
-                </div>
-              </div>,
-              document.body
-            ) : (
-            <motion.div
-              key="card-checkout"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-              className="max-w-5xl mx-auto px-6 md:px-10 py-8 md:py-12 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 md:items-center"
-            >
-              {/* Left: compact order summary */}
-              <div>
-                <div className="flex items-center gap-3 mb-6">
-                  <ShoppingBag size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.5)", flexShrink: 0 }} />
-                  <p style={{ fontSize: "11px", letterSpacing: "0.38em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
-                    Order Summary
-                  </p>
-                  <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.1)" }} />
-                </div>
-                <div className="flex flex-col">
-                  {lines
-                    ? lines.map((line, idx) => {
-                        const lineImg = resolveLineImage(line, localItems);
-                        return (
-                          <div key={line.id} className="flex gap-5 py-5" style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", borderTop: idx === 0 ? "1px solid rgba(30,24,20,0.08)" : "none" }}>
-                            <div className="flex-shrink-0 overflow-hidden" style={{ width: 96, height: 120, backgroundColor: "rgba(30,24,20,0.07)" }}>
-                              {lineImg ? (
-                                <img src={lineImg} alt={line.merchandise.product.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <ShoppingBag size={22} strokeWidth={1} style={{ color: "rgba(30,24,20,0.22)" }} />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
-                              <div>
-                                <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "19px", fontWeight: 600, color: "#1e1814", lineHeight: 1.25, letterSpacing: "0.01em" }}>
-                                  {line.merchandise.product.title}
-                                </p>
-                                {line.merchandise.title !== "Default Title" && (
-                                  <p style={{ fontSize: "10px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginTop: 6, fontWeight: 500 }}>
-                                    {line.merchandise.title}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="flex items-end justify-between mt-4">
-                                <span style={{ fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(30,24,20,0.46)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {line.quantity}</span>
-                                <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "15px", fontWeight: 700, color: "#1e1814" }}>{formatShopifyLinePrice(line)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    : localLines.map((item, idx) => (
-                        <div key={item.id} className="flex gap-5 py-5" style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", borderTop: idx === 0 ? "1px solid rgba(30,24,20,0.08)" : "none" }}>
-                          <div className="flex-shrink-0 overflow-hidden" style={{ width: 96, height: 120, backgroundColor: "rgba(30,24,20,0.07)" }}>
-                            {item.image ? (
-                              <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <ShoppingBag size={22} strokeWidth={1} style={{ color: "rgba(30,24,20,0.22)" }} />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
-                            <div>
-                              <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "19px", fontWeight: 600, color: "#1e1814", lineHeight: 1.25, letterSpacing: "0.01em" }}>{item.title}</p>
-                              {item.color && (
-                                <p style={{ fontSize: "10px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginTop: 6, fontWeight: 500 }}>{item.color}</p>
-                              )}
-                            </div>
-                            <div className="flex items-end justify-between mt-4">
-                              <span style={{ fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(30,24,20,0.46)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Qty {item.quantity}</span>
-                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "15px", fontWeight: 700, color: "#1e1814" }}>{fmt(item.priceAmount * item.quantity)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                  }
-                </div>
-                <div className="mt-1">
-                  {savings > 0 && promoApplied && (
-                    <div className="flex items-center justify-between px-4 py-3 mt-4" style={{ backgroundColor: "rgba(52,95,67,0.07)", border: "1px solid rgba(52,95,67,0.22)" }}>
-                      <div className="flex items-center gap-3">
-                        <Tag size={11} strokeWidth={2} style={{ color: "#2f6644" }} />
-                        <div>
-                          <p style={{ fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#2f6644", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>Promo applied</p>
-                          <p style={{ fontSize: "11px", color: "rgba(47,102,68,0.75)", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>{promoApplied.code} — -{fmt(savings)}</p>
-                        </div>
-                      </div>
-                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "13px", color: "#2f6644", fontWeight: 700, letterSpacing: "0.04em" }}>{Math.round((savings / subtotalAmount) * 100)}% off</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between items-center py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
-                    <span style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Subtotal</span>
-                    <span style={{ fontSize: "15px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>{fmt(discountedSubtotal)}</span>
-                  </div>
-                  {!freeShipping && discountedSubtotal > 0 && (
-                    <div className="py-3" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
-                      <div className="flex justify-between items-center mb-2">
-                        <p style={{ fontSize: "10px", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e" }}>
-                          {new Intl.NumberFormat("en-EG").format(2000 - discountedSubtotal)} EGP to free delivery
-                        </p>
-                      </div>
-                      <div style={{ height: 2, backgroundColor: "rgba(107,143,94,0.18)", borderRadius: 1, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${Math.min(100, (discountedSubtotal / 2000) * 100)}%`, backgroundColor: "#6b8f5e", borderRadius: 1 }} />
-                      </div>
-                    </div>
-                  )}
-                  {freeShipping && (
-                    <div className="flex items-center gap-3 py-3" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
-                      <Check size={13} strokeWidth={2} style={{ color: "#6b8f5e" }} />
-                      <p style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, color: "#6b8f5e" }}>Free delivery unlocked</p>
-                    </div>
-                  )}
-                  <div className="flex justify-between items-center py-4" style={{ borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
-                    <span style={{ fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>Shipping</span>
-                    <span style={{ fontSize: "15px", color: "#6b8f5e", fontFamily: "'Montserrat', sans-serif", fontWeight: 500 }}>
-                      {freeShipping ? <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "13px", fontWeight: 600, color: "#6b8f5e", letterSpacing: "0.06em", textTransform: "uppercase" }}>Free</span> : fmt(SHIPPING_EGP)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pt-5 pb-2">
-                    <div>
-                      <p style={{ fontSize: "10px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, marginBottom: 3 }}>Total</p>
-                      <p style={{ fontSize: "11px", letterSpacing: "0.14em", color: "rgba(30,24,20,0.4)", fontFamily: "'Montserrat', sans-serif" }}>Incl. VAT & fees</p>
-                    </div>
-                    <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "22px", fontWeight: 700, color: "#1e1814", letterSpacing: "0.02em", lineHeight: 1 }}>
-                      {orderResult?.total ?? fmt(totalAmount)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right: card payment panel */}
-              <div className="flex flex-col">
-                {/* Session Refreshed banner */}
-                {sessionRefreshed && (
-                  <div style={{
-                    display: "flex", alignItems: "flex-start", gap: "10px",
-                    backgroundColor: "rgba(74,124,89,0.08)",
-                    border: "1px solid rgba(74,124,89,0.28)",
-                    borderRadius: "8px", padding: "12px 14px", marginBottom: "18px",
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: "1px" }}>
-                      <circle cx="8" cy="8" r="7.25" stroke="#4a7c59" strokeWidth="1.5"/>
-                      <path d="M5 8.5l2 2 4-4" stroke="#4a7c59" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <div>
-                      <p style={{ fontSize: "13px", fontWeight: 600, color: "#2f6644", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", marginBottom: "2px" }}>
-                        Session Refreshed
-                      </p>
-                      <p style={{ fontSize: "11px", color: "rgba(47,102,68,0.82)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.5 }}>
-                        Your payment session was refreshed. Please enter your details to continue.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Payment session countdown timer */}
-                <PaymentSessionTimer
-                  key={paymentTimerKey}
-                  active={paymentTimerActive}
-                  onExpire={handleRefreshPaymobSession}
-                  onTryAgain={handleRefreshPaymobSession}
-                />
-
-                {/* Card / Apple Pay iframe section */}
-                {(true) && (
-                  <>
-                {/* Payment method header */}
-                <div className="mb-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    {paymentMethod === "apple-pay" ? (
-                      <svg viewBox="0 0 814 1000" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#1e1814" style={{ flexShrink: 0 }}>
-                        <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.1-38.8-168.4-103.1c-73.9-71.9-134.6-183.3-134.6-290.9 0-195.3 129.4-298.5 256.8-298.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/>
-                      </svg>
-                    ) : (
-                      <svg width="34" height="24" viewBox="0 0 34 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-                        <rect x="0.5" y="0.5" width="33" height="23" rx="3.5" stroke="rgba(30,24,20,0.22)" fill="rgba(30,24,20,0.03)"/>
-                        <rect x="9" y="7" width="16" height="10" rx="1.5" fill="rgba(30,24,20,0.15)" stroke="rgba(30,24,20,0.2)" strokeWidth="0.75"/>
-                        <line x1="9" y1="12" x2="25" y2="12" stroke="rgba(30,24,20,0.16)" strokeWidth="0.75"/>
-                        <line x1="17" y1="7" x2="17" y2="17" stroke="rgba(30,24,20,0.16)" strokeWidth="0.75"/>
-                      </svg>
-                    )}
-                    <div>
-                      <p style={{ fontSize: "10px", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", marginBottom: "2px" }}>
-                        Payment
-                      </p>
-                      <p style={{ fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
-                        {paymentMethod === "apple-pay" ? "Apple Pay" : paymentMethod === "wallet" ? "Mobile Wallet" : "Credit / Debit Card"}
-                      </p>
-                    </div>
-                  </div>
-                  <div style={{ height: "1px", backgroundColor: "rgba(30,24,20,0.13)" }} />
-                </div>
-
-                {/* Payment surface — card iframe */}
-                <div style={{ borderRadius: "16px", overflow: "hidden" }}>
-                  <PaymobIframe
-                    url={paymobIframeUrl}
-                    intentId={orderResult?.intentId}
-                    onSuccess={handleIframeSuccess}
-                    onFail={handleIframeFail}
-                  />
-                </div>
-
-                {/* Security badge */}
-                <div className="mt-4 flex flex-col items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <CreditCard size={12} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.38)", flexShrink: 0 }} />
-                    <p style={{ fontSize: "11px", color: "rgba(30,24,20,0.42)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.06em" }}>
-                      Secured by Paymob · 256-bit SSL
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (paymobIframeUrl) {
-                        window.open(paymobIframeUrl, "_blank", "width=520,height=720");
-                      }
-                    }}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: 0,
-                      cursor: "pointer",
-                      fontSize: "11px",
-                      color: "rgba(30,24,20,0.38)",
-                      fontFamily: "'Montserrat', sans-serif",
-                      letterSpacing: "0.06em",
-                      textDecoration: "underline",
-                      textUnderlineOffset: "3px",
-                    }}
-                  >
-                    Payment stuck? Open in new window
-                  </button>
-                </div>
-              </>
-            )}
-            </div>
-          </motion.div>
-            )
-          ) : step === "loading" ? (
+          {step === "loading" ? (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5">
               <motion.div
                 animate={{ rotate: 360 }}
@@ -2916,629 +2613,5 @@ function OrderBreakdownRows({ breakdown }: { breakdown: OrderBreakdown }) {
   );
 }
 
-interface PaymobIframeProps {
-  url: string | null | undefined;
-  intentId?: string | null;
-  onSuccess: (txnId?: string, shopifyOrderId?: number | null, shopifyOrderNumber?: number | null) => void;
-  onFail: () => void;
-  iframeStyle?: React.CSSProperties;
-}
 
-function PaymobIframe({ url, intentId, onSuccess, onFail, iframeStyle }: PaymobIframeProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const overlayInnerRef = useRef<HTMLDivElement>(null);
-  const loadingRef = useRef<HTMLDivElement>(null);
-  const loadCountRef = useRef(0);
-  const resolvedRef = useRef(false);
-  // Set to true when we show a *temporary* processing overlay to cover Paymob's
-  // intermediate-state JSON (e.g. "Pending 3DS Authorization"). handleIframeLoad
-  // clears the overlay on the very next page load so the 3DS page is visible.
-  const tempOverlayRef = useRef(false);
-  // Set to true once the 3DS redirect fires so the polling timeout does not
-  // prematurely unmount the iframe or show the "Payment Failed" screen while
-  // the user is completing their 3DS challenge.
-  const threeDsActiveRef = useRef(false);
-  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const blurDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pollStartRef = useRef<number>(Date.now());
-
-  // Shows the overlay synchronously via DOM ref — no React re-render latency.
-  const showOverlay = useCallback(() => {
-    if (overlayRef.current) {
-      overlayRef.current.style.display = "flex";
-    }
-  }, []);
-
-  // Shows a clean "Payment Successful" overlay with a 5-second countdown then calls onSuccess.
-  const showOverlaySuccess = useCallback((txnId?: string, shopifyOrderId?: number | null, shopifyOrderNumber?: number | null) => {
-    if (overlayInnerRef.current) {
-      overlayInnerRef.current.innerHTML =
-        '<div style="width:72px;height:72px;border-radius:50%;background:rgba(47,102,68,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:18px;flex-shrink:0">' +
-          '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2f6644" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
-        '</div>' +
-        '<p style="font-size:16px;letter-spacing:0.3em;text-transform:uppercase;color:#2f6644;font-family:\'Montserrat\',sans-serif;font-weight:700;margin-bottom:14px">Payment Successful</p>' +
-        '<p style="font-size:14px;color:rgba(30,24,20,0.6);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:320px;line-height:1.75;margin-bottom:24px">Your payment has been received successfully.<br>We\'ve sent your order for processing and will<br>keep you updated on the next steps.</p>' +
-        '<button id="pay-overlay-cta" style="background:#1e1814;color:#faf8f5;border:none;padding:14px 32px;font-family:\'Montserrat\',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;cursor:pointer;margin-bottom:14px;width:100%;max-width:320px">Proceed to Order Information</button>' +
-        '<p id="pay-overlay-cd" style="font-size:12px;color:rgba(30,24,20,0.45);font-family:\'Montserrat\',sans-serif;letter-spacing:0.08em">Proceeding in 5s\u2026</p>';
-
-      const inner = overlayInnerRef.current;
-      const state: { tickId: ReturnType<typeof setInterval> | null } = { tickId: null };
-      const proceed = () => {
-        if (state.tickId) clearInterval(state.tickId);
-        onSuccess(txnId, shopifyOrderId, shopifyOrderNumber);
-      };
-      const btnEl = inner.querySelector<HTMLElement>('#pay-overlay-cta');
-      if (btnEl) btnEl.addEventListener('click', proceed);
-      let secs = 5;
-      state.tickId = setInterval(() => {
-        secs -= 1;
-        const cdEl = inner.querySelector<HTMLElement>('#pay-overlay-cd');
-        if (cdEl) cdEl.textContent = secs > 0 ? `Proceeding in ${secs}s\u2026` : 'Opening your order\u2026';
-        if (secs <= 0) proceed();
-      }, 1000);
-    }
-    showOverlay();
-  }, [showOverlay, onSuccess]);
-
-  // Shows a "Payment Pending" overlay — payment received but awaiting final server confirmation.
-  // Does NOT auto-call onSuccess; the caller must decide when/whether to proceed.
-  const showOverlayPending = useCallback(() => {
-    if (overlayInnerRef.current) {
-      overlayInnerRef.current.innerHTML =
-        '<div style="width:72px;height:72px;border-radius:50%;background:rgba(160,120,40,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:18px;flex-shrink:0">' +
-          '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#a07828" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-            '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' +
-          '</svg>' +
-        '</div>' +
-        '<p style="font-size:16px;letter-spacing:0.3em;text-transform:uppercase;color:#a07828;font-family:\'Montserrat\',sans-serif;font-weight:700;margin-bottom:14px">Payment Pending</p>' +
-        '<p style="font-size:14px;color:rgba(30,24,20,0.6);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:320px;line-height:1.75">Your payment is currently being verified.<br>This may take a few moments. We\'ll update<br>your order status as soon as confirmation is received.</p>';
-    }
-    showOverlay();
-  }, [showOverlay]);
-
-  // Shows a "Payment Failed – Please try again" overlay with a 3-second countdown,
-  // then auto-triggers onFail which refreshes the payment session.
-  const showOverlayFail = useCallback(() => {
-    if (overlayInnerRef.current) {
-      overlayInnerRef.current.innerHTML =
-        '<div style="width:72px;height:72px;border-radius:50%;background:rgba(192,57,43,0.10);display:flex;align-items:center;justify-content:center;margin-bottom:18px;flex-shrink:0">' +
-          '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-            '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>' +
-          '</svg>' +
-        '</div>' +
-        '<p style="font-size:16px;letter-spacing:0.3em;text-transform:uppercase;color:#c0392b;font-family:\'Montserrat\',sans-serif;font-weight:700;margin-bottom:12px">Payment Failed</p>' +
-        '<p style="font-size:14px;color:rgba(30,24,20,0.6);font-family:\'Montserrat\',sans-serif;letter-spacing:0.03em;text-align:center;max-width:320px;line-height:1.75;margin-bottom:24px">No charge was made. Please check your card details<br>and try again.</p>' +
-        '<button id="fail-overlay-cta" style="background:#c0392b;color:#fff;border:none;padding:14px 32px;font-family:\'Montserrat\',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;cursor:pointer;margin-bottom:14px;width:100%;max-width:320px">Retry Now</button>' +
-        '<p id="fail-overlay-cd" style="font-size:12px;color:rgba(30,24,20,0.45);font-family:\'Montserrat\',sans-serif;letter-spacing:0.08em">Retrying in 3s\u2026</p>';
-
-      const inner = overlayInnerRef.current;
-      const state: { tickId: ReturnType<typeof setInterval> | null } = { tickId: null };
-      const proceed = () => {
-        if (state.tickId) clearInterval(state.tickId);
-        onFail();
-      };
-      const btnEl = inner.querySelector<HTMLElement>('#fail-overlay-cta');
-      if (btnEl) btnEl.addEventListener('click', proceed);
-      let secs = 3;
-      state.tickId = setInterval(() => {
-        secs -= 1;
-        const cdEl = inner.querySelector<HTMLElement>('#fail-overlay-cd');
-        if (cdEl) cdEl.textContent = secs > 0 ? `Retrying in ${secs}s\u2026` : 'Refreshing your session\u2026';
-        if (secs <= 0) proceed();
-      }, 1000);
-    }
-    showOverlay();
-  }, [showOverlay, onFail]);
-
-  const stopPolling = useCallback(() => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
-  }, []);
-
-  const handleIframeLoad = useCallback(() => {
-    loadCountRef.current += 1;
-    // Hide the initial loading screen on first load.
-    if (loadCountRef.current === 1 && loadingRef.current) {
-      loadingRef.current.style.display = "none";
-    }
-    // If a temporary overlay was shown to cover an intermediate-state JSON
-    // (e.g. "Pending 3DS Authorization"), remove it unconditionally on the
-    // next page load so the 3DS authentication page is always visible —
-    // even if a stale polling timeout had briefly set resolvedRef.current.
-    if (tempOverlayRef.current) {
-      tempOverlayRef.current = false;
-      if (overlayRef.current) {
-        overlayRef.current.style.display = "none";
-      }
-    }
-  }, []);
-
-  // window.blur fires when the user clicks INTO the iframe (focus leaves parent window).
-  // window.focus fires when focus returns to the parent.
-  // Strategy: each time focus enters the iframe, reset a 60-second debounce timer.
-  // 60s is a safe floor — most users fill a card form in 15-45 s, so the timer only
-  // fires after they have submitted and are waiting on a result. This catches Paymob's
-  // inline document.write() result which fires no onLoad or webhook for validation
-  // failures (e.g. Luhn-invalid card numbers Paymob rejects client-side).
-  useEffect(() => {
-    const handleBlur = () => {
-      if (resolvedRef.current) return;
-      if (threeDsActiveRef.current) return; // 3DS in progress — don't debounce
-      if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
-      blurDebounceRef.current = setTimeout(() => {
-        if (!resolvedRef.current && !threeDsActiveRef.current) showOverlayFail();
-      }, 60_000);
-    };
-
-    const handleFocus = () => {
-      // User clicked back into the parent page — cancel the debounce.
-      if (blurDebounceRef.current) {
-        clearTimeout(blurDebounceRef.current);
-        blurDebounceRef.current = null;
-      }
-    };
-
-    window.addEventListener("blur", handleBlur);
-    window.addEventListener("focus", handleFocus);
-    return () => {
-      window.removeEventListener("blur", handleBlur);
-      window.removeEventListener("focus", handleFocus);
-      if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
-    };
-  }, [showOverlayFail]);
-
-  // Poll /api/orders/paymob-status/:intentId every 500 ms.
-  // Paymob's legacy v1 iframe renders its result JSON inline (document.write) without
-  // navigating, so onLoad never fires a 2nd time. The webhook marks the intent as
-  // "declined" / "completed" / "failed" — polling picks that up within ~500 ms.
-  // For bank-declined cards the webhook fires server-to-server BEFORE the browser
-  // renders the iframe result, so the overlay can appear before any JSON is visible.
-  // Hard ceiling: after 15 minutes of "pending" status (e.g. "Invalid credentials"
-  // where Paymob never fires a webhook), stop polling and trigger the failure screen.
-  useEffect(() => {
-    if (!intentId) return;
-    pollStartRef.current = Date.now();
-
-    const poll = async () => {
-      if (resolvedRef.current) return;
-      // Hard ceiling: 15 minutes of inactivity with no 3DS in flight.
-      // We skip the timeout while 3DS is active so users who take longer
-      // to complete their OTP challenge are not prematurely cut off.
-      if (!threeDsActiveRef.current && Date.now() - pollStartRef.current > 15 * 60 * 1000) {
-        resolvedRef.current = true;
-        stopPolling();
-        if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
-        showOverlayFail();
-        return;
-      }
-      try {
-        const res = await fetch(`/api/orders/paymob-status/${intentId}`, { cache: "no-store" });
-        if (!res.ok) return;
-        const data = (await res.json()) as {
-          status: string;
-          paymobTxnId: string | null;
-          shopifyOrderId?: number | null;
-          shopifyOrderNumber?: number | null;
-        };
-        if (data.status === "completed") {
-          threeDsActiveRef.current = false;
-          resolvedRef.current = true;
-          stopPolling();
-          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
-          showOverlaySuccess(data.paymobTxnId ?? undefined, data.shopifyOrderId ?? null, data.shopifyOrderNumber ?? null);
-        } else if (data.status === "processing") {
-          // Paymob payment claimed — draft creation in progress. Show the pending
-          // overlay but keep polling until "completed" so the success screen only
-          // fires once the Shopify draft order is confirmed.
-          showOverlayPending();
-        } else if (data.status === "declined" || data.status === "failed") {
-          threeDsActiveRef.current = false;
-          resolvedRef.current = true;
-          stopPolling();
-          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
-          showOverlayFail();
-        }
-        // "pending" or "processing" — keep polling until resolved
-      } catch {
-        // Network error — keep polling
-      }
-    };
-
-    pollIntervalRef.current = setInterval(() => { void poll(); }, 200);
-    return () => stopPolling();
-  }, [intentId, showOverlaySuccess, showOverlayPending, showOverlayFail, stopPolling]);
-
-  useEffect(() => {
-    const ownOrigin = window.location.origin;
-    const paymobOrigin = "https://accept.paymob.com";
-
-    function handleMessage(event: MessageEvent) {
-      const isOwn = event.origin === ownOrigin;
-      const isPaymob = event.origin === paymobOrigin;
-      if (!isOwn && !isPaymob) return;
-
-      // Paymob legacy v1 iframe sends postMessage as a JSON *string*; Unified Checkout
-      // and our own relay page send an object. Handle both forms.
-      let data: Record<string, unknown> | null = null;
-      if (event.data && typeof event.data === "object" && !Array.isArray(event.data)) {
-        data = event.data as Record<string, unknown>;
-      } else if (typeof event.data === "string") {
-        try {
-          const parsed: unknown = JSON.parse(event.data);
-          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-            data = parsed as Record<string, unknown>;
-          }
-        } catch {
-          return;
-        }
-      }
-      if (!data) return;
-
-      // Our relay page format — relay page already shows clean success/fail UI inside
-      // the iframe; we immediately cover the iframe with our own overlay so no raw data
-      // from any previous Paymob-rendered page can remain visible.
-      // Helper: fire paymob-sync so the server creates the Shopify draft order
-      // immediately, even if the webhook hasn't arrived yet.  Fire-and-forget.
-      // paymobTxnId is passed so the server can verify the transaction directly
-      // by ID rather than having to search by merchant_order_id.
-      const syncPaymobOrder = (paymobTxnId?: string) => {
-        if (!intentId) return;
-        void fetch("/api/orders/paymob-sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ intentId, ...(paymobTxnId ? { paymobTxnId } : {}) }),
-        }).catch(() => {});
-      };
-
-      if (isOwn && data["type"] === "PAYMOB_RESULT") {
-        const txnId = String(data["transactionId"] ?? "");
-        if (data["success"]) {
-          threeDsActiveRef.current = false;
-          resolvedRef.current = true;
-          stopPolling();
-          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
-          syncPaymobOrder(txnId || undefined);
-          showOverlaySuccess(txnId || undefined, undefined, undefined);
-        } else if (data["pending"]) {
-          // Payment still pending (waiting on bank confirmation). Show the overlay
-          // but keep polling — do NOT mark as resolved yet.
-          showOverlayPending();
-        } else {
-          threeDsActiveRef.current = false;
-          resolvedRef.current = true;
-          stopPolling();
-          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
-          showOverlayFail();
-        }
-        return;
-      }
-
-      // Paymob inline postMessage — legacy v1 sends success as a string ("true"/"false"),
-      // Unified Checkout sends a boolean. Accept both.
-      if (isPaymob && ("success" in data)) {
-        const rawSuccess = data["success"];
-        const isSuccess = rawSuccess === true || rawSuccess === "true";
-        const isFail = rawSuccess === false || rawSuccess === "false";
-        const txnId = String(data["id"] ?? data["txn_id"] ?? data["transactionId"] ?? "");
-        const hasTxnId = txnId !== "" && txnId !== "0" && txnId !== "undefined";
-        if (isSuccess && hasTxnId) {
-          threeDsActiveRef.current = false;
-          resolvedRef.current = true;
-          stopPolling();
-          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
-          syncPaymobOrder(txnId);
-          showOverlaySuccess(txnId, undefined, undefined);
-        } else if (isSuccess && !hasTxnId) {
-          threeDsActiveRef.current = false;
-          resolvedRef.current = true;
-          stopPolling();
-          if (blurDebounceRef.current) clearTimeout(blurDebounceRef.current);
-          syncPaymobOrder(undefined);
-          showOverlaySuccess(undefined, undefined, undefined);
-        } else if (isFail) {
-          const isPending = data["pending"] === true || data["pending"] === "true";
-          if (hasTxnId && !isPending) {
-            // Completed failure (e.g. card declined, invalid credentials) — cover permanently.
-            threeDsActiveRef.current = false;
-            resolvedRef.current = true;
-            stopPolling();
-            showOverlayFail();
-          } else if (isPending) {
-            // Intermediate state (e.g. "Pending 3DS Authorization").
-            // When Paymob sends use_redirection:true / bypass_step_six:true, it renders
-            // the JSON and WAITS for the parent to redirect the iframe — it won't navigate
-            // on its own. We must: (1) mark 3DS active so the polling timeout is suspended,
-            // (2) cover the JSON immediately, (3) do the redirect.
-            // handleIframeLoad will clear the temp overlay when the 3DS page loads so
-            // the user can complete authentication.
-            // Guard against duplicate isPending messages (Paymob can send more than once).
-            // Use threeDsActiveRef rather than resolvedRef so that even if the polling
-            // timeout prematurely set resolvedRef=true, we still handle 3DS correctly.
-            if (!threeDsActiveRef.current) {
-              // Mark 3DS as active — suppresses polling timeout and blur debounce.
-              threeDsActiveRef.current = true;
-              // Undo any timeout-induced resolution so handleIframeLoad can clear overlay.
-              resolvedRef.current = false;
-              // Cancel any pending blur-debounce timer — 3DS is underway, not a failure.
-              if (blurDebounceRef.current) { clearTimeout(blurDebounceRef.current); blurDebounceRef.current = null; }
-              tempOverlayRef.current = true;
-              showOverlay();
-              const redirectionUrl = data["redirection_url"];
-              if (typeof redirectionUrl === "string" && redirectionUrl && iframeRef.current) {
-                iframeRef.current.src = redirectionUrl;
-              }
-            }
-          }
-          // isPending=unknown with no txnId = form loading event — ignore
-        }
-      }
-    }
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [intentId, showOverlay, showOverlaySuccess, showOverlayPending, showOverlayFail, stopPolling]);
-
-  return (
-    <div style={{ position: "relative", width: "100%" }}>
-      <iframe
-        ref={iframeRef}
-        src={url ?? undefined}
-        title="Secure Card Payment"
-        allow="payment"
-        scrolling="no"
-        onLoad={handleIframeLoad}
-        style={{
-          width: "100%",
-          height: "min(680px, calc(100svh - 80px))",
-          border: "none",
-          display: "block",
-          ...iframeStyle,
-        }}
-      />
-
-      {/* Initial loading screen — visible until first onLoad fires */}
-      <div
-        ref={loadingRef}
-        style={{
-          display: "flex",
-          position: "absolute",
-          inset: 0,
-          background: "#faf8f5",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 20,
-          zIndex: 10,
-        }}
-      >
-        <div style={{ position: "relative", width: 48, height: 48 }}>
-          {/* Outer ring */}
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: "50%",
-            border: "1.5px solid rgba(30,24,20,0.1)",
-          }} />
-          {/* Spinning arc */}
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: "50%",
-            border: "1.5px solid transparent",
-            borderTopColor: "#1e1814",
-            animation: "moi-spin 0.9s linear infinite",
-          }} />
-          {/* Lock icon centre */}
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(30,24,20,0.45)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-          </div>
-        </div>
-        <div style={{ textAlign: "center" }}>
-          <p style={{
-            fontFamily: "'Montserrat', sans-serif",
-            fontSize: "10px",
-            letterSpacing: "0.3em",
-            textTransform: "uppercase",
-            color: "rgba(30,24,20,0.5)",
-            marginBottom: 6,
-          }}>
-            Loading Payment Form
-          </p>
-          <p style={{
-            fontFamily: "'Montserrat', sans-serif",
-            fontSize: "9px",
-            letterSpacing: "0.14em",
-            color: "rgba(30,24,20,0.3)",
-          }}>
-            Secured by Paymob · 256-bit SSL
-          </p>
-        </div>
-      </div>
-
-      {/* Overlay is always in the DOM but hidden — shown via ref for zero re-render latency.
-          Inner content starts as a spinner ("Processing") and is replaced dynamically with
-          success or failure messaging so no raw Paymob data is ever visible to the user. */}
-      <div
-        ref={overlayRef}
-        style={{
-          display: "none",
-          position: "absolute",
-          inset: 0,
-          background: "#faf8f5",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 20,
-        }}
-      >
-        <div
-          ref={overlayInnerRef}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 14,
-            padding: "0 24px",
-          }}
-        >
-          <div style={{
-            width: 28,
-            height: 28,
-            border: "2px solid rgba(30,24,20,0.15)",
-            borderTopColor: "#1e1814",
-            borderRadius: "50%",
-            animation: "moi-spin 0.8s linear infinite",
-          }} />
-          <p style={{
-            fontSize: "11px",
-            letterSpacing: "0.28em",
-            textTransform: "uppercase",
-            color: "rgba(30,24,20,0.5)",
-            fontFamily: "'Montserrat', sans-serif",
-          }}>
-            Processing
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Payment Session Countdown Timer ──────────────────────────────────────────
-
-interface PaymentSessionTimerProps {
-  active: boolean;
-  onExpire: () => void;
-  onTryAgain: () => void;
-}
-
-function PaymentSessionTimer({ active, onExpire, onTryAgain }: PaymentSessionTimerProps) {
-  const TOTAL = 180;
-  const [remaining, setRemaining] = useState(TOTAL);
-  const onExpireRef = useRef(onExpire);
-  onExpireRef.current = onExpire;
-
-  useEffect(() => {
-    setRemaining(TOTAL);
-    if (!active) return;
-    const id = setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(id);
-          onExpireRef.current();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [active]);
-
-  const minutes = Math.floor(remaining / 60);
-  const seconds = remaining % 60;
-  const R = 20;
-  const circumference = 2 * Math.PI * R;
-  const dashOffset = circumference * (1 - remaining / TOTAL);
-  const arcColor = remaining > 90 ? "#4a7c59" : remaining > 45 ? "#c48c30" : "#c0392b";
-  const isUrgent = remaining <= 45;
-
-  return (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "14px",
-      padding: "13px 15px",
-      backgroundColor: isUrgent ? "rgba(192,57,43,0.04)" : "rgba(30,24,20,0.025)",
-      border: `1px solid ${isUrgent ? "rgba(192,57,43,0.18)" : "rgba(30,24,20,0.09)"}`,
-      borderRadius: "10px",
-      marginBottom: "20px",
-      transition: "background-color 1s ease, border-color 1s ease",
-    }}>
-      {/* Circular countdown */}
-      <svg width="50" height="50" viewBox="0 0 50 50" style={{ flexShrink: 0 }}>
-        <circle cx="25" cy="25" r={R} fill="none" stroke="rgba(30,24,20,0.09)" strokeWidth="3" />
-        <circle
-          cx="25" cy="25" r={R}
-          fill="none"
-          stroke={arcColor}
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-          transform="rotate(-90 25 25)"
-          style={{ transition: "stroke-dashoffset 0.95s linear, stroke 1.2s ease" }}
-        />
-        <text
-          x="25" y="26"
-          textAnchor="middle"
-          dominantBaseline="middle"
-          style={{
-            fontFamily: "'Montserrat', sans-serif",
-            fontSize: "11px",
-            fontWeight: 700,
-            fill: arcColor,
-            transition: "fill 1.2s ease",
-          }}
-        >
-          {`${minutes}:${String(seconds).padStart(2, "0")}`}
-        </text>
-      </svg>
-
-      {/* Text content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{
-          fontSize: "13px",
-          fontWeight: 600,
-          color: "#1e1814",
-          fontFamily: "'Montserrat', sans-serif",
-          letterSpacing: "0.05em",
-          marginBottom: "3px",
-          lineHeight: 1.3,
-        }}>
-          Complete Your Payment
-        </p>
-        <p style={{
-          fontSize: "11px",
-          color: "rgba(30,24,20,0.54)",
-          fontFamily: "'Montserrat', sans-serif",
-          lineHeight: 1.5,
-          marginBottom: "6px",
-        }}>
-          Please enter your payment details within 3 minutes. This session will
-          automatically refresh if no activity is detected.
-        </p>
-        <button
-          onClick={onTryAgain}
-          style={{
-            background: "none",
-            border: "none",
-            padding: 0,
-            cursor: "pointer",
-            fontSize: "11px",
-            color: "rgba(30,24,20,0.42)",
-            fontFamily: "'Montserrat', sans-serif",
-            letterSpacing: "0.04em",
-            textDecoration: "underline",
-            textUnderlineOffset: "3px",
-            lineHeight: 1,
-          }}
-        >
-          Having trouble? Try again
-        </button>
-      </div>
-    </div>
-  );
-}
 
