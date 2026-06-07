@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { ENABLE_CARD_PAYMENTS, ENABLE_APPLE_PAY } from "@/config/features";
 import { ShopifyApplePayButton } from "./ShopifyApplePayButton";
@@ -313,6 +314,7 @@ export function CheckoutPage() {
     checkoutUrl,
   } = useCart();
 
+  const isMobile = useIsMobile();
   const [step, setStep] = useState<Step>("form");
   const [emailError, setEmailError] = useState("");
 
@@ -1498,6 +1500,31 @@ export function CheckoutPage() {
           </div>
 
           {(step === "card-checkout" || step === "form") && paymobIframeUrl ? (
+            isMobile ? createPortal(
+              <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#faf8f5", display: "flex", flexDirection: "column" }}>
+                {/* Back bar */}
+                <div style={{ display: "flex", alignItems: "center", padding: "0 16px", height: 52, borderBottom: "1px solid rgba(30,24,20,0.08)", flexShrink: 0 }}>
+                  <button
+                    onClick={() => { setPaymobIframeUrl(null); setStep("form"); }}
+                    style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", padding: "8px 0", cursor: "pointer" }}
+                  >
+                    <ArrowLeft size={16} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                    <span style={{ fontSize: "11px", letterSpacing: "0.22em", textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif", color: "#1e1814", fontWeight: 600 }}>Back</span>
+                  </button>
+                </div>
+                {/* Full-height iframe — use explicit dvh so height doesn't collapse through unsized wrappers */}
+                <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
+                  <PaymobIframe
+                    url={paymobIframeUrl}
+                    intentId={orderResult?.intentId}
+                    onSuccess={handleIframeSuccess}
+                    onFail={handleIframeFail}
+                    iframeStyle={{ height: "calc(100dvh - 52px)", width: "100%" }}
+                  />
+                </div>
+              </div>,
+              document.body
+            ) : (
             <motion.div
               key="card-checkout"
               initial={{ opacity: 0, y: 16 }}
@@ -1735,6 +1762,7 @@ export function CheckoutPage() {
             )}
             </div>
           </motion.div>
+            )
           ) : step === "loading" ? (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5">
               <motion.div
