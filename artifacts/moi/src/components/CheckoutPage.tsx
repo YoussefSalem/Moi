@@ -2090,15 +2090,6 @@ export function CheckoutPage() {
                     </p>
 
                     <style dangerouslySetInnerHTML={{ __html: `
-                      .ap-express-wrap {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        width: 100%;
-                        height: 52px;
-                        background: #000;
-                        cursor: pointer;
-                      }
                       .ap-express-btn {
                         -webkit-appearance: -apple-pay-button;
                         -apple-pay-button-type: buy;
@@ -2106,42 +2097,36 @@ export function CheckoutPage() {
                         display: block;
                         width: 100%;
                         min-width: 200px;
-                        height: 36px;
+                        height: 50px;
                         border: none;
                         border-radius: 0;
                         padding: 0;
                         margin: 0;
                         cursor: pointer;
-                        pointer-events: none;
                         font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-                        font-size: initial;
-                        font-weight: initial;
-                        font-style: initial;
-                        line-height: initial;
-                        letter-spacing: initial;
+                        font-size: 17px;
+                        font-weight: 400;
+                        font-style: normal;
+                        line-height: normal;
+                        letter-spacing: normal;
+                        word-spacing: normal;
                         text-transform: none;
-                        word-spacing: initial;
                         transform: none;
                         zoom: 1;
-                        -webkit-text-size-adjust: none;
-                        text-size-adjust: none;
+                        -webkit-text-size-adjust: 100%;
+                        text-size-adjust: 100%;
+                      }
+                      .ap-express-btn:disabled {
+                        opacity: 0.4;
+                        cursor: default;
                       }
                     ` }} />
-                    <div
-                      className="ap-express-wrap"
+                    <button
+                      type="button"
+                      className="ap-express-btn"
                       onClick={triggerApplePayDirectInit}
-                      role="button"
                       aria-label="Buy with Apple Pay"
-                      tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") triggerApplePayDirectInit(); }}
-                    >
-                      <button
-                        type="button"
-                        className="ap-express-btn"
-                        tabIndex={-1}
-                        aria-hidden="true"
-                      />
-                    </div>
+                    />
 
                     <div style={{ display: "flex", alignItems: "center", gap: "14px", marginTop: "20px" }}>
                       <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.10)" }} />
