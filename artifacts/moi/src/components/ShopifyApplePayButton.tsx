@@ -127,10 +127,11 @@ export function ShopifyApplePayButton({
     if (!AP) return;
 
     const lineItems: ApplePayLineItem[] = shippingAmt > 0
-      ? [{ label: "Shipping", amount: shippingAmt.toFixed(2), type: "final" }]
+      ? [{ label: "Shipping", amount: shippingAmt.toFixed(2) }]
       : [];
 
-    const session = new AP(3, {
+    // version 4 required for lineItems; type on lineItems requires v14+ so omit it
+    const session = new AP(4, {
       countryCode: "EG",
       currencyCode: "EGP",
       supportedNetworks: ["visa", "masterCard"],
