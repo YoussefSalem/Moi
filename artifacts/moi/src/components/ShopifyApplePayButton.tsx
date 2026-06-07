@@ -206,34 +206,25 @@ export function ShopifyApplePayButton({
     <div className={className} style={{ width: "100%", ...style }}>
       <style dangerouslySetInnerHTML={{ __html: `
         .ap-pay-wrap {
-          display: flex;
-          align-items: center;
-          justify-content: center;
           width: 100%;
-          height: 50px;
-          background: #000;
-          cursor: pointer;
-        }
-        .ap-pay-wrap.ap-busy {
-          opacity: 0.4;
-          cursor: default;
-          pointer-events: none;
+          background: transparent;
+          padding: 0;
+          margin-bottom: 12px;
         }
         .ap-pay-btn {
           -webkit-appearance: -apple-pay-button;
           -apple-pay-button-type: buy;
           -apple-pay-button-style: black;
-          display: block;
           width: 100%;
-          height: 36px;
-          border: none;
+          height: 52px;
           border-radius: 0;
+          border: none;
           padding: 0;
           margin: 0;
-          pointer-events: none;
+          cursor: pointer;
           /* Hard-reset every inherited property that warps native rendering */
           font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 15px;
+          font-size: 17px;
           font-weight: 400;
           font-style: normal;
           line-height: normal;
@@ -245,20 +236,18 @@ export function ShopifyApplePayButton({
           -webkit-text-size-adjust: 100%;
           text-size-adjust: 100%;
         }
+        .ap-pay-btn:disabled {
+          opacity: 0.4;
+          cursor: default;
+        }
       ` }} />
-      <div
-        className={`ap-pay-wrap${busy ? " ap-busy" : ""}`}
-        onClick={busy ? undefined : handlePay}
-        role="button"
-        aria-label="Buy with Apple Pay"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handlePay(); }}
-      >
+      <div className="ap-pay-wrap">
         <button
           type="button"
           className="ap-pay-btn"
-          tabIndex={-1}
-          aria-hidden="true"
+          onClick={handlePay}
+          disabled={busy}
+          aria-label="Buy with Apple Pay"
         />
       </div>
 
