@@ -13,12 +13,12 @@ export default async function handleRequest(
   remixContext: EntryContext,
   context: AppLoadContext,
 ) {
+  const storeDomain =
+    context.env.PUBLIC_STORE_DOMAIN ?? "5manvh-yd.myshopify.com";
   const { nonce, header, NonceProvider } = createContentSecurityPolicy({
     shop: {
-      checkoutDomain:
-        context.env.PUBLIC_CHECKOUT_DOMAIN ?? "checkout-moi.myshopify.com",
-      storeDomain:
-        context.env.PUBLIC_STORE_DOMAIN ?? "checkout-moi.myshopify.com",
+      checkoutDomain: context.env.PUBLIC_CHECKOUT_DOMAIN ?? storeDomain,
+      storeDomain,
     },
   });
 
