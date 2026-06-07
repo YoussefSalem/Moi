@@ -9,9 +9,15 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
   const shopifyImageUrls = shopify.images.nodes.map((img) => img.url);
   const featuredUrl = shopify.featuredImage?.url;
 
-  const filmstrip = shopifyImageUrls.length > 0
-    ? shopifyImageUrls
-    : (fallback.filmstrip as string[]);
+  // For color-specific pages, fallback.filmstrip holds colorGalleries images
+  // (accurate per-color shots). Prefer those over Shopify's all-product images
+  // which mix every color variant together and are not color-filtered.
+  const fallbackFilm = fallback.filmstrip as string[];
+  const filmstrip = fallbackFilm.length > 0
+    ? fallbackFilm
+    : shopifyImageUrls.length > 0
+      ? shopifyImageUrls
+      : [];
 
   const productShot = featuredUrl ?? fallback.productShot;
 
