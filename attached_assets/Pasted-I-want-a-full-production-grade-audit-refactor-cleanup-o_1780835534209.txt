@@ -1,0 +1,165 @@
+I want a full production-grade audit + refactor + cleanup of this entire headless Shopify storefront.
+
+This is NOT a lint, NOT a typecheck, and NOT a small optimization task.
+
+You are acting as a principal frontend + Shopify architecture engineer preparing a high-traffic fashion ecommerce store for launch.
+
+🎯 PRIMARY GOAL
+
+Make this codebase:
+
+⚡ Fully clean, production-ready, and 100% consistent with Shopify as the single source of truth
+⚡ Free of fake data, mock logic, legacy test code, and unnecessary abstraction
+⚡ Optimized for instant UX (Add to Cart, Product browsing, mobile performance)
+
+🚨 CRITICAL RULES (NON-NEGOTIABLE)
+1. SINGLE SOURCE OF TRUTH
+
+Shopify Storefront API is the ONLY valid source of:
+
+Products
+Variants
+Colors
+Images
+Inventory
+
+👉 Any data not coming from Shopify MUST NOT appear in UI
+
+2. REMOVE ALL FAKE / HARDCODED DATA
+
+You MUST find and remove:
+
+mockProducts
+fallbackProducts
+testProducts
+admin/test seed logic
+hardcoded product lists
+hardcoded color arrays (e.g. sand, ivory, espresso, taupe, etc.)
+manual image mapping objects (PUBLIC_COLOR_IMAGES or similar)
+any “UI convenience” constants that simulate products
+
+If it is not from Shopify → DELETE IT
+
+3. REMOVE IMAGE / COLOR GUESSING LOGIC
+
+You must eliminate:
+
+any .jpg → .webp rewrite hacks
+any color-based image URL construction
+any local image fallback system
+any “repair logic” for missing assets
+
+👉 Images must come directly from Shopify CDN only
+
+4. FIX PRODUCT DATA INTEGRITY
+
+Ensure:
+
+Only real Shopify products exist
+Only real Shopify variants exist
+No ghost colors or phantom variants
+No UI-level product augmentation that invents data
+
+If a color is not in Shopify:
+👉 It must not exist in UI
+
+5. CLEAN STATE + ARCHITECTURE
+
+Refactor where needed:
+
+Remove mixed data sources (Shopify + local arrays)
+Eliminate duplicate product pipelines
+Ensure one clean product flow:
+Shopify API → Data Layer → UI
+6. PERFORMANCE + UX REQUIREMENTS
+
+Ensure:
+
+Add to Cart is instant (optimistic UI)
+No unnecessary re-renders
+No full page refresh on cart updates
+Product grids are lightweight and fast
+Mobile interactions are smooth (no lag)
+🧠 WHAT YOU MUST DO
+STEP 1 — FULL CODEBASE SCAN
+
+Find ALL:
+
+fake product data sources
+fallback logic
+test/admin logic
+hardcoded UI constants
+image mapping layers
+duplicate product pipelines
+STEP 2 — REMOVE OR REFACTOR
+
+For each issue:
+
+Remove it completely OR
+Replace with Shopify-native implementation
+STEP 3 — REBUILD DATA FLOW (IF NEEDED)
+
+If architecture is messy, enforce:
+
+Shopify Storefront API
+→ centralized data service layer
+→ normalized product transformer (ONLY if needed, no fake data)
+→ UI components
+
+STEP 4 — ENSURE UI MATCHES SHOPIFY EXACTLY
+
+Final UI must reflect Shopify 1:1:
+
+No extra colors
+No extra products
+No invented variants
+📦 OUTPUT FORMAT (STRICT)
+1. 🚨 SOURCES OF FAKE / HARDCODED DATA
+
+List every file + what was wrong
+
+2. 🧹 CHANGES MADE
+What you removed
+What you refactored
+What you replaced with Shopify data
+3. 🧱 ARCHITECTURE FIXES (IF ANY)
+Data flow improvements
+State management cleanup
+API layer improvements
+4. ⚡ PERFORMANCE IMPACT
+What got faster
+What became simpler
+What reduced re-renders or API calls
+5. ⚠️ LEGITIMATE LOGIC KEPT (IMPORTANT)
+
+If ANY hardcoded logic was kept because it is valid, you MUST:
+
+List it clearly
+Explain why it is necessary
+Ensure it does NOT introduce fake product data
+
+Examples of allowed logic:
+
+UI formatting helpers
+currency formatting
+animation constants
+layout utilities
+🚫 FORBIDDEN OUTPUT
+Do NOT only report issues
+Do NOT leave fake data untouched
+Do NOT suggest changes without implementing them
+Do NOT preserve mock product systems unless explicitly justified
+🎯 SUCCESS CRITERIA
+
+The final result must be:
+
+100% Shopify-authentic product data
+Zero fake or ghost products/colors
+Clean scalable architecture
+Fast, production-grade ecommerce UX
+Safe to launch under real traffic
+⚠️ FINAL RULE
+
+If anything is even slightly uncertain:
+👉 default to removing it
+👉 unless it is clearly essential UI logic
