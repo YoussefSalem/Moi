@@ -386,47 +386,52 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // Skip if a mutation is already in-flight for this item to prevent ghost lines.
     if (updatingRef.current.get(idOrLineId)) return;
     updatingRef.current.set(idOrLineId, true);
-    setLoading(true);
-    try {
-      if (SHOPIFY_CONFIGURED && shopifyCart) {
-        try {
-          const prevLines = shopifyCart.lines.nodes;
-          const updated = await removeCartLines(shopifyCart.id, [idOrLineId]);
-          setCart(updated);
-          // Sync local items: find which variantIds were removed from Shopify and
-          // purge them from localStorage. This fixes the bug where removing a
-          // Shopify line (by CartLine GID) left the matching local item intact,
-          // causing it to reappear on the next session when the Shopify cart
-          // comes back empty.
-          const remainingVariantIds = new Set(updated.lines.nodes.map((l) => l.merchandise.id));
-          const removedVariantIds = new Set(
-            prevLines
-              .filter((l) => !remainingVariantIds.has(l.merchandise.id))
-              .map((l) => l.merchandise.id),
-          );
-          if (removedVariantIds.size > 0) {
-            setLocalItems((prev) => {
-              const filtered = prev.filter((i) => !removedVariantIds.has(i.variantId));
-              saveLocalCart(filtered);
-              return filtered;
-            });
-            return;
-          }
-        } catch {
-          // line may be local-only — fall through to local filter below
-        }
+
+    // ── Optimistic removal — update state IMMEDIATELY so the exit animation
+    // plays right away instead of freezing for ~1s waiting on the network. ──
+    const prevCart = shopifyCartRef.current;
+    const prevLocal = localItems;
+
+    if (SHOPIFY_CONFIGURED && shopifyCartRef.current) {
+      // Build an optimistic cart with the line removed
+      const optimistic = {
+        ...shopifyCartRef.current,
+        lines: {
+          nodes: shopifyCartRef.current.lines.nodes.filter((l) => l.id !== idOrLineId),
+        },
+        totalQuantity: Math.max(0, (shopifyCartRef.current.totalQuantity ?? 1) - 1),
+      } as typeof shopifyCartRef.current;
+      setCart(optimistic);
+      // Also sync local items for the removed variantId
+      const removedLine = prevCart?.lines.nodes.find((l) => l.id === idOrLineId);
+      if (removedLine) {
+        setLocalItems((prev) => {
+          const filtered = prev.filter((i) => i.variantId !== removedLine.merchandise.id);
+          saveLocalCart(filtered);
+          return filtered;
+        });
       }
-      // Local-only removal (no Shopify cart, or item was local-only)
-      setLocalItems((prev) => {
-        const updated = prev.filter((i) => i.id !== idOrLineId);
-        saveLocalCart(updated);
-        return updated;
-      });
-    } finally {
-      updatingRef.current.delete(idOrLineId);
-      setLoading(false);
+      // Confirm with Shopify in the background
+      removeCartLines(shopifyCartRef.current.id, [idOrLineId])
+        .then((confirmed) => setCart(confirmed))
+        .catch(() => {
+          // Rollback on failure
+          if (prevCart) setCart(prevCart);
+          setLocalItems(prevLocal);
+          saveLocalCart(prevLocal);
+        })
+        .finally(() => updatingRef.current.delete(idOrLineId));
+      return;
     }
-  }, [shopifyCart]);
+
+    // Local-only removal
+    setLocalItems((prev) => {
+      const updated = prev.filter((i) => i.id !== idOrLineId);
+      saveLocalCart(updated);
+      return updated;
+    });
+    updatingRef.current.delete(idOrLineId);
+  }, [shopifyCart, localItems, setCart]);
 
   const updateQuantity = useCallback(async (idOrLineId: string, quantity: number) => {
     if (quantity <= 0) { await removeItem(idOrLineId); return; }
