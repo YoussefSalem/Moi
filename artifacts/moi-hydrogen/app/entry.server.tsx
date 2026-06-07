@@ -15,42 +15,10 @@ export default async function handleRequest(
 ) {
   const { nonce, header, NonceProvider } = createContentSecurityPolicy({
     shop: {
-      checkoutDomain: context.env.PUBLIC_CHECKOUT_DOMAIN || '',
-      storeDomain: context.env.PUBLIC_STORE_DOMAIN || '',
-    },
-    directives: {
-      defaultSrc: [
-        "'self'",
-        "cdn.shopify.com",
-        "*.shopifycdn.com",
-        "*.shopifysvc.com",
-        "monorail-edge.shopifysvc.com",
-      ],
-      imgSrc: [
-        "'self'",
-        "data:",
-        "cdn.shopify.com",
-        "*.shopifycdn.com",
-        "images.unsplash.com",
-        "*.tiktokcdn.com",
-        "p16-sign.tiktokcdn-us.com",
-      ],
-      scriptSrc: [
-        "'self'",
-        "https://connect.facebook.net",
-        "https://analytics.tiktok.com",
-        "https://www.googletagmanager.com",
-        "https://www.google-analytics.com",
-        "'unsafe-inline'",
-      ],
-      connectSrc: [
-        "'self'",
-        "https://admin.buy-moi.com",
-        "https://monorail-edge.shopifysvc.com",
-        "https://graph.facebook.com",
-        "https://analytics.tiktok.com",
-        "https://www.google-analytics.com",
-      ],
+      checkoutDomain:
+        context.env.PUBLIC_CHECKOUT_DOMAIN ?? "checkout-moi.myshopify.com",
+      storeDomain:
+        context.env.PUBLIC_STORE_DOMAIN ?? "checkout-moi.myshopify.com",
     },
   });
 
