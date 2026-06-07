@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, ShoppingBag, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -163,6 +163,25 @@ export function CartDrawer() {
 
   const hasItems = (isShopify && (shopifyCart?.lines.nodes.length ?? 0) > 0) || localItems.length > 0;
 
+  // Suppress item entrance animations while the drawer is sliding open.
+  // Once the drawer finishes (≈450ms), newly-added items animate in normally.
+  const drawerReadyRef = useRef(false);
+  const [drawerReady, setDrawerReady] = useState(false);
+  useEffect(() => {
+    if (!cartOpen) {
+      drawerReadyRef.current = false;
+      setDrawerReady(false);
+      return;
+    }
+    drawerReadyRef.current = false;
+    setDrawerReady(false);
+    const t = setTimeout(() => {
+      drawerReadyRef.current = true;
+      setDrawerReady(true);
+    }, 460);
+    return () => clearTimeout(t);
+  }, [cartOpen]);
+
   return (
     <AnimatePresence>
       {cartOpen && (
@@ -287,9 +306,9 @@ export function CartDrawer() {
                     ? shopifyCart.lines.nodes.map((line, i) => (
                         <motion.li
                           key={line.id}
-                          initial={{ opacity: 0, x: 16 }}
+                          initial={drawerReady ? { opacity: 0, x: 12 } : false}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.06 }}
+                          transition={{ delay: drawerReady ? i * 0.05 : 0, duration: 0.22, ease: "easeOut" }}
                           className="flex gap-4"
                           style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
                         >
@@ -386,9 +405,9 @@ export function CartDrawer() {
                     : localItems.map((item, i) => (
                         <motion.li
                           key={item.id}
-                          initial={{ opacity: 0, x: 16 }}
+                          initial={drawerReady ? { opacity: 0, x: 12 } : false}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.06 }}
+                          transition={{ delay: drawerReady ? i * 0.05 : 0, duration: 0.22, ease: "easeOut" }}
                           className="flex gap-4"
                           style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
                         >
