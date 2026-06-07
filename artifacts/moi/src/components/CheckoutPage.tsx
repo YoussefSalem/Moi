@@ -1395,6 +1395,53 @@ export function CheckoutPage() {
     }
   }, []); // mount-only — intentionally omits deps to avoid re-running on state changes
 
+  // Listen for PAYMOB_RESULT postMessages from the Paymob relay page when it runs
+  // inside an iframe or popup (Cases 1 & 2 in paymob-relay.html).
+  // On success: navigate to /payment/success; on failure: navigate to /payment/failed.
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      let data: { type?: string; success?: boolean; pending?: boolean; transactionId?: string };
+      try {
+        data = typeof event.data === "string" ? JSON.parse(event.data) as typeof data : event.data as typeof data;
+      } catch {
+        return;
+      }
+      if (!data || data.type !== "PAYMOB_RESULT") return;
+
+      const intentId = orderResult?.intentId;
+
+      if (data.success) {
+        if (paymobTrackedRef.current) return;
+        paymobTrackedRef.current = true;
+        clearCart();
+        markAbandonedCartRecovered();
+        const orderLines = isShopify && shopifyCart
+          ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
+          : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
+        const totalVal = isShopify && shopifyCart && shopifyCart.cost?.totalAmount?.amount
+          ? parseFloat(shopifyCart.cost.totalAmount.amount)
+          : (Number.isFinite(totalAmount) ? totalAmount : 0);
+        const effectiveOrderId = String(intentId ?? data.transactionId ?? "");
+        import("@/lib/analytics").then(({ trackPurchaseWithTime: trackInternalPurchase }) => {
+          trackInternalPurchase(effectiveOrderId, totalVal, "card");
+        });
+        trackShopifyPurchase({
+          orderId: effectiveOrderId,
+          totalPrice: totalVal,
+          currencyCode: "EGP",
+          lineItems: orderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
+        });
+        const dest = `/payment/success${intentId ? `?intentId=${encodeURIComponent(intentId)}` : ""}`;
+        window.location.href = dest;
+      } else if (!data.pending) {
+        window.location.href = "/payment/failed";
+      }
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [orderResult?.intentId, clearCart, markAbandonedCartRecovered, isShopify, shopifyCart, localItems, totalAmount]);
+
   // After the overlay countdown fires on a card payment, the postMessage path calls
   // handleIframeSuccess with shopifyOrderNumber=undefined (polling was stopped when the
   // message arrived). The order IS created server-side during the 5-second countdown,

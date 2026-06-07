@@ -259,87 +259,27 @@
 
     // Case 3 — loaded as the top-level page (3DS navigated the main window).
     if (!sent) {
-      // Save result so the app can pick it up on return
-      try {
-        sessionStorage.setItem('moi_paymob_result', JSON.stringify(msg));
-      } catch (_) {}
-
-      // Reveal the brand wordmark
-      var brand = document.getElementById('brand');
-      if (brand) brand.style.display = 'block';
+      // Resolve the intentId: Paymob appends merchant_order_id to the redirect URL,
+      // which equals the intentId we stored in sessionStorage before navigating away.
+      var intentId = params.get('merchant_order_id') || '';
+      if (!intentId) {
+        try { intentId = sessionStorage.getItem('moi_paymob_intent_id') || ''; } catch (_) {}
+      }
 
       if (outcome === 'fail') {
-        // ── Failure: show 3 action buttons, no auto-redirect ──────────────
-        var actions = document.createElement('div');
-        actions.className = 'fail-actions';
-        actions.style.display = 'flex';
-
-        // TRY AGAIN — keep moi_paymob_result in storage so app re-opens checkout
-        var btnRetry = document.createElement('button');
-        btnRetry.className = 'btn btn-primary';
-        btnRetry.textContent = 'Try Again';
-        btnRetry.onclick = function () { window.location.replace('/checkout'); };
-
-        // DIFFERENT METHOD — same flow, app shows checkout where user can switch method
-        var btnMethod = document.createElement('button');
-        btnMethod.className = 'btn btn-outline';
-        btnMethod.textContent = 'Different Method';
-        btnMethod.onclick = function () { window.location.replace('/'); };
-
-        // CANCEL — clear storage so app does NOT re-open checkout
-        var btnCancel = document.createElement('button');
-        btnCancel.className = 'btn btn-ghost';
-        btnCancel.textContent = 'Cancel';
-        btnCancel.onclick = function () {
-          try { sessionStorage.removeItem('moi_paymob_result'); } catch (_) {}
-          window.location.replace('/');
-        };
-
-        actions.appendChild(btnRetry);
-        actions.appendChild(btnMethod);
-        actions.appendChild(btnCancel);
-        document.body.appendChild(actions);
-
+        // ── Failure: redirect to the branded failure page ──────────────────
+        // Preserve moi_checkout_form so the user doesn't have to re-type.
+        window.location.replace('/payment/failed');
       } else {
-        // ── Success / Pending: single CTA + countdown ─────────────────────
-        var ctaLabel = success ? 'Proceed to Order Information' : 'Continue Shopping';
-        var ctaDest = '/';
-
-        var cta = document.createElement('a');
-        cta.href = ctaDest;
-        cta.className = 'cta';
-        cta.textContent = ctaLabel;
-        cta.style.display = 'inline-block';
-        document.body.appendChild(cta);
-
-        var cdWrap = document.createElement('div');
-        cdWrap.className = 'countdown-wrap';
-        cdWrap.style.display = 'block';
-        var cdText = document.createElement('span');
-        cdText.id = 'cd-text';
-        var initialLabel = success ? 'Proceeding to your order in 5s\u2026' : 'Redirecting in 5s\u2026';
-        cdText.textContent = initialLabel;
-        cdWrap.appendChild(cdText);
-        var bar = document.createElement('div');
-        bar.className = 'progress-bar';
-        var fill = document.createElement('div');
-        fill.className = 'progress-fill';
-        bar.appendChild(fill);
-        cdWrap.appendChild(bar);
-        document.body.appendChild(cdWrap);
-
-        var secs = 5;
-        var tick = setInterval(function () {
-          secs--;
-          var el = document.getElementById('cd-text');
-          if (secs > 0) {
-            if (el) el.textContent = (success ? 'Proceeding to your order in ' : 'Redirecting in ') + secs + 's\u2026';
-          } else {
-            if (el) el.textContent = success ? 'Opening your order\u2026' : 'Redirecting\u2026';
-            clearInterval(tick);
-            window.location.replace(ctaDest);
-          }
-        }, 1000);
+        // ── Success / Pending: redirect to the branded success page ───────
+        // Pass intentId and txnId as URL params so the success page can call
+        // paymob-sync without reading sessionStorage (avoids CheckoutPage race).
+        var dest = '/payment/success';
+        var destParams = [];
+        if (intentId) destParams.push('intentId=' + encodeURIComponent(intentId));
+        if (txnId) destParams.push('txnId=' + encodeURIComponent(txnId));
+        if (destParams.length) dest += '?' + destParams.join('&');
+        window.location.replace(dest);
       }
     }
   })();

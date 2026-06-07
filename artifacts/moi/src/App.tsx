@@ -33,13 +33,15 @@ const SearchDrawer = lazy(() => import("@/components/SearchDrawer").then(m => ({
 import type { SearchItem } from "@/components/SearchDrawer";
 import { ProductPage } from "@/pages/ProductPage";
 import { ApplePayIframePage } from "@/pages/ApplePayIframePage";
+import { PaymentSuccessPage } from "@/pages/PaymentSuccessPage";
+import { PaymentFailedPage } from "@/pages/PaymentFailedPage";
 const AdminPage = lazy(() => import("@/pages/AdminPage").then(m => ({ default: m.AdminPage })));
 const NotFoundPage = lazy(() => import("@/components/NotFoundPage").then(m => ({ default: m.NotFoundPage })));
 
 const IS_ADMIN = window.location.pathname.startsWith("/admin");
 const IS_APPLE_PAY_IFRAME = window.location.pathname === "/buy/apple-pay";
 
-type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product" | "notfound" | "checkout";
+type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product" | "notfound" | "checkout" | "payment-success" | "payment-failed";
 const POLICY_PAGES: PageType[] = ["privacy", "refund", "return", "delivery"];
 
 // Known product slugs — used only for URL routing. Colors are derived live from
@@ -62,6 +64,8 @@ function parsePath(): { page: PageType; productHandle: string; section?: string 
     if (!matchedSlug) return { page: "notfound", productHandle: handle };
     return { page: "product", productHandle: handle };
   }
+  if (pathname === "/payment/success") return { page: "payment-success", productHandle: "" };
+  if (pathname === "/payment/failed") return { page: "payment-failed", productHandle: "" };
   if (pathname === "/checkout") return { page: "checkout", productHandle: "" };
   if (pathname === "/accessories") return { page: "accessories", productHandle: "" };
   if (pathname === "/ambassador") return { page: "ambassador", productHandle: "" };
@@ -301,6 +305,7 @@ function AppContent() {
   }, [page, productHandle]);
 
   const isProductPage = page === "product" && Boolean(productHandle);
+  const isPaymentPage = page === "payment-success" || page === "payment-failed";
   const isDark = page === "accessories" || page === "ambassador" || isProductPage;
 
   return (
@@ -314,7 +319,7 @@ function AppContent() {
           {isProductPage && <li><span>{productHandle}</span></li>}
         </ol>
       </nav>
-      <Header onNavigate={(p, hash) => navigateTo(p as PageType, hash)} onSearch={() => setSearchOpen(true)} dark={isDark} page={page} />
+      {!isPaymentPage && <Header onNavigate={(p, hash) => navigateTo(p as PageType, hash)} onSearch={() => setSearchOpen(true)} dark={isDark} page={page} />}
 
       <AnimatePresence
         mode="wait"
@@ -334,7 +339,18 @@ function AppContent() {
             ease: [0.25, 0.1, 0.25, 1], // sleek cubic-bezier
           }}
         >
-          {isProductPage ? (
+          {page === "payment-success" ? (
+            <PaymentSuccessPage
+              intentId={new URLSearchParams(window.location.search).get("intentId") ?? ""}
+              txnId={new URLSearchParams(window.location.search).get("txnId") ?? undefined}
+              onContinueShopping={() => navigateTo("home")}
+            />
+          ) : page === "payment-failed" ? (
+            <PaymentFailedPage
+              onTryAgain={() => { navigateTo("home"); cart.openCheckout(); }}
+              onContinueShopping={() => navigateTo("home")}
+            />
+          ) : isProductPage ? (
             <div>
               <ProductPage handle={productHandle} onBack={() => { pendingScrollRef.current = savedScrollRef.current; navigateTo("home"); }} onNavigate={navigateToProduct} />
               <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
