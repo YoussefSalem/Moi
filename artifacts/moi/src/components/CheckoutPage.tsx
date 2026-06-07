@@ -2011,7 +2011,16 @@ export function CheckoutPage() {
                       Place Order
                     </button>
                     <p style={{ fontSize: "10px", color: "rgba(30,24,20,0.42)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "10px", letterSpacing: "0.12em" }}>
-                      By placing your order you agree to our terms of service.
+                      By placing your order you agree to our{" "}
+                      <a
+                        href="/return"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "rgba(30,24,20,0.65)", textDecoration: "underline", textUnderlineOffset: "2px" }}
+                      >
+                        return policy
+                      </a>
+                      .
                     </p>
                   </div>
                 </form>
