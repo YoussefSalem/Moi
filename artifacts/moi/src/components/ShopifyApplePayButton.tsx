@@ -225,7 +225,7 @@ export function ShopifyApplePayButton({
           -apple-pay-button-style: black;
           display: block;
           width: 100%;
-          height: 30px;
+          height: 36px;
           border: none;
           border-radius: 0;
           padding: 0;
