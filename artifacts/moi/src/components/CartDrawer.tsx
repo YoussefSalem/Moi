@@ -422,10 +422,8 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                             {pendingLocalItems.map((item) => (
                               <motion.li
                                 key={item.id}
-                                initial={{ opacity: 0, y: -8 }}
-                                animate={{ opacity: 1, y: 0 }}
+                                initial={false}
                                 exit={{ opacity: 0, x: 32, transition: { duration: 0.2, ease: "easeIn" } }}
-                                transition={{ duration: 0.18 }}
                                 className="flex gap-4"
                                 style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
                               >
