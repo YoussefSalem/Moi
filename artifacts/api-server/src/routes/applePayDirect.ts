@@ -199,10 +199,20 @@ router.post("/apple-pay/authorize", async (req, res) => {
     return;
   }
 
-  const { paymentData, intentId } = body as {
+  const { paymentData: paymentDataRaw, intentId } = body as {
     paymentData: string;
     intentId: string;
   };
+
+  // Parse the Apple Pay token back to an object — the frontend JSON.stringifies it
+  // before sending; Paymob expects the actual token object (not a JSON string).
+  let paymentDataObj: unknown;
+  try {
+    paymentDataObj = JSON.parse(paymentDataRaw);
+  } catch {
+    res.status(400).json({ success: false, error: "Invalid paymentData." });
+    return;
+  }
 
   const sc = (body.shippingContact ?? {}) as {
     firstName?: string;
@@ -329,7 +339,7 @@ router.post("/apple-pay/authorize", async (req, res) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           payment_token: clientSecret,
-          source: { identifier: paymentData, subtype: "APPLE_PAY" },
+          source: { identifier: paymentDataObj, subtype: "APPLE_PAY" },
         }),
       },
     );
@@ -366,35 +376,32 @@ router.post("/apple-pay/authorize", async (req, res) => {
     return;
   }
 
-  try {
-    await processPaymobSuccess({
-      intentId,
-      paymobTxnId: paymobTxnId ?? `apple-pay-${intentId}`,
-      amountCents,
-      paymentChannel: "apple-pay",
-    });
-  } catch (err) {
-    req.log.error({ err, intentId }, "Apple Pay: processPaymobSuccess failed");
-  }
-
-  const updated = await db
-    .select({ shopifyOrderId: paymobIntents.shopifyOrderId, shopifyOrderNumber: paymobIntents.shopifyOrderNumber })
-    .from(paymobIntents)
-    .where(eq(paymobIntents.intentId, intentId))
-    .limit(1);
-
-  req.log.info(
-    { intentId, paymobTxnId, shopifyOrderNumber: updated[0]?.shopifyOrderNumber },
-    "Apple Pay: payment complete",
-  );
-
+  // Respond to Apple Pay IMMEDIATELY — the device has a strict ~30s timeout.
+  // Shopify order creation, emails, and WhatsApp are done in the background
+  // so they never block the Apple Pay confirmation screen.
+  req.log.info({ intentId, paymobTxnId }, "Apple Pay: payment confirmed — responding to device, processing order in background");
   res.status(200).json({
     success: true,
     txnId: paymobTxnId,
-    shopifyOrderId: updated[0]?.shopifyOrderId ?? null,
-    shopifyOrderNumber: updated[0]?.shopifyOrderNumber ?? null,
+    shopifyOrderId: null,
+    shopifyOrderNumber: null,
     total,
   });
+
+  // Background: create the Shopify order, send email / WhatsApp, etc.
+  void (async () => {
+    try {
+      await processPaymobSuccess({
+        intentId,
+        paymobTxnId: paymobTxnId ?? `apple-pay-${intentId}`,
+        amountCents,
+        paymentChannel: "apple-pay",
+      });
+      req.log.info({ intentId, paymobTxnId }, "Apple Pay: background order processing complete");
+    } catch (err) {
+      req.log.error({ err, intentId }, "Apple Pay: background processPaymobSuccess failed");
+    }
+  })();
 });
 
 export default router;
