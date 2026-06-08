@@ -105,6 +105,8 @@ function AppContent() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [heroReady, setHeroReady] = useState(false);
+  // Once home has fully loaded once, never show the LoadingScreen again.
+  const [homeLoadedOnce, setHomeLoadedOnce] = useState(false);
   // Stable callback reference so HeroVideo's useEffect doesn't re-run on every render.
   const handleHeroReady = useCallback(() => setHeroReady(true), []);
   const { products, loading } = useShopifyProducts(FALLBACK_PRODUCTS);
@@ -345,14 +347,35 @@ function AppContent() {
 
   useEffect(() => {
     if (!(page === "home" && scrollTarget)) return;
-    // Wait for the page transition animation (380ms) + a small buffer before scrolling
+    // Wait for a small buffer before scrolling
     const t = setTimeout(() => {
       const el = document.getElementById(scrollTarget);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
       setScrollTarget("");
-    }, 500);
+    }, 120);
     return () => clearTimeout(t);
   }, [page, scrollTarget]);
+
+  // Mark home as "loaded once" so the LoadingScreen never shows again after first visit.
+  // Delay past the LoadingScreen's own minimum (800ms) + fade-out (600ms).
+  useEffect(() => {
+    if (homeLoadedOnce || !heroReady || loading || !assetsReady) return;
+    const t = setTimeout(() => setHomeLoadedOnce(true), 1500);
+    return () => clearTimeout(t);
+  }, [heroReady, loading, assetsReady, homeLoadedOnce]);
+
+  // Restore scroll position immediately when returning to home — home is now always
+  // mounted so there is no exit-animation gate to wait for.
+  useEffect(() => {
+    if (page !== "home") return;
+    const target = pendingScrollRef.current;
+    if (target === null) return;
+    pendingScrollRef.current = null;
+    // rAF lets the display:block repaint happen before we set scrollY
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: target, behavior: "instant" as ScrollBehavior });
+    });
+  }, [page]);
 
   // Shopify Analytics: page_viewed fires on mount and on every in-app navigation
   useEffect(() => {
@@ -385,141 +408,150 @@ function AppContent() {
       </nav>
       {!isPaymentPage && <Header onNavigate={(p, hash) => navigateTo(p as PageType, hash)} onSearch={() => setSearchOpen(true)} dark={isDark} page={page} />}
 
-      <AnimatePresence
-        mode="wait"
-        onExitComplete={() => {
-          const target = pendingScrollRef.current;
-          pendingScrollRef.current = null;
-          window.scrollTo({ top: target ?? 0, behavior: "instant" as ScrollBehavior });
-        }}
+      {/*
+        Home page — always mounted so HeroVideo, ProductColorSection, and all images
+        stay alive in the DOM. We simply hide it with CSS when another page is active.
+        This eliminates: HeroVideo remount, image reload flicker, and the LoadingScreen
+        reappearing every time the user navigates back.
+      */}
+      <div
+        style={{ display: page === "home" ? "block" : "none" }}
+        aria-hidden={page !== "home"}
       >
-        <motion.div
-          key={isProductPage ? `product-${productHandle}` : page}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{
-            duration: 0.38,
-            ease: [0.25, 0.1, 0.25, 1],
-          }}
-        >
-          {page === "order-confirmation" ? (
-            <OrderConfirmationPage
-              onContinueShopping={() => navigateTo("home")}
-            />
-          ) : page === "payment-success" ? (
-            <Suspense fallback={<div style={{ minHeight: "100vh", backgroundColor: "#faf8f5" }} />}>
-              <PaymentSuccessPage
-                intentId={new URLSearchParams(window.location.search).get("intentId") ?? ""}
-                txnId={new URLSearchParams(window.location.search).get("txnId") ?? undefined}
-                onContinueShopping={() => {
-                  setPage("order-confirmation");
-                  const search = window.location.search;
-                  window.history.replaceState(null, "", `/ordermade${search}`);
-                }}
-              />
-            </Suspense>
-          ) : page === "payment-failed" ? (
-            <PaymentFailedPage
-              onTryAgain={() => { navigateTo("home"); cart.openCheckout(); }}
-              onContinueShopping={() => navigateTo("home")}
-            />
-          ) : isProductPage ? (
-            <div>
-              <ProductPage handle={productHandle} onBack={() => { pendingScrollRef.current = savedScrollRef.current; navigateTo("home"); }} onNavigate={navigateToProduct} />
-              <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
-            </div>
-          ) : page === "home" ? (
-            <main>
-              <HeroVideo onReady={handleHeroReady} />
+        <main>
+          <HeroVideo onReady={handleHeroReady} />
 
-              {/* Trust bar — 3 conversion points, minimal style */}
-              <div
-                className="w-full flex items-center justify-center gap-4 md:gap-8 py-4 px-4"
-                style={{ backgroundColor: "#faf8f5" }}
-              >
-                {[
-                  { emoji: "\u2600\uFE0F", text: "New summer drop" },
-                  { emoji: "\u26A1", text: "Fast delivery across Egypt" },
-                  { emoji: "\uD83D\uDD25", text: "Limited stock available" },
-                ].map((item) => (
-                  <div key={item.text} className="flex items-center gap-1.5">
-                    <span className="text-[11px]" aria-hidden="true">{item.emoji}</span>
-                    <span
-                      className="text-[9px] md:text-[10px] tracking-[0.18em] uppercase font-medium"
-                      style={{ color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}
-                    >
-                      {item.text}
-                    </span>
-                  </div>
-                ))}
+          {/* Trust bar — 3 conversion points, minimal style */}
+          <div
+            className="w-full flex items-center justify-center gap-4 md:gap-8 py-4 px-4"
+            style={{ backgroundColor: "#faf8f5" }}
+          >
+            {[
+              { emoji: "\u2600\uFE0F", text: "New summer drop" },
+              { emoji: "\u26A1", text: "Fast delivery across Egypt" },
+              { emoji: "\uD83D\uDD25", text: "Limited stock available" },
+            ].map((item) => (
+              <div key={item.text} className="flex items-center gap-1.5">
+                <span className="text-[11px]" aria-hidden="true">{item.emoji}</span>
+                <span
+                  className="text-[9px] md:text-[10px] tracking-[0.18em] uppercase font-medium"
+                  style={{ color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}
+                >
+                  {item.text}
+                </span>
               </div>
+            ))}
+          </div>
 
-              <div id="collection">
-                <ProductColorSection
-                  id={product1.slug}
-                  product={product1}
-                  sectionTitle="MOI WAVVY"
-                  sectionSubtitle="The ultimate throw-and-go. Light, breathable, and made for drifting."
-                  colors={deriveColors(product1)}
-                  onNavigate={navigateToProduct}
-                  onAddToCart={handleColorCardAddToCart}
+          <div id="collection">
+            <ProductColorSection
+              id={product1.slug}
+              product={product1}
+              sectionTitle="MOI WAVVY"
+              sectionSubtitle="The ultimate throw-and-go. Light, breathable, and made for drifting."
+              colors={deriveColors(product1)}
+              onNavigate={navigateToProduct}
+              onAddToCart={handleColorCardAddToCart}
+            />
+          </div>
+
+          <WavySeparator />
+
+          <ProductColorSection
+            id={product2.slug}
+            product={product2}
+            sectionTitle="MOI VERSA TOP"
+            sectionSubtitle="Effortlessly versatile. A silhouette that moves with you, in every shade of summer."
+            colors={deriveColors(product2)}
+            onNavigate={navigateToProduct}
+            onAddToCart={handleColorCardAddToCart}
+            dark
+          />
+
+          <Suspense fallback={null}>
+            <TikTokSocialProof />
+          </Suspense>
+        </main>
+
+        <Suspense fallback={null}>
+          <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
+        </Suspense>
+      </div>
+
+      {/* Non-home pages — animated in/out over the (hidden) home background */}
+      <AnimatePresence mode="wait">
+        {page !== "home" && (
+          <motion.div
+            key={isProductPage ? `product-${productHandle}` : page}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {page === "order-confirmation" ? (
+              <OrderConfirmationPage
+                onContinueShopping={() => navigateTo("home")}
+              />
+            ) : page === "payment-success" ? (
+              <Suspense fallback={<div style={{ minHeight: "100vh", backgroundColor: "#faf8f5" }} />}>
+                <PaymentSuccessPage
+                  intentId={new URLSearchParams(window.location.search).get("intentId") ?? ""}
+                  txnId={new URLSearchParams(window.location.search).get("txnId") ?? undefined}
+                  onContinueShopping={() => {
+                    setPage("order-confirmation");
+                    const search = window.location.search;
+                    window.history.replaceState(null, "", `/ordermade${search}`);
+                  }}
                 />
-              </div>
-
-              <WavySeparator />
-
-              <ProductColorSection
-                id={product2.slug}
-                product={product2}
-                sectionTitle="MOI VERSA TOP"
-                sectionSubtitle="Effortlessly versatile. A silhouette that moves with you, in every shade of summer."
-                colors={deriveColors(product2)}
-                onNavigate={navigateToProduct}
-                onAddToCart={handleColorCardAddToCart}
-                dark
+              </Suspense>
+            ) : page === "payment-failed" ? (
+              <PaymentFailedPage
+                onTryAgain={() => { navigateTo("home"); cart.openCheckout(); }}
+                onContinueShopping={() => navigateTo("home")}
               />
-
-              <Suspense fallback={null}>
-                <TikTokSocialProof />
-              </Suspense>
-
-            </main>
-          ) : page === "accessories" ? (
-            <div>
-              <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
-                <AccessoriesPage onLookView={setLookProduct} onNavigateToProduct={navigateToProduct} />
+            ) : isProductPage ? (
+              <div>
+                <ProductPage
+                  handle={productHandle}
+                  onBack={() => { pendingScrollRef.current = savedScrollRef.current; navigateTo("home"); }}
+                  onNavigate={navigateToProduct}
+                />
                 <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
+              </div>
+            ) : page === "accessories" ? (
+              <div>
+                <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
+                  <AccessoriesPage onLookView={setLookProduct} onNavigateToProduct={navigateToProduct} />
+                  <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
+                </Suspense>
+              </div>
+            ) : page === "ambassador" ? (
+              <div>
+                <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
+                  <AmbassadorPage />
+                  <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
+                </Suspense>
+              </div>
+            ) : page === "notfound" ? (
+              <Suspense fallback={<div style={{ minHeight: "100vh", background: "#faf8f5" }} />}>
+                <NotFoundPage onNavigateHome={() => navigateTo("home")} />
               </Suspense>
-            </div>
-          ) : page === "ambassador" ? (
-            <div>
-              <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
-                <AmbassadorPage />
-                <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
+            ) : page === "checkout" ? (
+              <div style={{ minHeight: "100vh", background: "#efe6da" }} />
+            ) : (
+              <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
+                <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home")} />
               </Suspense>
-            </div>
-          ) : page === "notfound" ? (
-            <Suspense fallback={<div style={{ minHeight: "100vh", background: "#faf8f5" }} />}>
-              <NotFoundPage onNavigateHome={() => navigateTo("home")} />
-            </Suspense>
-          ) : page === "checkout" ? (
-            <div style={{ minHeight: "100vh", background: "#efe6da" }} />
-          ) : (
-            <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
-              <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home")} />
-            </Suspense>
-          )}
-
-          {page === "home" && (
-            <Suspense fallback={null}>
-              <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
-            </Suspense>
-          )}
-        </motion.div>
+            )}
+          </motion.div>
+        )}
       </AnimatePresence>
 
-      {page === "home" && <LoadingScreen ready={heroReady && !loading && assetsReady} />}
+      {/* LoadingScreen — only shown on the very first home visit. After that, home
+          is always mounted so there is nothing to wait for on back navigation. */}
+      {!homeLoadedOnce && page === "home" && (
+        <LoadingScreen ready={heroReady && !loading && assetsReady} />
+      )}
 
       <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
 
