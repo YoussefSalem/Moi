@@ -113,6 +113,14 @@ function AppContent() {
   // Scroll restoration: save position before navigating to a product, restore on back
   const savedScrollRef = useRef(0);
   const pendingScrollRef = useRef<number | null>(null);
+
+  // Distinguish iOS swipe-back from the Safari toolbar back button.
+  // Swipe-back always starts with a touchstart near the left screen edge (x < 20px).
+  // A toolbar button tap produces no preceding touch event on the page at all.
+  // We set this flag on left-edge touchstart and consume it in onPopState so we can
+  // skip the exit animation only for swipes (where iOS has already animated the slide)
+  // and play it for button presses (where no native animation occurs).
+  const edgeSwipePendingRef = useRef(false);
   const cart = useCart();
 
   // homeRevealed decouples the home div's visibility from the `page` state.
@@ -192,18 +200,41 @@ function AppContent() {
     }
   }, []);
 
+  // Track left-edge touchstart so onPopState can tell swipe-back apart from the
+  // toolbar back button. The flag is consumed (and reset) inside onPopState.
+  useEffect(() => {
+    function onTouchStart(e: TouchEvent) {
+      edgeSwipePendingRef.current = (e.touches[0]?.clientX ?? 999) < 20;
+    }
+    function onTouchEnd() {
+      // Reset after a short delay — popstate may fire slightly after touchend
+      // on some iOS versions, so give it a 150ms window.
+      setTimeout(() => { edgeSwipePendingRef.current = false; }, 150);
+    }
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend",   onTouchEnd,   { passive: true });
+    window.addEventListener("touchcancel",onTouchEnd,   { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend",   onTouchEnd);
+      window.removeEventListener("touchcancel",onTouchEnd);
+    };
+  }, []);
+
   // Handle browser back/forward
   useEffect(() => {
     function onPopState() {
       const parsed = parsePath();
       if (parsed.page === "home") {
-        // Swipe-back or browser back to home. The native browser gesture has already
-        // completed its own visual transition — we must NOT play our 220ms exit
-        // animation on top of it, or the product page briefly re-appears (the flash).
-        // Instead: reveal home immediately and exit in 0ms. Scroll restoration still
-        // happens via useEffect([homeRevealed]) because pendingScrollRef is set here.
+        // Decide whether this popstate came from a swipe gesture or the toolbar button.
+        // Swipe: edgeSwipePendingRef is true  → skip exit animation (iOS already slid the page)
+        // Button: edgeSwipePendingRef is false → play the 220ms fade so the transition feels
+        //         intentional rather than an abrupt jump.
+        const isSwipe = edgeSwipePendingRef.current;
+        edgeSwipePendingRef.current = false; // consume
+
         pendingScrollRef.current = savedScrollRef.current;
-        setSkipExitAnimation(true);
+        setSkipExitAnimation(isSwipe);
         setHomeRevealed(true);
       } else {
         setHomeRevealed(false);
