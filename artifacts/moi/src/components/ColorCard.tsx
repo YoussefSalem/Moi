@@ -175,6 +175,7 @@ export function ColorCard({
           <div
             className="md:hidden absolute inset-0"
             onContextMenu={(e) => e.preventDefault()}
+            onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => {
               e.stopPropagation();
               e.currentTarget.setPointerCapture(e.pointerId);
@@ -232,7 +233,7 @@ export function ColorCard({
             } as React.CSSProperties}
           >
             {!imgLoaded && <ImageSkeleton variant="card" className="z-0" borderRadius={8} />}
-            <AnimatePresence initial={false} mode="sync">
+            <AnimatePresence initial={false} mode="wait">
               <motion.img
                 key={mobileIndex}
                 src={(allImages[mobileIndex] ?? image) || undefined}
