@@ -339,23 +339,38 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                     // or confirmed by Shopify. This prevents any exit/enter
                     // animation when the sync completes — the card just updates
                     // in place with zero layout shift.
+                    // The ORDER is always the user's localItems order (the order
+                    // they added items), never Shopify's order. Shopify may return
+                    // lines in newest-first order, but the user expects the order
+                    // they added items to stay stable.
                     const items = [] as {
                       key: string;
                       line?: ShopifyCartLine;
                       local?: LocalCartItem;
                     }[];
                     const seen = new Set<string>();
-                    if (isShopify && shopifyCart) {
-                      for (const line of shopifyCart.lines.nodes) {
-                        const vid = line.merchandise.id;
+                    // 1. Walk localItems in user add-order — this is the single
+                    //    source of truth for ordering. For each local item, find
+                    //    the matching Shopify line if it has already synced.
+                    for (const local of localItems) {
+                      const line = shopifyCart?.lines.nodes.find(
+                        (l) => l.merchandise.id === local.variantId,
+                      );
+                      if (line) {
+                        items.push({ key: local.variantId, line });
+                      } else {
+                        items.push({ key: local.variantId, local });
+                      }
+                      seen.add(local.variantId);
+                    }
+                    // 2. Defensive: any Shopify-only items not in localItems
+                    //    (should not happen with current architecture) appended at
+                    //    the end so they don't reorder existing items.
+                    for (const line of (shopifyCart?.lines.nodes ?? [])) {
+                      const vid = line.merchandise.id;
+                      if (!seen.has(vid)) {
                         items.push({ key: vid, line });
                         seen.add(vid);
-                      }
-                    }
-                    for (const local of localItems) {
-                      if (!seen.has(local.variantId)) {
-                        items.push({ key: local.variantId, local });
-                        seen.add(local.variantId);
                       }
                     }
                     return items.map(({ key, line, local }) => (
