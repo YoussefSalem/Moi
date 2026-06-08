@@ -428,10 +428,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       removeCartLines(shopifyCartRef.current.id, [idOrLineId])
         .then((confirmed) => setCart(confirmed))
         .catch(() => {
-          // Rollback on failure
+          // Rollback on failure and notify the user
           if (prevCart) setCart(prevCart);
           setLocalItems(prevLocal);
           saveLocalCart(prevLocal);
+          import("sonner").then(({ toast }) => {
+            toast.error("Could not remove item. Please try again.");
+          });
         })
         .finally(() => updatingRef.current.delete(idOrLineId));
       return;

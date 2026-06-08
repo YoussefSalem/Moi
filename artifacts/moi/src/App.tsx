@@ -491,7 +491,10 @@ function AppContent() {
         also running on the overlay above it. This eliminates all back-nav jank.
       */}
       <div
-        style={{ display: homeRevealed ? "block" : "none" }}
+        style={homeRevealed
+          ? {}
+          : { position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }
+        }
         aria-hidden={!homeRevealed}
       >
         <main>
@@ -580,7 +583,7 @@ function AppContent() {
                   { opacity: 0, y: -4, transition: { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] } }
             }
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-            style={{ willChange: "opacity, transform" }}
+            style={{ willChange: "opacity, transform", backgroundColor: "#faf8f5", position: "relative", zIndex: 1 }}
           >
             {page === "order-confirmation" ? (
               <Suspense fallback={<div style={{ minHeight: "100vh", backgroundColor: "#faf8f5" }} />}>

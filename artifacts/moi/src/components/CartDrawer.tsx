@@ -369,15 +369,15 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                                   {line.merchandise.title !== "Default Title" ? line.merchandise.title : ""}
                                 </p>
                               </div>
-                              <motion.button
+                              <button
+                                type="button"
                                 onClick={() => removeItem(line.id)}
-                                whileTap={{ scale: 0.75 }}
-                                className="flex-shrink-0 w-11 h-11 flex items-center justify-center mt-0.5"
+                                className="flex-shrink-0 w-11 h-11 flex items-center justify-center mt-0.5 active:scale-75 transition-transform"
                                 style={{ touchAction: "manipulation" }}
                                 aria-label="Remove"
                               >
                                 <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
-                              </motion.button>
+                              </button>
                             </div>
                             <div className="flex items-center justify-between mt-auto">
                               <QuantityControl
@@ -453,15 +453,15 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                                   </p>
                                 )}
                               </div>
-                              <motion.button
+                              <button
+                                type="button"
                                 onClick={() => removeItem(item.id)}
-                                whileTap={{ scale: 0.75 }}
-                                className="flex-shrink-0 w-11 h-11 flex items-center justify-center mt-0.5"
+                                className="flex-shrink-0 w-11 h-11 flex items-center justify-center mt-0.5 active:scale-75 transition-transform"
                                 style={{ touchAction: "manipulation" }}
                                 aria-label="Remove"
                               >
                                 <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
-                              </motion.button>
+                              </button>
                             </div>
                             <div className="flex items-center justify-between mt-auto">
                               <QuantityControl
