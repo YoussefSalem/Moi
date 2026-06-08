@@ -4,6 +4,7 @@ import pinoHttp from "pino-http";
 import path from "path";
 import { fileURLToPath } from "url";
 import router from "./routes";
+import ogProxyRouter from "./routes/ogProxy";
 import { logger } from "./lib/logger";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -58,6 +59,10 @@ app.use(express.urlencoded({ extended: true }));
 // Serve product images used in emails — resolved relative to dist/ at runtime
 const imagesDir = path.resolve(__dirname, "..", "public", "images");
 app.use("/api/images", express.static(imagesDir, { maxAge: "7d" }));
+
+// OG meta proxy — must come before /api so /products/:handle is reachable
+// at the top-level path without an /api prefix.
+app.use(ogProxyRouter);
 
 app.use("/api", router);
 
