@@ -594,9 +594,9 @@ function AppContent() {
             exit={
               skipExitAnimation
                 ? { opacity: 0, transition: { duration: 0 } }
-                : { opacity: 0, y: -4, transition: { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] } }
+                : { opacity: 0, y: -4, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] } }
             }
-            transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
             style={{
               willChange: "opacity, transform",
               backgroundColor: "#faf8f5",

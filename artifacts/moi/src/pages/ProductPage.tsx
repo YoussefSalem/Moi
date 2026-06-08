@@ -363,12 +363,65 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
           </button>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-6xl mx-auto px-5 md:px-12 pt-4 md:pt-6 pb-12 md:pb-16 flex flex-col md:grid md:grid-cols-2 gap-6 md:gap-10 md:items-start"
-        >
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="skeleton"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="max-w-6xl mx-auto px-5 md:px-12 pt-4 md:pt-6 pb-12 md:pb-16 flex flex-col md:grid md:grid-cols-2 gap-6 md:gap-10 md:items-start"
+            >
+              {/* ── SKELETON IMAGE ── */}
+              <div className="w-full flex flex-col gap-3">
+                <div className="relative aspect-[3/4] rounded-sm overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.04)" }}>
+                  <ImageSkeleton variant="warm" />
+                </div>
+                <div className="flex gap-2 justify-center">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="relative w-16 h-20 rounded-sm overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.04)" }}>
+                      <ImageSkeleton variant="warm" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* ── SKELETON INFO ── */}
+              <div className="flex flex-col pt-0 w-full gap-6">
+                <div className="h-10 rounded w-3/4 overflow-hidden relative" style={{ backgroundColor: "rgba(30,24,20,0.04)" }}>
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
+                </div>
+                <div className="h-6 rounded w-1/3 overflow-hidden relative" style={{ backgroundColor: "rgba(30,24,20,0.04)" }}>
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
+                </div>
+                <div className="h-12 rounded w-full max-w-[400px] overflow-hidden relative" style={{ backgroundColor: "rgba(30,24,20,0.04)" }}>
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
+                </div>
+                <div className="h-12 rounded w-full max-w-[400px] overflow-hidden relative" style={{ backgroundColor: "rgba(30,24,20,0.04)" }}>
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 rounded w-full overflow-hidden relative" style={{ backgroundColor: "rgba(30,24,20,0.04)" }}>
+                    <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
+                  </div>
+                  <div className="h-4 rounded w-5/6 overflow-hidden relative" style={{ backgroundColor: "rgba(30,24,20,0.04)" }}>
+                    <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
+                  </div>
+                  <div className="h-4 rounded w-4/5 overflow-hidden relative" style={{ backgroundColor: "rgba(30,24,20,0.04)" }}>
+                    <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="content"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="max-w-6xl mx-auto px-5 md:px-12 pt-4 md:pt-6 pb-12 md:pb-16 flex flex-col md:grid md:grid-cols-2 gap-6 md:gap-10 md:items-start"
+            >
             {/* ── IMAGE GALLERY ── */}
             <div className="w-full flex flex-col gap-3">
               {/* Image row: arrow | image | arrow */}
@@ -920,6 +973,8 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
 
             </div>
           </motion.div>
+        )}
+        </AnimatePresence>
       </div>
 
       <NotifyMeModal
