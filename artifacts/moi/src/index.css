@@ -362,6 +362,26 @@ header[class*="fixed"] {
   100% { transform: translateX(120%); }
 }
 
+/* ── Scroll cue pulse — CSS-driven so it auto-pauses when display:none ─── */
+@keyframes scrollCuePulse {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.3; }
+  50%       { transform: scaleY(1);   opacity: 0.7; }
+}
+.scroll-cue-pulse {
+  animation: scrollCuePulse 2.6s ease-in-out infinite;
+  transform-origin: top center;
+  /* No will-change: browser handles this fine as a 1px-wide element */
+}
+
+/* ── "Selling Fast" dot pulse — CSS-driven so it auto-pauses on display:none */
+@keyframes sellingFastPulse {
+  0%   { transform: scale(1);   opacity: 0.55; }
+  100% { transform: scale(2.2); opacity: 0;    }
+}
+.selling-fast-pulse {
+  animation: sellingFastPulse 1.4s ease-out infinite;
+}
+
 /* ── WhatsApp button pulse animation ────────────────────────── */
 @keyframes pulse-green {
   0%, 100% { opacity: 1; transform: scale(1); }
