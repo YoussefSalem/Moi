@@ -26,6 +26,15 @@ function readConfigFile(): Partial<PaymobConfig> {
   }
 }
 
+/** Returns v only if it is a non-empty string that parses to a positive integer. */
+function numericId(v: string | undefined, fallback: string): string {
+  const s = (v ?? "").trim();
+  const n = parseInt(s, 10);
+  if (s && Number.isFinite(n) && n > 0 && String(n) === s) return s;
+  if (s) logger.warn({ value: s, fallback }, "Paymob config: non-numeric integration ID — using fallback");
+  return fallback;
+}
+
 export function getPaymobConfig(): PaymobConfig {
   const file = readConfigFile();
   const trim = (v?: string) => (v ?? "").trim();
@@ -36,8 +45,14 @@ export function getPaymobConfig(): PaymobConfig {
     integrationId: trim(file.integrationId ?? process.env.PAYMOB_INTEGRATION_ID),
     hmacSecret: trim(file.hmacSecret ?? process.env.PAYMOB_HMAC_SECRET),
     iframeId: trim(file.iframeId ?? process.env.PAYMOB_IFRAME_ID),
-    applePayIntegrationId: trim(file.applePayIntegrationId ?? process.env.PAYMOB_APPLE_PAY_INTEGRATION_ID ?? "571502"),
-    walletIntegrationId: trim(file.walletIntegrationId ?? process.env.PAYMOB_WALLET_INTEGRATION_ID ?? "5693942"),
+    applePayIntegrationId: numericId(
+      file.applePayIntegrationId ?? process.env.PAYMOB_APPLE_PAY_INTEGRATION_ID,
+      "571502",
+    ),
+    walletIntegrationId: numericId(
+      file.walletIntegrationId ?? process.env.PAYMOB_WALLET_INTEGRATION_ID,
+      "5693942",
+    ),
   };
 }
 
