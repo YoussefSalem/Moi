@@ -243,9 +243,10 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
   const { items, breakdown, paymentMethod } = data;
   const orderNum = shopifyOrderNumber ?? data.orderNumber;
   const total = fmt((Number(breakdown.subtotal) || 0) - (Number(breakdown.savings) || 0) + (Number(breakdown.shippingCost) || 0));
-  // Show max 3 items in the thumbnail strip to stay on one screen
-  const visibleItems = items.slice(0, 3);
-  const hiddenCount = items.length - visibleItems.length;
+  // Cap at 2 images in the portrait grid; show "+N more" label if needed
+  const gridItems = items.slice(0, 2);
+  const hiddenCount = items.length - gridItems.length;
+  const isSingle = gridItems.length === 1;
 
   const handleContinue = () => {
     ["moi_paymob_result", "moi_paymob_items", "moi_paymob_order_total",
@@ -278,74 +279,84 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          maxWidth: 480,
+          maxWidth: 520,
           width: "100%",
           margin: "0 auto",
-          padding: "clamp(16px,3.5vh,40px) 20px clamp(10px,2vh,24px)",
+          padding: "clamp(10px,2vh,28px) 20px clamp(8px,1.5vh,18px)",
           overflow: "hidden",
         }}
       >
-        {/* ── TOP: heading + reassurance ── */}
+        {/* ── HEADING ── */}
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.12, duration: 0.45 }}
-          style={{ textAlign: "center", flexShrink: 0, marginBottom: "clamp(10px,1.8vh,20px)" }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          style={{ textAlign: "center", flexShrink: 0, marginBottom: "clamp(8px,1.5vh,16px)" }}
         >
-          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", letterSpacing: "0.42em", textTransform: "uppercase", color: "rgba(201,168,76,0.9)", marginBottom: "clamp(4px,0.8vh,10px)" }}>
+          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", letterSpacing: "0.42em", textTransform: "uppercase", color: "rgba(201,168,76,0.9)", marginBottom: "clamp(3px,0.6vh,7px)" }}>
             Order Confirmed
           </p>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(26px,5.5vw,40px)", fontWeight: 700, color: "#1e1814", lineHeight: 1.1, letterSpacing: "-0.01em", marginBottom: "clamp(6px,1.2vh,12px)" }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(24px,5vw,38px)", fontWeight: 700, color: "#1e1814", lineHeight: 1.1, letterSpacing: "-0.01em", marginBottom: "clamp(4px,0.8vh,10px)" }}>
             Your Order Has Been Reserved
           </h1>
-          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(10px,1.6vw,12px)", color: "rgba(30,24,20,0.55)", lineHeight: 1.7, maxWidth: 320, margin: "0 auto", letterSpacing: "0.02em" }}>
+          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(10px,1.5vw,11px)", color: "rgba(30,24,20,0.52)", lineHeight: 1.65, maxWidth: 300, margin: "0 auto", letterSpacing: "0.02em" }}>
             {reassuranceMessage(paymentMethod)}
           </p>
         </motion.div>
 
-        {/* ── PRODUCT THUMBNAILS ── */}
-        {visibleItems.length > 0 && (
+        {/* ── LARGE PORTRAIT IMAGES ── */}
+        {gridItems.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.22, duration: 0.4 }}
-            style={{ flexShrink: 0, marginBottom: "clamp(8px,1.4vh,16px)", borderTop: "1px solid rgba(30,24,20,0.08)", borderBottom: "1px solid rgba(30,24,20,0.08)" }}
+            transition={{ delay: 0.18, duration: 0.45 }}
+            style={{ flexShrink: 0, marginBottom: "clamp(4px,0.8vh,10px)" }}
           >
-            {visibleItems.map((item, idx) => (
-              <div
-                key={item.id ?? item.title}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "clamp(6px,1vh,10px) 0",
-                  borderBottom: idx < visibleItems.length - 1 ? "1px solid rgba(30,24,20,0.06)" : undefined,
-                }}
-              >
-                <div style={{ width: "clamp(42px,7vw,54px)", aspectRatio: "3/4", flexShrink: 0, overflow: "hidden", backgroundColor: "rgba(30,24,20,0.07)" }}>
-                  {item.image
-                    ? <img src={item.image} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="eager" decoding="async" />
-                    : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><ShoppingBag size={16} strokeWidth={1} style={{ color: "rgba(30,24,20,0.2)" }} /></div>
-                  }
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#1e1814", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {item.title}
-                  </p>
-                  {item.variantTitle && (
-                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(30,24,20,0.42)", marginTop: 2 }}>
-                      {item.variantTitle}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isSingle ? "1fr" : "1fr 1fr",
+                gap: 8,
+              }}
+            >
+              {gridItems.map((item) => (
+                <div key={item.id ?? item.title} style={{ display: "flex", flexDirection: "column" }}>
+                  {/* Portrait image */}
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "clamp(120px,26vh,240px)",
+                      overflow: "hidden",
+                      backgroundColor: "rgba(30,24,20,0.07)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {item.image
+                      ? <img src={item.image} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="eager" decoding="async" />
+                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><ShoppingBag size={22} strokeWidth={1} style={{ color: "rgba(30,24,20,0.2)" }} /></div>
+                    }
+                  </div>
+                  {/* Caption */}
+                  <div style={{ textAlign: "center", paddingTop: "clamp(5px,0.8vh,8px)" }}>
+                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#1e1814", fontWeight: 600 }}>
+                      {item.title}
                     </p>
-                  )}
+                    {item.variantTitle && (
+                      <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(30,24,20,0.42)", marginTop: 2 }}>
+                        {item.variantTitle}
+                      </p>
+                    )}
+                    {item.price && (
+                      <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: "rgba(30,24,20,0.6)", marginTop: 2 }}>
+                        {item.price}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", color: "rgba(30,24,20,0.42)", letterSpacing: "0.08em" }}>×{item.quantity}</p>
-                  {item.price && <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "11px", color: "#1e1814", fontWeight: 600, marginTop: 1 }}>{item.price}</p>}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
             {hiddenCount > 0 && (
-              <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(30,24,20,0.38)", padding: "6px 0", textAlign: "center" }}>
+              <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(30,24,20,0.38)", paddingTop: 6, textAlign: "center" }}>
                 +{hiddenCount} more item{hiddenCount > 1 ? "s" : ""}
               </p>
             )}
@@ -354,31 +365,28 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
 
         {/* ── ORDER SUMMARY ── */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.4 }}
-          style={{ flexShrink: 0, border: "1px solid rgba(30,24,20,0.12)", padding: "clamp(10px,1.6vh,16px) 14px", marginBottom: "clamp(8px,1.2vh,14px)", backgroundColor: "#faf8f5" }}
+          transition={{ delay: 0.28, duration: 0.38 }}
+          style={{ flexShrink: 0, border: "1px solid rgba(30,24,20,0.12)", padding: "clamp(8px,1.4vh,14px) 14px", marginBottom: "clamp(6px,1vh,12px)", backgroundColor: "#faf8f5" }}
         >
-          {/* label */}
-          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "8px", letterSpacing: "0.38em", textTransform: "uppercase", color: "rgba(30,24,20,0.38)", marginBottom: "clamp(6px,1vh,10px)", paddingBottom: "clamp(5px,0.8vh,8px)", borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
+          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "8px", letterSpacing: "0.38em", textTransform: "uppercase", color: "rgba(30,24,20,0.38)", marginBottom: "clamp(5px,0.8vh,8px)", paddingBottom: "clamp(4px,0.7vh,7px)", borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
             Order Summary
           </p>
 
-          {/* rows */}
           {[
             { label: "Subtotal", value: fmt(breakdown.subtotal) },
             ...(breakdown.savings > 0 ? [{ label: "Savings", value: `−${fmt(breakdown.savings)}`, green: true }] : []),
             { label: "Shipping", value: breakdown.freeShipping ? "Free" : fmt(breakdown.shippingCost) },
             { label: "Payment", value: paymentLabel(paymentMethod) },
           ].map(({ label, value, green }) => (
-            <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "clamp(3px,0.55vh,6px) 0", borderBottom: "1px solid rgba(30,24,20,0.05)" }}>
+            <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "clamp(3px,0.5vh,5px) 0", borderBottom: "1px solid rgba(30,24,20,0.05)" }}>
               <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: green ? "#2f6644" : "rgba(30,24,20,0.52)", letterSpacing: "0.05em" }}>{label}</span>
               <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: green ? "#2f6644" : "#1e1814" }}>{value}</span>
             </div>
           ))}
 
-          {/* order number */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "clamp(3px,0.55vh,6px) 0", borderBottom: "1px solid rgba(30,24,20,0.05)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "clamp(3px,0.5vh,5px) 0", borderBottom: "1px solid rgba(30,24,20,0.05)" }}>
             <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: "rgba(30,24,20,0.52)", letterSpacing: "0.05em" }}>Order No.</span>
             {orderNum
               ? <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "16px", fontWeight: 700, color: "#1e1814" }}>#{orderNum}</span>
@@ -386,10 +394,9 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
             }
           </div>
 
-          {/* total */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", paddingTop: "clamp(8px,1.2vh,12px)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", paddingTop: "clamp(7px,1vh,10px)" }}>
             <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", fontWeight: 700, color: "#1e1814", letterSpacing: "0.18em", textTransform: "uppercase" }}>Total</span>
-            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(20px,3.5vw,26px)", fontWeight: 700, color: "#1e1814", letterSpacing: "-0.01em" }}>{total}</span>
+            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(20px,3.2vw,24px)", fontWeight: 700, color: "#1e1814" }}>{total}</span>
           </div>
         </motion.div>
 
@@ -397,11 +404,11 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.38, duration: 0.4 }}
-          style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 9, padding: "clamp(8px,1.2vh,12px) 12px", backgroundColor: "rgba(30,24,20,0.03)", border: "1px solid rgba(30,24,20,0.07)", marginBottom: "clamp(8px,1.5vh,18px)" }}
+          transition={{ delay: 0.35, duration: 0.38 }}
+          style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 9, padding: "clamp(7px,1vh,11px) 12px", backgroundColor: "rgba(30,24,20,0.03)", border: "1px solid rgba(30,24,20,0.07)", marginBottom: "clamp(6px,1.2vh,14px)" }}
         >
-          <MessageCircle size={13} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.32)", flexShrink: 0 }} />
-          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: "rgba(30,24,20,0.55)", letterSpacing: "0.03em", lineHeight: 1.6 }}>
+          <MessageCircle size={12} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.32)", flexShrink: 0 }} />
+          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: "rgba(30,24,20,0.55)", letterSpacing: "0.03em", lineHeight: 1.55 }}>
             We'll send your order details and tracking update via WhatsApp shortly.
           </p>
         </motion.div>
@@ -410,12 +417,12 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.44, duration: 0.4 }}
-          style={{ flexShrink: 0, marginTop: "auto", display: "flex", flexDirection: "column", gap: "clamp(6px,0.9vh,10px)" }}
+          transition={{ delay: 0.4, duration: 0.38 }}
+          style={{ flexShrink: 0, marginTop: "auto", display: "flex", flexDirection: "column", gap: "clamp(4px,0.7vh,8px)" }}
         >
           <button
             onClick={handleContinue}
-            style={{ width: "100%", padding: "clamp(12px,1.8vh,16px) 24px", backgroundColor: "#1e1814", border: "1px solid #1e1814", fontFamily: "'Montserrat', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.28em", textTransform: "uppercase", color: "#faf8f5", cursor: "pointer", transition: "opacity 0.2s ease" }}
+            style={{ width: "100%", padding: "clamp(11px,1.6vh,15px) 24px", backgroundColor: "#1e1814", border: "1px solid #1e1814", fontFamily: "'Montserrat', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.28em", textTransform: "uppercase", color: "#faf8f5", cursor: "pointer", transition: "opacity 0.2s ease" }}
             onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.75"; }}
             onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
           >
@@ -423,7 +430,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
           </button>
           <button
             onClick={handleContactSupport}
-            style={{ width: "100%", padding: "clamp(8px,1.2vh,12px) 24px", backgroundColor: "transparent", border: "none", fontFamily: "'Montserrat', sans-serif", fontSize: "9px", fontWeight: 500, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.4)", cursor: "pointer", transition: "color 0.2s ease" }}
+            style={{ width: "100%", padding: "clamp(7px,1vh,11px) 24px", backgroundColor: "transparent", border: "none", fontFamily: "'Montserrat', sans-serif", fontSize: "9px", fontWeight: 500, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.4)", cursor: "pointer", transition: "color 0.2s ease" }}
             onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(30,24,20,0.7)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(30,24,20,0.4)"; }}
           >
