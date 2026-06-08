@@ -271,17 +271,50 @@ export function QuickPreview({
                 {/* Share button — inline in product info, visible & accessible */}
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     const url = `${window.location.origin}/products/${handle}`;
-                    navigator.clipboard
-                      .writeText(url)
-                      .then(() => {
+
+                    // 1. Web Share API — triggers native share sheet on iOS/Android
+                    if (typeof navigator.share === "function") {
+                      try {
+                        await navigator.share({
+                          title: productName,
+                          text: `Check out ${productName} on Moi`,
+                          url,
+                        });
+                        return;
+                      } catch {
+                        // User cancelled or share not supported — fall through to clipboard
+                      }
+                    }
+
+                    // 2. Clipboard API (modern browsers on HTTPS)
+                    if (navigator.clipboard?.writeText) {
+                      try {
+                        await navigator.clipboard.writeText(url);
                         setCopied(true);
                         setTimeout(() => setCopied(false), 2000);
-                      })
-                      .catch(() => {
-                        setCopied(false);
-                      });
+                        return;
+                      } catch {
+                        // Clipboard blocked — fall through
+                      }
+                    }
+
+                    // 3. Legacy execCommand fallback
+                    try {
+                      const ta = document.createElement("textarea");
+                      ta.value = url;
+                      ta.style.cssText = "position:fixed;top:-9999px;left:-9999px";
+                      document.body.appendChild(ta);
+                      ta.focus();
+                      ta.select();
+                      document.execCommand("copy");
+                      document.body.removeChild(ta);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    } catch {
+                      setCopied(false);
+                    }
                   }}
                   className="self-start flex items-center gap-1.5"
                   style={{
@@ -292,7 +325,7 @@ export function QuickPreview({
                     cursor: "pointer",
                     transition: "all 0.2s ease",
                   }}
-                  aria-label={copied ? "Link copied" : `Copy link to ${productName}`}
+                  aria-label={copied ? "Link copied" : `Share ${productName}`}
                   onPointerDown={(e) => {
                     (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.95)";
                   }}
