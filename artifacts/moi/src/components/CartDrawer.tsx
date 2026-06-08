@@ -98,21 +98,21 @@ function QuantityControl({ itemId, quantity, updateQuantity }: QuantityControlPr
     >
       <button
         onClick={handleDecrease}
-        className="w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50"
+        className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-50"
         style={{ touchAction: "manipulation" }}
         aria-label="Decrease"
       >
         <Minus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
       </button>
       <span
-        className="w-9 h-9 flex items-center justify-center text-[12px] font-semibold"
+        className="w-9 h-11 flex items-center justify-center text-[12px] font-semibold"
         style={{ color: "#17120f" }}
       >
         {quantity}
       </span>
       <button
         onClick={handleIncrease}
-        className="w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-50"
+        className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-50"
         style={{ touchAction: "manipulation" }}
         aria-label="Increase"
       >
@@ -372,7 +372,7 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                               <motion.button
                                 onClick={() => removeItem(line.id)}
                                 whileTap={{ scale: 0.75 }}
-                                className="flex-shrink-0 w-9 h-9 flex items-center justify-center mt-0.5"
+                                className="flex-shrink-0 w-11 h-11 flex items-center justify-center mt-0.5"
                                 style={{ touchAction: "manipulation" }}
                                 aria-label="Remove"
                               >
@@ -456,7 +456,7 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                               <motion.button
                                 onClick={() => removeItem(item.id)}
                                 whileTap={{ scale: 0.75 }}
-                                className="flex-shrink-0 w-9 h-9 flex items-center justify-center mt-0.5"
+                                className="flex-shrink-0 w-11 h-11 flex items-center justify-center mt-0.5"
                                 style={{ touchAction: "manipulation" }}
                                 aria-label="Remove"
                               >
@@ -498,8 +498,11 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
             {/* Footer */}
             {hasItems && (
               <div
-                className="px-7 py-6 flex flex-col gap-5"
-                style={{ borderTop: "1px solid rgba(30,24,20,0.08)" }}
+                className="px-7 pt-6 flex flex-col gap-5"
+                style={{
+                  borderTop: "1px solid rgba(30,24,20,0.08)",
+                  paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))",
+                }}
               >
                 <div className="flex justify-between items-baseline">
                   <span

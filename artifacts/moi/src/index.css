@@ -54,6 +54,55 @@ img {
      GPU layer for a full-screen hero image wastes significant VRAM on mobile */
 }
 
+/* ── Reduced-motion: disable breathe animation & all CSS-driven animations ── */
+@media (prefers-reduced-motion: reduce) {
+  .hero-breathe {
+    animation: none;
+  }
+  .scroll-cue-pulse,
+  .selling-fast-pulse,
+  .shimmer,
+  .look-img-fade {
+    animation: none;
+  }
+}
+
+/* ── Size pill — extend invisible tap target to ≥ 44px on mobile ─────────── */
+/* Note: overflow must NOT be hidden on size-pill buttons for ::after to work  */
+@media (max-width: 767px) {
+  .size-pill {
+    position: relative;
+  }
+  .size-pill::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Color swatch — extend tap target to ≥ 44×44pt without growing the flex item.
+     Button stays at 30×30 in the layout; ::before expands the hit zone by 7px
+     in every direction (30 + 7 + 7 = 44px) without affecting flex spacing. */
+  .swatch-btn {
+    position: relative;
+  }
+  .swatch-btn::before {
+    content: '';
+    position: absolute;
+    inset: -7px;
+  }
+
+  /* CTA buttons (Add to Cart / Order Now / Notify Me) — minimum 48px tap zone */
+  .cta-btn-mobile {
+    min-height: 48px;
+  }
+}
+
 /* Fixed header gets its own GPU layer so scrolling never forces a repaint of it */
 header[class*="fixed"] {
   isolation: isolate;

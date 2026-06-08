@@ -199,6 +199,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                   WebkitOverflowScrolling: "touch",
                   touchAction: "pan-y",
                   overscrollBehavior: "contain",
+                  paddingBottom: "env(safe-area-inset-bottom)",
                 }}
               >
                 {/* Ambient gradient */}

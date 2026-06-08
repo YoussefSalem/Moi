@@ -358,17 +358,32 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
     }
   };
 
+  // Respect prefers-reduced-motion — collapse all stagger delays and shorten durations
+  const prefersReducedMotion = useRef(
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.08, delayChildren: 0.05 },
+      transition: {
+        staggerChildren: prefersReducedMotion.current ? 0 : 0.08,
+        delayChildren: prefersReducedMotion.current ? 0 : 0.05,
+      },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 22 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
+    hidden: { opacity: 0, y: prefersReducedMotion.current ? 0 : 22 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: prefersReducedMotion.current ? 0.01 : 0.75,
+        ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+      },
+    },
   };
 
   return (
@@ -599,7 +614,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   </motion.button>
                 )}
                 <div
-                  className="md:hidden relative w-full mx-auto"
+                  className="md:hidden relative w-full mx-auto" /* Step 5: taller mobile image container below */
                   onPointerDown={(e) => {
                     e.currentTarget.setPointerCapture(e.pointerId);
                     dragStartXRef.current = e.clientX;
@@ -647,7 +662,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 >
                   <div
                     className="relative w-full overflow-hidden"
-                    style={{ height: "clamp(260px, 50vw, 380px)" }}
+                    style={{ height: "clamp(300px, 60vw, 440px)" }}
                   >
                     <AnimatePresence initial={false} mode="wait">
                       <motion.img
@@ -693,7 +708,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                           aria-label={`Image ${index + 1}`}
                           onClick={(e) => { e.stopPropagation(); setGalleryIndex(index); }}
                           style={{
-                            padding: "6px 2px",
+                            padding: "10px 8px",
                             background: "none",
                             border: "none",
                             cursor: "pointer",
@@ -828,7 +843,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                             trackVariantChange(product.variantId ?? "", option.name);
                           }
                         }}
-                        className="relative"
+                        className="swatch-btn relative"
                         style={{ width: 30, height: 30, flexShrink: 0 }}
                       >
                         <span
@@ -893,7 +908,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                           type="button"
                           aria-pressed={isSelected}
                           title={!available ? "Out of stock — notify me" : undefined}
-                          className="relative overflow-hidden border transition-all duration-300"
+                          className="size-pill relative border transition-all duration-300"
                           style={{
                             minWidth: 64,
                             padding: "7px 12px",
@@ -1088,7 +1103,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     type="button"
                     onClick={handleNotifyMe}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full md:w-auto flex items-center justify-center gap-2 border transition-all duration-300"
+                    className="cta-btn-mobile w-full md:w-auto flex items-center justify-center gap-2 border transition-all duration-300"
                     style={{
                       maxWidth: 320,
                       padding: "11px 24px",
@@ -1110,7 +1125,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     type="button"
                     onClick={handleAddToCart}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full md:w-auto border transition-all duration-500"
+                    className="cta-btn-mobile w-full md:w-auto border transition-all duration-500"
                     style={{
                       maxWidth: 320,
                       padding: "11px 32px",

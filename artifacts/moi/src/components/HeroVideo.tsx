@@ -6,6 +6,10 @@ import { ImageSkeleton } from "@/components/ImageSkeleton";
 // Detect mobile once on mount (never re-check — prevents layout jitter)
 const getIsMobile = () => typeof window !== "undefined" && window.innerWidth < 768;
 
+// Detect reduced-motion preference once on mount
+const getPrefersReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 const HERO_GRAD_EDGE = "rgba(210,195,175,0.10)";
 
 interface HeroVideoProps {
@@ -16,6 +20,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const isMobileRef = useRef(getIsMobile());
+  const reducedMotionRef = useRef(getPrefersReducedMotion());
   const [loaded, setLoaded] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
 
@@ -96,10 +101,10 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
         }}
       />
 
-      {/* Parallax image / video — mobile: subtle 8% parallax; desktop: full 22% */}
+      {/* Parallax image / video — mobile: no parallax; desktop: full 22% (skipped when reduced-motion) */}
       <motion.div
         className="absolute inset-0 w-full h-[115%] -top-[7.5%]"
-        style={isMobileRef.current
+        style={isMobileRef.current || reducedMotionRef.current
           ? {}
           : { y: imageY, willChange: "transform" }
         }
@@ -142,10 +147,10 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
         }}
       />
 
-      {/* Hero text content — mobile: opacity fade only; desktop: parallax + fade */}
+      {/* Hero text content — mobile: opacity fade only; desktop: parallax + fade (skipped when reduced-motion) */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 z-[3] flex flex-col items-center text-center"
-        style={isMobileRef.current
+        style={isMobileRef.current || reducedMotionRef.current
           ? { paddingBottom: "clamp(60px, 10vw, 100px)", opacity: overlayOpacity }
           : { y: textY, paddingBottom: "clamp(60px, 10vw, 100px)", opacity: overlayOpacity, willChange: "transform, opacity" }
         }
