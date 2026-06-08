@@ -91,14 +91,15 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
     return merged;
   })();
 
-  // Build colorGalleries: collect all distinct Shopify CDN images per color.
-  // If Shopify has images for a color, use those exclusively (Shopify is source of truth).
-  // Only fall back to local gallery images when Shopify has none for that color.
+  // Build colorGalleries: Shopify variant image leads, local alt images follow.
+  // Strategy: [shopify_main, ...local_alts] where local_alts = local gallery minus
+  // its first image (the local main shot that Shopify now replaces). This preserves
+  // the extra styled shots from local assets while keeping the CDN hero accurate.
   const colorGalleries = (() => {
     const localGalleries = (fallback.colorGalleries ?? {}) as Record<string, string[]>;
 
-    // Collect distinct Shopify CDN images per color (preserving first-seen order)
-    const shopifyByColor: Record<string, string[]> = {};
+    // Collect the first distinct Shopify CDN image per color
+    const shopifyMainByColor: Record<string, string> = {};
     for (const v of shopify.variants.nodes) {
       if (!v.image?.url) continue;
       const colorOpt = v.selectedOptions.find(
@@ -106,9 +107,8 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
       );
       if (!colorOpt) continue;
       const colorName = colorOpt.value;
-      if (!shopifyByColor[colorName]) shopifyByColor[colorName] = [];
-      if (!shopifyByColor[colorName].includes(v.image.url)) {
-        shopifyByColor[colorName].push(v.image.url);
+      if (!shopifyMainByColor[colorName]) {
+        shopifyMainByColor[colorName] = v.image.url;
       }
     }
 
@@ -119,11 +119,13 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
       merged[k] = [...(imgs as string[])];
     }
 
-    // Where Shopify has images, replace local gallery entirely
-    for (const [colorName, shopifyImgs] of Object.entries(shopifyByColor)) {
-      if (shopifyImgs.length > 0) {
-        merged[colorName] = shopifyImgs;
-      }
+    // Where Shopify has a main image for a color: put it first, then append
+    // the local alt images (skip index 0 — the local main that Shopify replaces).
+    for (const [colorName, shopifyMain] of Object.entries(shopifyMainByColor)) {
+      const localImgs = (localGalleries[colorName] ?? []) as string[];
+      const localAlts = localImgs.slice(1); // everything after the local hero shot
+      const combined = [shopifyMain, ...localAlts.filter((u) => u !== shopifyMain)];
+      merged[colorName] = combined;
     }
 
     return merged;
