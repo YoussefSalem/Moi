@@ -89,6 +89,7 @@ interface CartContextValue {
   cartRawTotal: string;
   cartSubtotal: string;
   isShopify: boolean;
+  waitForSync: () => Promise<ShopifyCart | null>;
 }
 
 // CartContext is intentionally NOT exported — consumers must use `useCart()`.
@@ -365,18 +366,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
     setCheckoutOpen(true);
 
-    // 3. Create a fresh single-item Shopify cart in the background
+    // 3. Create a fresh single-item Shopify cart in the background.
+    // Chain onto syncChainRef so waitForSync() covers this operation too.
     if (SHOPIFY_CONFIGURED && params.variantId) {
-      createCartWithLines([{ merchandiseId: params.variantId, quantity: qty }])
-        .then((freshCart) => {
-          localStorage.setItem(CART_ID_KEY, freshCart.id);
-          setCart(freshCart);
-        })
-        .catch(() => {
-          // Local cart is the fallback — checkout still works without Shopify
-        });
+      const variantId = params.variantId;
+      const op = syncChainRef.current.then(async () => {
+        const freshCart = await createCartWithLines([{ merchandiseId: variantId, quantity: qty }]);
+        localStorage.setItem(CART_ID_KEY, freshCart.id);
+        setCart(freshCart);
+      }).catch(() => {
+        // Local cart is the fallback — checkout still works without Shopify
+      });
+      syncChainRef.current = op;
     }
-  }, []);
+  }, [setCart]);
 
   // Express single-item checkout (e.g. Apple Pay): creates a brand-new, ephemeral
   // Shopify cart containing only this item and returns its checkoutUrl. The
@@ -586,6 +589,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return formatMoney(String(price), line.merchandise.price.currencyCode);
   }, []);
 
+  // Awaits the current in-flight Shopify sync chain and returns the latest cart.
+  // Call this before submitting an order to guarantee the cart is fully synced.
+  const waitForSync = useCallback(async (): Promise<ShopifyCart | null> => {
+    await syncChainRef.current;
+    return shopifyCartRef.current;
+  }, []);
+
   const shopifyItemCount = shopifyCart?.totalQuantity ?? 0;
   const localItemCount = localItems.reduce((sum, i) => sum + i.quantity, 0);
   const shopifyActive = SHOPIFY_CONFIGURED && shopifyCart !== null && (shopifyCart?.lines.nodes.length ?? 0) > 0;
@@ -732,6 +742,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       cartRawTotal,
       cartSubtotal,
       isShopify: shopifyActive,
+      waitForSync,
     }}>
       {children}
     </CartContext.Provider>

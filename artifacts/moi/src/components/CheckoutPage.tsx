@@ -241,6 +241,7 @@ export function CheckoutPage() {
     applyDiscount,
     prefilledEmail,
     checkoutUrl,
+    waitForSync,
   } = useCart();
 
   const [step, setStep] = useState<Step>("form");
@@ -677,15 +678,37 @@ export function CheckoutPage() {
       submittingRef.current = false;
       return;
     }
-    // When Shopify is configured, we require a synced Shopify cart so that every
-    // line item carries a real GID variantId (e.g. gid://shopify/ProductVariant/123).
-    // localItems may contain composite-key fallbacks when the cart is still syncing
-    // or was restored from a stale localStorage snapshot — those fail server validation.
+
+    // `activeCart` / `activeIsShopify` are the authoritative cart values for this
+    // submission. Normally equal to the React state snapshot, but if the user
+    // submits before the background Shopify sync finishes we wait silently for up
+    // to 10 s and proceed automatically — no retry required.
+    let activeCart = shopifyCart;
+    let activeIsShopify = isShopify;
+
     if (SHOPIFY_CONFIGURED && !hasShopifyItems) {
-      setSubmitError("Your cart is still syncing. Please wait a moment and try again.");
-      submittingRef.current = false;
-      return;
+      setStep("loading");
+      try {
+        const synced = await Promise.race<import("@/lib/shopify").ShopifyCart | null>([
+          waitForSync(),
+          new Promise<null>((_, reject) => setTimeout(() => reject(new Error("timeout")), 10_000)),
+        ]);
+        if (!synced || synced.lines.nodes.length === 0) {
+          setSubmitError("Your cart is still syncing. Please wait a moment and try again.");
+          setStep("form");
+          submittingRef.current = false;
+          return;
+        }
+        activeCart = synced;
+        activeIsShopify = true;
+      } catch {
+        setSubmitError("Something went wrong. Please try again.");
+        setStep("form");
+        submittingRef.current = false;
+        return;
+      }
     }
+
     if (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.address.trim() || !form.city.trim() || !form.governorate.trim()) {
       setSubmitError("Please fill in all fields.");
       submittingRef.current = false;
@@ -704,8 +727,8 @@ export function CheckoutPage() {
     setSubmitError("");
     setStep("loading");
 
-    const orderLines = isShopify && shopifyCart
-      ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
+    const orderLines = activeIsShopify && activeCart
+      ? activeCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
       : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
 
     const customerPayload = {
@@ -741,7 +764,7 @@ export function CheckoutPage() {
           body: JSON.stringify({
             lines: orderLines,
             customer: customerPayload,
-            cartId: shopifyCart?.id ?? null,
+            cartId: activeCart?.id ?? null,
             discountCode: promoApplied?.code ?? null,
             attribution: buildOrderAttribution(),
             checkoutToken: shopifyCheckoutToken ?? null,
@@ -772,8 +795,8 @@ export function CheckoutPage() {
         // By the time onSuccess fires (after 5-second overlay countdown) React
         // may have re-created handleIframeSuccess with stale closure data,
         // so we capture items here where cart state is guaranteed fresh.
-        const cartItemsSnapshot = isShopify && shopifyCart
-          ? shopifyCart.lines.nodes.map((l) => ({
+        const cartItemsSnapshot = activeIsShopify && activeCart
+          ? activeCart.lines.nodes.map((l) => ({
               id: l.id,
               title: l.merchandise.product.title,
               variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
@@ -835,8 +858,8 @@ export function CheckoutPage() {
     if (paymentMethod === "instapay") {
       try {
         // Capture cart items snapshot so the confirmation screen shows thumbnails
-        const cartItemsSnapshot = isShopify && shopifyCart
-          ? shopifyCart.lines.nodes.map((l) => ({
+        const cartItemsSnapshot = activeIsShopify && activeCart
+          ? activeCart.lines.nodes.map((l) => ({
               id: l.id,
               title: l.merchandise.product.title,
               variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
@@ -858,7 +881,7 @@ export function CheckoutPage() {
           body: JSON.stringify({
             lines: orderLines,
             customer: customerPayload,
-            cartId: shopifyCart?.id ?? null,
+            cartId: activeCart?.id ?? null,
             discountCode: promoApplied?.code ?? null,
             attribution: buildOrderAttribution(),
             checkoutToken: shopifyCheckoutToken ?? null,
@@ -918,7 +941,7 @@ export function CheckoutPage() {
           lines: orderLines,
           customer: customerPayload,
           paymentMethod: "cod",
-          cartId: shopifyCart?.id ?? null,
+          cartId: activeCart?.id ?? null,
           discountCode: promoApplied?.code ?? null,
           attribution: buildOrderAttribution(),
           checkoutToken: shopifyCheckoutToken ?? null,
@@ -940,8 +963,8 @@ export function CheckoutPage() {
         return;
       }
 
-      const codItemsSnapshot = isShopify && shopifyCart
-        ? shopifyCart.lines.nodes.map((l) => ({
+      const codItemsSnapshot = activeIsShopify && activeCart
+        ? activeCart.lines.nodes.map((l) => ({
             id: l.id,
             title: l.merchandise.product.title,
             variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
@@ -1009,7 +1032,7 @@ export function CheckoutPage() {
       setSubmitError("Network error. Please check your connection and try again.");
       submittingRef.current = false;
     }
-  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, clearCart, shopifyCheckoutToken, markAbandonedCartRecovered]);
+  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, clearCart, shopifyCheckoutToken, markAbandonedCartRecovered, waitForSync]);
 
   const handleDone = useCallback(() => {
     clearCart();
