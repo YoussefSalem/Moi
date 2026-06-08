@@ -32,10 +32,10 @@ const CustomerAuthModal = lazy(() => import("@/components/CustomerAuthModal").th
 const AccountPage = lazy(() => import("@/components/AccountPage").then(m => ({ default: m.AccountPage })));
 const SearchDrawer = lazy(() => import("@/components/SearchDrawer").then(m => ({ default: m.SearchDrawer })));
 import type { SearchItem } from "@/components/SearchDrawer";
-import { ProductPage } from "@/pages/ProductPage";
-import { ApplePayIframePage } from "@/pages/ApplePayIframePage";
-import { PaymentFailedPage } from "@/pages/PaymentFailedPage";
-import { OrderConfirmationPage } from "@/pages/OrderConfirmationPage";
+const ProductPage = lazy(() => import("@/pages/ProductPage").then(m => ({ default: m.ProductPage })));
+const OrderConfirmationPage = lazy(() => import("@/pages/OrderConfirmationPage").then(m => ({ default: m.OrderConfirmationPage })));
+const ApplePayIframePage = lazy(() => import("@/pages/ApplePayIframePage").then(m => ({ default: m.ApplePayIframePage })));
+const PaymentFailedPage = lazy(() => import("@/pages/PaymentFailedPage").then(m => ({ default: m.PaymentFailedPage })));
 const AdminPage = lazy(() => import("@/pages/AdminPage").then(m => ({ default: m.AdminPage })));
 const NotFoundPage = lazy(() => import("@/components/NotFoundPage").then(m => ({ default: m.NotFoundPage })));
 
