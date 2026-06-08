@@ -1,6 +1,9 @@
 import { useRef } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 
+// Detect mobile once at module level — never re-check to avoid layout jitter
+const IS_MOBILE = typeof window !== "undefined" && window.innerWidth < 768;
+
 export function EditorialStrip() {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
@@ -10,6 +13,9 @@ export function EditorialStrip() {
     offset: ["start end", "end start"],
   });
 
+  // On desktop: subtle JS-driven parallax.
+  // On mobile: skip entirely — JS-driven scroll transforms force the iOS
+  // compositor to sync with the main thread on every momentum frame → jitter.
   const textY = useTransform(scrollYProgress, [0, 1], ["14px", "-14px"]);
 
   const words = ["Effortless", "Versatile", "Yours"];
@@ -34,7 +40,7 @@ export function EditorialStrip() {
       />
 
       <motion.div
-        style={{ y: textY }}
+        style={IS_MOBILE ? {} : { y: textY }}
         className="relative z-10 flex flex-col items-center text-center px-8"
       >
         {/* Label */}

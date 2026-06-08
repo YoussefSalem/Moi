@@ -100,7 +100,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
       <motion.div
         className="absolute inset-0 w-full h-[115%] -top-[7.5%]"
         style={isMobileRef.current
-          ? { y: mobileImageY, willChange: "transform" }
+          ? {}
           : { y: imageY, willChange: "transform" }
         }
       >
@@ -146,7 +146,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
       <motion.div
         className="absolute bottom-0 left-0 right-0 z-[3] flex flex-col items-center text-center"
         style={isMobileRef.current
-          ? { paddingBottom: "clamp(60px, 10vw, 100px)", opacity: overlayOpacity, willChange: "opacity" }
+          ? { paddingBottom: "clamp(60px, 10vw, 100px)" }
           : { y: textY, paddingBottom: "clamp(60px, 10vw, 100px)", opacity: overlayOpacity, willChange: "transform, opacity" }
         }
       >

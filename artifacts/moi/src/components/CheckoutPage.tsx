@@ -1507,7 +1507,7 @@ export function CheckoutPage() {
           exit={{ opacity: 0, y: 32 }}
           transition={{ type: "spring", stiffness: 420, damping: 38, mass: 0.9 }}
           className="fixed inset-0 z-[120] overflow-y-auto"
-          style={{ backgroundColor: "#efe6da" }}
+          style={{ backgroundColor: "#efe6da", overscrollBehavior: "contain" }}
         >
           {/* Header */}
           <div

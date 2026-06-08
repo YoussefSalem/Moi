@@ -267,7 +267,7 @@ export function CartDrawer() {
             )}
 
             {/* Items */}
-            <div className="flex-1 overflow-y-auto px-7 py-6">
+            <div className="flex-1 overflow-y-auto px-7 py-6" style={{ overscrollBehavior: "contain" }}>
               {!visuallyHasItems ? (
                 <div className="flex flex-col items-center justify-center h-full gap-5 text-center">
                   <ShoppingBag size={36} strokeWidth={1} style={{ color: "rgba(30,24,20,0.2)" }} />
