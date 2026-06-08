@@ -343,12 +343,14 @@ function AppContent() {
   }, [page, loading, product1.slug, product2.slug]);
 
   useEffect(() => {
-    if (page === "home" && scrollTarget) {
+    if (!(page === "home" && scrollTarget)) return;
+    // Wait for the page transition animation (380ms) + a small buffer before scrolling
+    const t = setTimeout(() => {
       const el = document.getElementById(scrollTarget);
-      if (el) {
-        setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
-      }
-    }
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      setScrollTarget("");
+    }, 500);
+    return () => clearTimeout(t);
   }, [page, scrollTarget]);
 
   // Shopify Analytics: page_viewed fires on mount and on every in-app navigation
@@ -511,7 +513,21 @@ function AppContent() {
       <WhatsAppButton />
 
       <Suspense fallback={null}>
-        <CartDrawer />
+        <CartDrawer
+          onNavigateToSection={(sectionId) => {
+            setScrollTarget(sectionId);
+            if (page !== "home") {
+              setPage("home");
+              setProductHandle("");
+              window.history.pushState(null, "", "/");
+            } else {
+              setTimeout(() => {
+                const el = document.getElementById(sectionId);
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }, 80);
+            }
+          }}
+        />
         <CheckoutPage />
         <CustomerAuthModal />
         <AccountPage />

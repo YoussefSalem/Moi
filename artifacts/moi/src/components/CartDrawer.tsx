@@ -122,7 +122,11 @@ function QuantityControl({ itemId, quantity, updateQuantity }: QuantityControlPr
   );
 }
 
-export function CartDrawer() {
+interface CartDrawerProps {
+  onNavigateToSection?: (sectionId: string) => void;
+}
+
+export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
   const {
     shopifyCart,
     localItems,
@@ -140,6 +144,14 @@ export function CartDrawer() {
     clearCart,
     checkoutUrl,
   } = useCart();
+
+  function handleProductClick(title: string) {
+    const sectionId = title.toLowerCase().replace(/\s+/g, "-");
+    closeCart();
+    if (onNavigateToSection) {
+      onNavigateToSection(sectionId);
+    }
+  }
 
   const { customer, openAuth } = useCustomer();
 
@@ -208,7 +220,7 @@ export function CartDrawer() {
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{ type: "spring", stiffness: 420, damping: 38, mass: 0.9 }}
+            transition={{ type: "tween", duration: 0.32, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="fixed top-0 right-0 bottom-0 z-[100] w-full max-w-[420px] flex flex-col"
             style={{ backgroundColor: "#faf8f5", willChange: "transform" }}
             onTouchStart={handleTouchStart}
@@ -337,12 +349,19 @@ export function CartDrawer() {
                           <div className="flex-1 flex flex-col gap-2 min-w-0">
                             <div className="flex justify-between items-start gap-2">
                               <div>
-                                <p
-                                  className="text-[12px] tracking-wide font-semibold leading-tight"
-                                  style={{ color: "#17120f" }}
+                                <button
+                                  type="button"
+                                  onClick={() => handleProductClick(line.merchandise.product.title)}
+                                  className="text-left transition-opacity hover:opacity-60"
+                                  style={{ touchAction: "manipulation" }}
                                 >
-                                  {line.merchandise.product.title}
-                                </p>
+                                  <p
+                                    className="text-[12px] tracking-wide font-semibold leading-tight underline underline-offset-2"
+                                    style={{ color: "#17120f" }}
+                                  >
+                                    {line.merchandise.product.title}
+                                  </p>
+                                </button>
                                 <p
                                   className="text-[10px] tracking-[0.15em] uppercase mt-1 font-light"
                                   style={{ color: "rgba(23,18,15,0.72)" }}
@@ -412,12 +431,19 @@ export function CartDrawer() {
                           <div className="flex-1 flex flex-col gap-2 min-w-0">
                             <div className="flex justify-between items-start gap-2">
                               <div>
-                                <p
-                                  className="text-[12px] tracking-wide font-semibold leading-tight"
-                                  style={{ color: "#17120f" }}
+                                <button
+                                  type="button"
+                                  onClick={() => handleProductClick(item.title)}
+                                  className="text-left transition-opacity hover:opacity-60"
+                                  style={{ touchAction: "manipulation" }}
                                 >
-                                  {item.title}
-                                </p>
+                                  <p
+                                    className="text-[12px] tracking-wide font-semibold leading-tight underline underline-offset-2"
+                                    style={{ color: "#17120f" }}
+                                  >
+                                    {item.title}
+                                  </p>
+                                </button>
                                 {item.size && (
                                   <p
                                     className="text-[10px] tracking-[0.15em] uppercase mt-1 font-light"
