@@ -162,7 +162,6 @@ export function TikTokSocialProof() {
                           style={{ height: "107%", transform: "translateY(-2px)" }}
                           allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture; autoplay"
                           scrolling="no"
-                          loading="lazy"
                           sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms"
                         />
                       ) : (

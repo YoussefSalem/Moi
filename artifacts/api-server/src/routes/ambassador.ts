@@ -11,6 +11,7 @@ interface AmbassadorBody {
   email?: unknown;
   facebook?: unknown;
   instagram?: unknown;
+  tiktok?: unknown;
   message?: unknown;
 }
 
@@ -23,6 +24,7 @@ async function notifyViaShopify(
     phone: string;
     facebook: string;
     instagram: string;
+    tiktok: string;
     message: string;
   },
 ): Promise<void> {
@@ -30,8 +32,9 @@ async function notifyViaShopify(
     `=== MOI AMBASSADOR APPLICATION ===`,
     ``,
     data.phone ? `Phone: ${data.phone}` : null,
-    data.facebook ? `Facebook: ${data.facebook}` : null,
+    data.tiktok ? `TikTok: ${data.tiktok}` : null,
     data.instagram ? `Instagram: ${data.instagram}` : null,
+    data.facebook ? `Facebook: ${data.facebook}` : null,
     ``,
     `--- About the applicant ---`,
     data.message,
@@ -78,6 +81,7 @@ async function notifyViaResend(data: {
   phone: string;
   facebook: string;
   instagram: string;
+  tiktok: string;
   message: string;
 }): Promise<void> {
   const to = process.env.AMBASSADOR_EMAIL_TO;
@@ -89,8 +93,9 @@ async function notifyViaResend(data: {
     `Name: ${data.name}`,
     `Email: ${data.email}`,
     data.phone ? `Phone: ${data.phone}` : null,
-    data.facebook ? `Facebook: ${data.facebook}` : null,
+    data.tiktok ? `TikTok: ${data.tiktok}` : null,
     data.instagram ? `Instagram: ${data.instagram}` : null,
+    data.facebook ? `Facebook: ${data.facebook}` : null,
     ``,
     `--- About the applicant ---`,
     data.message,
@@ -108,7 +113,7 @@ async function notifyViaResend(data: {
 }
 
 router.post("/ambassador", async (req, res) => {
-  const { name, phone, email, facebook, instagram, message } =
+  const { name, phone, email, facebook, instagram, tiktok, message } =
     req.body as AmbassadorBody;
 
   if (
@@ -116,10 +121,12 @@ router.post("/ambassador", async (req, res) => {
     name.trim().length === 0 ||
     typeof email !== "string" ||
     !email.includes("@") ||
+    typeof tiktok !== "string" ||
+    tiktok.trim().length === 0 ||
     typeof message !== "string" ||
     message.trim().length === 0
   ) {
-    res.status(400).json({ error: "Name, email and message are required." });
+    res.status(400).json({ error: "Name, email, TikTok link, and message are required." });
     return;
   }
 
@@ -128,6 +135,7 @@ router.post("/ambassador", async (req, res) => {
   const safePhone = typeof phone === "string" ? phone.trim() : "";
   const safeFacebook = typeof facebook === "string" ? facebook.trim() : "";
   const safeInstagram = typeof instagram === "string" ? instagram.trim() : "";
+  const safeTiktok = tiktok.trim();
   const safeMessage = message.trim();
 
   req.log.info({ name: safeName, email: safeEmail }, "Ambassador application received");
@@ -143,6 +151,7 @@ router.post("/ambassador", async (req, res) => {
         phone: safePhone,
         facebook: safeFacebook,
         instagram: safeInstagram,
+        tiktok: safeTiktok,
         message: safeMessage,
       })
       .returning({ id: ambassadorApplications.id });
@@ -166,6 +175,7 @@ router.post("/ambassador", async (req, res) => {
         phone: safePhone,
         facebook: safeFacebook,
         instagram: safeInstagram,
+        tiktok: safeTiktok,
         message: safeMessage,
       });
       req.log.info({ id: dbId }, "Ambassador customer created in Shopify");
@@ -183,6 +193,7 @@ router.post("/ambassador", async (req, res) => {
       phone: safePhone,
       facebook: safeFacebook,
       instagram: safeInstagram,
+      tiktok: safeTiktok,
       message: safeMessage,
     });
     req.log.info("Ambassador application emailed via Resend");

@@ -9,6 +9,7 @@ export const ambassadorApplications = pgTable("ambassador_applications", {
   phone: text("phone").notNull().default(""),
   facebook: text("facebook").notNull().default(""),
   instagram: text("instagram").notNull().default(""),
+  tiktok: text("tiktok").notNull().default(""),
   message: text("message").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, UserRound, Phone, Mail, Facebook, Instagram, MessageCircleMore, CheckCircle, AlertCircle, Loader } from "lucide-react";
+import { Send, UserRound, Phone, Mail, Facebook, Instagram, MessageCircleMore, CheckCircle, AlertCircle, Loader, Video } from "lucide-react";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -13,6 +13,7 @@ export function AmbassadorPage() {
   const [email, setEmail] = useState("");
   const [facebook, setFacebook] = useState("");
   const [instagram, setInstagram] = useState("");
+  const [tiktok, setTiktok] = useState("");
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<Status>("idle");
 
@@ -20,7 +21,7 @@ export function AmbassadorPage() {
     e.preventDefault();
     if (status === "loading") return;
 
-    if (!name.trim() || !email.trim() || !message.trim()) {
+    if (!name.trim() || !email.trim() || !tiktok.trim() || !message.trim()) {
       setStatus("error");
       setTimeout(() => setStatus("idle"), 3500);
       return;
@@ -32,14 +33,14 @@ export function AmbassadorPage() {
       const res = await fetch("/api/ambassador", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, email, facebook, instagram, message }),
+        body: JSON.stringify({ name, phone, email, facebook, instagram, tiktok, message }),
       });
 
       if (!res.ok) throw new Error("Server error");
 
       setStatus("success");
       setName(""); setPhone(""); setEmail("");
-      setFacebook(""); setInstagram(""); setMessage("");
+      setFacebook(""); setInstagram(""); setTiktok(""); setMessage("");
     } catch {
       setStatus("error");
       setTimeout(() => setStatus("idle"), 4000);
@@ -119,19 +120,23 @@ export function AmbassadorPage() {
               </label>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mt-4">
               <label className="block">
                 <span className="mb-2 flex items-center gap-2 text-[10px] tracking-[0.28em] uppercase" style={{ color: "#7a6e64" }}>
-                  <Facebook size={13} /> Facebook profile link
+                  <Video size={13} /> TikTok profile link <span style={{ color: "#c0392b" }}>*</span>
                 </span>
                 <input
                   className={inputCls}
                   type="url"
-                  placeholder="Optional"
-                  value={facebook}
-                  onChange={(e) => setFacebook(e.target.value)}
+                  placeholder="https://www.tiktok.com/@yourhandle"
+                  value={tiktok}
+                  onChange={(e) => setTiktok(e.target.value)}
+                  required
                 />
               </label>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               <label className="block">
                 <span className="mb-2 flex items-center gap-2 text-[10px] tracking-[0.28em] uppercase" style={{ color: "#7a6e64" }}>
                   <Instagram size={13} /> Instagram profile link
@@ -142,6 +147,18 @@ export function AmbassadorPage() {
                   placeholder="Optional"
                   value={instagram}
                   onChange={(e) => setInstagram(e.target.value)}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-2 flex items-center gap-2 text-[10px] tracking-[0.28em] uppercase" style={{ color: "#7a6e64" }}>
+                  <Facebook size={13} /> Facebook profile link
+                </span>
+                <input
+                  className={inputCls}
+                  type="url"
+                  placeholder="Optional"
+                  value={facebook}
+                  onChange={(e) => setFacebook(e.target.value)}
                 />
               </label>
             </div>
