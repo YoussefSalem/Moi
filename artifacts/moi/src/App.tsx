@@ -214,6 +214,59 @@ function AppContent() {
   const product2 = products.find(p => p.slug === "moi-versa-top") ?? IMAGES.product2;
   const product3 = products.find(p => p.slug === "trio-bangles") ?? IMAGES.product3 as ProductConfig;
 
+  // Preload all landing-page product images into the browser cache while the MOI
+  // loader is showing, so nothing pops in on scroll. The images keep loading="lazy",
+  // but once cached they render instantly the moment they enter the viewport.
+  // Gated on Shopify products resolving (real color image URLs come from there).
+  const [assetsReady, setAssetsReady] = useState(false);
+  useEffect(() => {
+    if (loading) return;
+    let cancelled = false;
+    // Reset the gate for this run so a stale `true` from a previous product set
+    // can never let the loader hide before the current assets are cached.
+    setAssetsReady(false);
+
+    const urls = new Set<string>();
+    for (const product of [product1, product2]) {
+      const colorImages = (product.colorImages ?? {}) as Record<string, string>;
+      const galleries = (product.colorGalleries ?? {}) as Record<string, string[]>;
+      for (const url of Object.values(colorImages)) if (url) urls.add(url);
+      for (const g of Object.values(galleries)) for (const url of g) if (url) urls.add(url);
+      if (product.productShot) urls.add(product.productShot);
+    }
+
+    const list = [...urls];
+    if (list.length === 0) {
+      setAssetsReady(true);
+      return;
+    }
+
+    let remaining = list.length;
+    const markDone = () => {
+      remaining -= 1;
+      if (remaining <= 0 && !cancelled) setAssetsReady(true);
+    };
+
+    // Safety net: never let one slow/broken image stall the gate indefinitely.
+    // Matches the LoadingScreen hard cap (7s) so gating semantics stay consistent —
+    // on very slow connections both release together rather than the gate firing early.
+    const safety = setTimeout(() => {
+      if (!cancelled) setAssetsReady(true);
+    }, 7000);
+
+    for (const url of list) {
+      const img = new Image();
+      img.onload = markDone;
+      img.onerror = markDone;
+      img.src = url;
+    }
+
+    return () => {
+      cancelled = true;
+      clearTimeout(safety);
+    };
+  }, [loading, product1, product2]);
+
   // Build search items: one entry per color variant derived from Shopify data
   const searchItems: SearchItem[] = useMemo(() => {
     const items: SearchItem[] = [];
@@ -446,7 +499,7 @@ function AppContent() {
         </motion.div>
       </AnimatePresence>
 
-      {page === "home" && <LoadingScreen ready={heroReady && !loading} />}
+      {page === "home" && <LoadingScreen ready={heroReady && !loading && assetsReady} />}
 
       <LookView product={lookProduct} onClose={() => setLookProduct(null)} />
 

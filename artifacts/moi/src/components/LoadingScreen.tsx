@@ -11,8 +11,11 @@ export function LoadingScreen({ ready }: LoadingScreenProps) {
   const shownAt = useRef(Date.now());
 
   useEffect(() => {
-    // Hard cap: never block longer than 3.5s regardless of load state
-    const hardCap = setTimeout(() => setVisible(false), 3500);
+    // Hard cap: never block longer than 7s regardless of load state. The loader is
+    // adaptive — it hides as soon as `ready` fires (fast connections exit at the
+    // 800ms minimum below), but slow connections get more time to finish preloading
+    // landing-page assets so nothing pops in on scroll. This cap is just a safety net.
+    const hardCap = setTimeout(() => setVisible(false), 7000);
     return () => clearTimeout(hardCap);
   }, []);
 
