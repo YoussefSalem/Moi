@@ -990,9 +990,11 @@ export function CheckoutPage() {
         }
       }
       markAbandonedCartRecovered();
-      closeCheckout();
+      // Navigate first so the confirmation page is rendered underneath,
+      // then close the checkout — customer sees it revealed rather than a blank flash.
       window.history.pushState(null, "", "/ordermade");
       window.dispatchEvent(new PopStateEvent("popstate"));
+      setTimeout(() => closeCheckout(), 80);
     } catch {
       setStep("form");
       setSubmitError("Network error. Please check your connection and try again.");
@@ -1514,6 +1516,9 @@ export function CheckoutPage() {
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
             style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}
           >
+            {step === "loading" ? (
+              <div style={{ width: 80 }} />
+            ) : (
             <button
               onClick={isSuccessStep ? handleSuccessDone : isConfirmStep ? handleDone : closeCheckout}
               className="flex items-center gap-2 transition-opacity hover:opacity-50"
@@ -1524,6 +1529,7 @@ export function CheckoutPage() {
                 {isConfirmStep ? "Continue shopping" : "Back"}
               </span>
             </button>
+            )}
             <span style={{ fontSize: "14px", letterSpacing: "0.4em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
               MOI
             </span>
@@ -1531,7 +1537,7 @@ export function CheckoutPage() {
           </div>
 
           {step === "loading" ? (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5">
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 px-6 text-center">
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
@@ -1539,6 +1545,9 @@ export function CheckoutPage() {
               />
               <p style={{ fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}>
                 {loadingText}
+              </p>
+              <p style={{ fontSize: "11px", letterSpacing: "0.12em", color: "rgba(30,24,20,0.45)", fontFamily: "'Montserrat', sans-serif", maxWidth: 240 }}>
+                Please don't close or refresh this page
               </p>
             </div>
           ) : step === "cod-confirm" ? (
