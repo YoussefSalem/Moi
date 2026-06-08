@@ -8,7 +8,7 @@ import { paymobIntents } from "@workspace/db/schema";
 
 const router: IRouter = Router();
 
-const SHIPPING_EGP = 50;
+const SHIPPING_EGP = 0; // TEST: set back to 50 after testing
 
 router.post("/orders/paymob-init", async (req, res) => {
   const body = req.body as {
