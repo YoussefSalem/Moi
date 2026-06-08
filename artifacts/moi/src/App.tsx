@@ -569,9 +569,11 @@ function AppContent() {
             style={{ willChange: "opacity, transform" }}
           >
             {page === "order-confirmation" ? (
-              <OrderConfirmationPage
-                onContinueShopping={() => navigateTo("home")}
-              />
+              <Suspense fallback={<div style={{ minHeight: "100vh", backgroundColor: "#faf8f5" }} />}>
+                <OrderConfirmationPage
+                  onContinueShopping={() => navigateTo("home")}
+                />
+              </Suspense>
             ) : page === "payment-success" ? (
               <Suspense fallback={<div style={{ minHeight: "100vh", backgroundColor: "#faf8f5" }} />}>
                 <PaymentSuccessPage
