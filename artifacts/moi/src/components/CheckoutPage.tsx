@@ -358,8 +358,12 @@ export function CheckoutPage() {
               };
             };
           }) => void) | null;
+          onshippingcontactselected: ((e: { shippingContact: unknown }) => void) | null;
+          onshippingmethodselected: ((e: { shippingMethod: unknown }) => void) | null;
           oncancel: (() => void) | null;
           completeMerchantValidation(s: unknown): void;
+          completeShippingContactSelection(u: unknown): void;
+          completeShippingMethodSelection(u: unknown): void;
           completePayment(r: { status: number }): void;
           abort(): void;
           begin(): void;
@@ -436,6 +440,31 @@ export function CheckoutPage() {
         setSubmitError(msg);
         setPaymentMethod("cod");
       }
+    };
+
+    // Required by Apple Pay JS when requiredShippingContactFields or shippingMethods
+    // are specified — must call completeShippingContactSelection / completeShippingMethodSelection
+    // or the session stalls and onpaymentauthorized never fires.
+    session.onshippingcontactselected = () => {
+      session.completeShippingContactSelection({
+        newTotal: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
+        newLineItems: shippingAmt > 0 ? [{ label: "Shipping", amount: shippingAmt.toFixed(2) }] : [],
+        newShippingMethods: [
+          {
+            label: "Standard",
+            detail: "Delivery in 2–4 business days",
+            amount: shippingAmt.toFixed(2),
+            identifier: "standard",
+          },
+        ],
+      });
+    };
+
+    session.onshippingmethodselected = () => {
+      session.completeShippingMethodSelection({
+        newTotal: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
+        newLineItems: shippingAmt > 0 ? [{ label: "Shipping", amount: shippingAmt.toFixed(2) }] : [],
+      });
     };
 
     session.onpaymentauthorized = async ({ payment }) => {
