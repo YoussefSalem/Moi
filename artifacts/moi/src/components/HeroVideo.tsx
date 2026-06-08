@@ -239,7 +239,7 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
         </motion.p>
       </motion.div>
 
-      {/* Scroll cue line */}
+      {/* Scroll cue line — inner animation is CSS so it auto-pauses when display:none */}
       <motion.div
         className="absolute z-[4]"
         style={{ bottom: 28, left: "50%", transform: "translateX(-50%)" }}
@@ -247,15 +247,13 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
         animate={{ opacity: 1 }}
         transition={{ delay: 2.4, duration: 1 }}
       >
-        <motion.div
-          animate={{ scaleY: [0.4, 1, 0.4], opacity: [0.3, 0.7, 0.3] }}
-          transition={{ repeat: Infinity, duration: 2.6, ease: "easeInOut" }}
+        <div
+          className="scroll-cue-pulse"
           style={{
             width: 1,
             height: 44,
             background: "linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.6))",
             margin: "0 auto",
-            transformOrigin: "top",
           }}
         />
       </motion.div>

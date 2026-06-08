@@ -163,15 +163,15 @@ function AppContent() {
   const [productHandle, setProductHandle] = useState<string>(() => parsePath().productHandle);
   const [scrollTarget, setScrollTarget] = useState<string>(() => parsePath().section ?? "");
 
-  function navigateToProduct(handle: string) {
+  const navigateToProduct = useCallback((handle: string) => {
     savedScrollRef.current = window.scrollY;
     setHomeRevealed(false); // Hide home immediately so product page owns the scroll
     setPage("product");
     setProductHandle(handle);
     window.history.pushState(null, "", `/products/${handle}`);
-  }
+  }, []);
 
-  function navigateTo(p: PageType, hash?: string) {
+  const navigateTo = useCallback((p: PageType, hash?: string) => {
     if (p !== "home") setHomeRevealed(false); // Hide home when leaving it
     setPage(p);
     setProductHandle("");
@@ -181,7 +181,7 @@ function AppContent() {
     } else {
       window.history.pushState(null, "", p === "home" ? "/" : `/${p}`);
     }
-  }
+  }, []);
 
   // Handle browser back/forward
   useEffect(() => {

@@ -394,10 +394,10 @@ export function ColorCard({
                 padding: "4px 11px 4px 8px",
               }}
             >
+              {/* Pulse ring — CSS animation so it auto-pauses when display:none */}
               <span style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                <motion.span
-                  animate={{ scale: [1, 2.2], opacity: [0.55, 0] }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeOut" }}
+                <span
+                  className="selling-fast-pulse"
                   style={{
                     position: "absolute",
                     inset: 0,

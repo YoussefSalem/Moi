@@ -89,7 +89,18 @@ const videos: VideoItem[] = [
 
 export function TikTokSocialProof() {
   return (
-    <section id="social-proof" className="py-16 md:py-24 px-6 md:px-12">
+    <section
+      id="social-proof"
+      className="py-16 md:py-24 px-6 md:px-12"
+      style={{
+        // Defer layout + paint of this entire section until it nears the viewport.
+        // The browser skips rendering off-screen content, reducing the cost of
+        // the home div switching from display:none → block on back navigation.
+        contentVisibility: "auto",
+        // Reserve intrinsic height so the page doesn't jump when the section renders.
+        containIntrinsicSize: "auto 2200px",
+      }}
+    >
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -162,6 +173,7 @@ export function TikTokSocialProof() {
                           style={{ height: "107%", transform: "translateY(-2px)" }}
                           allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture; autoplay"
                           scrolling="no"
+                          loading="lazy"
                           sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms"
                         />
                       ) : (
