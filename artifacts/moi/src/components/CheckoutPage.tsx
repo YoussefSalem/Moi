@@ -355,7 +355,15 @@ export function CheckoutPage() {
       currencyCode: "EGP",
       supportedNetworks: ["visa", "masterCard"],
       merchantCapabilities: ["supports3DS"],
-      requiredShippingContactFields: ["name", "email", "phone"],
+      requiredShippingContactFields: ["name", "email", "phone", "postalAddress"],
+      shippingMethods: [
+        {
+          label: "Standard",
+          detail: "Delivery in 2–4 business days",
+          amount: shippingAmt.toFixed(2),
+          identifier: "standard",
+        },
+      ],
       lineItems: shippingAmt > 0
         ? [{ label: "Shipping", amount: shippingAmt.toFixed(2) }]
         : [],

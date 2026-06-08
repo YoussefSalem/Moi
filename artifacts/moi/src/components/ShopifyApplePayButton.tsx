@@ -9,12 +9,19 @@ interface ApplePayLineItem {
   amount: string;
   type?: string;
 }
+interface ApplePayShippingMethod {
+  label: string;
+  detail: string;
+  amount: string;
+  identifier: string;
+}
 interface ApplePayPaymentRequest {
   countryCode: string;
   currencyCode: string;
   supportedNetworks: string[];
   merchantCapabilities: string[];
   requiredShippingContactFields?: string[];
+  shippingMethods?: ApplePayShippingMethod[];
   lineItems?: ApplePayLineItem[];
   total: { label: string; amount: string };
 }
@@ -120,7 +127,15 @@ export function ShopifyApplePayButton({
       currencyCode: "EGP",
       supportedNetworks: ["visa", "masterCard"],
       merchantCapabilities: ["supports3DS"],
-      requiredShippingContactFields: ["name", "email", "phone"],
+      requiredShippingContactFields: ["name", "email", "phone", "postalAddress"],
+      shippingMethods: [
+        {
+          label: "Standard",
+          detail: "Delivery in 2–4 business days",
+          amount: shippingAmt.toFixed(2),
+          identifier: "standard",
+        },
+      ],
       lineItems,
       total: { label: "Moi", amount: (grandTotalCents / 100).toFixed(2) },
     });
