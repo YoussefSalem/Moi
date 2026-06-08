@@ -116,10 +116,19 @@ function AppContent() {
   const cart = useCart();
 
   // homeRevealed decouples the home div's visibility from the `page` state.
-  // When navigating back to home, we keep the home div hidden (display:none) until
-  // the overlay exit animation fully completes, so the browser never has to repaint
-  // the entire homepage while an animation is also running. onExitComplete flips this.
+  // When navigating back to home via a programmatic back button, we keep the home div
+  // hidden (display:none) until the overlay exit animation fully completes, so the
+  // browser never has to repaint the homepage while an animation is also running.
+  // onExitComplete flips this. For popstate (swipe-back / browser back), we flip it
+  // immediately — see onPopState below.
   const [homeRevealed, setHomeRevealed] = useState(() => parsePath().page === "home");
+
+  // When the popstate event fires (swipe-back or browser back button), the native
+  // browser gesture has already completed its own visual transition. Playing our
+  // 220ms exit animation on top of that causes the product page to briefly re-appear
+  // after iOS has already slid it away — the visible "flash". Skipping the exit
+  // animation for popstate navigations eliminates this entirely.
+  const [skipExitAnimation, setSkipExitAnimation] = useState(false);
 
   function handleColorCardAddToCart(handle: string, _image?: string) {
     // Use Shopify-fetched products (real variant GIDs) — all three products now in `products`.
@@ -187,7 +196,18 @@ function AppContent() {
   useEffect(() => {
     function onPopState() {
       const parsed = parsePath();
-      if (parsed.page !== "home") setHomeRevealed(false);
+      if (parsed.page === "home") {
+        // Swipe-back or browser back to home. The native browser gesture has already
+        // completed its own visual transition — we must NOT play our 220ms exit
+        // animation on top of it, or the product page briefly re-appears (the flash).
+        // Instead: reveal home immediately and exit in 0ms. Scroll restoration still
+        // happens via useEffect([homeRevealed]) because pendingScrollRef is set here.
+        pendingScrollRef.current = savedScrollRef.current;
+        setSkipExitAnimation(true);
+        setHomeRevealed(true);
+      } else {
+        setHomeRevealed(false);
+      }
       setPage(parsed.page);
       setProductHandle(parsed.productHandle);
       setScrollTarget(parsed.section ?? "");
@@ -493,9 +513,12 @@ function AppContent() {
       <AnimatePresence
         mode="wait"
         onExitComplete={() => {
-          // Home page is only revealed after the overlay finishes its exit animation.
-          // This prevents the homepage repaint from competing with the animation.
+          // For programmatic Back-button navigation: home is only revealed after the
+          // overlay finishes its 220ms exit animation (prevents repaint contention).
+          // For popstate (swipe-back): homeRevealed is already true; this is a no-op.
           if (page === "home") setHomeRevealed(true);
+          // Reset the popstate skip flag after the exit completes.
+          setSkipExitAnimation(false);
         }}
       >
         {page !== "home" && (
@@ -503,7 +526,14 @@ function AppContent() {
             key={isProductPage ? `product-${productHandle}` : page}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
+            exit={
+              skipExitAnimation
+                ? // Popstate: native gesture already handled the visual transition.
+                  // Exit instantly so the product page never re-appears on screen.
+                  { opacity: 0, transition: { duration: 0 } }
+                : // Programmatic back (Back button tap): play the polished 220ms fade.
+                  { opacity: 0, y: -4, transition: { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] } }
+            }
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
             style={{ willChange: "opacity, transform" }}
           >
