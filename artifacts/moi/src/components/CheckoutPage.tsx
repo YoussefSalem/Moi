@@ -110,7 +110,7 @@ interface OrderBreakdown {
   total?: number;
 }
 
-const SHIPPING_EGP = 0; // TEST: set back to 50 after testing
+const SHIPPING_EGP = 50;
 const GOVERNORATES = [
   "Cairo","Giza","Alexandria","Dakahlia","Red Sea","Beheira","Fayoum","Gharbia",
   "Ismailia","Menofia","Minya","Qaliubiya","New Valley","Suez","Aswan","Assiut",
