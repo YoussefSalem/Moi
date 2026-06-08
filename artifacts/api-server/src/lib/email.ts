@@ -909,6 +909,7 @@ export function buildAbandonedCartEmail(params: {
                   <a href="https://www.tiktok.com/@shopmoi_" target="_blank" style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#1a1714;text-decoration:none;">TikTok</a>
                 </p>
                 <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:8px;font-weight:700;letter-spacing:0.55em;text-transform:uppercase;color:#1a1714;text-align:center;">M O I</p>
+                <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;text-align:center;">Effortless. Versatile. Yours.</p>
                 <p style="margin:0;font-family:Georgia,'Times New Roman',Times,serif;font-size:13px;color:#5c504a;text-align:center;">XoXo, Moi.&#x1F48B;</p>
                 <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;text-align:center;">
                   <a href="${siteUrl}" style="color:#b0a89e;text-decoration:none;letter-spacing:0.1em;">buy-moi.com</a>
