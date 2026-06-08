@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import router from "./routes";
 import ogProxyRouter from "./routes/ogProxy";
+import shopifyApplePayRouter from "./routes/shopifyApplePay";
 import { logger } from "./lib/logger";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -66,21 +67,8 @@ app.use(ogProxyRouter);
 
 app.use("/api", router);
 
-// Apple Pay domain verification file.
-// Set APPLE_PAY_DOMAIN_ASSOCIATION to the file content obtained from Paymob's
-// Apple Pay integration settings after registering buy-moi.com as a domain.
-const applePayDomainAssociation = process.env["APPLE_PAY_DOMAIN_ASSOCIATION"];
-if (applePayDomainAssociation) {
-  app.get(
-    "/.well-known/apple-developer-merchantid-domain-association",
-    (_req, res) => {
-      res.set("Content-Type", "application/octet-stream");
-      res.send(Buffer.from(applePayDomainAssociation));
-    },
-  );
-  logger.info("Apple Pay domain association file endpoint enabled");
-} else {
-  logger.warn("APPLE_PAY_DOMAIN_ASSOCIATION not set — Apple Pay domain verification file will 404");
-}
+// Apple Pay domain verification file — proxied automatically from Paymob.
+app.use(shopifyApplePayRouter);
+logger.info("Apple Pay domain association proxy enabled");
 
 export default app;
