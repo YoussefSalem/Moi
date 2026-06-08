@@ -1,12 +1,11 @@
 import { useRef } from "react";
-import { motion, useInView, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 
 // Detect mobile once at module level — never re-check to avoid layout jitter
 const IS_MOBILE = typeof window !== "undefined" && window.innerWidth < 768;
 
 export function EditorialStrip() {
   const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -45,9 +44,10 @@ export function EditorialStrip() {
       >
         {/* Label */}
         <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="text-[9px] tracking-[0.6em] uppercase mb-8"
           style={{
             color: "rgba(200,185,165,0.48)",
@@ -62,9 +62,10 @@ export function EditorialStrip() {
           {words.map((word, i) => (
             <motion.span
               key={word}
-              initial={{ opacity: 0, y: 20 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: i * 0.12 }}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: i * 0.1 }}
               style={{
                 fontFamily: "'Cormorant Garamond', Georgia, serif",
                 fontSize: "clamp(2.5rem, 8vw, 5.41rem)",
@@ -82,8 +83,9 @@ export function EditorialStrip() {
         {/* Thin horizontal rule */}
         <motion.div
           initial={{ scaleX: 0, opacity: 0 }}
-          animate={inView ? { scaleX: 1, opacity: 1 } : {}}
-          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.35 }}
+          whileInView={{ scaleX: 1, opacity: 1 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
           className="mb-8"
           style={{
             height: 1,
