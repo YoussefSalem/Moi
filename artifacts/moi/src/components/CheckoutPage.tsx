@@ -258,6 +258,7 @@ export function CheckoutPage() {
   const [submitError, setSubmitError] = useState("");
   const [governorateOpen, setGovernorateOpen] = useState(false);
   const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
+  const [navigatingToPaymob, setNavigatingToPaymob] = useState(false);
   const [shopifyCheckoutToken, setShopifyCheckoutToken] = useState<string | null>(null);
   const isApplyingRef = useRef(false); // Prevents recursive re-apply while we update cart
   const paymobTrackedRef = useRef(false); // Prevents duplicate trackPurchase when iframe fires twice
@@ -789,7 +790,8 @@ export function CheckoutPage() {
           }
         }
         paymobTrackedRef.current = false;
-        window.location.href = data.iframeUrl;
+        setNavigatingToPaymob(true);
+        setTimeout(() => { window.location.href = data.iframeUrl!; }, 420);
       } catch {
         setStep("form");
         setSubmitError("Network error. Please check your connection and try again.");
@@ -1243,7 +1245,8 @@ export function CheckoutPage() {
         }
       }
       paymobTrackedRef.current = false;
-      window.location.href = data.iframeUrl;
+      setNavigatingToPaymob(true);
+      setTimeout(() => { window.location.href = data.iframeUrl!; }, 420);
     } catch {
       setStep("form");
       setSubmitError("Network error. Please check your connection and try again.");
@@ -1451,6 +1454,42 @@ export function CheckoutPage() {
 
   return (
     <>
+    {/* Full-screen fade overlay shown before Paymob redirect — prevents jarring departure */}
+    <AnimatePresence>
+      {navigatingToPaymob && (
+        <motion.div
+          key="paymob-departure"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.35, ease: "easeIn" }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: "#faf8f5",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                border: "2px solid rgba(30,24,20,0.12)",
+                borderTopColor: "#1e1814",
+                animation: "spin 0.9s linear infinite",
+              }}
+            />
+            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.7rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(30,24,20,0.55)" }}>
+              Redirecting to payment
+            </p>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
     <AnimatePresence>
       {checkoutOpen && (
         <motion.div

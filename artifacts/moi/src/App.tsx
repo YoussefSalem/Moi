@@ -334,12 +334,12 @@ function AppContent() {
       >
         <motion.div
           key={isProductPage ? `product-${productHandle}` : page}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
           transition={{
-            duration: 0.5,
-            ease: [0.25, 0.1, 0.25, 1], // sleek cubic-bezier
+            duration: 0.38,
+            ease: [0.25, 0.1, 0.25, 1],
           }}
         >
           {page === "order-confirmation" ? (

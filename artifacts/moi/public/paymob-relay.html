@@ -232,13 +232,15 @@
         return;
       }
 
-      // Success / Pending: redirect to the branded success page.
+      // Success / Pending: fade out then redirect to the branded success page.
       var dest = '/payment/success';
       var destParams = [];
       if (intentId) destParams.push('intentId=' + encodeURIComponent(intentId));
       if (txnId) destParams.push('txnId=' + encodeURIComponent(txnId));
       if (destParams.length) dest += '?' + destParams.join('&');
-      window.location.replace(dest);
+      document.body.style.transition = 'opacity 0.3s ease';
+      document.body.style.opacity = '0';
+      setTimeout(function () { window.location.replace(dest); }, 320);
       return;
     }
 
