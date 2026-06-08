@@ -570,8 +570,8 @@ function AppContent() {
           <motion.div
             id="product-scroll-container"
             key={isProductPage ? `product-${productHandle}` : page}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ y: 18 }}
+            animate={{ y: 0 }}
             exit={
               skipExitAnimation
                 ? { opacity: 0, transition: { duration: 0 } }
