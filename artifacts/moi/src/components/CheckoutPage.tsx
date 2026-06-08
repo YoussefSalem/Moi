@@ -677,6 +677,15 @@ export function CheckoutPage() {
       submittingRef.current = false;
       return;
     }
+    // When Shopify is configured, we require a synced Shopify cart so that every
+    // line item carries a real GID variantId (e.g. gid://shopify/ProductVariant/123).
+    // localItems may contain composite-key fallbacks when the cart is still syncing
+    // or was restored from a stale localStorage snapshot — those fail server validation.
+    if (SHOPIFY_CONFIGURED && !hasShopifyItems) {
+      setSubmitError("Your cart is still syncing. Please wait a moment and try again.");
+      submittingRef.current = false;
+      return;
+    }
     if (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.address.trim() || !form.city.trim() || !form.governorate.trim()) {
       setSubmitError("Please fill in all fields.");
       submittingRef.current = false;

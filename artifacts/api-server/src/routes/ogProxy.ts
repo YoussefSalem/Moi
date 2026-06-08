@@ -124,7 +124,8 @@ let spaTemplateCache: string | null = null;
 async function getSpaTemplate(): Promise<string> {
   if (process.env.NODE_ENV === "production") {
     if (spaTemplateCache) return spaTemplateCache;
-    const distPath = path.join(process.cwd(), "artifacts/moi/dist/index.html");
+    // Vite outputs to dist/public/ (outDir in vite.config.ts), not dist/ directly.
+    const distPath = path.join(process.cwd(), "artifacts/moi/dist/public/index.html");
     spaTemplateCache = await fs.readFile(distPath, "utf-8");
     return spaTemplateCache;
   }
