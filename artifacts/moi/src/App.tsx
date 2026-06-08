@@ -246,6 +246,21 @@ function AppContent() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
+  // Take full control of scroll position on history navigation. Without this, iOS
+  // Safari's native scroll restoration ("auto") races the app's own scroll logic on
+  // swipe-back: when returning to a previous product page (e.g. reached via "You may
+  // also like"), the browser restores it to where it was scrolled (the bottom),
+  // overriding ProductPage's scroll-to-top. "manual" makes the app authoritative so
+  // back-nav reliably lands at the top of a product or the saved home position.
+  useEffect(() => {
+    if (typeof window !== "undefined" && "scrollRestoration" in window.history) {
+      const prev = window.history.scrollRestoration;
+      window.history.scrollRestoration = "manual";
+      return () => { window.history.scrollRestoration = prev; };
+    }
+    return undefined;
+  }, []);
+
   // Handle abandoned-cart recovery links (?recover-cart=TOKEN)
   useEffect(() => {
     if (typeof window === "undefined") return;
