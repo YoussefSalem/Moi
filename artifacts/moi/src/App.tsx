@@ -115,6 +115,12 @@ function AppContent() {
   const pendingScrollRef = useRef<number | null>(null);
   const cart = useCart();
 
+  // homeRevealed decouples the home div's visibility from the `page` state.
+  // When navigating back to home, we keep the home div hidden (display:none) until
+  // the overlay exit animation fully completes, so the browser never has to repaint
+  // the entire homepage while an animation is also running. onExitComplete flips this.
+  const [homeRevealed, setHomeRevealed] = useState(() => parsePath().page === "home");
+
   function handleColorCardAddToCart(handle: string, _image?: string) {
     // Use Shopify-fetched products (real variant GIDs) — all three products now in `products`.
     // DO NOT shadow the outer `products` state — we need the live Shopify data.
@@ -159,12 +165,14 @@ function AppContent() {
 
   function navigateToProduct(handle: string) {
     savedScrollRef.current = window.scrollY;
+    setHomeRevealed(false); // Hide home immediately so product page owns the scroll
     setPage("product");
     setProductHandle(handle);
     window.history.pushState(null, "", `/products/${handle}`);
   }
 
   function navigateTo(p: PageType, hash?: string) {
+    if (p !== "home") setHomeRevealed(false); // Hide home when leaving it
     setPage(p);
     setProductHandle("");
     setScrollTarget(hash ?? "");
@@ -179,6 +187,7 @@ function AppContent() {
   useEffect(() => {
     function onPopState() {
       const parsed = parsePath();
+      if (parsed.page !== "home") setHomeRevealed(false);
       setPage(parsed.page);
       setProductHandle(parsed.productHandle);
       setScrollTarget(parsed.section ?? "");
@@ -364,18 +373,19 @@ function AppContent() {
     return () => clearTimeout(t);
   }, [heroReady, loading, assetsReady, homeLoadedOnce]);
 
-  // Restore scroll position immediately when returning to home — home is now always
-  // mounted so there is no exit-animation gate to wait for.
+  // Restore scroll position after home becomes visible (homeRevealed flips to true).
+  // This runs after the exit animation completes and the home div is display:block,
+  // so the scroll target is always reachable and there is no animation contention.
   useEffect(() => {
-    if (page !== "home") return;
+    if (!homeRevealed) return;
     const target = pendingScrollRef.current;
     if (target === null) return;
     pendingScrollRef.current = null;
-    // rAF lets the display:block repaint happen before we set scrollY
+    // rAF lets the display:block repaint settle before we set scrollY
     requestAnimationFrame(() => {
       window.scrollTo({ top: target, behavior: "instant" as ScrollBehavior });
     });
-  }, [page]);
+  }, [homeRevealed]);
 
   // Shopify Analytics: page_viewed fires on mount and on every in-app navigation
   useEffect(() => {
@@ -410,13 +420,14 @@ function AppContent() {
 
       {/*
         Home page — always mounted so HeroVideo, ProductColorSection, and all images
-        stay alive in the DOM. We simply hide it with CSS when another page is active.
-        This eliminates: HeroVideo remount, image reload flicker, and the LoadingScreen
-        reappearing every time the user navigates back.
+        stay alive in the DOM. We use homeRevealed (not `page`) to control visibility:
+        homeRevealed only flips to true in AnimatePresence.onExitComplete, so the
+        browser never has to repaint the entire homepage while an exit animation is
+        also running on the overlay above it. This eliminates all back-nav jank.
       */}
       <div
-        style={{ display: page === "home" ? "block" : "none" }}
-        aria-hidden={page !== "home"}
+        style={{ display: homeRevealed ? "block" : "none" }}
+        aria-hidden={!homeRevealed}
       >
         <main>
           <HeroVideo onReady={handleHeroReady} />
@@ -479,7 +490,14 @@ function AppContent() {
       </div>
 
       {/* Non-home pages — animated in/out over the (hidden) home background */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence
+        mode="wait"
+        onExitComplete={() => {
+          // Home page is only revealed after the overlay finishes its exit animation.
+          // This prevents the homepage repaint from competing with the animation.
+          if (page === "home") setHomeRevealed(true);
+        }}
+      >
         {page !== "home" && (
           <motion.div
             key={isProductPage ? `product-${productHandle}` : page}
@@ -487,6 +505,7 @@ function AppContent() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+            style={{ willChange: "opacity, transform" }}
           >
             {page === "order-confirmation" ? (
               <OrderConfirmationPage
