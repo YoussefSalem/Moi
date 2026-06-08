@@ -201,7 +201,7 @@ export function CartDrawer() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.18 }}
             className="fixed inset-0 z-[90] bg-black/40"
             onClick={closeCart}
           />
@@ -210,7 +210,7 @@ export function CartDrawer() {
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{ type: "tween", duration: 0.38, ease: [0.76, 0, 0.24, 1] }}
+            transition={{ type: "spring", stiffness: 420, damping: 38, mass: 0.9 }}
             className="fixed top-0 right-0 bottom-0 z-[100] w-full max-w-[420px] flex flex-col"
             style={{ backgroundColor: "#faf8f5", willChange: "transform" }}
             onTouchStart={handleTouchStart}

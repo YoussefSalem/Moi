@@ -1505,7 +1505,7 @@ export function CheckoutPage() {
           initial={{ opacity: 0, y: 32 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 32 }}
-          transition={{ type: "tween", duration: 0.45, ease: [0.76, 0, 0.24, 1] }}
+          transition={{ type: "spring", stiffness: 420, damping: 38, mass: 0.9 }}
           className="fixed inset-0 z-[120] overflow-y-auto"
           style={{ backgroundColor: "#efe6da" }}
         >
