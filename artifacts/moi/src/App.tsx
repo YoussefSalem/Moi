@@ -481,7 +481,7 @@ function AppContent() {
           {isProductPage && <li><span>{productHandle}</span></li>}
         </ol>
       </nav>
-      {!isPaymentPage && <Header onNavigate={(p, hash) => navigateTo(p as PageType, hash)} onSearch={() => setSearchOpen(true)} dark={isDark} page={page} />}
+      {!isPaymentPage && <Header onNavigate={(p, hash) => navigateTo(p as PageType, hash)} onSearch={() => setSearchOpen(true)} dark={isDark} page={page} zIndex={page !== "home" ? 52 : 50} />}
 
       {/*
         Home page — always mounted so HeroVideo, ProductColorSection, and all images
@@ -491,10 +491,7 @@ function AppContent() {
         also running on the overlay above it. This eliminates all back-nav jank.
       */}
       <div
-        style={homeRevealed
-          ? {}
-          : { position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }
-        }
+        style={homeRevealed ? {} : { pointerEvents: "none" as const }}
         aria-hidden={!homeRevealed}
       >
         <main>
@@ -571,19 +568,24 @@ function AppContent() {
       >
         {page !== "home" && (
           <motion.div
+            id="product-scroll-container"
             key={isProductPage ? `product-${productHandle}` : page}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={
               skipExitAnimation
-                ? // Popstate: native gesture already handled the visual transition.
-                  // Exit instantly so the product page never re-appears on screen.
-                  { opacity: 0, transition: { duration: 0 } }
-                : // Programmatic back (Back button tap): play the polished 220ms fade.
-                  { opacity: 0, y: -4, transition: { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] } }
+                ? { opacity: 0, transition: { duration: 0 } }
+                : { opacity: 0, y: -4, transition: { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] } }
             }
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-            style={{ willChange: "opacity, transform", backgroundColor: "#faf8f5", position: "relative", zIndex: 1 }}
+            style={{
+              willChange: "opacity, transform",
+              backgroundColor: "#faf8f5",
+              position: "fixed",
+              inset: 0,
+              zIndex: 51,
+              overflowY: "auto",
+            }}
           >
             {page === "order-confirmation" ? (
               <Suspense fallback={<div style={{ minHeight: "100vh", backgroundColor: "#faf8f5" }} />}>

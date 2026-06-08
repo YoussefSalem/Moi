@@ -158,7 +158,10 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     };
   }, [product.name, product.description, product.productShot, handle]);
 
-  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, [handle]);
+  useEffect(() => {
+    const el = document.getElementById("product-scroll-container");
+    if (el) el.scrollTop = 0;
+  }, [handle]);
   useEffect(() => { setGalleryIndex(0); setImgLoaded(false); }, [handle]);
 
   // Meta Pixel + TikTok Pixel ViewContent — fires once per product page load
