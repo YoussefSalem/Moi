@@ -86,23 +86,77 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const recsRef = useRef<HTMLDivElement>(null);
   const addingRef = useRef(false);
 
-  // SEO: update document head imperatively so meta is reliably in the <head>
+  // SEO: update all <head> meta tags imperatively when the product or image changes.
+  // This covers document.title, description, and all Open Graph + Twitter Card tags so
+  // that the native share sheet (navigator.share), link-preview bots that execute JS,
+  // and copy-paste unfurls all receive the correct per-product metadata.
   useEffect(() => {
-    const prevTitle = document.title;
-    document.title = `${product.name} — Moi`;
-    let descTag = document.querySelector<HTMLMetaElement>('meta[name="description"]');
-    const prevDesc = descTag?.content ?? "";
-    if (!descTag) {
-      descTag = document.createElement("meta");
-      descTag.name = "description";
-      document.head.appendChild(descTag);
+    // Primary product image: productShot is always galleryImages[0] after dedup.
+    // Make the URL absolute — Vite asset hashes are relative (/assets/…) while
+    // Shopify CDN images are already https://.
+    const rawImage = product.productShot ?? "";
+    const absoluteImage = rawImage.startsWith("http")
+      ? rawImage
+      : `${window.location.origin}${rawImage.startsWith("/") ? "" : "/"}${rawImage}`;
+
+    const pageUrl  = `${window.location.origin}/products/${handle}`;
+    const fullTitle = `${product.name} — Moi`;
+    const desc      = product.description?.slice(0, 160) ?? "";
+
+    /** Get-or-create a <meta> element by CSS selector, inserting it if absent. */
+    function getMeta(selector: string, attrKey: string, attrVal: string): HTMLMetaElement {
+      let el = document.querySelector<HTMLMetaElement>(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attrKey, attrVal);
+        document.head.appendChild(el);
+      }
+      return el;
     }
-    descTag.content = product.description?.slice(0, 160) ?? "";
-    return () => {
-      document.title = prevTitle;
-      if (descTag) descTag.content = prevDesc;
+
+    // Snapshot originals so the cleanup can restore them precisely.
+    const prevTitle = document.title;
+    document.title  = fullTitle;
+
+    const descTag    = getMeta('meta[name="description"]',           "name",     "description");
+    const ogTitle    = getMeta('meta[property="og:title"]',          "property", "og:title");
+    const ogDesc     = getMeta('meta[property="og:description"]',    "property", "og:description");
+    const ogImage    = getMeta('meta[property="og:image"]',          "property", "og:image");
+    const ogUrl      = getMeta('meta[property="og:url"]',            "property", "og:url");
+    const ogType     = getMeta('meta[property="og:type"]',           "property", "og:type");
+    const twTitle    = getMeta('meta[name="twitter:title"]',         "name",     "twitter:title");
+    const twDesc     = getMeta('meta[name="twitter:description"]',   "name",     "twitter:description");
+    const twImage    = getMeta('meta[name="twitter:image"]',         "name",     "twitter:image");
+
+    const prev = {
+      desc: descTag.content, ogTitle: ogTitle.content, ogDesc: ogDesc.content,
+      ogImage: ogImage.content, ogUrl: ogUrl.content, ogType: ogType.content,
+      twTitle: twTitle.content, twDesc: twDesc.content, twImage: twImage.content,
     };
-  }, [product.name, product.description]);
+
+    descTag.content  = desc;
+    ogTitle.content  = fullTitle;
+    ogDesc.content   = desc;
+    ogImage.content  = absoluteImage;
+    ogUrl.content    = pageUrl;
+    ogType.content   = "product";
+    twTitle.content  = fullTitle;
+    twDesc.content   = desc;
+    twImage.content  = absoluteImage;
+
+    return () => {
+      document.title   = prevTitle;
+      descTag.content  = prev.desc;
+      ogTitle.content  = prev.ogTitle;
+      ogDesc.content   = prev.ogDesc;
+      ogImage.content  = prev.ogImage;
+      ogUrl.content    = prev.ogUrl;
+      ogType.content   = prev.ogType;
+      twTitle.content  = prev.twTitle;
+      twDesc.content   = prev.twDesc;
+      twImage.content  = prev.twImage;
+    };
+  }, [product.name, product.description, product.productShot, handle]);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, [handle]);
   useEffect(() => { setGalleryIndex(0); setImgLoaded(false); }, [handle]);
