@@ -174,7 +174,7 @@ export function Footer({ onNavigate }: FooterProps) {
 
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-center">
               <p className="text-[10px] tracking-[0.3em] uppercase text-white/35">© 2026 Moi. All rights reserved.</p>
-              <p className="text-[10px] tracking-[0.22em] uppercase text-white/35">Premium versatile tops.</p>
+              <p className="text-[11px] text-white/40" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", letterSpacing: "0.04em" }}>XoXo, Moi.💋</p>
             </div>
           </div>
         </div>

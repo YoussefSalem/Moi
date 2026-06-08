@@ -273,6 +273,7 @@ function buildEmail({
         <tr>
           <td>
             <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.5em;text-transform:uppercase;color:#1a1714;">M O I</p>
+            <p style="margin:0 0 8px;font-family:Georgia,'Times New Roman',Times,serif;font-size:13px;color:#5c504a;">XoXo, Moi.&#x1F48B;</p>
             <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;">Questions? <a href="mailto:hello@buy-moi.com" style="color:#1a1714;text-decoration:underline;">hello@buy-moi.com</a></p>
           </td>
           <td style="text-align:right;vertical-align:top;">
@@ -351,7 +352,7 @@ export function buildCODOrderEmail(params: {
     : (parseEGP(total) - parseEGP(shippingAmount ?? "0") + (discountAmount ? parseEGP(discountAmount) : 0));
   const emailTotalText = (lineSubtotalText - (discountAmount ? parseEGP(discountAmount) : 0) + parseEGP(shippingAmount ?? "0")).toFixed(2);
 
-  const text = `Order Placed \u2014 Moi\n\n${name ? `Thank you, ${name}.` : "Thank you."}\n\nYour order has been placed. Our team will be in touch shortly to arrange delivery. Payment is collected on arrival.\n\nOrder #${orderNumber}\n${itemsText}${discountText}${shippingText}\nTotal: ${emailTotalText} EGP\nPayment: Cash on Delivery\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nbuy-moi.com`;
+  const text = `Order Placed \u2014 Moi\n\n${name ? `Thank you, ${name}.` : "Thank you."}\n\nYour order has been placed. Our team will be in touch shortly to arrange delivery. Payment is collected on arrival.\n\nOrder #${orderNumber}\n${itemsText}${discountText}${shippingText}\nTotal: ${emailTotalText} EGP\nPayment: Cash on Delivery\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nXoXo, Moi.\uD83D\uDC8B\n\nbuy-moi.com`;
 
   return { html, text };
 }
@@ -410,7 +411,7 @@ export function buildOrderConfirmationEmail(params: {
     : (parseEGP(total) - parseEGP(shippingAmount ?? "0") + (discountAmount ? parseEGP(discountAmount) : 0));
   const emailTotalText2 = (lineSubtotalText2 - (discountAmount ? parseEGP(discountAmount) : 0) + parseEGP(shippingAmount ?? "0")).toFixed(2);
 
-  const text = `Order Confirmed \u2014 Moi\n\n${name ? `Order confirmed, ${name}.` : "Order confirmed."}\n\nYour payment has been received and your order is now being prepared.\n\nOrder #${orderNumber}\n${itemsText}${discountText}${shippingText}\nTotal: ${emailTotalText2} EGP\nPayment: ${paymentMethod}\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nbuy-moi.com`;
+  const text = `Order Confirmed \u2014 Moi\n\n${name ? `Order confirmed, ${name}.` : "Order confirmed."}\n\nYour payment has been received and your order is now being prepared.\n\nOrder #${orderNumber}\n${itemsText}${discountText}${shippingText}\nTotal: ${emailTotalText2} EGP\nPayment: ${paymentMethod}\nDeliver to: ${address}, ${city}, ${governorate}\n\nIf you have any questions, contact us at hello@buy-moi.com\n\nXoXo, Moi.\uD83D\uDC8B\n\nbuy-moi.com`;
 
   return { html, text };
 }
@@ -465,7 +466,7 @@ export function buildInstapayPendingEmail(params: {
   const shippingText = shippingAmount ? `\nShipping: ${shippingAmountNum3 === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
   const emailTotalText3 = parseEGP(total).toFixed(2);
 
-  const text = `Payment Verification in Progress \u2014 Moi\n\n${name ? `Hi ${name},` : "Hello,"}\n\nWe've received your InstaPay proof for order #${orderNumber}.\n\nOrder #${orderNumber}${discountText}${shippingText}\nTotal: ${emailTotalText3} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Pending Verification\n\nOnce verified, you'll receive a WhatsApp confirmation and your order will be dispatched.\n\nbuy-moi.com`;
+  const text = `Payment Verification in Progress \u2014 Moi\n\n${name ? `Hi ${name},` : "Hello,"}\n\nWe've received your InstaPay proof for order #${orderNumber}.\n\nOrder #${orderNumber}${discountText}${shippingText}\nTotal: ${emailTotalText3} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Pending Verification\n\nOnce verified, you'll receive a WhatsApp confirmation and your order will be dispatched.\n\nXoXo, Moi.\uD83D\uDC8B\n\nbuy-moi.com`;
 
   return { html, text };
 }
@@ -523,7 +524,7 @@ export function buildInstapayConfirmedEmail(params: {
   const shippingText = shippingAmount ? `\nShipping: ${shippingAmountNum4 === 0 ? "Free" : `${shippingAmount} EGP`}` : "";
   const emailTotalText4 = parseEGP(total).toFixed(2);
 
-  const text = `Payment Confirmed — Moi\n\n${name ? `Thank you, ${name}.` : "Thank you."}\n\nYour payment has been successfully confirmed and your order is now being prepared.\n\nOrder #${orderNumber}${discountText}${shippingText}\nTotal: ${emailTotalText4} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Payment Confirmed — Order Being Prepared\nDeliver to: ${address}, ${city}, ${governorate}\n\nOur team is packing your order right now. You'll receive a WhatsApp message with your Bosta tracking number once it leaves our studio.\n\nQuestions? hello@buy-moi.com\n\nbuy-moi.com`;
+  const text = `Payment Confirmed — Moi\n\n${name ? `Thank you, ${name}.` : "Thank you."}\n\nYour payment has been successfully confirmed and your order is now being prepared.\n\nOrder #${orderNumber}${discountText}${shippingText}\nTotal: ${emailTotalText4} EGP\nInstaPay Ref: ${referenceNumber}\nStatus: Payment Confirmed — Order Being Prepared\nDeliver to: ${address}, ${city}, ${governorate}\n\nOur team is packing your order right now. You'll receive a WhatsApp message with your Bosta tracking number once it leaves our studio.\n\nQuestions? hello@buy-moi.com\n\nXoXo, Moi.\uD83D\uDC8B\n\nbuy-moi.com`;
 
   return { html, text };
 }
@@ -743,7 +744,7 @@ export function buildInstapayRejectedEmail(params: {
     siteUrl,
   });
 
-  const text = `Payment Not Confirmed — Moi\n\n${name ? `We're sorry, ${name}.` : "We're sorry."}\n\nWe were unable to confirm your payment for Draft Order #${draftOrderId}. Your order has been cancelled.${reasonText}\n\nDraft Order: #${draftOrderId}\nInstaPay Ref: ${referenceNumber}\nTotal: ${total} EGP\nStatus: Payment Not Confirmed\n\nIf you need any help, please contact us:\nInstagram: @shopmoi\nEmail: hello@buy-moi.com\n\nbuy-moi.com`;
+  const text = `Payment Not Confirmed — Moi\n\n${name ? `We're sorry, ${name}.` : "We're sorry."}\n\nWe were unable to confirm your payment for Draft Order #${draftOrderId}. Your order has been cancelled.${reasonText}\n\nDraft Order: #${draftOrderId}\nInstaPay Ref: ${referenceNumber}\nTotal: ${total} EGP\nStatus: Payment Not Confirmed\n\nIf you need any help, please contact us:\nInstagram: @shopmoi\nEmail: hello@buy-moi.com\n\nXoXo, Moi.\uD83D\uDC8B\n\nbuy-moi.com`;
 
   return { html, text };
 }
@@ -908,7 +909,7 @@ export function buildAbandonedCartEmail(params: {
                   <a href="https://www.tiktok.com/@shopmoi_" target="_blank" style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#1a1714;text-decoration:none;">TikTok</a>
                 </p>
                 <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:8px;font-weight:700;letter-spacing:0.55em;text-transform:uppercase;color:#1a1714;text-align:center;">M O I</p>
-                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;text-align:center;">Effortless. Versatile. Yours.</p>
+                <p style="margin:0;font-family:Georgia,'Times New Roman',Times,serif;font-size:13px;color:#5c504a;text-align:center;">XoXo, Moi.&#x1F48B;</p>
                 <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#b0a89e;text-align:center;">
                   <a href="${siteUrl}" style="color:#b0a89e;text-decoration:none;letter-spacing:0.1em;">buy-moi.com</a>
                 </p>
@@ -937,7 +938,7 @@ export function buildAbandonedCartEmail(params: {
     return `  ${i.title}${v} x ${i.quantity}  (${i.price} EGP)`;
   }).join("\n");
 
-  const text = `Our MOI pieces are waiting for you.\n\nComplete your wardrobe before they sell out.\n\nYOUR CART:\n${itemsText}\n\nComplete My Order:\n${recoveryUrl}\n\nQuestions? Contact us at hello@buy-moi.com\nInstagram: https://www.instagram.com/shopmoi/\nTikTok: https://www.tiktok.com/@shopmoi_\n\nbuy-moi.com`;
+  const text = `Our MOI pieces are waiting for you.\n\nComplete your wardrobe before they sell out.\n\nYOUR CART:\n${itemsText}\n\nComplete My Order:\n${recoveryUrl}\n\nQuestions? Contact us at hello@buy-moi.com\nInstagram: https://www.instagram.com/shopmoi/\nTikTok: https://www.tiktok.com/@shopmoi_\n\nXoXo, Moi.\uD83D\uDC8B\n\nbuy-moi.com`;
 
   return { html, text };
 }
