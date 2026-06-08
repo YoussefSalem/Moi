@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-const SHIPPING_FEE = 50;
+const SHIPPING_FEE = 0; // TEST: set back to 50 after testing
 const FREE_SHIPPING_THRESHOLD = 2000;
 
 
