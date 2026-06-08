@@ -2156,96 +2156,111 @@ function OrderConfirmedScreen({
   orderNumber?: string | number | null;
 }) {
   const displayOrderNumber = orderNumber ?? orderResult.shopifyOrderNumber;
+  const visibleItems = items.slice(0, 3);
+  const hiddenCount = items.length - visibleItems.length;
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-lg mx-auto px-6 py-12 flex flex-col items-center gap-6"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "calc(100dvh - 72px)",
+        maxWidth: 480,
+        margin: "0 auto",
+        padding: "clamp(16px,3vh,36px) 24px clamp(12px,2vh,24px)",
+      }}
     >
-      <div style={{ width: 52, height: 52, borderRadius: "50%", backgroundColor: "rgba(30,24,20,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Check size={24} strokeWidth={1.5} style={{ color: "#1e1814" }} />
-      </div>
-
-      <div style={{ textAlign: "center" }}>
+      {/* Heading */}
+      <div style={{ textAlign: "center", flexShrink: 0, marginBottom: "clamp(10px,1.8vh,20px)" }}>
         {subtitle && (
-          <p style={{ fontSize: "11px", letterSpacing: "0.34em", textTransform: "uppercase", color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif", marginBottom: "6px" }}>
+          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", letterSpacing: "0.38em", textTransform: "uppercase", color: "rgba(201,168,76,0.9)", marginBottom: 8 }}>
             {subtitle}
           </p>
         )}
-        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "33px", fontWeight: 700, color: "#1e1814", marginBottom: "6px" }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(26px,5.5vw,38px)", fontWeight: 700, color: "#1e1814", lineHeight: 1.1, marginBottom: 8 }}>
           {title}
         </h1>
         {message && (
-          <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif", lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
+          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(10px,1.6vw,12px)", color: "rgba(30,24,20,0.58)", lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
             {message}
           </p>
         )}
       </div>
 
-      {displayOrderNumber ? (
-        <div style={{ padding: "14px 24px", border: "1px solid rgba(30,24,20,0.22)", width: "100%", textAlign: "center" }}>
-          <p style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif", marginBottom: "4px" }}>
-            Order Number
-          </p>
-          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "29px", color: "#1e1814", fontWeight: 700 }}>
-            #{displayOrderNumber}
-          </p>
-        </div>
-      ) : (
-        <div style={{ padding: "14px 24px", border: "1px solid rgba(30,24,20,0.1)", width: "100%", textAlign: "center", opacity: 0.55 }}>
-          <p style={{ fontSize: "11px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>
-            Confirming order…
-          </p>
-        </div>
-      )}
-
-      <div className="w-full">
-        <OrderBreakdownRows breakdown={breakdown} />
-      </div>
-
-      {items.length > 0 && (
-        <div className="w-full flex flex-col gap-3">
-          {items.map((item) => (
-            <div key={item.id ?? `${item.title}-${item.quantity}`} className="flex items-center gap-3 px-4 py-3" style={{ border: "1px solid rgba(30,24,20,0.08)", backgroundColor: "rgba(30,24,20,0.02)" }}>
-              <div className="w-12 h-14 flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.08)" }}>
-                {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
+      {/* Product thumbnails */}
+      {visibleItems.length > 0 && (
+        <div style={{ flexShrink: 0, marginBottom: "clamp(8px,1.4vh,16px)", borderTop: "1px solid rgba(30,24,20,0.08)", borderBottom: "1px solid rgba(30,24,20,0.08)" }}>
+          {visibleItems.map((item, idx) => (
+            <div key={item.id ?? `${item.title}-${item.quantity}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "clamp(6px,1vh,10px) 0", borderBottom: idx < visibleItems.length - 1 ? "1px solid rgba(30,24,20,0.06)" : undefined }}>
+              <div style={{ width: 46, aspectRatio: "3/4", flexShrink: 0, overflow: "hidden", backgroundColor: "rgba(30,24,20,0.07)" }}>
+                {item.image && <img src={item.image} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="eager" decoding="async" />}
               </div>
-              <div className="flex-1 text-left min-w-0">
-                <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {item.title}
-                </p>
-                {item.variantTitle && (
-                  <p style={{ fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif", marginTop: 2 }}>
-                    {item.variantTitle}
-                  </p>
-                )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", letterSpacing: "0.18em", textTransform: "uppercase", color: "#1e1814", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                {item.variantTitle && <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(30,24,20,0.42)", marginTop: 2 }}>{item.variantTitle}</p>}
               </div>
-              <div className="text-right flex-shrink-0">
-                <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.56)", fontFamily: "'Montserrat', sans-serif" }}>Qty {item.quantity}</p>
-                {item.price && (
-                  <p style={{ fontSize: "14px", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{item.price}</p>
-                )}
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", color: "rgba(30,24,20,0.42)" }}>×{item.quantity}</p>
+                {item.price && <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "11px", color: "#1e1814", fontWeight: 600, marginTop: 1 }}>{item.price}</p>}
               </div>
             </div>
           ))}
+          {hiddenCount > 0 && (
+            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(30,24,20,0.38)", padding: "6px 0", textAlign: "center" }}>
+              +{hiddenCount} more item{hiddenCount > 1 ? "s" : ""}
+            </p>
+          )}
         </div>
       )}
 
+      {/* Summary */}
+      <div style={{ flexShrink: 0, border: "1px solid rgba(30,24,20,0.12)", padding: "clamp(10px,1.6vh,16px) 14px", marginBottom: "clamp(8px,1.2vh,14px)" }}>
+        <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "8px", letterSpacing: "0.38em", textTransform: "uppercase", color: "rgba(30,24,20,0.38)", marginBottom: 8, paddingBottom: 7, borderBottom: "1px solid rgba(30,24,20,0.07)" }}>
+          Order Summary
+        </p>
+        {[
+          { label: "Subtotal", value: breakdown.fmt(breakdown.subtotal) },
+          ...(breakdown.savings > 0 ? [{ label: "Savings", value: `−${breakdown.fmt(breakdown.savings)}`, green: true }] : []),
+          { label: "Shipping", value: breakdown.freeShipping ? "Free" : breakdown.fmt(breakdown.shippingCost) },
+        ].map(({ label, value, green }) => (
+          <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "clamp(3px,0.5vh,5px) 0", borderBottom: "1px solid rgba(30,24,20,0.05)" }}>
+            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: green ? "#2f6644" : "rgba(30,24,20,0.52)", letterSpacing: "0.05em" }}>{label}</span>
+            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: green ? "#2f6644" : "#1e1814" }}>{value}</span>
+          </div>
+        ))}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "clamp(3px,0.55vh,5px) 0", borderBottom: "1px solid rgba(30,24,20,0.05)" }}>
+          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: "rgba(30,24,20,0.52)", letterSpacing: "0.05em" }}>Order No.</span>
+          {displayOrderNumber
+            ? <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "16px", fontWeight: 700, color: "#1e1814" }}>#{displayOrderNumber}</span>
+            : <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.32)" }}>Confirming…</span>
+          }
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", paddingTop: "clamp(7px,1vh,10px)" }}>
+          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", fontWeight: 700, color: "#1e1814", letterSpacing: "0.18em", textTransform: "uppercase" }}>Total</span>
+          <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(20px,3.5vw,24px)", fontWeight: 700, color: "#1e1814" }}>{breakdown.fmt(breakdown.total ?? Math.max(0, (breakdown.subtotal || 0) - (breakdown.savings || 0) + (breakdown.shippingCost || 0)))}</span>
+        </div>
+      </div>
+
+      {/* Note */}
       {note && (
-        <div style={{ padding: "14px 18px", backgroundColor: "rgba(30,24,20,0.04)", border: "1px solid rgba(30,24,20,0.12)", width: "100%", textAlign: "center" }}>
-          <p style={{ fontSize: "12px", color: "rgba(30,24,20,0.7)", fontFamily: "'Montserrat', sans-serif", letterSpacing: "0.04em", lineHeight: 1.7 }}>
-            {note}
-          </p>
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 9, padding: "clamp(8px,1.2vh,12px) 12px", backgroundColor: "rgba(30,24,20,0.03)", border: "1px solid rgba(30,24,20,0.07)", marginBottom: "clamp(8px,1.4vh,16px)" }}>
+          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: "rgba(30,24,20,0.55)", letterSpacing: "0.03em", lineHeight: 1.6 }}>{note}</p>
         </div>
       )}
 
-      <button
-        onClick={onDone}
-        className="mt-2 transition-opacity hover:opacity-60"
-        style={{ fontSize: "14px", letterSpacing: "0.28em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", padding: "12px 32px", border: "1px solid rgba(30,24,20,0.18)" }}
-      >
-        Continue Shopping
-      </button>
+      {/* Button */}
+      <div style={{ marginTop: "auto", flexShrink: 0 }}>
+        <button
+          onClick={onDone}
+          style={{ width: "100%", padding: "clamp(12px,1.8vh,15px) 24px", backgroundColor: "#1e1814", border: "1px solid #1e1814", fontFamily: "'Montserrat', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.28em", textTransform: "uppercase", color: "#faf8f5", cursor: "pointer", transition: "opacity 0.2s ease" }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.75"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+        >
+          Continue Shopping
+        </button>
+      </div>
     </motion.div>
   );
 }
