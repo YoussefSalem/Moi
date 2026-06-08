@@ -168,9 +168,14 @@ function AppContent() {
     const sizeValue = variant?.selectedOptions.find(
       (o) => o.name.toLowerCase() === "size" || o.name.toLowerCase() === "titre"
     )?.value ?? "One Size";
+    // Cart title must be the base product name (no color suffix) so it stays
+    // stable when Shopify syncs — Shopify uses the parent product title.
+    const cartTitle = product.name.includes(" — ")
+      ? product.name.split(" — ")[0]
+      : product.name;
     cart.addToCart({
       variantId,
-      title: product.name,
+      title: cartTitle,
       price: variant?.price ?? product.price,
       priceAmount: parseEGP(variant?.price ?? product.price) || 0,
       compareAtPrice: variant?.compareAtPrice,

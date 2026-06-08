@@ -266,9 +266,14 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       parseEGP(String(effectivePrice)) || 0,
     );
     // Fire-and-forget — cart opens immediately inside addToCart (optimistic)
+    // Cart title must be the base product name without the color suffix,
+    // so it stays stable when Shopify syncs (Shopify uses the parent title).
+    const baseProductName = product.name.includes(" — ")
+      ? product.name.split(" — ")[0]
+      : product.name;
     void addToCart({
       variantId: selectedVariant?.id ?? product.variantId ?? "",
-      title: product.name,
+      title: baseProductName,
       price: effectivePrice,
       priceAmount: parseEGP(String(effectivePrice)),
       compareAtPrice: effectiveCompareAtPrice,
@@ -292,9 +297,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       1,
       parseEGP(String(effectivePrice)) || 0,
     );
+    const buyNowTitle = product.name.includes(" — ")
+      ? product.name.split(" — ")[0]
+      : product.name;
     buyNow({
       variantId: selectedVariant?.id ?? product.variantId ?? "",
-      title: product.name,
+      title: buyNowTitle,
       price: effectivePrice,
       priceAmount: parseEGP(String(effectivePrice)),
       compareAtPrice: effectiveCompareAtPrice,
