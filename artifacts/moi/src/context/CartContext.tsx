@@ -160,6 +160,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // never overwrite each other's setShopifyCart result.
   const syncChainRef = useRef<Promise<void>>(Promise.resolve());
 
+  // Ref-counted loading so chained ops don't falsely flip loading=false
+  // while a subsequent op is still pending (prevents checkout button flicker).
+  const loadingCountRef = useRef(0);
+  const startLoading = useCallback(() => {
+    loadingCountRef.current += 1;
+    setLoading(true);
+  }, []);
+  const stopLoading = useCallback(() => {
+    loadingCountRef.current = Math.max(0, loadingCountRef.current - 1);
+    if (loadingCountRef.current === 0) setLoading(false);
+  }, []);
+
+  // Timer ref for isAddingToCart — cleared before each new add so rapid taps
+  // don't stack multiple setTimeout callbacks.
+  const addingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Helper that keeps both the ref and state in sync.
   const setCart = useCallback((c: ShopifyCart) => {
     shopifyCartRef.current = c;
@@ -247,10 +263,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
 
     // ── Step 2: Brief "adding" window, then open cart ────────────────────────
-    // A short pause lets the button's "Added ✓" feedback register before the
-    // drawer slides in. Kept tight (120ms) so the button never feels laggy.
+    // Clear any previous timer before starting a new one so rapid taps don't
+    // stack callbacks and re-open the drawer multiple times.
+    if (addingTimerRef.current !== null) clearTimeout(addingTimerRef.current);
     setIsAddingToCart(true);
-    setTimeout(() => {
+    addingTimerRef.current = setTimeout(() => {
+      addingTimerRef.current = null;
       setIsAddingToCart(false);
       setCartOpen(true);
     }, 120);
@@ -305,9 +323,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // before running its own. Without this, both calls can race to create separate
     // Shopify carts and the second setShopifyCart overwrites the first, hiding
     // the earlier item in the drawer.
+    // startLoading/stopLoading use a ref-counter so chained ops don't falsely
+    // flip loading=false while a subsequent op is still pending.
     let resolvedCheckoutUrl: string | null = null;
     if (SHOPIFY_CONFIGURED && params.variantId) {
-      setLoading(true);
+      startLoading();
       const variantId = params.variantId;
       const quantity = qty;
       const op = syncChainRef.current.then(async () => {
@@ -318,14 +338,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }).catch(() => {
         // Shopify failure must not block local cart
       }).finally(() => {
-        setLoading(false);
+        stopLoading();
       });
       syncChainRef.current = op;
       await op;
     }
 
     return resolvedCheckoutUrl;
-  }, [ensureShopifyCart, setCart]);
+  }, [ensureShopifyCart, setCart, startLoading, stopLoading]);
 
   // "Buy It Now" — replace cart with a single item and open checkout immediately.
   // Opens checkout with local state right away (zero wait), then syncs the Shopify
@@ -456,7 +476,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // This prevents rapid mobile taps from stacking network calls and corrupting quantity.
     if (updatingRef.current.get(idOrLineId)) return;
     updatingRef.current.set(idOrLineId, true);
-    setLoading(true);
+    startLoading();
     try {
       if (SHOPIFY_CONFIGURED && shopifyCartRef.current) {
         try {
@@ -489,9 +509,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       });
     } finally {
       updatingRef.current.delete(idOrLineId);
-      setLoading(false);
+      stopLoading();
     }
-  }, [removeItem]);
+  }, [removeItem, startLoading, stopLoading]);
 
   const applyDiscount = useCallback(async (code: string): Promise<{ applicable: boolean; code: string; discountAmount: number }> => {
     if (!SHOPIFY_CONFIGURED) throw new Error("Shopify not configured");
@@ -599,12 +619,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return shopifyCartRef.current;
   }, []);
 
-  const shopifyItemCount = shopifyCart?.totalQuantity ?? 0;
   const localItemCount = localItems.reduce((sum, i) => sum + i.quantity, 0);
   const shopifyActive = SHOPIFY_CONFIGURED && shopifyCart !== null && (shopifyCart?.lines.nodes.length ?? 0) > 0;
-  const itemCount = shopifyActive
-    ? shopifyItemCount
-    : localItemCount;
+  // Always use localItemCount for the badge — it's optimistically updated the
+  // moment "Add to Bag" is tapped, with no network wait. The Shopify quantity
+  // lags by ~1-2s and causes a visible stale count in the header.
+  const itemCount = localItemCount;
 
   // cartTotal, cartRawTotal, and cartSubtotal are always derived inline from
   // current cart state — never stored in separate useState — so they are always

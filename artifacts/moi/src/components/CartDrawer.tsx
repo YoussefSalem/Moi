@@ -321,93 +321,190 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                 <ul className="space-y-6">
                   <AnimatePresence mode="popLayout" initial={false}>
                   {isShopify && shopifyCart && shopifyCart.lines.nodes.length > 0
-                    ? shopifyCart.lines.nodes.map((line) => (
-                        <motion.li
-                          key={line.id}
-                          initial={false}
-                          exit={{ opacity: 0, x: 32, transition: { duration: 0.2, ease: "easeIn" } }}
-                          className="flex gap-4"
-                          style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
-                        >
-                          {(() => {
-                            const lineImg = resolveLineImage(line, localItems);
-                            return (
-                              <div
-                                className="w-20 h-24 flex-shrink-0 overflow-hidden"
-                                style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
+                    ? (() => {
+                        // Confirmed Shopify lines + any local-only items still
+                        // pending sync (added optimistically, not yet in Shopify).
+                        const shopifyVariantIds = new Set(
+                          shopifyCart.lines.nodes.map((l) => l.merchandise.id),
+                        );
+                        const pendingLocalItems = localItems.filter(
+                          (li) => !shopifyVariantIds.has(li.variantId),
+                        );
+                        return (
+                          <>
+                            {shopifyCart.lines.nodes.map((line) => (
+                              <motion.li
+                                key={line.id}
+                                initial={false}
+                                exit={{ opacity: 0, x: 32, transition: { duration: 0.2, ease: "easeIn" } }}
+                                className="flex gap-4"
+                                style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
                               >
-                                {lineImg && (
-                                  <img
-                                    src={lineImg}
-                                    alt={line.merchandise.product.title}
-                                    className="w-full h-full object-cover"
-                                  />
-                                )}
-                              </div>
-                            );
-                          })()}
-                          <div className="flex-1 flex flex-col gap-2 min-w-0">
-                            <div className="flex justify-between items-start gap-2">
-                              <div>
-                                <button
-                                  type="button"
-                                  onClick={() => handleProductClick(line.merchandise.product.title)}
-                                  className="text-left transition-opacity hover:opacity-60"
-                                  style={{ touchAction: "manipulation" }}
-                                >
-                                  <p
-                                    className="text-[12px] tracking-wide font-semibold leading-tight underline underline-offset-2"
-                                    style={{ color: "#17120f" }}
-                                  >
-                                    {line.merchandise.product.title}
-                                  </p>
-                                </button>
-                                <p
-                                  className="text-[10px] tracking-[0.15em] uppercase mt-1 font-light"
-                                  style={{ color: "rgba(23,18,15,0.72)" }}
-                                >
-                                  {line.merchandise.title !== "Default Title" ? line.merchandise.title : ""}
-                                </p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => removeItem(line.id)}
-                                className="flex-shrink-0 w-11 h-11 flex items-center justify-center mt-0.5 active:scale-75 transition-transform"
-                                style={{ touchAction: "manipulation" }}
-                                aria-label="Remove"
+                                {(() => {
+                                  const lineImg = resolveLineImage(line, localItems);
+                                  return (
+                                    <div
+                                      className="w-20 h-24 flex-shrink-0 overflow-hidden"
+                                      style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
+                                    >
+                                      {lineImg && (
+                                        <img
+                                          src={lineImg}
+                                          alt={line.merchandise.product.title}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                                <div className="flex-1 flex flex-col gap-2 min-w-0">
+                                  <div className="flex justify-between items-start gap-2">
+                                    <div>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleProductClick(line.merchandise.product.title)}
+                                        className="text-left transition-opacity hover:opacity-60"
+                                        style={{ touchAction: "manipulation" }}
+                                      >
+                                        <p
+                                          className="text-[12px] tracking-wide font-semibold leading-tight underline underline-offset-2"
+                                          style={{ color: "#17120f" }}
+                                        >
+                                          {line.merchandise.product.title}
+                                        </p>
+                                      </button>
+                                      <p
+                                        className="text-[10px] tracking-[0.15em] uppercase mt-1 font-light"
+                                        style={{ color: "rgba(23,18,15,0.72)" }}
+                                      >
+                                        {line.merchandise.title !== "Default Title" ? line.merchandise.title : ""}
+                                      </p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeItem(line.id)}
+                                      className="flex-shrink-0 w-11 h-11 flex items-center justify-center mt-0.5 active:scale-75 transition-transform"
+                                      style={{ touchAction: "manipulation" }}
+                                      aria-label="Remove"
+                                    >
+                                      <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
+                                    </button>
+                                  </div>
+                                  <div className="flex items-center justify-between mt-auto">
+                                    <QuantityControl
+                                      itemId={line.id}
+                                      quantity={line.quantity}
+                                      updateQuantity={updateQuantity}
+                                    />
+                                    <div className="flex flex-col items-end" style={{ gap: 2 }}>
+                                      {line.merchandise.compareAtPrice && (
+                                        <span
+                                          className="text-[11px] font-medium"
+                                          style={{ color: "#8a7e74", textDecoration: "line-through", textDecorationThickness: 1, textDecorationColor: "#c83232" }}
+                                        >
+                                          {formatMoney(
+                                            String(parseFloat(line.merchandise.compareAtPrice.amount) * line.quantity),
+                                            line.merchandise.compareAtPrice.currencyCode,
+                                          )}
+                                        </span>
+                                      )}
+                                      <p
+                                        className="text-[12px] font-semibold tracking-wide"
+                                        style={{ color: line.merchandise.compareAtPrice ? "#c83232" : "#17120f" }}
+                                      >
+                                        {formatShopifyLinePrice(line)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.li>
+                            ))}
+                            {pendingLocalItems.map((item) => (
+                              <motion.li
+                                key={item.id}
+                                initial={{ opacity: 0, y: -8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, x: 32, transition: { duration: 0.2, ease: "easeIn" } }}
+                                transition={{ duration: 0.18 }}
+                                className="flex gap-4"
+                                style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
                               >
-                                <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
-                              </button>
-                            </div>
-                            <div className="flex items-center justify-between mt-auto">
-                              <QuantityControl
-                                itemId={line.id}
-                                quantity={line.quantity}
-                                updateQuantity={updateQuantity}
-                              />
-                              <div className="flex flex-col items-end" style={{ gap: 2 }}>
-                                {line.merchandise.compareAtPrice && (
-                                  <span
-                                    className="text-[11px] font-medium"
-                                    style={{ color: "#8a7e74", textDecoration: "line-through", textDecorationThickness: 1, textDecorationColor: "#c83232" }}
-                                  >
-                                    {formatMoney(
-                                      String(parseFloat(line.merchandise.compareAtPrice.amount) * line.quantity),
-                                      line.merchandise.compareAtPrice.currencyCode,
-                                    )}
-                                  </span>
-                                )}
-                                <p
-                                  className="text-[12px] font-semibold tracking-wide"
-                                  style={{ color: line.merchandise.compareAtPrice ? "#c83232" : "#17120f" }}
+                                <div
+                                  className="w-20 h-24 flex-shrink-0 overflow-hidden"
+                                  style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
                                 >
-                                  {formatShopifyLinePrice(line)}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </motion.li>
-                      ))
+                                  {item.image && (
+                                    <img
+                                      src={item.image}
+                                      alt={item.title}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  )}
+                                </div>
+                                <div className="flex-1 flex flex-col gap-2 min-w-0">
+                                  <div className="flex justify-between items-start gap-2">
+                                    <div>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleProductClick(item.title)}
+                                        className="text-left transition-opacity hover:opacity-60"
+                                        style={{ touchAction: "manipulation" }}
+                                      >
+                                        <p
+                                          className="text-[12px] tracking-wide font-semibold leading-tight underline underline-offset-2"
+                                          style={{ color: "#17120f" }}
+                                        >
+                                          {item.title}
+                                        </p>
+                                      </button>
+                                      {item.size && (
+                                        <p
+                                          className="text-[10px] tracking-[0.15em] uppercase mt-1 font-light"
+                                          style={{ color: "rgba(23,18,15,0.72)" }}
+                                        >
+                                          Size: {item.size}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeItem(item.id)}
+                                      className="flex-shrink-0 w-11 h-11 flex items-center justify-center mt-0.5 active:scale-75 transition-transform"
+                                      style={{ touchAction: "manipulation" }}
+                                      aria-label="Remove"
+                                    >
+                                      <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
+                                    </button>
+                                  </div>
+                                  <div className="flex items-center justify-between mt-auto">
+                                    <QuantityControl
+                                      itemId={item.id}
+                                      quantity={item.quantity}
+                                      updateQuantity={updateQuantity}
+                                    />
+                                    <div className="flex flex-col items-end gap-0.5">
+                                      {item.compareAtPrice && (
+                                        <span
+                                          className="text-[11px] font-medium"
+                                          style={{ color: "#8a7e74", textDecoration: "line-through", textDecorationThickness: 1, textDecorationColor: "#c83232" }}
+                                        >
+                                          {item.compareAtPrice}
+                                        </span>
+                                      )}
+                                      <p
+                                        className="text-[12px] font-semibold tracking-wide"
+                                        style={{ color: item.compareAtPrice ? "#c83232" : "#17120f" }}
+                                      >
+                                        {item.price}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.li>
+                            ))}
+                          </>
+                        );
+                      })()
                     : localItems.map((item) => (
                         <motion.li
                           key={item.id}
