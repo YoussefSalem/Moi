@@ -299,6 +299,26 @@ export function CheckoutPage() {
     return () => window.removeEventListener("popstate", onPopState);
   }, [checkoutOpen, closeCheckout]);
 
+  // When the browser restores this page from the back-forward cache (user pressed
+  // "back" after being redirected to Paymob), the React state is exactly as it was
+  // before navigation — navigatingToPaymob=true and step="loading". This makes the
+  // site appear frozen under the full-screen overlay with the Place Order button
+  // locked. The pageshow event fires on bfcache restores (persisted=true) so we
+  // can detect this and reset to a clean form state.
+  useEffect(() => {
+    function onPageShow(e: PageTransitionEvent) {
+      if (e.persisted) {
+        // Page was restored from bfcache — clear any in-flight Paymob state
+        setNavigatingToPaymob(false);
+        submittingRef.current = false;
+        setStep((prev) => (prev === "loading" ? "form" : prev));
+        setSubmitError("");
+      }
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
   // Direct Apple Pay fast-path: native ApplePaySession with Paymob merchant validation.
   // This function is intentionally synchronous — ApplePaySession.begin() MUST be
   // called in the same call-stack as the user gesture (tap/click).
