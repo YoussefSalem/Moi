@@ -211,10 +211,10 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
     const galleries = product.colorGalleries;
     if (galleries) {
       const exact = galleries[selectedColor];
-      if (exact?.length) return exact as readonly string[];
+      if (exact?.length) return Array.from(new Set(exact)) as readonly string[];
       const lower = selectedColor.toLowerCase();
       const key = Object.keys(galleries).find((k) => k.toLowerCase() === lower);
-      if (key && galleries[key]?.length) return galleries[key]!;
+      if (key && galleries[key]?.length) return Array.from(new Set(galleries[key]!)) as readonly string[];
     }
     const filmstrip = product.filmstrip ?? [];
     const raw = filmstrip.length > 0
