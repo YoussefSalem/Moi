@@ -151,15 +151,18 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
         }
       >
         {/* Collection label */}
-        <p
+        <motion.p
           className="text-[9px] md:text-[10px] tracking-[0.55em] uppercase font-medium mb-2"
           style={{ color: "rgba(255,255,255,0.82)", fontFamily: "'Montserrat', sans-serif", textShadow: "0 2px 8px rgba(0,0,0,0.45)" }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
         >
           New Drop
-        </p>
+        </motion.p>
 
         {/* Brand name */}
-        <h1
+        <motion.h1
           className="font-serif"
           style={{
             color: "#fff",
@@ -170,31 +173,43 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
             fontWeight: 500,
             textShadow: "0 2px 12px rgba(0,0,0,0.35)",
           }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
         >
           MOI
           <span className="sr-only"> — Premium Versatile Tops & Fashion</span>
-        </h1>
+        </motion.h1>
 
         {/* Headline */}
-        <p
+        <motion.p
           className="mt-3 text-[13px] md:text-[15px] tracking-[0.12em] uppercase font-bold"
           style={{ color: "rgba(255,255,255,0.92)", fontFamily: "'Montserrat', sans-serif", textShadow: "0 2px 8px rgba(0,0,0,0.35)" }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: loaded ? 1 : 0, y: 0 }}
+          transition={{ duration: 0.9, ease: "easeOut", delay: 0.5 }}
         >
           Summer Collection — Exclusive Drop
-        </p>
+        </motion.p>
 
         {/* Subheadline */}
-        <p
+        <motion.p
           className="mt-2 text-[10px] md:text-[11px] tracking-[0.28em] uppercase font-semibold"
           style={{ color: "rgba(255,255,255,0.72)", fontFamily: "'Montserrat', sans-serif", textShadow: "0 2px 8px rgba(0,0,0,0.45)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: loaded ? 1 : 0 }}
+          transition={{ duration: 1, ease: "easeOut", delay: 0.7 }}
         >
           New pieces just launched. Fresh arrivals.
-        </p>
+        </motion.p>
 
-        {/* CTA */}
-        <button
+        {/* CTA — subtle opacity fade only, no offset/scale transforms that fight the compositor */}
+        <motion.button
           type="button"
           onClick={handleShopNow}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.55, ease: "easeOut", delay: 0.4 }}
           className="mt-7 inline-block border transition-all duration-300 hover:scale-[1.02] active:scale-[0.97] hover:bg-white/15"
           style={{
             color: "#fff",
@@ -210,15 +225,18 @@ export function HeroVideo({ onReady }: HeroVideoProps) {
           }}
         >
           Shop Now
-        </button>
+        </motion.button>
 
         {/* Urgency line */}
-        <p
+        <motion.p
           className="mt-3 text-[9px] tracking-[0.2em] uppercase font-light"
           style={{ color: "rgba(255,255,255,0.45)", fontFamily: "'Montserrat', sans-serif", textShadow: "0 1px 6px rgba(0,0,0,0.35)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: loaded ? 1 : 0 }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.9 }}
         >
           Delivery in Egypt: 2–4 days
-        </p>
+        </motion.p>
       </motion.div>
 
       {/* Scroll cue line */}
