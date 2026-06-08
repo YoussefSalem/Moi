@@ -186,6 +186,12 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
   const syncCalledRef = useRef(false);
 
   useEffect(() => {
+    // Normalise URL: Paymob returns to /payment/success but customers should see /ordermade
+    if (window.location.pathname === "/payment/success") {
+      const search = window.location.search; // preserve ?intentId=...&txnId=...
+      window.history.replaceState(null, "", `/ordermade${search}`);
+    }
+
     if (propData) {
       setData(propData);
       if (propData.orderNumber) setShopifyOrderNumber(propData.orderNumber);
