@@ -77,6 +77,22 @@ const DEMO_DATA: OrderConfirmationData = {
 
 const SESSION_KEY = "moi_order_confirmation";
 
+const EMPTY_BREAKDOWN: BreakdownSnapshot = { subtotal: 0, savings: 0, shippingCost: 0, freeShipping: false };
+
+// Defensive: any writer (COD/Apple Pay/InstaPay/card) may persist a partial
+// snapshot. Normalise it so the render never dereferences a missing breakdown.
+function normalizeConfirmation(d: Partial<OrderConfirmationData> | null | undefined): OrderConfirmationData {
+  return {
+    items: Array.isArray(d?.items) ? d!.items : [],
+    breakdown: d?.breakdown && typeof d.breakdown === "object"
+      ? { ...EMPTY_BREAKDOWN, ...d.breakdown }
+      : EMPTY_BREAKDOWN,
+    paymentMethod: typeof d?.paymentMethod === "string" ? d.paymentMethod : "card",
+    orderNumber: d?.orderNumber,
+    intentId: d?.intentId,
+  };
+}
+
 function GoldShimmer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -153,8 +169,8 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
     const raw = sessionStorage.getItem(SESSION_KEY);
     if (raw) {
       try {
-        const parsed = JSON.parse(raw) as OrderConfirmationData;
-        setData(parsed);
+        const parsed = JSON.parse(raw) as Partial<OrderConfirmationData>;
+        setData(normalizeConfirmation(parsed));
         if (parsed.orderNumber) setShopifyOrderNumber(parsed.orderNumber);
         sessionStorage.removeItem(SESSION_KEY);
       } catch {

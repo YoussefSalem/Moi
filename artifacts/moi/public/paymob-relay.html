@@ -233,7 +233,7 @@
       }
 
       // Success / Pending: fade out then redirect to the branded success page.
-      var dest = '/payment/success';
+      var dest = '/order-confirmed';
       var destParams = [];
       if (intentId) destParams.push('intentId=' + encodeURIComponent(intentId));
       if (txnId) destParams.push('txnId=' + encodeURIComponent(txnId));

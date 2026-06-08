@@ -270,6 +270,9 @@ export function CheckoutPage() {
   const refreshSessionRef = useRef<() => void>(() => {});
   // Native Apple Pay — intentId from validate-merchant response (set in session callback)
   const applePayIntentIdRef = useRef<string | null>(null);
+  // Mirrors orderResult.intentId so success callbacks (whose deps exclude
+  // orderResult) can read the live Paymob intent id when navigating away.
+  const orderIntentIdRef = useRef<string | null>(null);
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", phone: "", email: "",
@@ -318,6 +321,22 @@ export function CheckoutPage() {
     window.addEventListener("pageshow", onPageShow);
     return () => window.removeEventListener("pageshow", onPageShow);
   }, []);
+
+  // Keep orderIntentIdRef in sync with the current Paymob intent id.
+  useEffect(() => {
+    orderIntentIdRef.current = orderResult?.intentId ?? null;
+  }, [orderResult?.intentId]);
+
+  // Unified success navigation: every payment method (COD, Apple Pay, InstaPay,
+  // card/wallet) ends on the single OrderConfirmationPage at /order-confirmed.
+  const navigateToOrderConfirmed = useCallback((intentId?: string | null) => {
+    submittingRef.current = false;
+    setStep("form");
+    const qs = intentId ? `?intentId=${encodeURIComponent(intentId)}` : "";
+    window.history.pushState(null, "", `/order-confirmed${qs}`);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    setTimeout(() => closeCheckout(), 80);
+  }, [closeCheckout]);
 
   // Direct Apple Pay fast-path: native ApplePaySession with Paymob merchant validation.
   // This function is intentionally synchronous — ApplePaySession.begin() MUST be
@@ -473,7 +492,7 @@ export function CheckoutPage() {
             }));
           } catch { /* ignore */ }
           clearCart();
-          window.history.pushState(null, "", "/ordermade");
+          window.history.pushState(null, "", "/order-confirmed");
           window.dispatchEvent(new PopStateEvent("popstate"));
           setTimeout(() => closeCheckout(), 80);
         } else {
@@ -1047,7 +1066,7 @@ export function CheckoutPage() {
       setStep("form");
       // Navigate first so the confirmation page is rendered underneath,
       // then close the checkout — customer sees it revealed rather than a blank flash.
-      window.history.pushState(null, "", "/ordermade");
+      window.history.pushState(null, "", "/order-confirmed");
       window.dispatchEvent(new PopStateEvent("popstate"));
       setTimeout(() => closeCheckout(), 80);
     } catch {
@@ -1176,7 +1195,6 @@ export function CheckoutPage() {
     paymobTrackedRef.current = true;
 
     setPaymobIframeUrl(null);
-    setStep("card-confirm");
     clearCart();
     markAbandonedCartRecovered();
     const orderLines = isShopify && shopifyCart
@@ -1203,7 +1221,11 @@ export function CheckoutPage() {
         items: orderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })),
       });
     }
-  }, [clearCart, markAbandonedCartRecovered, isShopify, shopifyCart, localItems, totalAmount]);
+    // Unified success: land on the single OrderConfirmationPage (same as COD/Apple Pay).
+    // Card item/breakdown snapshot is already in sessionStorage (moi_paymob_*);
+    // the intent id drives order-number polling on the confirmation page.
+    navigateToOrderConfirmed(orderIntentIdRef.current);
+  }, [clearCart, markAbandonedCartRecovered, isShopify, shopifyCart, localItems, totalAmount, navigateToOrderConfirmed]);
 
 
   const handleApplePayFail = useCallback(() => {
@@ -1390,7 +1412,21 @@ export function CheckoutPage() {
             }).catch(() => {});
           }
           clearCart();
-          setStep("card-confirm");
+          // Unified success: persist the snapshot then land on OrderConfirmationPage.
+          try {
+            const restoredBreakdown = breakdownRaw
+              ? JSON.parse(breakdownRaw) as unknown
+              : { subtotal: 0, savings: 0, shippingCost: 0, freeShipping: false };
+            sessionStorage.setItem("moi_order_confirmation", JSON.stringify({
+              items: restoredItems ?? [],
+              breakdown: restoredBreakdown,
+              paymentMethod: "card",
+              orderNumber: "",
+              intentId: syncIntentId ?? undefined,
+            }));
+          } catch { /* ignore */ }
+          navigateToOrderConfirmed(syncIntentId ?? null);
+          return;
         } else {
           setStep("form");
           submittingRef.current = false;
@@ -1462,8 +1498,7 @@ export function CheckoutPage() {
           currencyCode: "EGP",
           lineItems: orderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
         });
-        const dest = `/payment/success${intentId ? `?intentId=${encodeURIComponent(intentId)}` : ""}`;
-        window.location.href = dest;
+        navigateToOrderConfirmed(intentId ?? null);
       } else if (!data.pending) {
         window.location.href = "/payment/failed";
       }
@@ -1471,7 +1506,7 @@ export function CheckoutPage() {
 
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [orderResult?.intentId, clearCart, markAbandonedCartRecovered, isShopify, shopifyCart, localItems, totalAmount]);
+  }, [orderResult?.intentId, clearCart, markAbandonedCartRecovered, isShopify, shopifyCart, localItems, totalAmount, navigateToOrderConfirmed]);
 
   // After the overlay countdown fires on a card payment, the postMessage path calls
   // handleIframeSuccess with shopifyOrderNumber=undefined (polling was stopped when the
@@ -1663,7 +1698,7 @@ export function CheckoutPage() {
                     items: proofOrderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })),
                   });
                 }
-                window.history.pushState(null, "", "/ordermade");
+                window.history.pushState(null, "", "/order-confirmed");
                 window.dispatchEvent(new PopStateEvent("popstate"));
                 setTimeout(() => closeCheckout(), 80);
               }}

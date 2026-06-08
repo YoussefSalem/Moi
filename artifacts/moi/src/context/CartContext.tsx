@@ -247,13 +247,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
 
     // ── Step 2: Brief "adding" window, then open cart ────────────────────────
-    // The 350ms pause lets the button's "Added ✓" feedback register before the
-    // drawer slides in, making the transition feel intentional instead of snappy.
+    // A short pause lets the button's "Added ✓" feedback register before the
+    // drawer slides in. Kept tight (120ms) so the button never feels laggy.
     setIsAddingToCart(true);
     setTimeout(() => {
       setIsAddingToCart(false);
       setCartOpen(true);
-    }, 350);
+    }, 120);
 
     // ── Step 3: Analytics (non-blocking) ─────────────────────────────────────
     trackAddToCart({
