@@ -188,17 +188,6 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
   // Swipe-right-to-close touch tracking
   const swipeTouchStartX = useRef(0);
   const swipeTouchStartY = useRef(0);
-  const itemsScrollRef = useRef<HTMLDivElement>(null);
-  const prevItemCountRef = useRef(itemCount);
-
-  // When items are added (count increases), snap the cart list to top so the
-  // newest item is visible and the scroll never jumps from bottom to top.
-  useEffect(() => {
-    if (itemCount > prevItemCountRef.current) {
-      itemsScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
-    }
-    prevItemCountRef.current = itemCount;
-  }, [itemCount]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     swipeTouchStartX.current = e.touches[0].clientX;
@@ -291,8 +280,7 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
             )}
 
             {/* Items */}
-            {/* ref: scroll container locked to top so new items never push the view down */}
-            <div ref={itemsScrollRef} className="flex-1 overflow-y-auto px-7 py-6" style={{ overscrollBehavior: "contain" }}>
+            <div className="flex-1 overflow-y-auto px-7 py-6" style={{ overscrollBehavior: "contain" }}>
               {!visuallyHasItems ? (
                 <div className="flex flex-col items-center justify-center h-full gap-5 text-center">
                   <ShoppingBag size={36} strokeWidth={1} style={{ color: "rgba(30,24,20,0.2)" }} />
