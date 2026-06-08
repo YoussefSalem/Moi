@@ -19,9 +19,6 @@ export function WhatsAppButton() {
   const lastDraftRef = useRef("");
 
   useEffect(() => {
-    if (open && inputRef.current) {
-      inputRef.current.focus();
-    }
     if (open) {
       draftSeqRef.current = 0;
       lastDraftRef.current = "";

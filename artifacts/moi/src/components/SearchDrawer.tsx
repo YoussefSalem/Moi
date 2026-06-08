@@ -78,7 +78,6 @@ export function SearchDrawer({ open, items, query, onQueryChange, onClose, onSel
                   placeholder="Search by product, color, or price"
                   className="w-full px-4 py-3 text-base tracking-wide outline-none bg-transparent"
                   style={{ border: "1px solid rgba(30,24,20,0.14)", color: "#1e1814", fontSize: "17px" }}
-                  autoFocus
                 />
 
                 <div className="mt-5 max-h-[55vh] overflow-y-auto pr-1 grid gap-3">
