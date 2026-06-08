@@ -1042,6 +1042,9 @@ export function CheckoutPage() {
         }
       }
       markAbandonedCartRecovered();
+      // Reset submission state before closing so the next order can be placed.
+      submittingRef.current = false;
+      setStep("form");
       // Navigate first so the confirmation page is rendered underneath,
       // then close the checkout — customer sees it revealed rather than a blank flash.
       window.history.pushState(null, "", "/ordermade");
