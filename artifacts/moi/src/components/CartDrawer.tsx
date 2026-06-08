@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, ShoppingBag, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -157,6 +157,41 @@ export function CartDrawer() {
     return () => clearTimeout(t);
   }, [hasItems]);
 
+  // Lock body scroll when cart is open (position:fixed approach works on iOS Safari)
+  useEffect(() => {
+    if (!cartOpen) return;
+    const scrollY = window.scrollY;
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      window.scrollTo(0, scrollY);
+    };
+  }, [cartOpen]);
+
+  // Swipe-right-to-close touch tracking
+  const swipeTouchStartX = useRef(0);
+  const swipeTouchStartY = useRef(0);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    swipeTouchStartX.current = e.touches[0].clientX;
+    swipeTouchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - swipeTouchStartX.current;
+    const dy = Math.abs(e.changedTouches[0].clientY - swipeTouchStartY.current);
+    // Trigger close only on a clear rightward swipe (>70px horizontal, not a vertical scroll)
+    if (dx > 70 && dy < dx * 0.6) {
+      closeCart();
+    }
+  }, [closeCart]);
+
   return (
     <AnimatePresence>
       {cartOpen && (
@@ -178,6 +213,8 @@ export function CartDrawer() {
             transition={{ type: "tween", duration: 0.38, ease: [0.76, 0, 0.24, 1] }}
             className="fixed top-0 right-0 bottom-0 z-[100] w-full max-w-[420px] flex flex-col"
             style={{ backgroundColor: "#faf8f5", willChange: "transform" }}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
             {/* Header */}
             <div
