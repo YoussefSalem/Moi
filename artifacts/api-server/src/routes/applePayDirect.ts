@@ -40,6 +40,15 @@ function consumeSecret(intentId: string): string | null {
 }
 
 /**
+ * POST /api/apple-pay/ping
+ * Diagnostic endpoint — confirms onpaymentauthorized fires and network is reachable.
+ */
+router.post("/api/apple-pay/ping", (req, res) => {
+  req.log.info({ stage: req.body?.stage ?? "unknown" }, "Apple Pay: ping received");
+  res.status(200).json({ ok: true });
+});
+
+/**
  * POST /api/apple-pay/validate-merchant
  *
  * Called by the frontend's ApplePaySession.onvalidatemerchant callback.

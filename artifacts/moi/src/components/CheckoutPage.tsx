@@ -439,6 +439,12 @@ export function CheckoutPage() {
     };
 
     session.onpaymentauthorized = async ({ payment }) => {
+      // Diagnostic: fire-and-forget ping to confirm callback fired + network works
+      void fetch("/api/apple-pay/ping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: "onpaymentauthorized" }),
+      });
       try {
         const sc = payment.shippingContact;
         const res = await fetch("/api/apple-pay/authorize", {
@@ -500,9 +506,9 @@ export function CheckoutPage() {
           setSubmitError(data.error ?? "Payment was declined. Please try another card.");
           setPaymentMethod("cod");
         }
-      } catch {
+      } catch (apErr) {
         session.completePayment({ status: AP.STATUS_FAILURE });
-        setSubmitError("Payment failed. Please try again.");
+        setSubmitError(`Debug: ${apErr instanceof Error ? apErr.message : String(apErr)}`);
         setPaymentMethod("cod");
       }
     };
