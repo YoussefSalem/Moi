@@ -91,18 +91,14 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
     return merged;
   })();
 
-  // Build colorGalleries: for each color, use the Shopify variant image as the first
-  // gallery image (if available), then append any local gallery images.
+  // Build colorGalleries: collect all distinct Shopify CDN images per color.
+  // If Shopify has images for a color, use those exclusively (Shopify is source of truth).
+  // Only fall back to local gallery images when Shopify has none for that color.
   const colorGalleries = (() => {
     const localGalleries = (fallback.colorGalleries ?? {}) as Record<string, string[]>;
-    const merged: Record<string, string[]> = {};
 
-    // Start from local galleries
-    for (const [k, imgs] of Object.entries(localGalleries)) {
-      merged[k] = [...(imgs as string[])];
-    }
-
-    // Prepend Shopify variant image for each color (deduped)
+    // Collect distinct Shopify CDN images per color (preserving first-seen order)
+    const shopifyByColor: Record<string, string[]> = {};
     for (const v of shopify.variants.nodes) {
       if (!v.image?.url) continue;
       const colorOpt = v.selectedOptions.find(
@@ -110,11 +106,26 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
       );
       if (!colorOpt) continue;
       const colorName = colorOpt.value;
-      const existing = merged[colorName] ?? [];
-      if (!existing.includes(v.image.url)) {
-        merged[colorName] = [v.image.url, ...existing.filter((u) => u !== v.image!.url)];
+      if (!shopifyByColor[colorName]) shopifyByColor[colorName] = [];
+      if (!shopifyByColor[colorName].includes(v.image.url)) {
+        shopifyByColor[colorName].push(v.image.url);
       }
     }
+
+    const merged: Record<string, string[]> = {};
+
+    // Start from local galleries as defaults
+    for (const [k, imgs] of Object.entries(localGalleries)) {
+      merged[k] = [...(imgs as string[])];
+    }
+
+    // Where Shopify has images, replace local gallery entirely
+    for (const [colorName, shopifyImgs] of Object.entries(shopifyByColor)) {
+      if (shopifyImgs.length > 0) {
+        merged[colorName] = shopifyImgs;
+      }
+    }
+
     return merged;
   })();
 
