@@ -50,10 +50,12 @@ export function ColorCard({
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressActivatedRef = useRef(false);
 
-  const allImages: string[] = (gallery && gallery.length > 0
-    ? gallery
-    : [image, ...(hoverImage ? [hoverImage] : [])]
-  ).filter(Boolean);
+  const allImages: string[] = Array.from(new Set(
+    (gallery && gallery.length > 0
+      ? gallery
+      : [image, ...(hoverImage ? [hoverImage] : [])]
+    ).filter(Boolean)
+  ));
 
   // Deterministic scarcity — same hash logic as ProductCard so numbers never change on refresh
   const scarcityCount = (() => {
