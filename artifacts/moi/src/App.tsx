@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
 import { parseEGP } from "@/lib/price";
 import { captureAttribution } from "@/lib/adAttribution";
@@ -142,6 +143,10 @@ function AppContent() {
       image,
       size: sizeValue,
       color: colorName,
+    });
+    toast.success(`${product.name} added to bag`, {
+      description: [colorName, sizeValue].filter(Boolean).join(" · "),
+      duration: 2500,
     });
   }
 
@@ -547,7 +552,7 @@ function App() {
         <AppContent />
         {typeof window !== "undefined" && window.location.href.includes("debug_analytics") && <AnalyticsDebug />}
         <Toaster
-          position="bottom-center"
+          position="top-right"
           toastOptions={{
             style: {
               fontFamily: "'Montserrat', sans-serif",
