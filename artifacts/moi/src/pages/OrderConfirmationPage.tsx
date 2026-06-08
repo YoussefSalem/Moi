@@ -76,6 +76,7 @@ const DEMO_DATA: OrderConfirmationData = {
 };
 
 const SESSION_KEY = "moi_order_confirmation";
+const ACTIVE_SESSION_KEY = "moi_order_confirmed_active";
 
 const EMPTY_BREAKDOWN: BreakdownSnapshot = { subtotal: 0, savings: 0, shippingCost: 0, freeShipping: false };
 
@@ -166,16 +167,21 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
       return;
     }
 
+    function saveAndSet(d: OrderConfirmationData) {
+      setData(d);
+      if (d.orderNumber) setShopifyOrderNumber(d.orderNumber);
+      try { sessionStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(d)); } catch { /* ignore */ }
+    }
+
     const raw = sessionStorage.getItem(SESSION_KEY);
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as Partial<OrderConfirmationData>;
-        setData(normalizeConfirmation(parsed));
-        if (parsed.orderNumber) setShopifyOrderNumber(parsed.orderNumber);
+        saveAndSet(normalizeConfirmation(parsed));
         sessionStorage.removeItem(SESSION_KEY);
       } catch {
-        setData(DEMO_DATA);
-        setIsDemo(true);
+        onContinueShopping();
+        return;
       }
     } else {
       const itemsRaw = sessionStorage.getItem("moi_paymob_items");
@@ -188,14 +194,29 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
         try {
           const parsedItems = itemsRaw ? (JSON.parse(itemsRaw) as CartItem[]) : [];
           const parsedBreakdown = breakdownRaw ? (JSON.parse(breakdownRaw) as BreakdownSnapshot) : { subtotal: 0, savings: 0, shippingCost: 0, freeShipping: false };
-          setData({ items: parsedItems, breakdown: parsedBreakdown, paymentMethod: methodRaw, intentId: intentIdFromUrl });
+          saveAndSet({ items: parsedItems, breakdown: parsedBreakdown, paymentMethod: methodRaw, intentId: intentIdFromUrl });
         } catch {
-          setData(DEMO_DATA);
-          setIsDemo(true);
+          onContinueShopping();
+          return;
         }
       } else {
-        setData(DEMO_DATA);
-        setIsDemo(true);
+        // No primary data — check if we have an active session (e.g. after a refresh)
+        const activeRaw = sessionStorage.getItem(ACTIVE_SESSION_KEY);
+        if (activeRaw) {
+          try {
+            const parsed = JSON.parse(activeRaw) as Partial<OrderConfirmationData>;
+            const d = normalizeConfirmation(parsed);
+            setData(d);
+            if (d.orderNumber) setShopifyOrderNumber(d.orderNumber);
+          } catch {
+            onContinueShopping();
+            return;
+          }
+        } else {
+          // No session data at all — direct URL access; redirect to home
+          onContinueShopping();
+          return;
+        }
       }
     }
 
@@ -203,6 +224,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
      "moi_paymob_intent_id", "moi_checkout_form", "moi_paymob_result"].forEach((k) => {
       try { sessionStorage.removeItem(k); } catch { /* ignore */ }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propData]);
 
   // Preload thumbnail images
@@ -266,7 +288,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
 
   const handleContinue = () => {
     ["moi_paymob_result", "moi_paymob_items", "moi_paymob_order_total",
-     "moi_paymob_breakdown", "moi_paymob_intent_id", SESSION_KEY].forEach((k) => {
+     "moi_paymob_breakdown", "moi_paymob_intent_id", SESSION_KEY, ACTIVE_SESSION_KEY].forEach((k) => {
       try { sessionStorage.removeItem(k); } catch { /* ignore */ }
     });
     onContinueShopping();

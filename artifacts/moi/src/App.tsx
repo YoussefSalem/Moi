@@ -65,9 +65,19 @@ function parsePath(): { page: PageType; productHandle: string; section?: string 
     if (!matchedSlug) return { page: "notfound", productHandle: handle };
     return { page: "product", productHandle: handle };
   }
-  if (pathname === "/payment/success") return { page: "order-confirmation", productHandle: "" };
+  if (pathname === "/payment/success" || pathname === "/order-confirmed") {
+    // Guard against direct URL access: only allow if a valid order session exists
+    const hasActive = sessionStorage.getItem("moi_order_confirmed_active") !== null;
+    const hasPrimary =
+      sessionStorage.getItem("moi_order_confirmation") !== null ||
+      sessionStorage.getItem("moi_paymob_items") !== null;
+    if (!hasActive && !hasPrimary) {
+      window.history.replaceState(null, "", "/");
+      return { page: "home", productHandle: "" };
+    }
+    return { page: "order-confirmation", productHandle: "" };
+  }
   if (pathname === "/payment/failed") return { page: "payment-failed", productHandle: "" };
-  if (pathname === "/order-confirmed") return { page: "order-confirmation", productHandle: "" };
   if (pathname === "/checkout") return { page: "checkout", productHandle: "" };
   if (pathname === "/accessories") return { page: "accessories", productHandle: "" };
   if (pathname === "/ambassador") return { page: "ambassador", productHandle: "" };
@@ -451,6 +461,15 @@ function AppContent() {
       window.scrollTo({ top: target, behavior: "instant" as ScrollBehavior });
     });
   }, [homeRevealed]);
+
+  // Clear the order confirmation session whenever the customer navigates away from it.
+  // This prevents returning to the confirmation page after intentional navigation
+  // (back button, Continue Shopping, etc.) while still allowing refresh/app-switch.
+  useEffect(() => {
+    if (page !== "order-confirmation") {
+      try { sessionStorage.removeItem("moi_order_confirmed_active"); } catch { /* ignore */ }
+    }
+  }, [page]);
 
   // Shopify Analytics: page_viewed fires on mount and on every in-app navigation
   useEffect(() => {
