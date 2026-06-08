@@ -208,9 +208,9 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   useEffect(() => { if (displaySizes[0]) setSelectedSize(displaySizes[0]); }, [product.slug]);
 
   const galleryImages = useMemo<string[]>(() => {
-    const film = product.filmstrip as string[];
-    const raw = film?.length > 0 ? [product.productShot, ...film] : [product.productShot];
-    return Array.from(new Set(raw));
+    const film = (product.filmstrip as string[]).filter(Boolean);
+    if (film.length > 0) return Array.from(new Set(film));
+    return product.productShot ? [product.productShot] : [];
   }, [product.productShot, product.filmstrip]);
 
   useEffect(() => { setThumbLoaded(new Array(galleryImages.length).fill(false)); }, [galleryImages.length, handle]);
