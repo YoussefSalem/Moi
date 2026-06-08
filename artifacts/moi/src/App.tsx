@@ -494,7 +494,7 @@ function App() {
         <AppContent />
         {typeof window !== "undefined" && window.location.href.includes("debug_analytics") && <AnalyticsDebug />}
         <Toaster
-          position="top-center"
+          position="bottom-center"
           toastOptions={{
             style: {
               fontFamily: "'Montserrat', sans-serif",

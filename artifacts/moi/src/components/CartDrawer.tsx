@@ -157,20 +157,18 @@ export function CartDrawer() {
     return () => clearTimeout(t);
   }, [hasItems]);
 
-  // Lock body scroll when cart is open (position:fixed approach works on iOS Safari)
+  // Lock body scroll when cart is open.
+  // Compensates for scrollbar width so there's no layout jump when the scrollbar disappears.
   useEffect(() => {
     if (!cartOpen) return;
-    const scrollY = window.scrollY;
+    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = "100%";
+    if (scrollBarWidth > 0) {
+      document.body.style.paddingRight = `${scrollBarWidth}px`;
+    }
     return () => {
       document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.width = "";
-      window.scrollTo(0, scrollY);
+      document.body.style.paddingRight = "";
     };
   }, [cartOpen]);
 
