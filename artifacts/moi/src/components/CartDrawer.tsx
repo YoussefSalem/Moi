@@ -331,7 +331,7 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                   </button>
                 </div>
               ) : (
-                <ul className="space-y-6">
+                <ul>
                   <AnimatePresence mode="popLayout" initial={false}>
                   {(() => {
                     // Build a unified list keyed by variantId so the same item
@@ -376,10 +376,13 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                     return items.map(({ key, line, local }) => (
                       <motion.li
                         key={key}
-                        initial={false}
-                        exit={{ opacity: 0, x: 32, transition: { duration: 0.2, ease: "easeIn" } }}
-                        className="flex gap-4"
-                        style={{ borderBottom: "1px solid rgba(30,24,20,0.06)", paddingBottom: "1.5rem" }}
+                        layout
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, height: 0, paddingBottom: 0, marginBottom: 0, borderBottomWidth: 0, transition: { duration: 0.28, ease: "easeIn" } }}
+                        transition={{ layout: { duration: 0.35, ease: "easeInOut" } }}
+                        className="flex gap-4 overflow-hidden"
+                        style={{ borderBottomWidth: "1px", borderBottomStyle: "solid", borderBottomColor: "rgba(30,24,20,0.06)", paddingBottom: "1.5rem", marginBottom: "1.5rem" }}
                       >
                         {line ? (() => {
                           const lineImg = resolveLineImage(line, localItems);
