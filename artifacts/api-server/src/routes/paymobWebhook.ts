@@ -38,11 +38,19 @@ router.post("/webhooks/paymob", async (req, res) => {
   // Normalize payload: v1 has fields at top level; v2 (Unified Checkout) wraps them in `obj`
   const txn = extractPaymobTxn(payload);
 
-  // merchant_order_id is our internal intent UUID (set at paymob-init time)
+  // merchant_order_id is our internal intent UUID (set at paymob-init time).
+  // The Unified Checkout (Intentions API) uses merchant_order_ext_ref; the legacy
+  // flow and some webhook formats use merchant_order_id or order.merchant_order_id.
   const orderObj = (txn.order && typeof txn.order === "object")
     ? (txn.order as Record<string, unknown>)
     : null;
-  const intentId = String(txn.merchant_order_id ?? orderObj?.merchant_order_id ?? "");
+  const intentId = String(
+    txn.merchant_order_id
+    ?? txn.merchant_order_ext_ref
+    ?? orderObj?.merchant_order_id
+    ?? orderObj?.merchant_order_ext_ref
+    ?? ""
+  );
   const paymobTxnId = String(txn.id ?? "");
 
   // Skip intermediate 3DS notifications — Paymob fires a webhook with

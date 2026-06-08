@@ -522,6 +522,7 @@ function ProofGallery({
 
 interface Transaction {
   id: number;
+  intentId: string;
   transactionId: string;
   paymobTxnId: string | null;
   dateCreated: string;
@@ -547,7 +548,8 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "paid" | "unpaid">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "paid" | "unpaid" | "pending">("all");
+  const [recovering, setRecovering] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -568,14 +570,46 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
 
   const filtered = txns.filter((t) => {
     if (filterStatus === "paid") return t.status === "completed";
-    if (filterStatus === "unpaid") return t.status !== "completed";
+    if (filterStatus === "unpaid") return t.status !== "completed" && t.status !== "pending";
+    if (filterStatus === "pending") return t.status === "pending";
     return true;
   });
   const paidCount = txns.filter((t) => t.status === "completed").length;
+  const pendingCount = txns.filter((t) => t.status === "pending").length;
 
   const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-GB", {
     day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
+
+  async function handleRecover(t: Transaction) {
+    const hintTxnId = window.prompt(
+      `Recover payment for ${t.customerName ?? t.customerEmail ?? "customer"} (${t.amount} EGP)\n\nEnter the Paymob Transaction ID if you know it (leave blank to auto-detect):`,
+      ""
+    );
+    if (hintTxnId === null) return;
+    setRecovering(t.intentId);
+    try {
+      const res = await fetch("/api/admin/recover-payment", {
+        method: "POST",
+        headers: { ...apiHeaders(token), "Content-Type": "application/json" },
+        body: JSON.stringify({ intentId: t.intentId, paymobTxnId: hintTxnId.trim() || undefined }),
+      });
+      const data = await res.json() as { ok?: boolean; error?: string; shopifyOrderNumber?: number | null; paymobTxnId?: string };
+      if (res.ok && data.ok) {
+        alert(`✓ Order recovered! Shopify #${data.shopifyOrderNumber ?? "—"} · Paymob TXN ${data.paymobTxnId ?? "—"}`);
+        void load();
+      } else if (res.status === 409) {
+        alert(`Already completed — Shopify #${data.shopifyOrderNumber ?? "—"}`);
+        void load();
+      } else {
+        alert(`Recovery failed: ${data.error ?? "Unknown error"}`);
+      }
+    } catch {
+      alert("Network error during recovery.");
+    } finally {
+      setRecovering(null);
+    }
+  }
 
   return (
     <div>
@@ -587,6 +621,11 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
           <span style={{ ...mono, fontSize: "12px", color: "rgba(30,24,20,0.5)" }}>
             {paidCount} paid
           </span>
+          {pendingCount > 0 && (
+            <span style={{ ...mono, fontSize: "11px", color: "#a05c00", backgroundColor: "rgba(200,120,0,0.12)", padding: "2px 7px", borderRadius: 3 }}>
+              {pendingCount} pending
+            </span>
+          )}
         </div>
         <button onClick={() => void load()} style={{ display: "flex", alignItems: "center", gap: 6, ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)" }}>
           <RefreshCw size={12} strokeWidth={2} /> Refresh
@@ -594,7 +633,7 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
       </div>
 
       <div className="flex gap-2 mb-5 flex-wrap">
-        {([["all", "All"], ["paid", "Paid"], ["unpaid", "Not Paid"]] as const).map(([s, label]) => (
+        {([["all", "All"], ["paid", "Paid"], ["unpaid", "Not Paid"], ["pending", "Pending"]] as const).map(([s, label]) => (
           <button
             key={s}
             onClick={() => setFilterStatus(s)}
@@ -605,6 +644,14 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
         ))}
       </div>
 
+      {pendingCount > 0 && (
+        <div style={{ marginBottom: 16, padding: "10px 14px", backgroundColor: "rgba(200,120,0,0.08)", border: "1px solid rgba(200,120,0,0.2)", borderRadius: 4 }}>
+          <p style={{ ...mono, fontSize: 11, color: "#a05c00", margin: 0 }}>
+            {pendingCount} pending intent{pendingCount > 1 ? "s" : ""} — if a customer's card was charged but no order was created, use the Recover button to create the order from Paymob.
+          </p>
+        </div>
+      )}
+
       {error && <p style={{ fontSize: "14px", color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginBottom: 12 }}>{error}</p>}
       {loading && <p style={{ fontSize: "14px", color: "rgba(30,24,20,0.6)", fontFamily: "'Montserrat', sans-serif" }}>Loading…</p>}
 
@@ -614,20 +661,22 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
 
       {!loading && filtered.length > 0 && (
         <div style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          <table style={{ minWidth: 800, borderCollapse: "collapse", width: "100%" }}>
+          <table style={{ minWidth: 900, borderCollapse: "collapse", width: "100%" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", backgroundColor: "#faf8f5" }}>
-                {["Transaction ID", "Customer", "Amount", "Status", "Shopify #"].map((h) => (
-                  <th key={h} style={{ ...mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, textAlign: "left", padding: "10px 14px", whiteSpace: "nowrap" }}>{h}</th>
+                {["Transaction ID", "Customer", "Amount", "Status", "Shopify #", ""].map((h, i) => (
+                  <th key={i} style={{ ...mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, textAlign: "left", padding: "10px 14px", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((t, i) => {
                 const isPaid = t.status === "completed";
+                const isPending = t.status === "pending";
                 const isLast = i === filtered.length - 1;
+                const isRecovering = recovering === t.intentId;
                 return (
-                  <tr key={t.id} style={{ borderBottom: isLast ? "none" : "1px solid rgba(30,24,20,0.05)" }}>
+                  <tr key={t.id} style={{ borderBottom: isLast ? "none" : "1px solid rgba(30,24,20,0.05)", backgroundColor: isPending ? "rgba(200,120,0,0.04)" : undefined }}>
                     <td style={{ ...mono, fontSize: 12, color: "#1e1814", padding: "12px 14px", whiteSpace: "nowrap", fontWeight: 600 }}>
                       {t.paymobTxnId ?? <span style={{ fontSize: 10, color: "rgba(30,24,20,0.35)" }}>{t.transactionId.slice(0, 16)}…</span>}
                       <div style={{ fontSize: 10, color: "rgba(30,24,20,0.4)", fontWeight: 400, marginTop: 2 }}>{fmtDate(t.dateCreated)}</div>
@@ -639,8 +688,8 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
                     </td>
                     <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 700, padding: "12px 14px", whiteSpace: "nowrap" }}>{t.amount}&nbsp;EGP</td>
                     <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
-                      <span style={{ ...mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px", backgroundColor: isPaid ? "rgba(45,110,45,0.12)" : "rgba(180,60,40,0.1)", color: isPaid ? "#2d6e2d" : "#b43c28" }}>
-                        {isPaid ? "PAID" : "NOT PAID"}
+                      <span style={{ ...mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px", backgroundColor: isPaid ? "rgba(45,110,45,0.12)" : isPending ? "rgba(200,120,0,0.15)" : "rgba(180,60,40,0.1)", color: isPaid ? "#2d6e2d" : isPending ? "#a05c00" : "#b43c28" }}>
+                        {isPaid ? "PAID" : isPending ? "PENDING" : "NOT PAID"}
                       </span>
                     </td>
                     <td style={{ ...mono, fontSize: 13, color: "#1e1814", fontWeight: 700, padding: "12px 14px", whiteSpace: "nowrap" }}>
@@ -658,6 +707,17 @@ function TransactionsTab({ token, onAuth }: { token: string; onAuth?: (t: string
                           t.shopifyOrderNumber ? `#${t.shopifyOrderNumber}` : <span style={{ fontSize: 10, color: "rgba(30,24,20,0.4)" }}>ID {String(t.shopifyOrderId)}</span>
                         )
                       ) : "—"}
+                    </td>
+                    <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
+                      {isPending && (
+                        <button
+                          onClick={() => void handleRecover(t)}
+                          disabled={isRecovering}
+                          style={{ ...btn, fontSize: 10, padding: "4px 10px", backgroundColor: isRecovering ? "rgba(30,24,20,0.1)" : "#a05c00", color: isRecovering ? "rgba(30,24,20,0.4)" : "#fff", border: "none", cursor: isRecovering ? "not-allowed" : "pointer" }}
+                        >
+                          {isRecovering ? "Recovering…" : "Recover"}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

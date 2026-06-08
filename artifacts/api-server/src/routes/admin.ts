@@ -10,6 +10,8 @@ import {
   getShopifyAdminToken,
 } from "../lib/integrations";
 import { getMaskedConfig, savePaymobConfig, type PaymobConfig } from "../lib/paymobConfig";
+import { verifyPaymobTransactionById, queryPaymobByMerchantOrderId, mapPaymobBillingToCustomer } from "../lib/paymob";
+import { processPaymobSuccess } from "../lib/processPaymobSuccess";
 import { listDiscountCodeUses } from "@workspace/db";
 import { sendEmail, buildAbandonedCartEmail, buildInstapayConfirmedEmail, buildInstapayRejectedEmail } from "../lib/email";
 import { getSiteUrl } from "../lib/siteUrl";
@@ -503,12 +505,13 @@ router.post("/admin/card-orders/:id/decline", async (req, res) => {
 
 // GET /admin/transactions — returns all Paymob intents with payment activity
 // for the admin transactions view (replaces the old card-orders tab UI).
+// Also includes recent pending intents (last 24h) so admins can recover missed payments.
 router.get("/admin/transactions", async (req, res) => {
   try {
     const rows = await db
       .select()
       .from(paymobIntents)
-      .where(inArray(paymobIntents.status, ["completed", "processing", "failed", "declined"]))
+      .where(inArray(paymobIntents.status, ["completed", "processing", "failed", "declined", "pending"]))
       .orderBy(desc(paymobIntents.createdAt));
 
     const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN ?? null;
@@ -526,6 +529,7 @@ router.get("/admin/transactions", async (req, res) => {
 
       return {
         id: r.id,
+        intentId: r.intentId,
         transactionId: r.paymobTxnId ?? r.intentId,
         paymobTxnId: r.paymobTxnId,
         dateCreated: r.createdAt,
@@ -553,6 +557,86 @@ router.get("/admin/transactions", async (req, res) => {
     req.log.error({ err }, "transactions: failed to fetch");
     res.status(500).json({ error: "Failed to fetch transactions" });
   }
+});
+
+// POST /admin/recover-payment — manually recover a missed card payment.
+// Takes an intentId (required) and optional paymobTxnId hint.
+// Verifies the payment with Paymob and creates the Shopify order if confirmed.
+router.post("/admin/recover-payment", requireAdminAuth, async (req, res) => {
+  const body = req.body as { intentId?: unknown; paymobTxnId?: unknown };
+  const intentId = typeof body.intentId === "string" ? body.intentId.trim() : "";
+  const hintTxnId = typeof body.paymobTxnId === "string" ? body.paymobTxnId.trim() : "";
+
+  if (!intentId) {
+    res.status(400).json({ error: "Missing intentId" });
+    return;
+  }
+
+  const rows = await db.select().from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1);
+  const intent = rows[0];
+  if (!intent) {
+    res.status(404).json({ error: "Intent not found" });
+    return;
+  }
+  if (intent.status === "completed") {
+    res.status(409).json({ error: "Already completed", shopifyOrderNumber: intent.shopifyOrderNumber });
+    return;
+  }
+  if (intent.status !== "pending" && intent.status !== "failed") {
+    res.status(409).json({ error: `Cannot recover intent in status: ${intent.status}` });
+    return;
+  }
+
+  req.log.info({ intentId, hintTxnId }, "admin: recover-payment requested");
+
+  // Strategy 1: verify the hint txnId directly against Paymob
+  if (hintTxnId) {
+    const verified = await verifyPaymobTransactionById(hintTxnId, intentId).catch(() => null);
+    if (verified !== null && verified.success) {
+      if (verified.billingData) {
+        const customer = mapPaymobBillingToCustomer(verified.billingData);
+        await db.update(paymobIntents)
+          .set({ customer: customer as unknown as Record<string, unknown> })
+          .where(eq(paymobIntents.intentId, intentId))
+          .catch(() => null);
+      }
+      await processPaymobSuccess({
+        intentId,
+        paymobTxnId: verified.txnId,
+        amountCents: verified.amountCents,
+        paymentChannel: verified.sourceDataSubType?.toUpperCase() === "APPLE_PAY" ? "apple-pay" : "card",
+      });
+      const updated = (await db.select().from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1))[0];
+      req.log.info({ intentId, txnId: verified.txnId, shopifyOrderNumber: updated?.shopifyOrderNumber }, "admin: recover-payment completed via txnId verify");
+      res.json({ ok: true, shopifyOrderNumber: updated?.shopifyOrderNumber ?? null, paymobTxnId: verified.txnId });
+      return;
+    }
+  }
+
+  // Strategy 2: query Paymob by merchant_order_id
+  const result = await queryPaymobByMerchantOrderId(intentId).catch(() => null);
+  if (result !== null && result.success) {
+    if (result.billingData) {
+      const customer = mapPaymobBillingToCustomer(result.billingData);
+      await db.update(paymobIntents)
+        .set({ customer: customer as unknown as Record<string, unknown> })
+        .where(eq(paymobIntents.intentId, intentId))
+        .catch(() => null);
+    }
+    await processPaymobSuccess({
+      intentId,
+      paymobTxnId: result.txnId,
+      amountCents: result.amountCents,
+      paymentChannel: result.sourceDataSubType?.toUpperCase() === "APPLE_PAY" ? "apple-pay" : "card",
+    });
+    const updated = (await db.select().from(paymobIntents).where(eq(paymobIntents.intentId, intentId)).limit(1))[0];
+    req.log.info({ intentId, txnId: result.txnId, shopifyOrderNumber: updated?.shopifyOrderNumber }, "admin: recover-payment completed via order query");
+    res.json({ ok: true, shopifyOrderNumber: updated?.shopifyOrderNumber ?? null, paymobTxnId: result.txnId });
+    return;
+  }
+
+  req.log.warn({ intentId, hintTxnId }, "admin: recover-payment — Paymob reports no successful transaction for this intent");
+  res.status(422).json({ error: "Paymob reports no successful payment for this intent. Verify the transaction ID and try again." });
 });
 
 // POST /admin/fix-payment-transaction/:id — re-post a Shopify payment transaction
