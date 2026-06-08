@@ -452,9 +452,9 @@ export function CheckoutPage() {
             }));
           } catch { /* ignore */ }
           clearCart();
-          closeCheckout();
           window.history.pushState(null, "", "/ordermade");
           window.dispatchEvent(new PopStateEvent("popstate"));
+          setTimeout(() => closeCheckout(), 80);
         } else {
           session.completePayment({ status: AP.STATUS_FAILURE });
           setSubmitError(data.error ?? "Payment was declined. Please try another card.");
@@ -1608,9 +1608,9 @@ export function CheckoutPage() {
                     items: proofOrderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })),
                   });
                 }
-                closeCheckout();
                 window.history.pushState(null, "", "/ordermade");
                 window.dispatchEvent(new PopStateEvent("popstate"));
+                setTimeout(() => closeCheckout(), 80);
               }}
               fmt={fmt}
             />
