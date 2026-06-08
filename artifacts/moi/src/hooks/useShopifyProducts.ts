@@ -67,6 +67,57 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
     return result;
   })();
 
+  // Build colorImages: prefer Shopify's per-variant image (set in Shopify admin per
+  // color) over the local fallback. This ensures the correct product photo is shown
+  // for each color even when local assets visually resemble another colorway.
+  const colorImages = (() => {
+    const localMap = (fallback.colorImages ?? {}) as Record<string, string>;
+    const merged: Record<string, string> = { ...localMap };
+
+    for (const v of shopify.variants.nodes) {
+      if (!v.image?.url) continue;
+      const colorOpt = v.selectedOptions.find(
+        (o) => o.name.toLowerCase() === "color",
+      );
+      if (!colorOpt) continue;
+      const colorName = colorOpt.value; // exact Shopify casing e.g. "Navy"
+      // Only set from Shopify if not already populated (first variant wins per color)
+      if (!merged[colorName]) {
+        merged[colorName] = v.image.url;
+      }
+      // Also overwrite if the Shopify image differs from local (Shopify is source of truth)
+      merged[colorName] = v.image.url;
+    }
+    return merged;
+  })();
+
+  // Build colorGalleries: for each color, use the Shopify variant image as the first
+  // gallery image (if available), then append any local gallery images.
+  const colorGalleries = (() => {
+    const localGalleries = (fallback.colorGalleries ?? {}) as Record<string, string[]>;
+    const merged: Record<string, string[]> = {};
+
+    // Start from local galleries
+    for (const [k, imgs] of Object.entries(localGalleries)) {
+      merged[k] = [...(imgs as string[])];
+    }
+
+    // Prepend Shopify variant image for each color (deduped)
+    for (const v of shopify.variants.nodes) {
+      if (!v.image?.url) continue;
+      const colorOpt = v.selectedOptions.find(
+        (o) => o.name.toLowerCase() === "color",
+      );
+      if (!colorOpt) continue;
+      const colorName = colorOpt.value;
+      const existing = merged[colorName] ?? [];
+      if (!existing.includes(v.image.url)) {
+        merged[colorName] = [v.image.url, ...existing.filter((u) => u !== v.image!.url)];
+      }
+    }
+    return merged;
+  })();
+
   return {
     ...fallback,
     slug: fallback.slug,
@@ -86,8 +137,8 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
     look,
     variantId: firstAvailable?.id,
     variants,
-    colorImages: fallback.colorImages,
-    colorGalleries: fallback.colorGalleries,
+    colorImages,
+    colorGalleries,
     colorSwatches,
   };
 }

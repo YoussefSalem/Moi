@@ -69,6 +69,7 @@ export interface ShopifyProductVariant {
   selectedOptions: { name: string; value: string }[];
   price: { amount: string; currencyCode: string };
   compareAtPrice: { amount: string; currencyCode: string } | null;
+  image: ShopifyImage | null;
 }
 
 export interface ShopifyProductOptionValue {
@@ -145,6 +146,7 @@ const PRODUCT_FRAGMENT = `
         selectedOptions { name value }
         price { amount currencyCode }
         compareAtPrice { amount currencyCode }
+        image { url altText }
       }
     }
   }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronLeft, ChevronRight, ShoppingBag, Link2, Check } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, ShoppingBag, Link2 } from "lucide-react";
 
 
 interface QuickPreviewProps {
@@ -35,7 +35,6 @@ export function QuickPreview({
 }: QuickPreviewProps) {
   const [imgIndex, setImgIndex] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
-  const [copied, setCopied] = useState(false);
   const dragStartX = useRef<number | null>(null);
   const dragLastX = useRef<number | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -268,13 +267,13 @@ export function QuickPreview({
                   {productName}
                 </h3>
 
-                {/* Share button — inline in product info, visible & accessible */}
+                {/* Share button — press animation → native share sheet */}
                 <button
                   type="button"
                   onClick={async () => {
                     const url = `${window.location.origin}/products/${handle}`;
 
-                    // 1. Web Share API — triggers native share sheet on iOS/Android
+                    // Web Share API — triggers the native share sheet on iOS/Android
                     if (typeof navigator.share === "function") {
                       try {
                         await navigator.share({
@@ -284,50 +283,29 @@ export function QuickPreview({
                         });
                         return;
                       } catch {
-                        // User cancelled or share not supported — fall through to clipboard
+                        // User cancelled — no action needed
                       }
-                    }
-
-                    // 2. Clipboard API (modern browsers on HTTPS)
-                    if (navigator.clipboard?.writeText) {
+                    } else {
+                      // Desktop fallback: silently copy without any visual state change
                       try {
                         await navigator.clipboard.writeText(url);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
-                        return;
                       } catch {
-                        // Clipboard blocked — fall through
+                        /* ignore */
                       }
-                    }
-
-                    // 3. Legacy execCommand fallback
-                    try {
-                      const ta = document.createElement("textarea");
-                      ta.value = url;
-                      ta.style.cssText = "position:fixed;top:-9999px;left:-9999px";
-                      document.body.appendChild(ta);
-                      ta.focus();
-                      ta.select();
-                      document.execCommand("copy");
-                      document.body.removeChild(ta);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    } catch {
-                      setCopied(false);
                     }
                   }}
                   className="self-start flex items-center gap-1.5"
                   style={{
                     padding: "5px 11px",
                     borderRadius: 20,
-                    backgroundColor: copied ? "rgba(74, 138, 90, 0.10)" : "rgba(30,24,20,0.06)",
-                    border: copied ? "1px solid rgba(74, 138, 90, 0.28)" : "1px solid rgba(30,24,20,0.10)",
+                    backgroundColor: "rgba(30,24,20,0.06)",
+                    border: "1px solid rgba(30,24,20,0.10)",
                     cursor: "pointer",
-                    transition: "all 0.2s ease",
+                    transition: "transform 0.15s ease",
                   }}
-                  aria-label={copied ? "Link copied" : `Share ${productName}`}
+                  aria-label={`Share ${productName}`}
                   onPointerDown={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.95)";
+                    (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.93)";
                   }}
                   onPointerUp={(e) => {
                     (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
@@ -336,24 +314,19 @@ export function QuickPreview({
                     (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
                   }}
                 >
-                  {copied ? (
-                    <Check size={12} strokeWidth={2.5} color="#4a8a5a" />
-                  ) : (
-                    <Link2 size={12} strokeWidth={2.2} color="#1e1814" />
-                  )}
+                  <Link2 size={12} strokeWidth={2.2} color="#1e1814" />
                   <span
                     style={{
                       fontFamily: "'Montserrat', sans-serif",
                       fontSize: "0.62rem",
                       letterSpacing: "0.14em",
                       textTransform: "uppercase",
-                      color: copied ? "#4a8a5a" : "#1e1814",
+                      color: "#1e1814",
                       fontWeight: 600,
                       lineHeight: 1,
-                      transition: "color 0.2s ease",
                     }}
                   >
-                    {copied ? "Copied to clipboard" : "Share"}
+                    Share
                   </span>
                 </button>
 
