@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Video } from "lucide-react";
+import { Video, Play } from "lucide-react";
 
 type VideoType = "video" | "carousel";
 
@@ -10,6 +11,7 @@ interface VideoItem {
   caption: string;
   embedUrl: string;
   type: VideoType;
+  thumbnail?: string;
 }
 
 const videos: VideoItem[] = [
@@ -46,18 +48,18 @@ const videos: VideoItem[] = [
     type: "video",
   },
   {
-    title: "How brands under 1000 EGP actually look on \ud83d\udc40\ud83d\udcb8",
+    title: "How brands under 1000 EGP actually look on 👀💸",
     handle: "@etharrdiabb",
     profileUrl: "https://www.tiktok.com/@etharrdiabb",
-    caption: "Real styling review \u2014 affordable local fashion that actually delivers.",
+    caption: "Real styling review — affordable local fashion that actually delivers.",
     embedUrl: "https://www.tiktok.com/embed/v2/7642745763021262098",
     type: "video",
   },
   {
-    title: "New Moi piece just dropped \ud83d\udd25",
+    title: "New Moi piece just dropped 🔥",
     handle: "@etharrdiabb",
     profileUrl: "https://www.tiktok.com/@etharrdiabb",
-    caption: "First look at the latest Moi drop \u2014 fit, fabric, and how it wears.",
+    caption: "First look at the latest Moi drop — fit, fabric, and how it wears.",
     embedUrl: "https://www.tiktok.com/embed/v2/7643440266891840776",
     type: "video",
   },
@@ -65,7 +67,7 @@ const videos: VideoItem[] = [
     title: "Get ready with me",
     handle: "@thatsalmarocks",
     profileUrl: "https://www.tiktok.com/@thatsalmarocks",
-    caption: "Morning routine & outfit check \u2014 effortless day-to-night dressing.",
+    caption: "Morning routine & outfit check — effortless day-to-night dressing.",
     embedUrl: "https://www.tiktok.com/embed/v2/7639398570302377223",
     type: "carousel",
   },
@@ -86,6 +88,119 @@ const videos: VideoItem[] = [
     type: "video",
   },
 ];
+
+interface TikTokCardProps {
+  video: VideoItem;
+}
+
+function TikTokCard({ video }: TikTokCardProps) {
+  const [playing, setPlaying] = useState(false);
+
+  return (
+    <div
+      className="w-full md:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] max-w-[440px] rounded-2xl border border-white/10 p-4"
+      style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
+    >
+      <p className="text-sm text-white/90">{video.title}</p>
+      <a
+        href={video.profileUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-1 inline-block text-[10px] tracking-[0.25em] uppercase text-white/40 hover:text-white/80 transition-colors"
+      >
+        {video.handle}
+      </a>
+      <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
+
+      <div
+        className="mt-4 overflow-hidden rounded-2xl border border-white/10"
+        style={{ background: "#000" }}
+      >
+        <div className="relative overflow-hidden aspect-[9/16]">
+          {playing ? (
+            <iframe
+              title={video.title}
+              src={video.embedUrl}
+              className="absolute left-0 top-0 w-full"
+              style={{ height: "107%", transform: "translateY(-2px)" }}
+              allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture; autoplay"
+              scrolling="no"
+              sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms"
+            />
+          ) : (
+            /* Facade: instant thumbnail — no network cost, no lazy loading */
+            <button
+              type="button"
+              onClick={() => setPlaying(true)}
+              className="absolute inset-0 w-full h-full flex flex-col items-center justify-center group"
+              style={{
+                background: "linear-gradient(160deg, #1a1410 0%, #2c1f18 40%, #1a1410 100%)",
+                cursor: "pointer",
+              }}
+              aria-label={`Play ${video.title}`}
+            >
+              {/* Subtle TikTok-style grid lines for texture */}
+              <div
+                className="absolute inset-0 opacity-[0.04]"
+                style={{
+                  backgroundImage:
+                    "repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,1) 39px, rgba(255,255,255,1) 40px), repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,1) 39px, rgba(255,255,255,1) 40px)",
+                }}
+              />
+
+              {/* TikTok logo watermark */}
+              <div className="absolute top-4 right-4 opacity-20">
+                <svg width="20" height="22" viewBox="0 0 24 28" fill="white">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V9a8.19 8.19 0 0 0 4.78 1.52V7.07a4.85 4.85 0 0 1-1.01-.38z" />
+                </svg>
+              </div>
+
+              {/* Handle badge */}
+              <div
+                className="absolute bottom-5 left-0 right-0 flex justify-center"
+              >
+                <span
+                  className="px-3 py-1 rounded-full text-[10px] tracking-[0.2em] uppercase font-medium text-white/60"
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  {video.handle}
+                </span>
+              </div>
+
+              {/* Play button */}
+              <motion.div
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.95 }}
+                className="relative z-10 flex items-center justify-center rounded-full"
+                style={{
+                  width: 60,
+                  height: 60,
+                  background: "rgba(255,255,255,0.12)",
+                  border: "1.5px solid rgba(255,255,255,0.25)",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                <Play
+                  size={22}
+                  fill="white"
+                  strokeWidth={0}
+                  style={{ color: "white", marginLeft: 3 }}
+                />
+              </motion.div>
+
+              <p
+                className="mt-4 text-[9px] tracking-[0.3em] uppercase text-white/35 font-medium"
+                style={{ fontFamily: "'Montserrat', sans-serif" }}
+              >
+                Tap to play
+              </p>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function TikTokSocialProof() {
   return (
@@ -136,47 +251,7 @@ export function TikTokSocialProof() {
             </div>
             <div className="flex flex-wrap justify-center gap-5">
               {videos.map((video, idx) => (
-                <div
-                  key={`${video.handle}-${idx}`}
-                  className="w-full md:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] max-w-[440px] rounded-2xl border border-white/10 p-4"
-                  style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
-                >
-                  <p className="text-sm text-white/90">{video.title}</p>
-                  <a
-                    href={video.profileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1 inline-block text-[10px] tracking-[0.25em] uppercase text-white/40 hover:text-white/80 transition-colors"
-                  >
-                    {video.handle}
-                  </a>
-                  <p className="mt-3 text-sm leading-7 text-white/60">{video.caption}</p>
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-white/10" style={{ background: "#000" }}>
-                    {/* 9:16 window, iframe 102% height so the bottom "Watch now" bar is clipped */}
-                    <div className="relative overflow-hidden aspect-[9/16]">
-                      {video.embedUrl ? (
-                        <iframe
-                          title={video.title}
-                          src={video.embedUrl}
-                          className="absolute left-0 top-0 w-full"
-                          style={{ height: "107%", transform: "translateY(-2px)" }}
-                          allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture; autoplay"
-                          scrolling="no"
-                          loading="lazy"
-                          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "linear-gradient(135deg, #1f1916 0%, #2a201c 50%, #1f1916 100%)" }}>
-                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-white/25 mb-3">
-                            <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-                          </svg>
-                          <p className="text-[10px] tracking-[0.3em] uppercase text-white/30 font-medium" style={{ fontFamily: "'Montserrat', sans-serif" }}>Coming soon</p>
-                          <div className="mt-4 w-12 h-px bg-white/10" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <TikTokCard key={`${video.handle}-${idx}`} video={video} />
               ))}
             </div>
           </div>
