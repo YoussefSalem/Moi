@@ -2030,8 +2030,8 @@ export function CheckoutPage() {
                           onClick={() => setPaymentMethod(m)}
                           className="text-left w-full"
                           style={{
-                            padding: "18px 14px",
-                            height: "112px",
+                            padding: "14px 10px",
+                            minHeight: "100px",
                             display: "flex",
                             flexDirection: "column",
                             justifyContent: "center",
@@ -2055,10 +2055,10 @@ export function CheckoutPage() {
                               </svg>
                             ) : m === "cod" ? "🚚" : m === "instapay" ? "📱" : "💳"}
                           </div>
-                          <p style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.3 }}>
-                            {m === "cod" ? "Cash on Delivery" : m === "instapay" ? "InstaPay" : m === "wallet" ? "Mobile Wallet" : "Credit / Debit Card"}
+                          <p style={{ fontSize: "10px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#1e1814", fontFamily: "'Montserrat', sans-serif", fontWeight: 700, lineHeight: 1.35 }}>
+                            {m === "cod" ? "Cash on Delivery" : m === "instapay" ? "InstaPay" : m === "wallet" ? "Mobile Wallet" : "Debit Card"}
                           </p>
-                          <p style={{ fontSize: "10px", color: "rgba(30,24,20,0.64)", fontFamily: "'Montserrat', sans-serif", marginTop: "3px", lineHeight: 1.45 }}>
+                          <p style={{ fontSize: "9px", color: "rgba(30,24,20,0.64)", fontFamily: "'Montserrat', sans-serif", marginTop: "3px", lineHeight: 1.45, letterSpacing: "0.02em" }}>
                             {m === "cod" ? "Pay on arrival" : m === "instapay" ? "Bank transfer" : m === "wallet" ? "Vodafone · Orange · e&" : "Visa · Mastercard"}
                           </p>
                         </button>
