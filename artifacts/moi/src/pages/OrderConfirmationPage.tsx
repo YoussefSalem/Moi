@@ -295,6 +295,8 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
      "moi_paymob_breakdown", "moi_paymob_intent_id", SESSION_KEY, ACTIVE_SESSION_KEY].forEach((k) => {
       try { sessionStorage.removeItem(k); } catch { /* ignore */ }
     });
+    // Scroll the home page to the hero while the overlay fades out (350ms).
+    window.scrollTo({ top: 0, behavior: "smooth" });
     onContinueShopping();
   };
 
