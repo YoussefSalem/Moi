@@ -11,7 +11,7 @@ import { formatMoney } from "@/lib/shopify";
 import type { ShopifyCartLine } from "@/lib/shopify";
 import type { LocalCartItem } from "@/context/CartContext";
 import { ENABLE_APPLE_PAY } from "@/config/features";
-import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
+import { PaymobPixelApplePay } from "@/components/PaymobPixelApplePay";
 import { resolveLineImage } from "@/lib/productImages";
 
 // FIRST50 discount banner — placed at checkout button area for high conversion visibility
@@ -571,7 +571,7 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                       <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" }}>or</span>
                       <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
                     </div>
-                  <ShopifyApplePayButton
+                  <PaymobPixelApplePay
                     lines={shopifyCart.lines.nodes.map((l) => ({
                       variantId: l.merchandise.id,
                       quantity: l.quantity,
@@ -584,17 +584,17 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                             return s + p * l.quantity;
                           }, 0)
                     }
+                    cartId={shopifyCart.id}
                     disabled={loading}
-                    onSuccess={(orderNumber, total) => {
-                      toast.success(
-                        `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
-                        { duration: 5000 },
-                      );
+                    onSuccess={(intentId) => {
+                      clearCart();
+                      closeCart();
+                      window.history.pushState(null, "", `/order-confirmed${intentId ? `?intentId=${encodeURIComponent(intentId)}` : ""}`);
+                      window.dispatchEvent(new PopStateEvent("popstate"));
                     }}
                     onError={(msg) => {
                       toast.error(msg, { duration: 4000 });
                     }}
-                    onMoreOptions={() => openCheckout()}
                   />
                   </>
                 )}

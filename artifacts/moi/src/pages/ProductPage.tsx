@@ -15,7 +15,7 @@ import { trackViewContent } from "@/lib/metaPixel";
 import { trackTikTokViewContent } from "@/lib/tiktokPixel";
 
 import { ENABLE_APPLE_PAY } from "@/config/features";
-import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
+import { PaymobPixelApplePay } from "@/components/PaymobPixelApplePay";
 
 function slugify(str: string): string {
   return str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -830,17 +830,13 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" }}>or</span>
                       <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
                     </div>
-                    <ShopifyApplePayButton
-                      variantId={selectedVariant?.id ?? product.variantId ?? ""}
-                      quantity={1}
-                      priceEGP={parseEGP(String(effectivePrice)) || 0}
+                    <PaymobPixelApplePay
+                      lines={[{ variantId: selectedVariant?.id ?? product.variantId ?? "", quantity: 1 }]}
+                      totalEGP={parseEGP(String(effectivePrice)) || 0}
                       disabled={isOutOfStock}
                       style={{ width: "100%" }}
-                      onSuccess={(orderNumber, total) => {
-                        toast.success(
-                          `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
-                          { duration: 5000 },
-                        );
+                      onSuccess={() => {
+                        toast.success("Order confirmed!", { duration: 5000 });
                       }}
                       onError={(msg) => {
                         toast.error(msg, { duration: 4000 });
