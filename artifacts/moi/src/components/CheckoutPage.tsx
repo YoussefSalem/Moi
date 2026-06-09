@@ -2031,7 +2031,8 @@ export function CheckoutPage() {
                           className="text-left w-full"
                           style={{
                             padding: "14px 10px",
-                            minHeight: "100px",
+                            height: "100px",
+                            overflow: "hidden",
                             display: "flex",
                             flexDirection: "column",
                             justifyContent: "center",
