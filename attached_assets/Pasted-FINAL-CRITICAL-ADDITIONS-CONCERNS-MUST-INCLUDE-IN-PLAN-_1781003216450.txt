@@ -1,0 +1,225 @@
+FINAL CRITICAL ADDITIONS / CONCERNS (MUST INCLUDE IN PLAN)
+
+1. IDEMPOTENCY (CRITICAL - MUST PREVENT DOUBLE ORDERS)
+
+All Paymob success handling must be idempotent.
+
+If:
+- Paymob sends multiple success callbacks
+- User refreshes page during/after payment
+- Frontend calls /paymob-verify multiple times
+- Network retries duplicate requests
+
+Then system MUST NEVER create duplicate Shopify orders.
+
+Implementation rules:
+- paymobIntents table must store:
+  - intentId
+  - status (pending | paid | failed)
+  - shopifyOrderNumber
+  - paidAt timestamp
+
+Before creating ANY Shopify order:
+- Check if shopifyOrderNumber already exists for intentId
+- If YES → return existing order immediately
+- If NO → proceed to create order
+
+Acceptance criteria:
+✓ No duplicate Shopify orders under any circumstance
+✓ Retry-safe /paymob-verify endpoint
+✓ Refresh-safe post-payment behavior
+✓ Multiple success signals are safely ignored
+
+---
+
+2. DO NOT RELY ON POSTMESSAGE AS PAYMENT CONFIRMATION
+
+Paymob postMessage is ONLY a UI event.
+
+It MUST NEVER:
+- Create Shopify order
+- Mark payment as complete
+- Clear cart
+
+Correct flow:
+
+postMessage success
+→ show "Verifying payment..."
+→ call /api/orders/paymob-verify (server authoritative check)
+→ ONLY backend confirmation triggers:
+   - Shopify order creation
+   - payment success state
+   - cart clearing
+
+If verification fails:
+→ show error inside modal
+→ DO NOT navigate away
+→ DO NOT clear cart
+
+---
+
+3. IFRAME EMBEDDING MUST BE VERIFIED BEFORE IMPLEMENTATION
+
+Before writing any code:
+
+Test:
+
+curl -I "https://accept.paymob.com/unifiedcheckout/?publicKey=TEST&clientSecret=TEST"
+
+Check for:
+- X-Frame-Options
+- Content-Security-Policy (frame-ancestors)
+
+Rules:
+- If headers block iframe → STOP iframe approach completely
+- Fall back to full-page redirect checkout flow instead
+- Do NOT attempt workaround hacks (they will break in production)
+
+---
+
+4. ADD TIMEOUT + FALLBACK FOR IFRAME RELIABILITY
+
+Iframe must NOT be trusted as guaranteed loadable.
+
+If:
+- iframe does not fire onLoad within 10 seconds
+OR
+- iframe errors
+
+Then:
+→ fallback immediately to:
+
+window.location.href = iframeUrl
+
+This protects against:
+- Paymob CSP changes
+- mobile Safari iframe bugs
+- network blocking / ad blockers
+
+---
+
+5. APPLE PAY MUST BE CAPABILITY-BASED ONLY
+
+Do NOT use:
+- iPhone detection
+- Safari detection
+- user-agent sniffing
+
+Correct logic only:
+
+window.ApplePaySession &&
+ApplePaySession.canMakePayments()
+
+Applies to:
+- iPhone Safari
+- iPad Safari
+- Mac Safari with Touch ID
+
+---
+
+6. CART CLEARING RULE MUST BE STRICT
+
+Cart can ONLY be cleared when:
+
+✓ /paymob-verify returns success: true
+✓ Shopify order is successfully created
+✓ Payment is confirmed server-side
+
+NEVER clear cart on:
+- postMessage
+- iframe success event
+- frontend-only signals
+
+---
+
+7. CANCEL / CLOSE MUST PRESERVE STATE
+
+On iframe close or cancel:
+- Do NOT clear cart
+- Do NOT reset address form
+- Do NOT reset checkout state
+
+User must return EXACTLY where they left off:
+- cart contents intact
+- form inputs preserved
+- can retry payment immediately
+
+---
+
+8. IFRAME RENDERING QUALITY (NON-NEGOTIABLE UX)
+
+Iframe must be:
+- width: 100%
+- height: 100%
+- border: none
+- display: block
+
+ABSOLUTELY NO:
+- transform: scale()
+- zoom
+- CSS blur hacks
+- will-change on iframe
+- overflow hidden on body during render (causes Safari blur)
+
+Goal: pixel-perfect Retina rendering with no blur.
+
+---
+
+9. LOADING STATE REQUIRED
+
+Before iframe load:
+Show:
+
+"Creating secure checkout..."
++ spinner (CSS only)
+
+Rules:
+- Show loading until iframe onLoad fires
+- If load exceeds 10 seconds → trigger fallback redirect
+
+---
+
+10. APPLE PAY CLAIM SHOULD BE SAFE (NOT ASSUMED)
+
+Do NOT assume Apple Pay always appears in iframe.
+
+Correct phrasing:
+
+Apple Pay is expected to appear in Paymob hosted checkout only when:
+- Apple Pay integration is active in Paymob account
+- Merchant configuration is correctly set up
+- Device supports Apple Pay
+
+Must be tested on real device before production assumption.
+
+---
+
+11. REQUIRED BACKEND AUTHORITY RULE
+
+Only backend may:
+- confirm payment success
+- create Shopify order
+- finalize transaction state
+
+Frontend responsibilities:
+- UI only
+- state display only
+- never authoritative
+
+---
+
+12. FINAL SAFETY PRINCIPLE
+
+If anything conflicts:
+
+TRUST BACKEND > TRUST PAYMOB FRONTEND EVENTS > TRUST UI STATE
+
+---
+
+These are the final production-critical safeguards to prevent:
+- duplicate orders
+- payment mismatches
+- iframe failures
+- cart loss
+- Apple Pay misbehavior
+- silent checkout bugs
