@@ -157,6 +157,7 @@ function AppContent() {
   // after iOS has already slid it away — the visible "flash". Skipping the exit
   // animation for popstate navigations eliminates this entirely.
   const [skipExitAnimation, setSkipExitAnimation] = useState(false);
+  const [isGoingBack, setIsGoingBack] = useState(false);
 
   function handleColorCardAddToCart(handle: string, _image?: string) {
     // Use Shopify-fetched products (real variant GIDs) — all three products now in `products`.
@@ -209,21 +210,30 @@ function AppContent() {
     closeCartRef.current();
     closeMenuRef.current();
     savedScrollRef.current = window.scrollY;
+    setIsGoingBack(false);
     setHomeRevealed(false); // Hide home immediately so product page owns the scroll
     setPage("product");
     setProductHandle(handle);
     window.history.pushState(null, "", `/products/${handle}`);
   }, []);
 
-  const navigateTo = useCallback((p: PageType, hash?: string) => {
+  // back=true → play the back (slide-down) exit animation instead of forward (slide-up).
+  // Use this for UI "← Back" buttons so pages slide down when dismissed.
+  const navigateTo = useCallback((p: PageType, hash?: string, back = false) => {
     closeCartRef.current();
     closeMenuRef.current();
-    // Save the current scroll position so swipe-back / back-button can restore
-    // it. navigateToProduct does this too; we do it here for non-product pages
-    // (ambassador, accessories, policies) so returning home always lands where
-    // the user left off, not at the hero section.
-    if (p !== "home") savedScrollRef.current = window.scrollY;
-    if (p !== "home") setHomeRevealed(false); // Hide home when leaving it
+    if (back && p === "home") {
+      // Back navigation: save scroll before updating state
+      pendingScrollRef.current = savedScrollRef.current;
+      setHomeRevealed(true);
+      // flushSync forces a render with isGoingBack=true while the page is still
+      // mounted so AnimatePresence captures the back exit animation correctly.
+      flushSync(() => setIsGoingBack(true));
+    } else {
+      if (p !== "home") savedScrollRef.current = window.scrollY;
+      if (p !== "home") setHomeRevealed(false); // Hide home when leaving it
+      setIsGoingBack(false);
+    }
     setPage(p);
     setProductHandle("");
     setScrollTarget(hash ?? "");
@@ -314,9 +324,13 @@ function AppContent() {
           }
         }
 
-        // Toolbar button: play the normal exit animation via AnimatePresence
+        // Toolbar button: play the back exit animation via AnimatePresence.
+        // flushSync forces a render with isGoingBack=true while the page overlay
+        // is still mounted so AnimatePresence captures the correct exit direction.
         setSkipExitAnimation(false);
+        flushSync(() => setIsGoingBack(true));
       } else {
+        setIsGoingBack(false);
         setHomeRevealed(false);
       }
       setPage(parsed.page);
@@ -652,8 +666,9 @@ function AppContent() {
           // overlay finishes its 220ms exit animation (prevents repaint contention).
           // For popstate (swipe-back): homeRevealed is already true; this is a no-op.
           if (page === "home") setHomeRevealed(true);
-          // Reset the popstate skip flag after the exit completes.
+          // Reset direction + skip flags after the exit animation completes.
           setSkipExitAnimation(false);
+          setIsGoingBack(false);
           // Clean up any leftover swipe-back class so the element is fresh next mount.
           const el = document.getElementById("product-scroll-container");
           if (el) el.classList.remove("swipe-back-exit");
@@ -663,12 +678,14 @@ function AppContent() {
           <motion.div
             id="product-scroll-container"
             key={isProductPage ? `product-${productHandle}` : page}
-            initial={{ y: 18 }}
-            animate={{ y: 0 }}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={
               skipExitAnimation
                 ? { opacity: 0, transition: { duration: 0 } }
-                : { opacity: 0, y: -4, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] } }
+                : isGoingBack
+                  ? { opacity: 0, y: 14, transition: { duration: 0.28, ease: [0.25, 0.1, 0.25, 1] } }
+                  : { opacity: 0, y: -4, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] } }
             }
             transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
             style={{
@@ -695,7 +712,7 @@ function AppContent() {
               <div>
                 <ProductPage
                   handle={productHandle}
-                  onBack={() => { pendingScrollRef.current = savedScrollRef.current; navigateTo("home"); }}
+                  onBack={() => navigateTo("home", undefined, true)}
                   onNavigate={navigateToProduct}
                 />
                 <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
@@ -722,7 +739,7 @@ function AppContent() {
               <div style={{ minHeight: "100vh", background: "#efe6da" }} />
             ) : (
               <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
-                <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home")} />
+                <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home", undefined, true)} />
               </Suspense>
             )}
           </motion.div>

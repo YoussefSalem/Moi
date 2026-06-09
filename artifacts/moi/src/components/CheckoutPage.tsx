@@ -260,6 +260,7 @@ export function CheckoutPage() {
   const [governorateOpen, setGovernorateOpen] = useState(false);
   const [paymobIframeUrl, setPaymobIframeUrl] = useState<string | null>(null);
   const [navigatingToPaymob, setNavigatingToPaymob] = useState(false);
+  const [returningFromPaymob, setReturningFromPaymob] = useState(false);
   const [shopifyCheckoutToken, setShopifyCheckoutToken] = useState<string | null>(null);
   const isApplyingRef = useRef(false); // Prevents recursive re-apply while we update cart
   const paymobTrackedRef = useRef(false); // Prevents duplicate trackPurchase when iframe fires twice
@@ -311,12 +312,15 @@ export function CheckoutPage() {
   useEffect(() => {
     function onPageShow(e: PageTransitionEvent) {
       if (e.persisted) {
-        // Page was restored from bfcache after Paymob redirect — fully reset payment state
+        // Page was restored from bfcache after Paymob redirect — show brief loading
+        // overlay while React re-hydrates, then reveal the clean form.
+        setReturningFromPaymob(true);
         setNavigatingToPaymob(false);
         submittingRef.current = false;
         setStep("form");
         setPaymobIframeUrl(null);
         setSubmitError("");
+        setTimeout(() => setReturningFromPaymob(false), 900);
       }
     }
     window.addEventListener("pageshow", onPageShow);
@@ -1621,6 +1625,42 @@ export function CheckoutPage() {
             />
             <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.7rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(30,24,20,0.55)" }}>
               Redirecting to payment
+            </p>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    {/* Loading overlay shown when returning from Paymob via browser back (bfcache restore) */}
+    <AnimatePresence>
+      {returningFromPaymob && checkoutOpen && (
+        <motion.div
+          key="paymob-return"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.55, ease: "easeOut" } }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 130,
+            backgroundColor: "#efe6da",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1.1rem" }}>
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                border: "1.5px solid rgba(30,24,20,0.16)",
+                borderTopColor: "#1e1814",
+                animation: "spin 0.9s linear infinite",
+              }}
+            />
+            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.46)" }}>
+              Returning to checkout
             </p>
           </div>
         </motion.div>
