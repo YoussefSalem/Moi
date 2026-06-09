@@ -548,7 +548,7 @@ function AppContent() {
         also running on the overlay above it. This eliminates all back-nav jank.
       */}
       <div
-        style={homeRevealed ? {} : { pointerEvents: "none" as const }}
+        style={homeRevealed ? {} : { pointerEvents: "none" as const, visibility: "hidden" as const }}
         aria-hidden={!homeRevealed}
       >
         <main>
