@@ -303,7 +303,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
   };
 
   return (
-    <div style={{ height: "100dvh", backgroundColor: "#faf8f5", overflow: "hidden", display: "flex", flexDirection: "column", position: "relative" }}>
+    <div style={{ minHeight: "100dvh", backgroundColor: "#faf8f5", overflowX: "hidden", overflowY: "auto", display: "flex", flexDirection: "column", position: "relative" }}>
       <LoadingScreen ready={pageReady} />
       <GoldShimmer />
 
@@ -319,8 +319,8 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
           maxWidth: 520,
           width: "100%",
           margin: "0 auto",
-          padding: "clamp(10px,2vh,28px) 20px clamp(8px,1.5vh,18px)",
-          overflow: "hidden",
+          padding: "clamp(10px,2vh,28px) 20px clamp(16px,3vh,28px)",
+          overflow: "visible",
         }}
       >
         {/* ── HEADING ── */}
@@ -455,7 +455,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.38 }}
-          style={{ flexShrink: 0, marginTop: "auto", display: "flex", flexDirection: "column", gap: "clamp(4px,0.7vh,8px)" }}
+          style={{ flexShrink: 0, marginTop: "clamp(10px,2vh,20px)", display: "flex", flexDirection: "column", gap: "clamp(4px,0.7vh,8px)" }}
         >
           <button
             onClick={handleContinue}
