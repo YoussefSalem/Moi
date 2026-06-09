@@ -564,13 +564,6 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                 >
                   {loading ? "…" : "Checkout"}
                 </button>
-                {/* Apple Pay iframe PoC — tests native iOS Apple Pay sheet inside an iframe context */}
-                <iframe
-                  src="https://accept.paymob.com/unifiedcheckout/?publicKey=egy_pk_live_iHOTOM8YdouLH55ppxmZxobpUAVSGZGE&clientSecret=egy_csk_live_d5c07621108d31c1c9a09dbd6c8cbeda"
-                  allow="payment"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"
-                  style={{ width: "100%", height: 500, border: "2px dashed red" }}
-                />
                 {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && shopifyCart && shopifyCart.lines.nodes.length > 0 && (
                   <>
                     <div className="flex items-center gap-3">
