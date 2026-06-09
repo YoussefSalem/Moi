@@ -164,6 +164,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
       html,body{margin:0;padding:0;background:#faf8f5;color:#1e1814;-webkit-font-smoothing:antialiased}
       body{overflow-x:hidden}
       #root{position:relative;min-height:100svh}
+      /* Hide Paymob Pixel SDK global badge/branding element */
+      [class*="badge_badge"],[badge-size]{display:none !important;}
     </style>
     <script>
       // Delay hiding SEO prerender until after first frame paints → fast FCP

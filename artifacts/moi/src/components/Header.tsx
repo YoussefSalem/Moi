@@ -111,18 +111,10 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: men
 
             <button
               aria-label={customer ? "My Account" : "Sign In"}
-              className="w-11 h-11 flex items-center justify-center gap-1.5 transition-opacity hover:opacity-60"
+              className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-60"
               onClick={customer ? openAccount : openAuth}
             >
               <User size={18} strokeWidth={1.5} style={{ color: iconColor }} />
-              {displayName && (
-                <span
-                  className="hidden md:block text-[10px] tracking-[0.18em] uppercase font-light"
-                  style={{ color: iconColor }}
-                >
-                  {displayName}
-                </span>
-              )}
             </button>
 
             <button
