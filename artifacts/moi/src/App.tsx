@@ -137,6 +137,11 @@ function AppContent() {
   const closeCartRef = useRef(cart.closeCart);
   useEffect(() => { closeCartRef.current = cart.closeCart; });
 
+  // Hamburger menu state — lifted here so navigation can close it from anywhere
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenuRef = useRef(() => setMenuOpen(false));
+  useEffect(() => { closeMenuRef.current = () => setMenuOpen(false); });
+
   // homeRevealed decouples the home div's visibility from the `page` state.
   // When navigating back to home via a programmatic back button, we keep the home div
   // hidden (display:none) until the overlay exit animation fully completes, so the
@@ -201,6 +206,7 @@ function AppContent() {
 
   const navigateToProduct = useCallback((handle: string) => {
     closeCartRef.current();
+    closeMenuRef.current();
     savedScrollRef.current = window.scrollY;
     setHomeRevealed(false); // Hide home immediately so product page owns the scroll
     setPage("product");
@@ -210,6 +216,7 @@ function AppContent() {
 
   const navigateTo = useCallback((p: PageType, hash?: string) => {
     closeCartRef.current();
+    closeMenuRef.current();
     if (p !== "home") setHomeRevealed(false); // Hide home when leaving it
     setPage(p);
     setProductHandle("");
@@ -246,6 +253,7 @@ function AppContent() {
   useEffect(() => {
     function onPopState() {
       closeCartRef.current();
+      closeMenuRef.current();
       const parsed = parsePath();
       if (parsed.page === "home") {
         // Decide whether this popstate came from a swipe gesture or the toolbar button.
@@ -546,7 +554,7 @@ function AppContent() {
           {isProductPage && <li><span>{productHandle}</span></li>}
         </ol>
       </nav>
-      {!isPaymentPage && <Header onNavigate={(p, hash) => navigateTo(p as PageType, hash)} onSearch={() => setSearchOpen(true)} dark={isDark} page={page} zIndex={page !== "home" ? 52 : 50} />}
+      {!isPaymentPage && <Header onNavigate={(p, hash) => navigateTo(p as PageType, hash)} onSearch={() => setSearchOpen(true)} dark={isDark} page={page} zIndex={page !== "home" ? 52 : 50} menuOpen={menuOpen} onMenuChange={setMenuOpen} />}
 
       {/*
         Home page — always mounted so HeroVideo, ProductColorSection, and all images

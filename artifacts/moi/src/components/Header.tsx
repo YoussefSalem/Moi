@@ -10,6 +10,8 @@ interface HeaderProps {
   dark?: boolean;
   page?: string;
   zIndex?: number;
+  menuOpen?: boolean;
+  onMenuChange?: (open: boolean) => void;
 }
 
 function isInAppBrowser() {
@@ -18,9 +20,15 @@ function isInAppBrowser() {
   return /Instagram|FB_IAB|FBAN|FBAV|Messenger|WhatsApp|Twitter/i.test(ua);
 }
 
-export function Header({ onNavigate, onSearch, dark, page, zIndex }: HeaderProps) {
+export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: menuOpenProp, onMenuChange }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [internalMenuOpen, setInternalMenuOpen] = useState(false);
+  // Controlled when menuOpen prop is provided; otherwise uses internal state
+  const menuOpen = menuOpenProp !== undefined ? menuOpenProp : internalMenuOpen;
+  const setMenuOpen = (val: boolean) => {
+    setInternalMenuOpen(val);
+    onMenuChange?.(val);
+  };
   const { itemCount, openCart, isAddingToCart } = useCart();
   const { customer, openAuth, openAccount, signOut } = useCustomer();
 
