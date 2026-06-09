@@ -218,6 +218,11 @@ function AppContent() {
   const navigateTo = useCallback((p: PageType, hash?: string) => {
     closeCartRef.current();
     closeMenuRef.current();
+    // Save the current scroll position so swipe-back / back-button can restore
+    // it. navigateToProduct does this too; we do it here for non-product pages
+    // (ambassador, accessories, policies) so returning home always lands where
+    // the user left off, not at the hero section.
+    if (p !== "home") savedScrollRef.current = window.scrollY;
     if (p !== "home") setHomeRevealed(false); // Hide home when leaving it
     setPage(p);
     setProductHandle("");

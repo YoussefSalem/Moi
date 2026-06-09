@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { flushSync } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ShoppingBag, User, X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -213,7 +214,9 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: men
                         style={{ color: "#1e1814", letterSpacing: "0.08em" }}
                         onClick={(e) => {
                           e.preventDefault();
-                          setMenuOpen(false);
+                          // Close synchronously so the drawer is gone from the
+                          // DOM before the page transition animation starts.
+                          flushSync(() => setMenuOpen(false));
                           if ((link as { isHome?: boolean }).isHome) {
                             onNavigate?.("home", link.scrollTo);
                           } else {
