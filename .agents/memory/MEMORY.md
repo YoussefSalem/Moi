@@ -9,3 +9,4 @@
 - [Moi unified order confirmation](moi-unified-order-confirmation.md) — all methods → one OrderConfirmationPage at /order-confirmed; navigateToOrderConfirmed pattern; normalize snapshot or blank crash; Apple Pay uses dedicated applePayIntegrationId; global secrets can't be set/deleted programmatically.
 - [Moi SPA scroll restoration](moi-spa-scroll-restoration.md) — history.scrollRestoration MUST be "manual"; else iOS swipe-back lands on prev product scrolled to bottom (native restoration races app scroll-to-top).
 - [Moi iOS back-gesture blank fix](moi-ios-back-gesture.md) — product page must be position:fixed overlay (z-51, overflow-y:auto) so home stays live in document flow; snapshots/willChange tricks don't work.
+- [Paymob Pixel SDK loading](paymob-pixel-sdk.md) — paymob-pixel is a browser-globals bundle (sets window.Pixel); must inject via script tag, NOT dynamic import(); also register paymobApplePayInit route in routes/index.ts.

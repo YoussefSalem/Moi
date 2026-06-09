@@ -17,20 +17,31 @@ interface PixelOptions {
 }
 type PixelCtor = new (opts: PixelOptions) => void;
 
-// Module-level cache — the SDK is loaded once per page lifetime.
+// Module-level cache — the SDK script is injected once per page lifetime.
+// paymob-pixel is a browser-globals bundle: it sets window.Pixel after loading.
 let pixelSdkPromise: Promise<PixelCtor> | null = null;
 
 async function loadPixelSDK(): Promise<PixelCtor> {
   if (pixelSdkPromise) return pixelSdkPromise;
-  pixelSdkPromise = (async () => {
-    const mod = await (
-      // vite-ignore prevents build-time bundling of an external CDN module
-      Function("u", "return import(u)")("https://cdn.jsdelivr.net/npm/paymob-pixel@latest/main.js") as Promise<Record<string, unknown>>
-    );
-    const PixelClass = (mod["Pixel"] ?? mod["default"]) as PixelCtor | undefined;
-    if (typeof PixelClass !== "function") throw new Error("Paymob Pixel SDK: Pixel export not found");
-    return PixelClass;
-  })().catch((err: unknown) => {
+  pixelSdkPromise = new Promise<PixelCtor>((resolve, reject) => {
+    // If already loaded by a previous mount (e.g. HMR), resolve immediately.
+    const existing = (window as unknown as { Pixel?: PixelCtor }).Pixel;
+    if (typeof existing === "function") { resolve(existing); return; }
+
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/paymob-pixel@latest/main.js";
+    script.async = true;
+    script.onload = () => {
+      const Ctor = (window as unknown as { Pixel?: PixelCtor }).Pixel;
+      if (typeof Ctor === "function") {
+        resolve(Ctor);
+      } else {
+        reject(new Error("Paymob Pixel SDK: window.Pixel not found after script load"));
+      }
+    };
+    script.onerror = () => reject(new Error("Paymob Pixel SDK: failed to load script"));
+    document.head.appendChild(script);
+  }).catch((err: unknown) => {
     pixelSdkPromise = null;
     return Promise.reject(err);
   });
