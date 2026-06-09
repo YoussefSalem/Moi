@@ -280,7 +280,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       currencyCode: "EGP",
       image: galleryImages[0] ?? product.productShot,
       size: selectedSize || "One Size",
-      color: product.name,
+      color: pageColorName || product.name,
     });
     toast.success(`${product.name} added to bag`, { duration: 2500 });
     setTimeout(() => {
@@ -309,7 +309,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       currencyCode: "EGP",
       image: galleryImages[0] ?? product.productShot,
       size: selectedSize || "One Size",
-      color: product.name,
+      color: pageColorName || product.name,
     });
   };
 
