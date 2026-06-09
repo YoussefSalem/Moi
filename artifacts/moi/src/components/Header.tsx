@@ -73,6 +73,10 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex }: HeaderProps
                 window.scrollTo({ top: 0, behavior: "smooth" });
               } else {
                 onNavigate?.("home");
+                // Home page lives in the document flow under the fixed overlay.
+                // Smooth-scroll it to the hero now — by the time the 350ms overlay
+                // fade-out completes, the hero is already in view.
+                window.scrollTo({ top: 0, behavior: "smooth" });
               }
             }}
             className="absolute left-1/2 -translate-x-1/2 font-serif select-none transition-colors duration-500"
