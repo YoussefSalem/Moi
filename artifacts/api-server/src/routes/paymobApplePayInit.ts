@@ -117,9 +117,7 @@ router.post("/orders/paymob-apple-pay-init", async (req, res) => {
     }
 
     const cartTotalEGP = cart.totalAmount;
-    const isFreeShipping = cartTotalEGP >= 2000;
-    const shippingEGP = isFreeShipping ? 0 : SHIPPING_EGP;
-    const totalEGP = cartTotalEGP + shippingEGP;
+    const totalEGP = cartTotalEGP + SHIPPING_EGP;
     amountCents = Math.round(totalEGP * 100);
     total = totalEGP.toFixed(2);
   } else if (clientTotalAmountCents) {

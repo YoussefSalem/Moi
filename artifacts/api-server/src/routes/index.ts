@@ -23,12 +23,10 @@ import abandonedCartsRouter from "./abandonedCarts";
 import metaCapiRouter from "./metaCapi";
 import anthropicRouter from "./anthropic/index";
 import applePayDirectRouter from "./applePayDirect";
-import paymobApplePayInitRouter from "./paymobApplePayInit";
 
 const router: IRouter = Router();
 
 router.use(applePayDirectRouter);
-router.use(paymobApplePayInitRouter);
 router.use(healthRouter);
 router.use(contactRouter);
 router.use(newsletterRouter);

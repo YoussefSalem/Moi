@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import { ENABLE_CARD_PAYMENTS, ENABLE_WALLET_PAYMENTS, ENABLE_APPLE_PAY } from "@/config/features";
-import { PaymobPixelApplePay } from "./PaymobPixelApplePay";
+import { ShopifyApplePayButton } from "./ShopifyApplePayButton";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -1975,7 +1975,7 @@ export function CheckoutPage() {
               {/* Right: Payment + Form */}
               <div>
 
-                {/* ── Express Checkout (Apple Pay via Paymob Pixel SDK) ── */}
+                {/* ── Express Checkout (Apple Pay) ── */}
                 {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
                   <div style={{ marginBottom: "28px" }}>
                     <p style={{
@@ -1991,54 +1991,11 @@ export function CheckoutPage() {
                       Express Checkout
                     </p>
 
-                    <PaymobPixelApplePay
-                      lines={
-                        isShopify && shopifyCart
-                          ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
-                          : localItems.filter((i) => i.variantId).map((i) => ({ variantId: i.variantId, quantity: i.quantity }))
-                      }
-                      totalEGP={totalAmount}
-                      cartId={shopifyCart?.id}
-                      discountCode={promoApplied?.code}
-                      onSuccess={(intentId) => {
-                        const cartItemsSnapshot = isShopify && shopifyCart
-                          ? shopifyCart.lines.nodes.map((l) => ({
-                              id: l.id,
-                              title: l.merchandise.product.title,
-                              variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
-                              quantity: l.quantity,
-                              image: resolveLineImage(l, localItems),
-                              price: formatShopifyLinePrice(l),
-                            }))
-                          : localItems.map((i) => ({
-                              id: i.id,
-                              title: i.title,
-                              variantTitle: null as string | null,
-                              quantity: i.quantity,
-                              image: i.image ?? null,
-                              price: i.price,
-                            }));
-                        const apBreakdown = { subtotal: subtotalAmount, savings, shippingCost, freeShipping };
-                        try {
-                          sessionStorage.setItem("moi_order_confirmation", JSON.stringify({
-                            items: cartItemsSnapshot,
-                            breakdown: apBreakdown,
-                            paymentMethod: "apple-pay",
-                            orderNumber: "",
-                            ...(intentId ? { intentId } : {}),
-                          }));
-                        } catch { /* ignore */ }
-                        clearCart();
-                        markAbandonedCartRecovered();
-                        navigateToOrderConfirmed(intentId ?? null);
-                      }}
-                      onCancel={() => {
-                        setPaymentMethod("cod");
-                      }}
-                      onError={(msg) => {
-                        setSubmitError(msg);
-                        setPaymentMethod("cod");
-                      }}
+                    <button
+                      type="button"
+                      className="apple-pay-btn"
+                      onClick={triggerApplePayDirectInit}
+                      aria-label="Buy with Apple Pay"
                     />
 
                     <div style={{ display: "flex", alignItems: "center", gap: "14px", marginTop: "20px" }}>
