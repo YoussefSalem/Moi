@@ -235,8 +235,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const qty = params.quantity ?? 1;
 
     // ── Step 1: Optimistic local update — zero network wait ──────────────────
-    // Key includes color so distinct-color variants are never merged into one line.
-    const key = `${params.variantId ?? params.title ?? "item"}-${params.color ?? ""}-${params.size ?? ""}`;
+    // When a variantId is present it already uniquely encodes color + size, so
+    // use it as the sole key. Composite fallback covers non-Shopify local items.
+    const key = params.variantId
+      ? params.variantId
+      : `${params.title ?? "item"}-${params.color ?? ""}-${params.size ?? ""}`;
     setLocalItems((prev) => {
       const existing = prev.find((i) => i.id === key);
       let updated: LocalCartItem[];
@@ -353,8 +356,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // and prevents the cart drawer from flashing open.
   const buyNow = useCallback((params: AddToCartParams): void => {
     const qty = params.quantity ?? 1;
-    // Key includes color so buy-now is consistent with addToCart identity.
-    const key = `${params.variantId ?? params.title ?? "item"}-${params.color ?? ""}-${params.size ?? ""}`;
+    // Mirror addToCart: variantId alone is the key when present.
+    const key = params.variantId
+      ? params.variantId
+      : `${params.title ?? "item"}-${params.color ?? ""}-${params.size ?? ""}`;
 
     // 1. Replace local cart immediately — no network wait
     const newItem: LocalCartItem = {
