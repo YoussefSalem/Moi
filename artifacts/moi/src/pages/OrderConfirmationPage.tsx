@@ -363,7 +363,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
                   <div
                     style={{
                       width: "100%",
-                      height: "clamp(120px,26vh,240px)",
+                      height: isSingle ? "clamp(240px,44vh,440px)" : "clamp(160px,30vh,300px)",
                       overflow: "hidden",
                       backgroundColor: "rgba(30,24,20,0.07)",
                       flexShrink: 0,
