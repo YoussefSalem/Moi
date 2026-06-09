@@ -241,15 +241,48 @@ function AppContent() {
       const parsed = parsePath();
       if (parsed.page === "home") {
         // Decide whether this popstate came from a swipe gesture or the toolbar button.
-        // Swipe: edgeSwipePendingRef is true  → skip exit animation (iOS already slid the page)
-        // Button: edgeSwipePendingRef is false → play the 220ms fade so the transition feels
-        //         intentional rather than an abrupt jump.
         const isSwipe = edgeSwipePendingRef.current;
         edgeSwipePendingRef.current = false; // consume
 
         pendingScrollRef.current = savedScrollRef.current;
-        setSkipExitAnimation(isSwipe);
         setHomeRevealed(true);
+
+        if (isSwipe) {
+          // Swipe-back: iOS has already slid the page away. Add a CSS class that
+          // animates the product page off the right edge, then wait for the
+          // transition to finish before updating React state. This prevents the
+          // flash where the product page briefly re-appears at center before
+          // AnimatePresence catches up.
+          const el = document.getElementById("product-scroll-container");
+          if (el) {
+            el.classList.add("swipe-back-exit");
+            const onTransitionEnd = () => {
+              el.removeEventListener("transitionend", onTransitionEnd);
+              setSkipExitAnimation(true);
+              setPage(parsed.page);
+              setProductHandle(parsed.productHandle);
+              setScrollTarget(parsed.section ?? "");
+              // Restore scroll position after the animation completes
+              if (pendingScrollRef.current !== null) {
+                window.scrollTo(0, pendingScrollRef.current);
+                pendingScrollRef.current = null;
+              }
+            };
+            el.addEventListener("transitionend", onTransitionEnd);
+            // Safety: if transition never fires (e.g. element already hidden), fall back
+            setTimeout(() => {
+              el.removeEventListener("transitionend", onTransitionEnd);
+              setSkipExitAnimation(true);
+              setPage(parsed.page);
+              setProductHandle(parsed.productHandle);
+              setScrollTarget(parsed.section ?? "");
+            }, 400);
+            return; // Defer state update until transition finishes
+          }
+        }
+
+        // Toolbar button: play the normal exit animation via AnimatePresence
+        setSkipExitAnimation(false);
       } else {
         setHomeRevealed(false);
       }
@@ -588,6 +621,9 @@ function AppContent() {
           if (page === "home") setHomeRevealed(true);
           // Reset the popstate skip flag after the exit completes.
           setSkipExitAnimation(false);
+          // Clean up any leftover swipe-back class so the element is fresh next mount.
+          const el = document.getElementById("product-scroll-container");
+          if (el) el.classList.remove("swipe-back-exit");
         }}
       >
         {page !== "home" && (
