@@ -66,7 +66,7 @@ export function WhatsAppButton() {
 
   return (
     <>
-      <div style={{ position: "fixed", bottom: "max(20px, env(safe-area-inset-bottom) + 4px)", right: "max(20px, env(safe-area-inset-right) + 4px)", zIndex: 110 }}>
+      <div style={{ position: "fixed", bottom: "max(20px, env(safe-area-inset-bottom) + 4px)", right: "max(20px, env(safe-area-inset-right) + 4px)", zIndex: 50 }}>
       <AnimatePresence>
         {open && (
           <motion.div
