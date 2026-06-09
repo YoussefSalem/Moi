@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
@@ -232,7 +233,18 @@ function AppContent() {
   // toolbar back button. The flag is consumed (and reset) inside onPopState.
   useEffect(() => {
     function onTouchStart(e: TouchEvent) {
-      edgeSwipePendingRef.current = (e.touches[0]?.clientX ?? 999) < 20;
+      const isEdge = (e.touches[0]?.clientX ?? 999) < 20;
+      edgeSwipePendingRef.current = isEdge;
+      if (isEdge) {
+        // Synchronously flush React state so cart and menu are removed from the
+        // DOM *before* iOS begins rendering the swipe-back animation. Without
+        // flushSync the DOM update is async and the overlays are still visible
+        // during the native swipe gesture even though we called close.
+        flushSync(() => {
+          closeCartRef.current();
+          closeMenuRef.current();
+        });
+      }
     }
     function onTouchEnd() {
       // Reset after a short delay — popstate may fire slightly after touchend
