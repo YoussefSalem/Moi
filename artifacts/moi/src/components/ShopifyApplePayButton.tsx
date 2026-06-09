@@ -269,7 +269,7 @@ export function ShopifyApplePayButton({
       <div
         ref={containerRef}
         id={containerIdRef.current}
-        style={{ display: status === "ready" ? "block" : "none" }}
+        style={{ display: status === "ready" ? "block" : "none", position: "relative" }}
       />
     </div>
   );
