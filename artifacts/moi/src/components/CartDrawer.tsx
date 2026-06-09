@@ -344,10 +344,14 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                       const line = shopifyCart?.lines.nodes.find(
                         (l) => l.merchandise.id === local.variantId,
                       );
+                      // Use the local item's full id (which includes color + size)
+                      // as the React key so the same variantId with different colors
+                      // renders as separate cart items.
+                      const reactKey = local.id;
                       if (line) {
-                        items.push({ key: local.variantId, line });
+                        items.push({ key: reactKey, line });
                       } else {
-                        items.push({ key: local.variantId, local });
+                        items.push({ key: reactKey, local });
                       }
                       seen.add(local.variantId);
                     }
