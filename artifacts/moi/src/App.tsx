@@ -131,6 +131,11 @@ function AppContent() {
   // and play it for button presses (where no native animation occurs).
   const edgeSwipePendingRef = useRef(false);
   const cart = useCart();
+  // Always-current reference to cart.closeCart so stale-closure callbacks
+  // (navigateToProduct, navigateTo, onPopState — all have empty deps) can safely
+  // close the cart without needing to be recreated on every render.
+  const closeCartRef = useRef(cart.closeCart);
+  useEffect(() => { closeCartRef.current = cart.closeCart; });
 
   // homeRevealed decouples the home div's visibility from the `page` state.
   // When navigating back to home via a programmatic back button, we keep the home div
@@ -195,6 +200,7 @@ function AppContent() {
   const [scrollTarget, setScrollTarget] = useState<string>(() => parsePath().section ?? "");
 
   const navigateToProduct = useCallback((handle: string) => {
+    closeCartRef.current();
     savedScrollRef.current = window.scrollY;
     setHomeRevealed(false); // Hide home immediately so product page owns the scroll
     setPage("product");
@@ -203,6 +209,7 @@ function AppContent() {
   }, []);
 
   const navigateTo = useCallback((p: PageType, hash?: string) => {
+    closeCartRef.current();
     if (p !== "home") setHomeRevealed(false); // Hide home when leaving it
     setPage(p);
     setProductHandle("");
@@ -238,6 +245,7 @@ function AppContent() {
   // Handle browser back/forward
   useEffect(() => {
     function onPopState() {
+      closeCartRef.current();
       const parsed = parsePath();
       if (parsed.page === "home") {
         // Decide whether this popstate came from a swipe gesture or the toolbar button.
