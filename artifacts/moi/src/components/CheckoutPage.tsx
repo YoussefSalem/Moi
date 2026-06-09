@@ -311,10 +311,11 @@ export function CheckoutPage() {
   useEffect(() => {
     function onPageShow(e: PageTransitionEvent) {
       if (e.persisted) {
-        // Page was restored from bfcache — clear any in-flight Paymob state
+        // Page was restored from bfcache after Paymob redirect — fully reset payment state
         setNavigatingToPaymob(false);
         submittingRef.current = false;
-        setStep((prev) => (prev === "loading" ? "form" : prev));
+        setStep("form");
+        setPaymobIframeUrl(null);
         setSubmitError("");
       }
     }

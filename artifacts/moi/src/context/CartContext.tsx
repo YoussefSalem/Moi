@@ -744,15 +744,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       closeCart: () => setCartOpen(false),
       openCheckout,
       closeCheckout: () => {
+        setCheckoutOpen(false);
+        setPrefilledEmail(null);
         if (typeof window !== "undefined" && window.location.pathname === "/checkout") {
-          if (window.history.length > 1) {
-            window.history.back();
-          } else {
-            window.location.replace("/");
-          }
-        } else {
-          setCheckoutOpen(false);
-          setPrefilledEmail(null);
+          window.history.replaceState(null, "", "/");
+          window.dispatchEvent(new PopStateEvent("popstate"));
         }
       },
       prefilledEmail,
