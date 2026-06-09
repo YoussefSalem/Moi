@@ -268,8 +268,6 @@ export function CheckoutPage() {
   const submittingRef = useRef(false); // Prevents double-submit of COD/card/instapay order forms
   // Holds the latest handleRefreshPaymobSession so callbacks defined before it can call it.
   const refreshSessionRef = useRef<() => void>(() => {});
-  // Native Apple Pay — intentId from validate-merchant response (set in session callback)
-  const applePayIntentIdRef = useRef<string | null>(null);
   // Mirrors orderResult.intentId so success callbacks (whose deps exclude
   // orderResult) can read the live Paymob intent id when navigating away.
   const orderIntentIdRef = useRef<string | null>(null);
@@ -338,216 +336,6 @@ export function CheckoutPage() {
     setTimeout(() => closeCheckout(), 80);
   }, [closeCheckout]);
 
-  // Direct Apple Pay fast-path: native ApplePaySession with Paymob merchant validation.
-  // This function is intentionally synchronous — ApplePaySession.begin() MUST be
-  // called in the same call-stack as the user gesture (tap/click).
-  // All async work (validate-merchant, authorize) happens inside the session callbacks.
-  const triggerApplePayDirectInit = useCallback(() => {
-    if (submittingRef.current) return;
-    const AP = (window as unknown as {
-      ApplePaySession?: {
-        new(v: number, r: object): {
-          onvalidatemerchant: ((e: { validationURL: string }) => void) | null;
-          onpaymentauthorized: ((e: {
-            payment: {
-              token: { paymentData: unknown };
-              shippingContact?: {
-                givenName?: string; familyName?: string; emailAddress?: string;
-                phoneNumber?: string; addressLines?: string[]; locality?: string;
-                administrativeArea?: string;
-              };
-            };
-          }) => void) | null;
-          onshippingcontactselected: ((e: { shippingContact: unknown }) => void) | null;
-          onshippingmethodselected: ((e: { shippingMethod: unknown }) => void) | null;
-          oncancel: (() => void) | null;
-          completeMerchantValidation(s: unknown): void;
-          completeShippingContactSelection(u: unknown): void;
-          completeShippingMethodSelection(u: unknown): void;
-          completePayment(r: { status: number }): void;
-          abort(): void;
-          begin(): void;
-        };
-        canMakePayments(): boolean;
-        STATUS_SUCCESS: number;
-        STATUS_FAILURE: number;
-      };
-    }).ApplePaySession;
-    if (!AP) return;
-
-    const orderLines = isShopify && shopifyCart
-      ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
-      : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
-    if (orderLines.length === 0) return;
-
-    const subTotal = isShopify && shopifyCart
-      ? shopifyCart.lines.nodes.reduce((s, l) => s + parseFloat(l.merchandise.price.amount) * l.quantity, 0)
-      : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
-    const cartDiscounted = isShopify && shopifyCart
-      ? parseFloat(shopifyCart.cost.totalAmount.amount)
-      : subTotal;
-    const savingsAmt = Math.max(0, subTotal - cartDiscounted);
-    const discSubtotal = subTotal - savingsAmt;
-    const isFreeShipping = discSubtotal >= 2000;
-    const shippingAmt = isFreeShipping ? 0 : SHIPPING_EGP;
-    const totalEGP = discSubtotal + shippingAmt;
-    const totalCents = Math.round(totalEGP * 100);
-
-    // version 4 required for lineItems; type on lineItems requires v14+ so omit it
-    const session = new AP(4, {
-      countryCode: "EG",
-      currencyCode: "EGP",
-      supportedNetworks: ["visa", "masterCard"],
-      merchantCapabilities: ["supports3DS"],
-      requiredShippingContactFields: ["name", "email", "phone", "postalAddress"],
-      shippingMethods: [
-        {
-          label: "Standard",
-          detail: "Delivery in 2–4 business days",
-          amount: shippingAmt.toFixed(2),
-          identifier: "standard",
-        },
-      ],
-      lineItems: shippingAmt > 0
-        ? [{ label: "Shipping", amount: shippingAmt.toFixed(2) }]
-        : [],
-      total: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
-    });
-
-    applePayIntentIdRef.current = null;
-    setPaymentMethod("apple-pay");
-    setSubmitError("");
-
-    session.onvalidatemerchant = async ({ validationURL }) => {
-      try {
-        const res = await fetch("/api/apple-pay/validate-merchant", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            validationURL,
-            lines: orderLines,
-            totalAmountCents: totalCents,
-            discountCode: promoApplied?.code ?? null,
-          }),
-        });
-        const data = await res.json() as { merchantSession?: unknown; intentId?: string; error?: string };
-        if (!res.ok || !data.merchantSession) throw new Error(data.error ?? "Merchant validation failed");
-        applePayIntentIdRef.current = data.intentId ?? null;
-        session.completeMerchantValidation(data.merchantSession);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Apple Pay is unavailable. Please try another payment method.";
-        session.abort();
-        setSubmitError(msg);
-        setPaymentMethod("cod");
-      }
-    };
-
-    // Required by Apple Pay JS when requiredShippingContactFields or shippingMethods
-    // are specified — must call completeShippingContactSelection / completeShippingMethodSelection
-    // or the session stalls and onpaymentauthorized never fires.
-    session.onshippingcontactselected = () => {
-      session.completeShippingContactSelection({
-        newTotal: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
-        newLineItems: shippingAmt > 0 ? [{ label: "Shipping", amount: shippingAmt.toFixed(2) }] : [],
-        newShippingMethods: [
-          {
-            label: "Standard",
-            detail: "Delivery in 2–4 business days",
-            amount: shippingAmt.toFixed(2),
-            identifier: "standard",
-          },
-        ],
-      });
-    };
-
-    session.onshippingmethodselected = () => {
-      session.completeShippingMethodSelection({
-        newTotal: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
-        newLineItems: shippingAmt > 0 ? [{ label: "Shipping", amount: shippingAmt.toFixed(2) }] : [],
-      });
-    };
-
-    session.onpaymentauthorized = async ({ payment }) => {
-      // Diagnostic: fire-and-forget ping to confirm callback fired + network works
-      void fetch("/api/apple-pay/ping", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stage: "onpaymentauthorized" }),
-      });
-      try {
-        const sc = payment.shippingContact;
-        const res = await fetch("/api/apple-pay/authorize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            paymentData: JSON.stringify(payment.token.paymentData),
-            intentId: applePayIntentIdRef.current,
-            shippingContact: sc ? {
-              firstName: sc.givenName,
-              lastName: sc.familyName,
-              email: sc.emailAddress,
-              phone: sc.phoneNumber,
-              address: sc.addressLines?.[0],
-              city: sc.locality,
-              governorate: sc.administrativeArea,
-            } : undefined,
-          }),
-        });
-        const data = await res.json() as {
-          success?: boolean;
-          error?: string;
-          shopifyOrderNumber?: number | null;
-        };
-        if (data.success) {
-          session.completePayment({ status: AP.STATUS_SUCCESS });
-          const cartItemsSnapshot = isShopify && shopifyCart
-            ? shopifyCart.lines.nodes.map((l) => ({
-                id: l.id,
-                title: l.merchandise.product.title,
-                variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
-                quantity: l.quantity,
-                image: resolveLineImage(l, localItems),
-                price: formatShopifyLinePrice(l),
-              }))
-            : localItems.map((i) => ({
-                id: i.id,
-                title: i.title,
-                variantTitle: null,
-                quantity: i.quantity,
-                image: i.image ?? null,
-                price: i.price,
-              }));
-          const apBreakdown = { subtotal: subTotal, savings: savingsAmt, shippingCost: shippingAmt, freeShipping: isFreeShipping };
-          try {
-            sessionStorage.setItem("moi_order_confirmation", JSON.stringify({
-              items: cartItemsSnapshot,
-              breakdown: apBreakdown,
-              paymentMethod: "apple-pay",
-              orderNumber: data.shopifyOrderNumber ?? "",
-            }));
-          } catch { /* ignore */ }
-          clearCart();
-          window.history.pushState(null, "", "/order-confirmed");
-          window.dispatchEvent(new PopStateEvent("popstate"));
-          setTimeout(() => closeCheckout(), 80);
-        } else {
-          session.completePayment({ status: AP.STATUS_FAILURE });
-          setSubmitError(data.error ?? "Payment was declined. Please try another card.");
-          setPaymentMethod("cod");
-        }
-      } catch (apErr) {
-        session.completePayment({ status: AP.STATUS_FAILURE });
-        setSubmitError(`Debug: ${apErr instanceof Error ? apErr.message : String(apErr)}`);
-        setPaymentMethod("cod");
-      }
-    };
-
-    session.oncancel = () => {
-      setPaymentMethod("cod");
-    };
-
-    session.begin();
-  }, [isShopify, shopifyCart, localItems, promoApplied, clearCart, formatShopifyLinePrice]);
 
   useEffect(() => {
     if (!checkoutOpen && prefilledEmail) return;
@@ -1975,44 +1763,49 @@ export function CheckoutPage() {
               {/* Right: Payment + Form */}
               <div>
 
-                {/* ── Express Checkout (Apple Pay) ── */}
+                {/* ── Express Checkout (Apple Pay via Paymob Pixel) ── */}
+                {ENABLE_APPLE_PAY && (
+                  <ShopifyApplePayButton
+                    lines={
+                      isShopify && shopifyCart
+                        ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
+                        : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }))
+                    }
+                    totalEGP={
+                      isShopify && shopifyCart
+                        ? parseFloat(shopifyCart.cost.totalAmount.amount)
+                        : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0)
+                    }
+                    discountCode={promoApplied?.code}
+                    onSuccess={() => {
+                      clearCart();
+                      closeCheckout();
+                    }}
+                    onError={(msg) => {
+                      setSubmitError(msg);
+                      setPaymentMethod("cod");
+                    }}
+                    onCancel={() => {
+                      setPaymentMethod("cod");
+                    }}
+                    style={{ marginBottom: "28px" }}
+                  />
+                )}
                 {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
-                  <div style={{ marginBottom: "28px" }}>
-                    <p style={{
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "20px" }}>
+                    <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.10)" }} />
+                    <span style={{
+                      fontFamily: "'Montserrat', sans-serif",
                       fontSize: "10px",
-                      letterSpacing: "0.3em",
+                      letterSpacing: "0.2em",
                       textTransform: "uppercase",
                       color: "rgba(30,24,20,0.38)",
-                      fontFamily: "'Montserrat', sans-serif",
                       fontWeight: 400,
-                      textAlign: "center",
-                      marginBottom: "12px",
+                      flexShrink: 0,
                     }}>
-                      Express Checkout
-                    </p>
-
-                    <button
-                      type="button"
-                      className="apple-pay-btn"
-                      onClick={triggerApplePayDirectInit}
-                      aria-label="Buy with Apple Pay"
-                    />
-
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", marginTop: "20px" }}>
-                      <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.10)" }} />
-                      <span style={{
-                        fontFamily: "'Montserrat', sans-serif",
-                        fontSize: "10px",
-                        letterSpacing: "0.2em",
-                        textTransform: "uppercase",
-                        color: "rgba(30,24,20,0.38)",
-                        fontWeight: 400,
-                        flexShrink: 0,
-                      }}>
-                        or
-                      </span>
-                      <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.10)" }} />
-                    </div>
+                      or
+                    </span>
+                    <div style={{ flex: 1, height: "1px", backgroundColor: "rgba(30,24,20,0.10)" }} />
                   </div>
                 )}
 

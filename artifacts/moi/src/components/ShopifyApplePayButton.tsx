@@ -1,63 +1,43 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const SHIPPING_FEE = 50;
 const FREE_SHIPPING_THRESHOLD = 2000;
 
+// ─── Pixel SDK types ──────────────────────────────────────────────────────────
 
-interface ApplePayLineItem {
-  label: string;
-  amount: string;
-  type?: string;
+interface PixelOptions {
+  publicKey: string;
+  clientSecret: string;
+  paymentMethods: string[];
+  elementId: string;
+  disablePay?: boolean;
+  afterPaymentComplete?: (response: Record<string, unknown>) => void | Promise<void>;
+  onPaymentCancel?: () => void;
+  beforePaymentComplete?: (paymentMethod: string) => Promise<boolean>;
 }
-interface ApplePayShippingMethod {
-  label: string;
-  detail: string;
-  amount: string;
-  identifier: string;
-}
-interface ApplePayPaymentRequest {
-  countryCode: string;
-  currencyCode: string;
-  supportedNetworks: string[];
-  merchantCapabilities: string[];
-  requiredShippingContactFields?: string[];
-  shippingMethods?: ApplePayShippingMethod[];
-  lineItems?: ApplePayLineItem[];
-  total: { label: string; amount: string };
-}
-interface ApplePayContact {
-  givenName?: string;
-  familyName?: string;
-  emailAddress?: string;
-  phoneNumber?: string;
-  addressLines?: string[];
-  locality?: string;
-  administrativeArea?: string;
-}
-interface ApplePayToken { paymentData: unknown }
-interface ApplePayPayment {
-  token: ApplePayToken;
-  shippingContact?: ApplePayContact;
-}
-interface APSession {
-  onvalidatemerchant: ((e: { validationURL: string }) => void) | null;
-  onpaymentauthorized: ((e: { payment: ApplePayPayment }) => void) | null;
-  oncancel: (() => void) | null;
-  completeMerchantValidation(sess: unknown): void;
-  completePayment(result: { status: number }): void;
-  abort(): void;
-  begin(): void;
-}
-interface APSessionCtor {
-  new(version: number, request: ApplePayPaymentRequest): APSession;
-  canMakePayments(): boolean;
-  STATUS_SUCCESS: number;
-  STATUS_FAILURE: number;
+type PixelCtor = new (opts: PixelOptions) => void;
+
+// Module-level cache — the SDK is loaded once per page lifetime.
+let pixelSdkPromise: Promise<PixelCtor> | null = null;
+
+async function loadPixelSDK(): Promise<PixelCtor> {
+  if (pixelSdkPromise) return pixelSdkPromise;
+  pixelSdkPromise = (async () => {
+    const mod = await (
+      // vite-ignore prevents build-time bundling of an external CDN module
+      Function("u", "return import(u)")("https://cdn.jsdelivr.net/npm/paymob-pixel@latest/main.js") as Promise<Record<string, unknown>>
+    );
+    const PixelClass = (mod["Pixel"] ?? mod["default"]) as PixelCtor | undefined;
+    if (typeof PixelClass !== "function") throw new Error("Paymob Pixel SDK: Pixel export not found");
+    return PixelClass;
+  })().catch((err: unknown) => {
+    pixelSdkPromise = null;
+    return Promise.reject(err);
+  });
+  return pixelSdkPromise;
 }
 
-function getAP(): APSessionCtor | undefined {
-  return (window as unknown as { ApplePaySession?: APSessionCtor }).ApplePaySession;
-}
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export interface ShopifyApplePayButtonProps {
   variantId?: string;
@@ -75,172 +55,211 @@ export interface ShopifyApplePayButtonProps {
   onMoreOptions?: () => void;
 }
 
+let _instanceCounter = 0;
+
 export function ShopifyApplePayButton({
-  variantId, quantity = 1, priceEGP,
-  lines: cartLines, totalEGP,
-  disabled = false, className, style,
+  variantId,
+  quantity = 1,
+  priceEGP,
+  lines: cartLines,
+  totalEGP,
+  disabled = false,
+  className,
+  style,
   discountCode,
-  onSuccess, onCancel, onError, onMoreOptions,
+  onSuccess,
+  onCancel,
+  onError,
 }: ShopifyApplePayButtonProps) {
   const [available, setAvailable] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const intentIdRef = useRef<string | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [reinitKey, setReinitKey] = useState(0);
 
+  const containerIdRef = useRef(`paymob-pixel-ap-${++_instanceCounter}`);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const initDataRef = useRef<{ intentId: string; total: string } | null>(null);
+
+  // Keep callback refs so they never appear in the init effect's dep array.
+  const onSuccessRef = useRef(onSuccess);
+  const onCancelRef = useRef(onCancel);
+  const onErrorRef = useRef(onError);
   useEffect(() => {
-    const AP = getAP();
-    setAvailable(!!(AP?.canMakePayments?.()));
+    onSuccessRef.current = onSuccess;
+    onCancelRef.current = onCancel;
+    onErrorRef.current = onError;
+  }, [onSuccess, onCancel, onError]);
+
+  // Keep latest cart props in a ref so the init closure always reads current values.
+  const propsRef = useRef({ variantId, quantity, priceEGP, cartLines, totalEGP, discountCode });
+  useEffect(() => {
+    propsRef.current = { variantId, quantity, priceEGP, cartLines, totalEGP, discountCode };
+  });
+
+  // Check Apple Pay availability once.
+  useEffect(() => {
+    const ap = (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession;
+    setAvailable(!!(ap?.canMakePayments?.()));
   }, []);
 
-  const handlePay = useCallback(() => {
-    if (busy || disabled) return;
+  // A stable string key that changes only when the cart content or discount changes.
+  // Avoids re-initialising on every render just because parent creates a new array ref.
+  const cartKey = [
+    variantId ?? "",
+    String(quantity),
+    String(priceEGP ?? ""),
+    cartLines ? cartLines.map((l) => `${l.variantId}:${l.quantity}`).join(",") : "",
+    String(totalEGP ?? ""),
+    discountCode ?? "",
+  ].join("|");
+
+  useEffect(() => {
+    if (!available || disabled) return;
+
+    const { variantId: vid, quantity: qty, priceEGP: price, cartLines: cLines, totalEGP: tEGP, discountCode: dc } = propsRef.current;
 
     let lines: Array<{ variantId: string; quantity: number }>;
-    let subtotalEGP: number;
+    let totalAmountCents: number;
+    let grandTotalStr: string;
 
-    if (variantId && priceEGP != null) {
-      lines = [{ variantId, quantity }];
-      subtotalEGP = priceEGP * quantity;
-    } else if (cartLines && cartLines.length > 0 && totalEGP != null) {
-      lines = cartLines;
-      subtotalEGP = totalEGP;
+    if (vid && price != null) {
+      const subtotal = price * qty;
+      const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+      const total = subtotal + shipping;
+      lines = [{ variantId: vid, quantity: qty }];
+      totalAmountCents = Math.round(total * 100);
+      grandTotalStr = `${Math.round(total)} EGP`;
+    } else if (cLines && cLines.length > 0 && tEGP != null) {
+      const shipping = tEGP >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+      const total = tEGP + shipping;
+      lines = cLines;
+      totalAmountCents = Math.round(total * 100);
+      grandTotalStr = `${Math.round(total)} EGP`;
     } else {
       return;
     }
 
-    const isFreeShipping = subtotalEGP >= FREE_SHIPPING_THRESHOLD;
-    const shippingAmt = isFreeShipping ? 0 : SHIPPING_FEE;
-    const grandTotalEGP = subtotalEGP + shippingAmt;
-    const grandTotalCents = Math.round(grandTotalEGP * 100);
+    let cancelled = false;
+    setStatus("loading");
 
-    const AP = getAP();
-    if (!AP) return;
-
-    const lineItems: ApplePayLineItem[] = [
-      { label: "Items", amount: subtotalEGP.toFixed(2) },
-      ...(shippingAmt > 0 ? [{ label: "Shipping", amount: shippingAmt.toFixed(2) }] : []),
-    ];
-
-    // version 4 required for lineItems; type on lineItems requires v14+ so omit it
-    const session = new AP(4, {
-      countryCode: "EG",
-      currencyCode: "EGP",
-      supportedNetworks: ["visa", "masterCard"],
-      merchantCapabilities: ["supports3DS"],
-      requiredShippingContactFields: ["name", "email", "phone", "postalAddress"],
-      shippingMethods: [
-        {
-          label: "Standard",
-          detail: "Delivery in 2–4 business days",
-          amount: shippingAmt.toFixed(2),
-          identifier: "standard",
-        },
-      ],
-      lineItems,
-      total: { label: "Moi", amount: (grandTotalCents / 100).toFixed(2) },
-    });
-
-    intentIdRef.current = null;
-    setBusy(true);
-    setError(null);
-
-    session.onvalidatemerchant = async ({ validationURL }) => {
+    void (async () => {
       try {
-        const res = await fetch("/api/apple-pay/validate-merchant", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ validationURL, lines, totalAmountCents: grandTotalCents, discountCode }),
-        });
-        const data = await res.json() as { merchantSession?: unknown; intentId?: string; error?: string };
-        if (!res.ok || !data.merchantSession) throw new Error(data.error ?? "Merchant validation failed");
-        intentIdRef.current = data.intentId ?? null;
-        session.completeMerchantValidation(data.merchantSession);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Apple Pay is unavailable.";
-        session.abort();
-        setError(msg);
-        setBusy(false);
-        onError?.(msg);
-      }
-    };
+        if (containerRef.current) containerRef.current.innerHTML = "";
 
-    session.onpaymentauthorized = async ({ payment }) => {
-      try {
-        const sc = payment.shippingContact;
-        const res = await fetch("/api/apple-pay/authorize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            paymentData: JSON.stringify(payment.token.paymentData),
-            intentId: intentIdRef.current,
-            shippingContact: sc ? {
-              firstName: sc.givenName,
-              lastName: sc.familyName,
-              email: sc.emailAddress,
-              phone: sc.phoneNumber,
-              address: sc.addressLines?.[0],
-              city: sc.locality,
-              governorate: sc.administrativeArea,
-            } : undefined,
+        const [PixelCtor, initRes] = await Promise.all([
+          loadPixelSDK(),
+          fetch("/api/orders/paymob-apple-pay-init", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lines,
+              totalAmountCents,
+              discountCode: dc ?? null,
+            }),
+          }).then(async (r) => {
+            const d = (await r.json()) as {
+              clientSecret?: string;
+              publicKey?: string;
+              intentId?: string;
+              total?: string;
+              error?: string;
+            };
+            if (!r.ok || !d.clientSecret || !d.publicKey || !d.intentId) {
+              throw new Error(d.error ?? "Apple Pay is unavailable. Please try another payment method.");
+            }
+            return d as { clientSecret: string; publicKey: string; intentId: string; total: string };
           }),
+        ]);
+
+        if (cancelled) return;
+
+        initDataRef.current = { intentId: initRes.intentId, total: initRes.total };
+
+        new PixelCtor({
+          publicKey: initRes.publicKey,
+          clientSecret: initRes.clientSecret,
+          paymentMethods: ["apple-pay"],
+          elementId: containerIdRef.current,
+          afterPaymentComplete: async (response) => {
+            const isSuccess = response["success"] === true || response["success"] === "true";
+            const { intentId, total } = initDataRef.current ?? { intentId: "", total: "" };
+            if (isSuccess) {
+              const totalStr = total ? `${Math.round(parseFloat(total))} EGP` : grandTotalStr;
+              try {
+                sessionStorage.setItem(
+                  "moi_order_confirmation",
+                  JSON.stringify({ paymentMethod: "apple-pay", orderNumber: "" }),
+                );
+              } catch { /* ignore */ }
+              onSuccessRef.current?.(null, totalStr);
+              window.history.pushState(null, "", `/order-confirmed?intentId=${encodeURIComponent(intentId)}`);
+              window.dispatchEvent(new PopStateEvent("popstate"));
+            } else {
+              const msg = String(
+                response["txnResponseCode"] ??
+                  response["message"] ??
+                  "Payment was declined. Please try another card.",
+              );
+              onErrorRef.current?.(msg);
+              // Refresh with a new intention so the user can try again.
+              setReinitKey((k) => k + 1);
+            }
+          },
+          onPaymentCancel: () => {
+            onCancelRef.current?.();
+            setReinitKey((k) => k + 1);
+          },
         });
-        const data = await res.json() as {
-          success?: boolean;
-          error?: string;
-          shopifyOrderNumber?: number | null;
-          total?: string;
-        };
-        if (data.success) {
-          session.completePayment({ status: AP.STATUS_SUCCESS });
-          const totalStr = `${Math.round(grandTotalEGP)} EGP`;
-          onSuccess?.(data.shopifyOrderNumber ?? null, totalStr);
-        } else {
-          session.completePayment({ status: AP.STATUS_FAILURE });
-          const msg = data.error ?? "Payment was declined. Please try another card.";
-          setError(msg);
-          onCancel?.();
+
+        if (!cancelled) setStatus("ready");
+      } catch (err) {
+        if (!cancelled) {
+          const msg =
+            err instanceof Error ? err.message : "Apple Pay is unavailable. Please try another payment method.";
+          setStatus("error");
+          onErrorRef.current?.(msg);
         }
-      } catch {
-        session.completePayment({ status: AP.STATUS_FAILURE });
-        setError("Payment failed. Please try again.");
-        onCancel?.();
       }
-      setBusy(false);
-    };
+    })();
 
-    session.oncancel = () => {
-      setBusy(false);
-      onCancel?.();
+    return () => {
+      cancelled = true;
     };
-
-    session.begin();
-  }, [busy, disabled, variantId, quantity, priceEGP, cartLines, totalEGP, discountCode, onSuccess, onCancel, onError]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [available, disabled, cartKey, reinitKey]);
 
   if (!available || disabled) return null;
 
   return (
     <div className={className} style={{ width: "100%", ...style }}>
-      <button
-        type="button"
-        className="apple-pay-btn"
-        onClick={handlePay}
-        disabled={busy}
-        aria-label="Buy with Apple Pay"
-      />
-
-      {error && (
-        <p style={{
-          marginTop: 9,
-          fontSize: 11,
-          color: "rgba(30,24,20,0.54)",
-          textAlign: "center",
-          fontFamily: "'Montserrat', sans-serif",
-          letterSpacing: "0.04em",
-          lineHeight: 1.5,
-        }}>
-          {error}
-        </p>
+      {status === "loading" && (
+        <div
+          style={{
+            height: 44,
+            backgroundColor: "#000",
+            borderRadius: 10,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: 0.72,
+          }}
+        >
+          <span
+            style={{
+              color: "#fff",
+              fontSize: 11,
+              letterSpacing: "0.06em",
+              fontFamily: "'Montserrat', sans-serif",
+            }}
+          >
+            Apple Pay
+          </span>
+        </div>
       )}
+      <div
+        ref={containerRef}
+        id={containerIdRef.current}
+        style={{ display: status === "ready" ? "block" : "none" }}
+      />
     </div>
   );
 }
