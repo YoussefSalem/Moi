@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ShoppingBag, MessageCircle } from "lucide-react";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import LIGHT_BLUE_IMG from "@/assets/images/light-blue.jpg";
-import CASHMERE_IMG from "@/assets/images/cashmere-main-new.jpg";
 
 interface CartItem {
   id?: string;
@@ -65,15 +63,6 @@ function reassuranceMessage(method: string): string {
   }
 }
 
-const DEMO_DATA: OrderConfirmationData = {
-  items: [
-    { id: "demo-1", title: "MOI WAVVY", variantTitle: "Light Blue", quantity: 1, image: LIGHT_BLUE_IMG, price: "899 EGP" },
-    { id: "demo-2", title: "MOI VERSA TOP", variantTitle: "Cashmere", quantity: 1, image: CASHMERE_IMG, price: "1,399 EGP" },
-  ],
-  breakdown: { subtotal: 2298, savings: 0, shippingCost: 0, freeShipping: true },
-  paymentMethod: "cod",
-  orderNumber: "1042",
-};
 
 const SESSION_KEY = "moi_order_confirmation";
 const ACTIVE_SESSION_KEY = "moi_order_confirmed_active";
@@ -156,7 +145,6 @@ function GoldShimmer() {
 export function OrderConfirmationPage({ data: propData, onContinueShopping }: OrderConfirmationPageProps) {
   const [data, setData] = useState<OrderConfirmationData | null>(propData ?? null);
   const [shopifyOrderNumber, setShopifyOrderNumber] = useState<number | string | null>(null);
-  const [isDemo, setIsDemo] = useState(false);
   const [imagesReady, setImagesReady] = useState(false);
   const syncCalledRef = useRef(false);
 
@@ -221,7 +209,8 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
     }
 
     ["moi_paymob_items", "moi_paymob_order_total", "moi_paymob_breakdown",
-     "moi_paymob_intent_id", "moi_checkout_form", "moi_paymob_result"].forEach((k) => {
+     "moi_paymob_intent_id", "moi_checkout_form", "moi_paymob_result",
+     "moi_paymob_payment_method"].forEach((k) => {
       try { sessionStorage.removeItem(k); } catch { /* ignore */ }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -266,7 +255,22 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
           const res = await fetch(`/api/orders/paymob-status/${intentId}`, { cache: "no-store" });
           if (!res.ok) continue;
           const result = await res.json() as { status: string; shopifyOrderNumber?: number | null };
-          if (result.shopifyOrderNumber) { setShopifyOrderNumber(result.shopifyOrderNumber); break; }
+          if (result.shopifyOrderNumber) {
+            setShopifyOrderNumber(result.shopifyOrderNumber);
+            // Persist to active session so a refresh restores the order number
+            // immediately without re-polling.
+            try {
+              const activeRaw = sessionStorage.getItem(ACTIVE_SESSION_KEY);
+              if (activeRaw) {
+                const parsed = JSON.parse(activeRaw) as Partial<OrderConfirmationData>;
+                sessionStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({
+                  ...parsed,
+                  orderNumber: result.shopifyOrderNumber,
+                }));
+              }
+            } catch { /* ignore */ }
+            break;
+          }
         } catch { /* keep polling */ }
       }
     };
@@ -303,11 +307,6 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
       <LoadingScreen ready={pageReady} />
       <GoldShimmer />
 
-      {isDemo && (
-        <div style={{ position: "fixed", top: 10, left: "50%", transform: "translateX(-50%)", backgroundColor: "rgba(201,168,76,0.15)", border: "1px solid rgba(201,168,76,0.4)", padding: "5px 14px", fontFamily: "'Montserrat', sans-serif", fontSize: "9px", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(30,24,20,0.6)", zIndex: 300, whiteSpace: "nowrap" }}>
-          Demo Preview
-        </div>
-      )}
 
       <motion.div
         initial={{ opacity: 0 }}
