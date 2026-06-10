@@ -123,8 +123,21 @@ export function LookView({ product, onClose }: LookViewProps) {
     };
   }, [product]);
 
+  // Derive out-of-stock from variants. If the product has a specific variantId,
+  // check that variant. Otherwise check if every variant is unavailable.
+  const isOutOfStock = (() => {
+    if (!product) return false;
+    const variants = product.variants;
+    if (!variants || variants.length === 0) return false;
+    if (product.variantId) {
+      const matched = variants.find((v) => v.id === product.variantId);
+      if (matched) return !matched.availableForSale;
+    }
+    return variants.every((v) => !v.availableForSale);
+  })();
+
   const handleAddToBag = () => {
-    if (!product || addingToBag) return;
+    if (!product || addingToBag || isOutOfStock) return;
     // Deduplicate: guard is set synchronously before any state update
     setAddingToBag(true);
     setAddedFeedback(true);
@@ -426,6 +439,20 @@ export function LookView({ product, onClose }: LookViewProps) {
                         {product.price}
                       </p>
                       <div>
+                        {isOutOfStock ? (
+                          <div
+                            className="px-10 py-3.5 text-[11px] tracking-[0.2em] uppercase font-medium flex items-center justify-center"
+                            style={{
+                              backgroundColor: "#f0ece8",
+                              color: "#a89e97",
+                              border: "1px solid #c8bfb8",
+                              cursor: "not-allowed",
+                              userSelect: "none",
+                            }}
+                          >
+                            Sold Out
+                          </div>
+                        ) : (
                         <motion.button
                           whileHover={addingToBag ? {} : { scale: 1.02 }}
                           whileTap={addingToBag ? {} : { scale: 0.97 }}
@@ -446,6 +473,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                         >
                           {addedFeedback ? "Added \u2713" : addingToBag ? "Adding\u2026" : "Order Now"}
                         </motion.button>
+                        )}
                       </div>
                     </div>
                   </>

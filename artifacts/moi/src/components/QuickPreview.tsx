@@ -15,6 +15,7 @@ interface QuickPreviewProps {
   gallery: string[];
   handle: string;
   description?: string;
+  outOfStock?: boolean;
   onNavigate: (handle: string) => void;
   onAddToCart?: (handle: string, image: string) => void;
 }
@@ -30,6 +31,7 @@ export function QuickPreview({
   gallery,
   handle,
   description,
+  outOfStock = false,
   onNavigate,
   onAddToCart,
 }: QuickPreviewProps) {
@@ -386,6 +388,30 @@ export function QuickPreview({
 
                 {/* Action buttons */}
                 <div className="flex flex-col gap-2.5 mt-1">
+                  {outOfStock ? (
+                    <div
+                      className="w-full flex flex-col items-center justify-center gap-1.5"
+                      style={{
+                        borderRadius: 6,
+                        padding: "13px 0",
+                        backgroundColor: "#f0ece8",
+                        border: "1px solid #c8bfb8",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: "'Montserrat', sans-serif",
+                          fontSize: "0.7rem",
+                          letterSpacing: "0.28em",
+                          textTransform: "uppercase",
+                          fontWeight: 500,
+                          color: "#a89e97",
+                        }}
+                      >
+                        Sold Out
+                      </span>
+                    </div>
+                  ) : (
                   <button
                     type="button"
                     onClick={() => {
@@ -411,6 +437,7 @@ export function QuickPreview({
                     <ShoppingBag size={13} strokeWidth={2} />
                     Order Now
                   </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => { onClose(); onNavigate(handle); }}
