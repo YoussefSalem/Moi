@@ -750,7 +750,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
             {/* ── CONTENT COLUMN ── */}
             <div
-              className="flex flex-col items-center text-center mt-3 md:mt-0"
+              className="flex flex-col items-center text-center mt-6 md:mt-0"
             >
               {/* Product name */}
               <motion.h2
@@ -762,7 +762,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   color: "#1e1814",
                   letterSpacing: "0.04em",
                   lineHeight: 1.1,
-                  marginBottom: 6,
+                  marginBottom: 8,
                 }}
               >
                 {product.name}
@@ -793,7 +793,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
               {/* Description — bullets if available, otherwise plain text */}
               {"descriptionBullets" in (product as unknown as Record<string, unknown>) && (product as unknown as { descriptionBullets?: string[] }).descriptionBullets?.length ? (
-                <motion.ul variants={itemVariants} className="text-sm leading-relaxed font-light max-w-xs md:max-w-sm space-y-1.5 mb-2">
+                <motion.ul variants={itemVariants} className="text-sm leading-relaxed font-light max-w-xs md:max-w-sm space-y-1.5 mb-3">
                   {(product as unknown as { descriptionBullets: string[] }).descriptionBullets.map((bullet, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <span className="flex-shrink-0 mt-1.5 rounded-full" style={{ width: 5, height: 5, backgroundColor: "rgba(30,24,20,0.18)", border: "1px solid rgba(30,24,20,0.2)" }} />
@@ -805,7 +805,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                 <motion.p
                   variants={itemVariants}
                   className="text-sm leading-relaxed font-light max-w-xs md:max-w-sm"
-                  style={{ color: "#6a5e56", marginBottom: 8 }}
+                  style={{ color: "#6a5e56", marginBottom: 12 }}
                 >
                   {product.description}
                 </motion.p>
@@ -814,7 +814,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
               {/* Divider */}
               <motion.div
                 variants={itemVariants}
-                className="w-10 mb-2"
+                className="w-10 mb-3"
                 style={{ height: 1, backgroundColor: "rgba(180,160,140,0.4)" }}
               />
 
@@ -871,7 +871,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
               {/* Size */}
               {hasSingleVariantPill ? (
-                <motion.div variants={itemVariants} className="flex flex-col gap-1.5 mb-2 items-center w-full">
+                <motion.div variants={itemVariants} className="flex flex-col gap-1.5 mb-3 items-center w-full">
                   <button
                     type="button"
                     aria-pressed
@@ -887,7 +887,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                   </button>
                 </motion.div>
               ) : displaySizes.length > 1 && (
-                <motion.div variants={itemVariants} className="flex flex-col gap-1.5 mb-2 items-center w-full">
+                <motion.div variants={itemVariants} className="flex flex-col gap-1.5 mb-3 items-center w-full">
                   <p
                     className="text-[10px] tracking-[0.28em] uppercase font-medium"
                     style={{ color: "#8a7e74", fontFamily: "'Montserrat', sans-serif" }}
@@ -960,7 +960,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
               {!product.name.toLowerCase().includes("versa") && (
                 <motion.p
                   variants={itemVariants}
-                  className="mb-1"
+                  className="mb-2"
                   style={{
                     color: "#9e2a2b",
                     fontFamily: "'Montserrat', sans-serif",
@@ -1106,7 +1106,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     className="cta-btn-mobile w-full md:w-auto flex items-center justify-center gap-2 border transition-all duration-300"
                     style={{
                       maxWidth: 320,
-                      padding: "11px 24px",
+                      padding: "12px 24px",
                       fontSize: 9,
                       letterSpacing: "0.38em",
                       textTransform: "uppercase",
@@ -1128,7 +1128,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
                     className="cta-btn-mobile w-full md:w-auto border transition-all duration-500"
                     style={{
                       maxWidth: 320,
-                      padding: "11px 32px",
+                      padding: "12px 32px",
                       fontSize: 9,
                       letterSpacing: "0.42em",
                       textTransform: "uppercase",

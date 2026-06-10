@@ -48,7 +48,7 @@ export function EditorialStrip() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="text-[9px] tracking-[0.6em] uppercase mb-8"
+          className="text-[9px] tracking-[0.6em] uppercase mb-6"
           style={{
             color: "rgba(200,185,165,0.48)",
             fontFamily: "'Montserrat', sans-serif",
@@ -58,7 +58,7 @@ export function EditorialStrip() {
         </motion.p>
 
         {/* Three-word manifesto */}
-        <div className="flex items-center gap-6 md:gap-10 flex-wrap justify-center mb-10">
+        <div className="flex items-center gap-6 md:gap-10 flex-wrap justify-center mb-8">
           {words.map((word, i) => (
             <motion.span
               key={word}
@@ -86,7 +86,7 @@ export function EditorialStrip() {
           whileInView={{ scaleX: 1, opacity: 1 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
-          className="mb-8"
+          className="mb-6"
           style={{
             height: 1,
             width: "clamp(60px, 12vw, 100px)",

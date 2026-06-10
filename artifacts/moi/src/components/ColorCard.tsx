@@ -308,7 +308,7 @@ export function ColorCard({
         )}
 
         {/* Info */}
-        <div className="flex flex-col items-center flex-grow pt-3 md:pt-4 pb-4 md:pb-5 px-1 md:px-0 gap-y-2 md:gap-y-2.5">
+        <div className="flex flex-col items-center flex-grow pt-4 md:pt-5 pb-4 md:pb-5 px-1 md:px-0 gap-y-2">
           <div className="flex items-center justify-center gap-2 flex-wrap md:flex-nowrap">
             <div className="flex items-center gap-2 min-w-0">
               {swatchColor && (
@@ -455,7 +455,7 @@ export function ColorCard({
               type="button"
               disabled
               onClick={(e) => e.stopPropagation()}
-              className="self-center border px-6 py-2.5 md:px-14 md:py-3.5 w-full md:w-auto cursor-not-allowed"
+              className="self-center border px-6 py-3 md:px-8 md:py-3.5 w-full md:w-auto cursor-not-allowed"
               style={{
                 fontSize: "clamp(0.62rem, 2vw, 0.78rem)",
                 letterSpacing: "0.28em",
@@ -481,7 +481,7 @@ export function ColorCard({
                   onNavigate(handle);
                 }
               }}
-              className="self-center border transition-all duration-300 px-6 py-2.5 md:px-14 md:py-3.5 hover:shadow-lg w-full md:w-auto"
+              className="self-center border transition-all duration-300 px-6 py-3 md:px-8 md:py-3.5 hover:shadow-lg w-full md:w-auto"
               style={{
                 fontSize: "clamp(0.62rem, 2vw, 0.78rem)",
                 letterSpacing: "0.28em",

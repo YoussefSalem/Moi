@@ -39,7 +39,7 @@ export function ProductColorSection({
   const bg = dark ? "#f0ece6" : "#ffffff";
 
   return (
-    <section id={id} className="w-full py-32 md:py-48 px-6 md:px-16 lg:px-24" style={{ backgroundColor: bg }}>
+    <section id={id} className="w-full py-16 md:py-24 px-6 md:px-16 lg:px-24" style={{ backgroundColor: bg }}>
       <div className="max-w-7xl mx-auto">
 
         {/* Section header */}
@@ -48,7 +48,7 @@ export function ProductColorSection({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col items-center text-center mb-16 md:mb-20"
+          className="flex flex-col items-center text-center mb-10 md:mb-12"
         >
           <p
             style={{
@@ -95,7 +95,7 @@ export function ProductColorSection({
         </motion.div>
 
         {/* Color cards — flex-wrap so last row always centers naturally */}
-        <div className="flex flex-wrap justify-center gap-x-4 gap-y-12 md:gap-x-14 md:gap-y-16">
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-8 md:gap-x-6 md:gap-y-10">
           {colors.map((c, i) => {
             const img = colorImages[c.name] ?? product.productShot;
             const galleries = (product.colorGalleries ?? {}) as unknown as Record<string, string[]>;
@@ -113,7 +113,7 @@ export function ProductColorSection({
             return (
               <div
                 key={handle}
-                className="flex justify-center w-[calc(50%-8px)] md:w-[calc(33.33%-38px)]"
+                className="flex justify-center w-[calc(50%-8px)] md:w-[calc(33.33%-16px)]"
                 style={{ maxWidth: 360 }}
               >
                 <ColorCard

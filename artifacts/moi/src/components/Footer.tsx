@@ -85,7 +85,7 @@ export function Footer({ onNavigate }: FooterProps) {
             </a>
           </div>
 
-          <div className="mb-10 border-t border-white/10 pt-8">
+          <div className="mb-8 border-t border-white/10 pt-8">
             <div className="flex items-center justify-between gap-4 mb-8">
               <div>
                 <p className="text-[10px] tracking-[0.35em] uppercase text-white/45">Moi</p>
@@ -136,7 +136,7 @@ export function Footer({ onNavigate }: FooterProps) {
 
           <NewsletterSection />
 
-          <div className="mt-12 pt-6 border-t border-white/10">
+          <div className="mt-8 pt-6 border-t border-white/10">
             {/* Policy links — subtle, minimal */}
             <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mb-5">
               {[

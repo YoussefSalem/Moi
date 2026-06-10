@@ -36,7 +36,7 @@ export function NewsletterSection() {
   };
 
   return (
-    <section className="relative overflow-hidden px-6 pb-20 md:pb-28 pt-10 md:pt-14">
+    <section className="relative overflow-hidden px-6 pb-14 md:pb-20 pt-10 md:pt-14">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 md:h-36 bg-[linear-gradient(to_bottom,rgba(40,33,29,0),rgba(40,33,29,0.22),rgba(40,33,29,0.5))]" />
       <div className="mx-auto max-w-5xl relative">
         <div className="absolute inset-x-8 -top-10 h-24 rounded-full blur-3xl bg-[radial-gradient(circle,rgba(255,255,255,0.26),transparent_70%)] opacity-70" />
