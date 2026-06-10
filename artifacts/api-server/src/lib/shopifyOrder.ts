@@ -1,4 +1,4 @@
-import { getShopifyAdminToken, setShopifyOrderReferrer } from "./integrations";
+import { getShopifyAdminToken, setShopifyOrderReferrer, formatPhone } from "./integrations";
 import { countDiscountCodeUses, insertDiscountCodeUse } from "@workspace/db";
 import { logger } from "./logger";
 
@@ -551,7 +551,7 @@ export async function createDraftOrder(params: {
       first_name: params.customer.firstName,
       last_name: params.customer.lastName,
       email: params.customer.email,
-      phone: params.customer.phone,
+      phone: "+" + formatPhone(params.customer.phone),
       address1: params.customer.address,
       address2: params.customer.governorate,
       city: params.customer.city,
