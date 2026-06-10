@@ -117,6 +117,36 @@ header[class*="fixed"] {
   will-change: transform;
 }
 
+/* ── Focus-visible: refined thin ring replacing the browser default ──── */
+:focus-visible {
+  outline: 1.5px solid rgba(30,24,20,0.45);
+  outline-offset: 3px;
+}
+
+/* ── Link hover underline — The Row / Toteme style ───────────────────── */
+/* Underline scaleX animates left→right on hover, right→left on mouse-out */
+.link-underline {
+  position: relative;
+  text-decoration: none;
+}
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: currentColor;
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.link-underline:hover::after,
+.link-underline:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
 /* Do not apply a blanket `contain` rule on sections — it would clip
    absolutely-positioned descendants and break z-index stacking for overlays.
    Individual sections that need paint isolation should opt in explicitly. */
@@ -263,6 +293,9 @@ header[class*="fixed"] {
   --shadow-2xl: 0px 24px 56px 0px rgba(20, 16, 12, 0.14);
   --tracking-normal: 0.04em;
   --spacing: 0.25rem;
+  --ease-luxury: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-expo: cubic-bezier(0.87, 0, 0.13, 1);
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-accent-border: hsl(var(--sidebar-accent));
@@ -583,5 +616,11 @@ header[class*="fixed"] {
   }
   .tracking-wide-luxury {
     letter-spacing: 0.15em;
+  }
+
+  /* Size pill interactive hover — CSS-driven, no JS state needed */
+  .size-pill:not([aria-pressed="true"]):hover {
+    border-color: rgba(30,24,20,0.42) !important;
+    color: #1e1814 !important;
   }
 }

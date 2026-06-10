@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, ShoppingBag, User, X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useCustomer } from "@/context/CustomerContext";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface HeaderProps {
   onNavigate?: (page: "home" | "accessories" | "ambassador", hash?: string) => void;
@@ -104,26 +105,37 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: men
             <span className="block w-4 h-px transition-all duration-300 group-hover:w-6" style={{ backgroundColor: iconColor }} />
           </button>
 
+          <TooltipProvider delayDuration={500}>
           <div className="flex items-center gap-1">
-            <button aria-label="Search" className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-60" onClick={onSearch}>
-              <Search size={18} strokeWidth={1.5} style={{ color: iconColor }} />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button aria-label="Search" className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-60" onClick={onSearch}>
+                  <Search size={18} strokeWidth={1.5} style={{ color: iconColor }} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Search</TooltipContent>
+            </Tooltip>
 
-            <button
-              aria-label={customer ? "My Account" : "Sign In"}
-              className="w-11 h-11 flex items-center justify-center gap-1.5 transition-opacity hover:opacity-60"
-              onClick={customer ? openAccount : openAuth}
-            >
-              <User size={18} strokeWidth={1.5} style={{ color: iconColor }} />
-              {displayName && (
-                <span
-                  className="hidden md:block text-[10px] tracking-[0.18em] uppercase font-light"
-                  style={{ color: iconColor }}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  aria-label={customer ? "My Account" : "Sign In"}
+                  className="w-11 h-11 flex items-center justify-center gap-1.5 transition-opacity hover:opacity-60"
+                  onClick={customer ? openAccount : openAuth}
                 >
-                  {displayName}
-                </span>
-              )}
-            </button>
+                  <User size={18} strokeWidth={1.5} style={{ color: iconColor }} />
+                  {displayName && (
+                    <span
+                      className="hidden md:block text-[10px] tracking-[0.18em] uppercase font-light"
+                      style={{ color: iconColor }}
+                    >
+                      {displayName}
+                    </span>
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{customer ? "My Account" : "Sign In"}</TooltipContent>
+            </Tooltip>
 
             <button
               aria-label="Cart"
@@ -170,6 +182,7 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: men
               </AnimatePresence>
             </button>
           </div>
+          </TooltipProvider>
         </div>
       </header>
 
@@ -210,7 +223,7 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: men
                     >
                       <a
                         href={link.href}
-                        className="block text-2xl font-light tracking-wide hover:opacity-50 transition-opacity"
+                        className="block text-2xl font-light tracking-wide link-underline hover:opacity-70 transition-opacity"
                         style={{ color: "#1e1814", letterSpacing: "0.08em" }}
                         onClick={(e) => {
                           e.preventDefault();

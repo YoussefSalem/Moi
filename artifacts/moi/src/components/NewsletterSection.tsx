@@ -68,7 +68,7 @@ export function NewsletterSection() {
 
               <form onSubmit={handleSubmit} className="max-w-2xl flex flex-col gap-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                  <div className="flex-1 px-4 py-4 border border-[rgba(30,24,20,0.12)] bg-white/25 backdrop-blur-sm">
+                  <div className="flex-1 px-4 py-4 border border-[rgba(30,24,20,0.12)] bg-white/25 backdrop-blur-sm transition-colors duration-300 focus-within:border-[rgba(30,24,20,0.38)]">
                     <div className="flex items-center gap-3">
                       <Mail size={15} strokeWidth={1.6} style={{ color: "#1e1814" }} />
                       <div className="min-w-0 flex-1">

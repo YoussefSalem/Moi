@@ -44,10 +44,10 @@ export function EditorialStrip() {
       >
         {/* Label */}
         <motion.p
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 24, filter: "blur(6px)" }}
+          whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           className="text-[9px] tracking-[0.6em] uppercase mb-6"
           style={{
             color: "rgba(200,185,165,0.48)",
@@ -62,10 +62,10 @@ export function EditorialStrip() {
           {words.map((word, i) => (
             <motion.span
               key={word}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 28, filter: "blur(8px)" }}
+              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: i * 0.1 }}
+              transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: i * 0.12 }}
               style={{
                 fontFamily: "'Cormorant Garamond', Georgia, serif",
                 fontSize: "clamp(2.5rem, 8vw, 5.41rem)",

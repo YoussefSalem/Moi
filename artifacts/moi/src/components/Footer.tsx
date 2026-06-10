@@ -103,7 +103,7 @@ export function Footer({ onNavigate }: FooterProps) {
                     <button
                       type="button"
                       onClick={() => setOpenSection(isOpen ? null : key)}
-                      className="w-full flex items-center justify-between py-5 text-left"
+                      className="w-full flex items-center justify-between py-5 text-left hover:opacity-75 transition-opacity duration-200"
                     >
                       <div>
                         <p className="text-[10px] tracking-[0.28em] uppercase text-white/40">{item.title}</p>

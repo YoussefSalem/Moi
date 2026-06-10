@@ -90,6 +90,7 @@ export function ColorCard({
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-60px" }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: Math.min(index * 0.08, 0.24) }}
+        whileHover={{ y: -2 }}
         className={`flex flex-col cursor-pointer group w-full h-full max-w-[360px] ${className ?? ""}`}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -104,7 +105,10 @@ export function ColorCard({
           className="relative overflow-hidden aspect-[4/5] md:aspect-[3/4] rounded-lg md:rounded-xl"
           style={{
             backgroundColor: "#ffffff",
-            boxShadow: "0 2px 16px rgba(30,24,20,0.04)",
+            boxShadow: hovered
+              ? "0 8px 32px rgba(30,24,20,0.09), 0 2px 8px rgba(30,24,20,0.05)"
+              : "0 2px 16px rgba(30,24,20,0.04)",
+            transition: "box-shadow 600ms cubic-bezier(0.22,1,0.36,1)",
           }}
         >
           {!imgLoaded && (
@@ -122,8 +126,8 @@ export function ColorCard({
                   objectFit: "cover",
                   objectPosition: "center top",
                   opacity: imgLoaded ? (hovered && hoverImage ? 0 : 1) : 0,
-                  transform: hovered ? "scale(1.02)" : "scale(1)",
-                  transition: "opacity 500ms ease, transform 800ms cubic-bezier(0.22,1,0.36,1)",
+                  transform: hovered ? "scale(1.035)" : "scale(1)",
+                  transition: "opacity 500ms ease, transform 1000ms cubic-bezier(0.22,1,0.36,1)",
                 }}
                 loading="lazy"
                 decoding="async"
@@ -139,8 +143,8 @@ export function ColorCard({
                   objectFit: "cover",
                   objectPosition: "center top",
                   opacity: hovered && hoverImgLoaded ? 1 : 0,
-                  transform: hovered ? "scale(1.03)" : "scale(1)",
-                  transition: "opacity 500ms ease, transform 800ms cubic-bezier(0.22,1,0.36,1)",
+                  transform: hovered ? "scale(1.04)" : "scale(1)",
+                  transition: "opacity 600ms ease, transform 1000ms cubic-bezier(0.22,1,0.36,1)",
                 }}
                 loading="eager"
                 decoding="async"
@@ -171,6 +175,37 @@ export function ColorCard({
                 Sold Out
               </span>
             </div>
+          )}
+
+          {/* ── Desktop hover CTA reveal — slides up, clipped by overflow:hidden ── */}
+          {!outOfStock && (
+            <motion.div
+              className="hidden md:flex absolute inset-x-0 bottom-0 z-20 items-center justify-center gap-2.5"
+              initial={{ y: "100%" }}
+              animate={{ y: hovered ? 0 : "100%" }}
+              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+              style={{
+                backgroundColor: "rgba(250,248,245,0.93)",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                padding: "11px 16px",
+                borderTop: "1px solid rgba(30,24,20,0.07)",
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "8.5px",
+                  letterSpacing: "0.34em",
+                  textTransform: "uppercase",
+                  fontWeight: 500,
+                  color: "#1e1814",
+                }}
+              >
+                {onAddToCart ? "Order Now" : "View Details"}
+              </span>
+              <span style={{ color: "rgba(30,24,20,0.38)", fontSize: 10, lineHeight: 1 }}>→</span>
+            </motion.div>
           )}
 
           {/* ── MOBILE: swipe + long-press quick preview ── */}
@@ -436,6 +471,7 @@ export function ColorCard({
           )}
           {!outOfStock && !isSellingFast && (
             <p
+              className="hidden md:block"
               style={{
                 color: "#c83232",
                 fontFamily: "'Montserrat', sans-serif",
@@ -481,7 +517,7 @@ export function ColorCard({
                   onNavigate(handle);
                 }
               }}
-              className="self-center border transition-all duration-300 px-6 py-3 md:px-8 md:py-3.5 hover:shadow-lg w-full md:w-auto"
+              className="self-center border transition-all duration-300 px-6 py-3 md:px-8 md:py-3.5 hover:shadow-lg active:scale-[0.97] w-full md:w-auto"
               style={{
                 fontSize: "clamp(0.62rem, 2vw, 0.78rem)",
                 letterSpacing: "0.28em",
