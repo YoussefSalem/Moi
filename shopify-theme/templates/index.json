@@ -42,7 +42,17 @@
         "subtitle": "Effortlessly versatile. A silhouette that moves with you, in every shade of summer.",
         "dark_bg": true
       }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": {
+        "eyebrow": "Moi Newsletter",
+        "heading": "Stay in Moi-tion.",
+        "body": "Be the first to discover new versatile tops, fashion drops, and exclusive pieces — delivered straight to your inbox.",
+        "button_label": "Subscribe",
+        "success_text": "You're on the list."
+      }
     }
   },
-  "order": ["hero", "wavvy", "editorial", "versa"]
+  "order": ["hero", "wavvy", "editorial", "versa", "newsletter"]
 }
