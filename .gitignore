@@ -53,3 +53,9 @@ Thumbs.db
 
 # Apple Pay certificate files (private keys must never be committed)
 private-certs/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
