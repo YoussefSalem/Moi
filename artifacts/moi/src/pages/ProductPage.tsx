@@ -73,15 +73,42 @@ const PRODUCT_REVIEWS = [
   },
 ];
 
-const ALL_RECS = [
-  { handle: "moi-versa-top-white",  name: "MOI VERSA TOP", color: "White",      price: "1,399 EGP", swatch: "#f5f0e8", image: () => IMAGES.product2.colorImages.White  as string, gallery: () => IMAGES.product2.colorGalleries.White    as readonly string[] },
-  { handle: "moi-versa-top-yellow", name: "MOI VERSA TOP", color: "Yellow",     price: "1,399 EGP", swatch: "#e8d080", image: () => IMAGES.product2.colorImages.Yellow as string, gallery: () => IMAGES.product2.colorGalleries.Yellow   as readonly string[] },
-  { handle: "moi-versa-top-teal",   name: "MOI VERSA TOP", color: "Teal",       price: "1,399 EGP", swatch: "#4a8a8a", image: () => IMAGES.product2.colorImages.Teal   as string, gallery: () => IMAGES.product2.colorGalleries.Teal     as readonly string[] },
-  { handle: "moi-wavvy-light-blue", name: "MOI WAVVY",     color: "Light Blue", price: "899 EGP",   swatch: "#a8c8d8", image: () => IMAGES.product1.colorImages["Light Blue"] as string, gallery: () => IMAGES.product1.colorGalleries["Light Blue"] as readonly string[] },
-  { handle: "moi-wavvy-navy",       name: "MOI WAVVY",     color: "Navy",       price: "899 EGP",   swatch: "#3a5a7a", image: () => IMAGES.product1.colorImages.Navy   as string, gallery: () => IMAGES.product1.colorGalleries.Navy     as readonly string[] },
-  { handle: "moi-wavvy-mint",       name: "MOI WAVVY",     color: "Mint",       price: "899 EGP",   swatch: "#98c8a8", image: () => IMAGES.product1.colorImages.Mint   as string, gallery: () => IMAGES.product1.colorGalleries.Mint     as readonly string[] },
-  { handle: "moi-wavvy-sand",       name: "MOI WAVVY",     color: "Sand",       price: "899 EGP",   swatch: "#d4c4a0", image: () => IMAGES.product1.colorImages.Sand  as string, gallery: () => IMAGES.product1.colorGalleries.Sand     as readonly string[] },
-];
+interface RecItem {
+  handle: string;
+  name: string;
+  color: string;
+  price: string;
+  swatch: string;
+  image: () => string;
+  gallery: () => readonly string[];
+}
+
+function buildAllRecs(): RecItem[] {
+  const allProducts = [IMAGES.product1, IMAGES.product2, IMAGES.product3] as const;
+  const items: RecItem[] = [];
+  for (const product of allProducts) {
+    const colorImages = product.colorImages as Record<string, string> | undefined;
+    const colorGalleries = product.colorGalleries as Record<string, readonly string[]> | undefined;
+    const colorSwatches = product.colorSwatches as Record<string, string> | undefined;
+    if (!colorImages) continue;
+    for (const colorName of Object.keys(colorImages)) {
+      const handle = `${product.slug}-${slugify(colorName)}`;
+      const swatch = colorSwatches?.[colorName.toLowerCase()] ?? colorSwatches?.[colorName] ?? "#c8bdb5";
+      items.push({
+        handle,
+        name: product.name,
+        color: colorName,
+        price: product.price,
+        swatch,
+        image: () => colorImages[colorName] ?? product.productShot,
+        gallery: () => colorGalleries?.[colorName] ?? [colorImages[colorName] ?? product.productShot],
+      });
+    }
+  }
+  return items;
+}
+
+const ALL_RECS = buildAllRecs();
 
 function slugify(str: string): string {
   return str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
