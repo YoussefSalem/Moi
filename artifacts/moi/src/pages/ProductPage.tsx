@@ -712,6 +712,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                             />
                           </>
                         )}
+                        {/* or separator */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" as const }}>or</span>
+                          <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                        </div>
                         {/* WhatsApp order */}
                         <a
                           href={`https://wa.me/201200520083?text=${encodeURIComponent(`Hi, I'd like to order the ${product.name}`)}`}
@@ -879,6 +885,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     >
                       Buy Now
                     </motion.button>
+                    {/* or separator — mobile */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" as const }}>or</span>
+                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                    </div>
                     {/* WhatsApp order — mobile */}
                     <a
                       href={`https://wa.me/201200520083?text=${encodeURIComponent(`Hi, I'd like to order the ${product.name}`)}`}
