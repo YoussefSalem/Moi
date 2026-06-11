@@ -132,11 +132,19 @@ export function ProductCarousel({
     if (ptrIdRef.current !== e.pointerId) return;
     ptrIdRef.current = null;
 
-    if (lockRef.current !== "h") {
-      lockRef.current = null;
+    const wasH = lockRef.current === "h";
+    const wasDrag = didDragRef.current;
+    lockRef.current = null;
+
+    // Clean tap (no meaningful movement) — fire navigation directly here
+    // because setPointerCapture suppresses the native click on child buttons.
+    if (!wasH && !wasDrag) {
+      const btn = (e.target as HTMLElement).closest("[data-handle]") as HTMLElement | null;
+      if (btn?.dataset.handle) onItemClick(btn.dataset.handle);
       return;
     }
-    lockRef.current = null;
+
+    if (!wasH) return; // vertical scroll — no snap needed
 
     const dx = e.clientX - startXRef.current;
     const dt = Math.max(e.timeStamp - startTRef.current, 1);
@@ -311,9 +319,7 @@ export function ProductCarousel({
               <button
                 key={`${item.handle}-${i}`}
                 type="button"
-                onClick={() => {
-                  if (!didDragRef.current) onItemClick(item.handle);
-                }}
+                data-handle={item.handle}
                 draggable={false}
                 style={{
                   flex: `0 0 ${CARD_W}`,
