@@ -522,6 +522,52 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                 </div>
                 {/* Conversion Banner — FIRST50 (disabled — uncomment to re-enable) */}
                 {/* <DiscountBanner /> */}
+                {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && shopifyCart && shopifyCart.lines.nodes.length > 0 && (
+                  <>
+                    <p style={{
+                      fontSize: "10px",
+                      letterSpacing: "0.3em",
+                      textTransform: "uppercase",
+                      color: "rgba(30,24,20,0.38)",
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontWeight: 400,
+                      textAlign: "center",
+                      marginBottom: "12px",
+                    }}>
+                      Express Checkout
+                    </p>
+                    <ShopifyApplePayButton
+                      lines={shopifyCart.lines.nodes.map((l) => ({
+                        variantId: l.merchandise.id,
+                        quantity: l.quantity,
+                      }))}
+                      totalEGP={
+                        shopifyCart.cost?.totalAmount?.amount
+                          ? parseFloat(shopifyCart.cost.totalAmount.amount)
+                          : shopifyCart.lines.nodes.reduce((s, l) => {
+                              const p = parseFloat(l.merchandise.price.amount ?? "0");
+                              return s + p * l.quantity;
+                            }, 0)
+                      }
+                      disabled={loading}
+                      onSuccess={(orderNumber, total) => {
+                        toast.success(
+                          `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
+                          { duration: 5000 },
+                        );
+                      }}
+                      onError={(msg) => {
+                        toast.error(msg, { duration: 4000 });
+                      }}
+                      onMoreOptions={() => openCheckout()}
+                    />
+                    <div className="flex items-center gap-3" style={{ marginTop: "16px" }}>
+                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" }}>or</span>
+                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                    </div>
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -564,40 +610,6 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                 >
                   {loading ? "…" : "Checkout"}
                 </button>
-                {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && shopifyCart && shopifyCart.lines.nodes.length > 0 && (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
-                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" }}>or</span>
-                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
-                    </div>
-                  <ShopifyApplePayButton
-                    lines={shopifyCart.lines.nodes.map((l) => ({
-                      variantId: l.merchandise.id,
-                      quantity: l.quantity,
-                    }))}
-                    totalEGP={
-                      shopifyCart.cost?.totalAmount?.amount
-                        ? parseFloat(shopifyCart.cost.totalAmount.amount)
-                        : shopifyCart.lines.nodes.reduce((s, l) => {
-                            const p = parseFloat(l.merchandise.price.amount ?? "0");
-                            return s + p * l.quantity;
-                          }, 0)
-                    }
-                    disabled={loading}
-                    onSuccess={(orderNumber, total) => {
-                      toast.success(
-                        `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
-                        { duration: 5000 },
-                      );
-                    }}
-                    onError={(msg) => {
-                      toast.error(msg, { duration: 4000 });
-                    }}
-                    onMoreOptions={() => openCheckout()}
-                  />
-                  </>
-                )}
               </div>
             )}
           </motion.aside>
