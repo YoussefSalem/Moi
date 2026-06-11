@@ -149,6 +149,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [waHover, setWaHover] = useState(false);
   const recsRef = useRef<HTMLDivElement>(null);
   const recsTrackRef = useRef<HTMLDivElement>(null);
+  const recsOuterRef = useRef<HTMLDivElement>(null);
   const recsDraggingRef = useRef(false);
   const recsDragStartXRef = useRef(0);
   const recsDragScrollLeftRef = useRef(0);
@@ -178,17 +179,23 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     let rafLoop = 0;
     let paused = false;
     let touchStartClientX = 0;
+    let touchStartClientY = 0;
     let touchStartX = 0;
+    // null = direction not yet decided; true = horizontal; false = vertical (let page scroll)
+    let isHorizontal: boolean | null = null;
     const speed = 0.7;
     let onTouchStart: (e: TouchEvent) => void;
     let onTouchMove: (e: TouchEvent) => void;
     let onTouchEnd: () => void;
-    let attachedTrack: HTMLDivElement | null = null;
+    let attachedOuter: HTMLDivElement | null = null;
 
     raf0 = requestAnimationFrame(() => {
       const trackEl = recsTrackRef.current as HTMLDivElement;
-      if (!trackEl) return;
-      attachedTrack = trackEl;
+      // Listen on the outer overflow:hidden container so iOS page-scroll doesn't
+      // eat the events before they reach the inner track.
+      const outerEl = recsOuterRef.current as HTMLDivElement;
+      if (!trackEl || !outerEl) return;
+      attachedOuter = outerEl;
       recsMobileXRef.current = 0;
       trackEl.style.transform = "translateX(0px)";
       const halfWidth = trackEl.scrollWidth / 2;
@@ -205,19 +212,33 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       onTouchStart = (e: TouchEvent) => {
         paused = true;
         touchStartClientX = e.touches[0].clientX;
+        touchStartClientY = e.touches[0].clientY;
         touchStartX = recsMobileXRef.current;
+        isHorizontal = null; // reset direction each gesture
       };
       onTouchMove = (e: TouchEvent) => {
         const dx = e.touches[0].clientX - touchStartClientX;
-        recsMobileXRef.current = touchStartX + dx;
-        trackEl.style.transform = `translateX(${recsMobileXRef.current}px)`;
+        const dy = e.touches[0].clientY - touchStartClientY;
+        // Lock direction on first meaningful movement
+        if (isHorizontal === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+          isHorizontal = Math.abs(dx) > Math.abs(dy);
+        }
+        // Only translate if we've determined this is a horizontal swipe
+        if (isHorizontal === true) {
+          recsMobileXRef.current = touchStartX + dx;
+          trackEl.style.transform = `translateX(${recsMobileXRef.current}px)`;
+        }
       };
-      onTouchEnd = () => { paused = false; };
+      onTouchEnd = () => {
+        isHorizontal = null;
+        paused = false;
+      };
 
-      trackEl.addEventListener("touchstart", onTouchStart, { passive: true });
-      trackEl.addEventListener("touchmove", onTouchMove, { passive: true });
-      trackEl.addEventListener("touchend", onTouchEnd, { passive: true });
-      trackEl.addEventListener("touchcancel", onTouchEnd, { passive: true });
+      // passive:true — we never call preventDefault, so page can scroll vertically
+      outerEl.addEventListener("touchstart", onTouchStart, { passive: true });
+      outerEl.addEventListener("touchmove", onTouchMove, { passive: true });
+      outerEl.addEventListener("touchend", onTouchEnd, { passive: true });
+      outerEl.addEventListener("touchcancel", onTouchEnd, { passive: true });
 
       rafLoop = requestAnimationFrame(tick);
     });
@@ -225,11 +246,11 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     return () => {
       cancelAnimationFrame(raf0);
       cancelAnimationFrame(rafLoop);
-      if (attachedTrack && onTouchStart) {
-        attachedTrack.removeEventListener("touchstart", onTouchStart);
-        attachedTrack.removeEventListener("touchmove", onTouchMove);
-        attachedTrack.removeEventListener("touchend", onTouchEnd);
-        attachedTrack.removeEventListener("touchcancel", onTouchEnd);
+      if (attachedOuter && onTouchStart) {
+        attachedOuter.removeEventListener("touchstart", onTouchStart);
+        attachedOuter.removeEventListener("touchmove", onTouchMove);
+        attachedOuter.removeEventListener("touchend", onTouchEnd);
+        attachedOuter.removeEventListener("touchcancel", onTouchEnd);
       }
     };
   }, [isMobile]);
@@ -1162,8 +1183,11 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         </div>
 
                         {isMobile ? (
-                          /* Mobile: seamless infinite auto-scroll — items doubled, translateX driven by rAF, touch-to-pan enabled */
-                          <div style={{ overflow: "hidden" }}>
+                          /* Mobile: seamless infinite auto-scroll — items doubled, translateX driven by rAF
+                             Outer div has touch-action:pan-y so iOS passes horizontal swipes to our handler
+                             while still allowing vertical page scroll. Listeners live on the outer container
+                             (not the inner track) so the page-scroll heuristic doesn't eat them first. */
+                          <div ref={recsOuterRef} style={{ overflow: "hidden", touchAction: "pan-y" }}>
                             <div ref={recsTrackRef} style={{ display: "flex", gap: 16, width: "max-content", willChange: "transform" }}>
                               {[...recs, ...recs].map((rec, i) => renderCard(rec, `m-${rec.handle}-${i}`))}
                             </div>
