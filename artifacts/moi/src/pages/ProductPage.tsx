@@ -86,9 +86,10 @@ interface RecItem {
 function buildAllRecs(): RecItem[] {
   type Entry = { product: typeof IMAGES.product1 | typeof IMAGES.product2; colorName: string };
   const entries: Entry[] = [
-    { product: IMAGES.product1, colorName: "Light Blue" },
+    { product: IMAGES.product1, colorName: "White" },
+    { product: IMAGES.product1, colorName: "Cashmere" },
     { product: IMAGES.product1, colorName: "Beige" },
-    { product: IMAGES.product1, colorName: "Mint" },
+    { product: IMAGES.product1, colorName: "Yellow" },
     { product: IMAGES.product1, colorName: "Sand" },
     { product: IMAGES.product2, colorName: "White" },
     { product: IMAGES.product2, colorName: "Cashmere" },
