@@ -149,10 +149,14 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [waHover, setWaHover] = useState(false);
   const recsRef = useRef<HTMLDivElement>(null);
   const recsTrackRef = useRef<HTMLDivElement>(null);
-  const recsOuterRef = useRef<HTMLDivElement>(null);
+  const recsTrackMobileRef = useRef<HTMLDivElement>(null);
   const recsDraggingRef = useRef(false);
+  const recsDidDragRef = useRef(false);
+  const recsDragRef = useRef({ startX: 0, startY: 0, dx: 0, active: false, decided: false, horizontal: false });
+  const [recsIndex, setRecsIndex] = useState(0);
   const desktopXRef = useRef(0);
   const desktopAnimatingRef = useRef(false);
+  const recs = useMemo(() => ALL_RECS.filter((r) => r.handle !== handle), [handle]);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
   const addingRef = useRef(false);
@@ -166,12 +170,9 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Mobile carousel uses a NATIVE horizontal scroll container (overflow-x:auto +
-  // -webkit-overflow-scrolling:touch). The browser handles momentum, tap-vs-swipe,
-  // and horizontal-vs-vertical disambiguation natively — no JS touch handlers, no
-  // RAF auto-scroll. This is the robust, modern e-commerce gallery pattern and works
-  // identically on iOS and Android. (Custom rAF/translateX approach was removed
-  // because nested fixed/overflow scroll containers swallowed the touch events.)
+  // Mobile recs carousel is index-based (one card per view, single set of cards,
+  // index wraps last→first / first→last). Swipe handlers + transform live inline in
+  // the JSX below; no native scroll, no duplicated/tripled cards.
 
   // Desktop: set initial translateX to the middle set (-oneSetWidth) after paint
   useLayoutEffect(() => {
@@ -186,44 +187,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     return () => cancelAnimationFrame(raf);
     // `loading` is in deps because the recs DOM only renders after the Shopify
     // fetch resolves; without it the effect runs on mount when the track is null.
-  }, [isMobile, loading]);
-
-  // Mobile: infinite scroll position wrapping. Cards are tripled (A B C).
-  // Start at the middle set (B) so the user can scroll both ways.
-  // On scroll, if the position enters the left (A) or right (C) zone, snap it
-  // back to the equivalent position inside B. The jump is instant (scroll
-  // behaviour is "auto" on the container) so the user never sees the reset.
-  useEffect(() => {
-    if (!isMobile) return;
-    const el = recsOuterRef.current;
-    if (!el) return;
-
-    // Set initial position to the middle set after the DOM is ready
-    const setInitial = () => {
-      const oneSet = el.scrollWidth / 3;
-      el.scrollLeft = oneSet;
-    };
-    const raf = requestAnimationFrame(setInitial);
-
-    const onScroll = () => {
-      const sw = el.scrollWidth;
-      const oneSet = sw / 3;
-      const left = el.scrollLeft;
-      // If the user is in the first set (A), jump back to the same position
-      // in the middle set (B). If in the last set (C), jump back to B.
-      // The tolerance (half a card) prevents jitter at the exact boundary.
-      if (left < oneSet - 60) {
-        el.scrollLeft = left + oneSet;
-      } else if (left > oneSet * 2 - 60) {
-        el.scrollLeft = left - oneSet;
-      }
-    };
-
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      cancelAnimationFrame(raf);
-      el.removeEventListener("scroll", onScroll);
-    };
   }, [isMobile, loading]);
 
   // Desktop: grab-to-drag via translateX; normalises position after drag ends
@@ -368,7 +331,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     const el = document.getElementById("product-scroll-container");
     if (el) el.scrollTop = 0;
   }, [handle]);
-  useEffect(() => { setGalleryIndex(0); setImgLoaded(false); }, [handle]);
+  useEffect(() => { setGalleryIndex(0); setImgLoaded(false); setRecsIndex(0); }, [handle]);
 
   // Meta Pixel + TikTok Pixel ViewContent — fires once per product page load
   useEffect(() => {
@@ -1073,18 +1036,18 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               {onNavigate && (
                 <div style={{ backgroundColor: "#faf8f5", borderTop: "1px solid rgba(30,24,20,0.07)" }}>
                   {(() => {
-                    const recs = ALL_RECS.filter((r) => r.handle !== handle);
-                    const cardStyle: React.CSSProperties = { flex: "0 0 auto", width: "clamp(180px, 38vw, 280px)", background: "none", border: "none", padding: 0, textAlign: "left", userSelect: "none" };
                     const openGallery = (rec: typeof recs[0]) => {
+                      // Suppress the tap that follows a horizontal swipe so a drag never opens the gallery.
+                      if (recsDidDragRef.current) { recsDidDragRef.current = false; return; }
                       const imgs = rec.gallery();
                       setCarouselLb({ open: true, images: imgs, idx: 0 });
                     };
-                    const renderCard = (rec: typeof recs[0], key: string) => (
+                    const renderCard = (rec: typeof recs[0], key: string, fullWidth = false) => (
                       <button
                         key={key}
                         type="button"
                         onClick={() => openGallery(rec)}
-                        style={{ ...cardStyle, cursor: "pointer" }}
+                        style={{ flex: "0 0 auto", width: fullWidth ? "100%" : "clamp(180px, 38vw, 280px)", background: "none", border: "none", padding: 0, textAlign: "left", userSelect: "none", cursor: "pointer" }}
                         draggable={false}
                       >
                         <div style={{ aspectRatio: "3/4", overflow: "hidden", marginBottom: 12, backgroundColor: "rgba(30,24,20,0.04)" }}>
@@ -1121,6 +1084,56 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       };
                       track.addEventListener("transitionend", onEnd);
                     };
+
+                    // ── Mobile carousel: one card per view, single set of cards.
+                    // Index wraps last→first / first→last. translateX(-index * 100%)
+                    // moves one slide because each slide is flex:0 0 100% of the
+                    // viewport and the track's box width equals the viewport.
+                    const N = recs.length;
+                    const SWIPE_THRESHOLD = 45;
+                    const goTo = (i: number) => setRecsIndex(((i % N) + N) % N);
+                    const restMobileTransform = `translateX(-${recsIndex * 100}%)`;
+                    const onRecsDown = (e: React.PointerEvent) => {
+                      recsDidDragRef.current = false; // fresh gesture; only a real swipe sets this true
+                      recsDragRef.current = { startX: e.clientX, startY: e.clientY, dx: 0, active: true, decided: false, horizontal: false };
+                      const track = recsTrackMobileRef.current;
+                      if (track) track.style.transition = "none";
+                    };
+                    const onRecsMove = (e: React.PointerEvent) => {
+                      const d = recsDragRef.current;
+                      if (!d.active) return;
+                      const dx = e.clientX - d.startX;
+                      const dy = e.clientY - d.startY;
+                      if (!d.decided) {
+                        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+                        d.decided = true;
+                        d.horizontal = Math.abs(dx) > Math.abs(dy);
+                        if (d.horizontal) {
+                          recsDidDragRef.current = true; // a real swipe → suppress the trailing tap
+                          (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+                        }
+                      }
+                      if (!d.horizontal) return; // vertical gesture → let the page scroll
+                      d.dx = dx;
+                      const track = recsTrackMobileRef.current;
+                      // First / last slide: add rubber-band resistance so we don't reveal empty space.
+                      const atEdge = (recsIndex === 0 && dx > 0) || (recsIndex === N - 1 && dx < 0);
+                      const eff = atEdge ? dx * 0.35 : dx;
+                      if (track) track.style.transform = `translateX(calc(-${recsIndex * 100}% + ${eff}px))`;
+                    };
+                    const onRecsUp = () => {
+                      const d = recsDragRef.current;
+                      if (!d.active) return;
+                      d.active = false;
+                      const track = recsTrackMobileRef.current;
+                      if (track) track.style.transition = "transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)";
+                      const willChange = N > 1 && d.horizontal && Math.abs(d.dx) > SWIPE_THRESHOLD;
+                      if (willChange) {
+                        goTo(d.dx < 0 ? recsIndex + 1 : recsIndex - 1); // state change re-applies transform with transition
+                      } else if (track) {
+                        track.style.transform = restMobileTransform; // snap back to current slide
+                      }
+                    };
                     return (
                       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 0 56px 28px" }}>
                         {/* Header row */}
@@ -1142,27 +1155,48 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         </div>
 
                         {isMobile ? (
-                          /* Mobile: infinite native scroll — cards tripled (set A B C).
-                             Start at the middle set (B). On scroll, wrap back to B whenever
-                             the user scrolls past A or C. The scroll is instant (no transition)
-                             so the user never sees the jump. Browser handles momentum, tap,
-                             and direction disambiguation natively. */
-                          <div
-                            ref={recsOuterRef}
-                            className="moi-hscroll"
-                            style={{
-                              display: "flex",
-                              gap: 16,
-                              overflowX: "auto",
-                              overflowY: "hidden",
-                              WebkitOverflowScrolling: "touch",
-                              overscrollBehaviorX: "contain",
-                              paddingRight: 28,
-                              paddingBottom: 8,
-                              scrollBehavior: "auto", // instant jumps (no transition on scrollLeft)
-                            }}
-                          >
-                            {[...recs, ...recs, ...recs].map((rec, i) => renderCard(rec, `m-${rec.handle}-${i}`))}
+                          /* Mobile: index-based infinite loop — ONE card per view, a single
+                             set of cards (no duplicates). Swiping past the last card wraps to
+                             the first and vice-versa. translateX(-index*100%) steps one slide
+                             because each slide is flex:0 0 100% and the track box = viewport. */
+                          <div style={{ paddingRight: 28 }}>
+                            <div
+                              style={{ overflow: "hidden", touchAction: "pan-y" }}
+                              onPointerDown={onRecsDown}
+                              onPointerMove={onRecsMove}
+                              onPointerUp={onRecsUp}
+                              onPointerCancel={onRecsUp}
+                            >
+                              <div
+                                ref={recsTrackMobileRef}
+                                style={{
+                                  display: "flex",
+                                  transform: restMobileTransform,
+                                  transition: "transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)",
+                                  willChange: "transform",
+                                }}
+                              >
+                                {recs.map((rec, i) => (
+                                  <div key={`m-${rec.handle}-${i}`} style={{ flex: "0 0 100%", boxSizing: "border-box", paddingRight: 6 }}>
+                                    {renderCard(rec, `mc-${rec.handle}-${i}`, true)}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            {/* Dots */}
+                            {N > 1 && (
+                              <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 22 }}>
+                                {recs.map((_, i) => (
+                                  <button
+                                    key={i}
+                                    type="button"
+                                    aria-label={`Go to item ${i + 1}`}
+                                    onClick={() => setRecsIndex(i)}
+                                    style={{ width: i === recsIndex ? 18 : 6, height: 6, borderRadius: 9999, border: "none", padding: 0, cursor: "pointer", backgroundColor: i === recsIndex ? "#1e1814" : "rgba(30,24,20,0.2)", transition: "width 0.22s, background-color 0.22s" }}
+                                  />
+                                ))}
+                              </div>
+                            )}
                           </div>
                         ) : (
                           /* Desktop: infinite loop via tripled track + translateX; grab-to-drag + arrow buttons */
