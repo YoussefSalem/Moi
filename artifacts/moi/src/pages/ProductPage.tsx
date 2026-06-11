@@ -148,38 +148,74 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [waHover, setWaHover] = useState(false);
   const recsRef = useRef<HTMLDivElement>(null);
-  const recsPausedRef = useRef(false);
+  const recsTrackRef = useRef<HTMLDivElement>(null);
+  const recsDraggingRef = useRef(false);
+  const recsDragStartXRef = useRef(0);
+  const recsDragScrollLeftRef = useRef(0);
+  const recsRafRef = useRef(0);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const addingRef = useRef(false);
 
+  // Sync isMobile with viewport
   useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // Mobile: infinite seamless auto-scroll via requestAnimationFrame
+  useEffect(() => {
+    if (!isMobile) return;
+    const track = recsTrackRef.current;
+    if (!track) return;
+    let x = 0;
+    const speed = 0.7;
+    function tick() {
+      if (!track) return;
+      const halfWidth = track.scrollWidth / 2;
+      x -= speed;
+      if (Math.abs(x) >= halfWidth) x = 0;
+      track.style.transform = `translateX(${x}px)`;
+      recsRafRef.current = requestAnimationFrame(tick);
+    }
+    recsRafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(recsRafRef.current);
+  }, [isMobile]);
+
+  // Desktop: grab-to-drag scroll
+  useEffect(() => {
+    if (isMobile) return;
     const el = recsRef.current;
     if (!el) return;
-    const onEnter = () => { recsPausedRef.current = true; };
-    const onLeave = () => { recsPausedRef.current = false; };
-    el.addEventListener("mouseenter", onEnter);
-    el.addEventListener("mouseleave", onLeave);
-    el.addEventListener("touchstart", onEnter, { passive: true });
-    el.addEventListener("touchend", onLeave, { passive: true });
-    const id = setInterval(() => {
-      if (recsPausedRef.current || !el) return;
-      const cardWidth = (el.firstElementChild as HTMLElement | null)?.offsetWidth ?? 0;
-      const gap = 16;
-      const step = cardWidth + gap;
-      const maxScroll = el.scrollWidth - el.clientWidth;
-      if (el.scrollLeft + step >= maxScroll - 1) {
-        el.scrollTo({ left: 0, behavior: "smooth" });
-      } else {
-        el.scrollBy({ left: step, behavior: "smooth" });
-      }
-    }, 3000);
-    return () => {
-      clearInterval(id);
-      el.removeEventListener("mouseenter", onEnter);
-      el.removeEventListener("mouseleave", onLeave);
-      el.removeEventListener("touchstart", onEnter);
-      el.removeEventListener("touchend", onLeave);
+    const onDown = (e: MouseEvent) => {
+      recsDraggingRef.current = true;
+      recsDragStartXRef.current = e.pageX - el.offsetLeft;
+      recsDragScrollLeftRef.current = el.scrollLeft;
+      el.style.cursor = "grabbing";
     };
-  }, []);
+    const onMove = (e: MouseEvent) => {
+      if (!recsDraggingRef.current) return;
+      e.preventDefault();
+      const x = e.pageX - el.offsetLeft;
+      el.scrollLeft = recsDragScrollLeftRef.current - (x - recsDragStartXRef.current) * 1.5;
+    };
+    const onUp = () => {
+      recsDraggingRef.current = false;
+      el.style.cursor = "grab";
+    };
+    el.addEventListener("mousedown", onDown);
+    el.addEventListener("mousemove", onMove);
+    el.addEventListener("mouseup", onUp);
+    el.addEventListener("mouseleave", onUp);
+    return () => {
+      el.removeEventListener("mousedown", onDown);
+      el.removeEventListener("mousemove", onMove);
+      el.removeEventListener("mouseup", onUp);
+      el.removeEventListener("mouseleave", onUp);
+    };
+  }, [isMobile]);
 
   // SEO: update all <head> meta tags imperatively when the product or image changes.
   // This covers document.title, description, and all Open Graph + Twitter Card tags so
@@ -961,46 +997,64 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               {/* ══ YOU MAY ALSO LIKE — full-width horizontal carousel ══ */}
               {onNavigate && (
                 <div style={{ backgroundColor: "#faf8f5", borderTop: "1px solid rgba(30,24,20,0.07)" }}>
-                  <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 0 72px 28px" }}>
-                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64", marginBottom: 14 }}>
-                      You May Also Like
-                    </p>
-                    <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", fontWeight: 400, letterSpacing: "0.04em", color: "#1e1814", marginBottom: 40 }}>
-                      Curated For You
-                    </h2>
-                    <div
-                      ref={recsRef}
-                      style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 16, paddingRight: 28, scrollSnapType: "x mandatory", scrollbarWidth: "none" as const }}
-                    >
-                      {ALL_RECS.filter((r) => r.handle !== handle).slice(0, 4).map((rec) => (
-                        <button
-                          key={rec.handle}
-                          type="button"
-                          onClick={() => onNavigate(rec.handle)}
-                          style={{ flex: "0 0 auto", width: "clamp(200px, 42vw, 320px)", scrollSnapAlign: "start", cursor: "pointer", background: "none", border: "none", padding: 0, textAlign: "left" as const }}
-                        >
-                          <div style={{ aspectRatio: "3/4", overflow: "hidden", marginBottom: 12, backgroundColor: "rgba(30,24,20,0.04)" }}>
-                            <img
-                              src={rec.image()}
-                              alt={rec.name}
-                              style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease", display: "block" }}
-                              loading="lazy"
-                            />
+                  {(() => {
+                    const recs = ALL_RECS.filter((r) => r.handle !== handle).slice(0, 4);
+                    const cardStyle: React.CSSProperties = { flex: "0 0 auto", width: "clamp(180px, 38vw, 280px)", background: "none", border: "none", padding: 0, textAlign: "left", userSelect: "none" };
+                    const renderCard = (rec: typeof recs[0], key: string, clickable: boolean) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={clickable ? () => onNavigate(rec.handle) : undefined}
+                        style={{ ...cardStyle, cursor: clickable ? "inherit" : "default" }}
+                        draggable={false}
+                      >
+                        <div style={{ aspectRatio: "3/4", overflow: "hidden", marginBottom: 12, backgroundColor: "rgba(30,24,20,0.04)" }}>
+                          <img src={rec.image()} alt={rec.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }} loading="lazy" draggable={false} />
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: rec.swatch, border: "1px solid rgba(30,24,20,0.14)", flexShrink: 0 }} />
+                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "#8a7e74" }}>{rec.color}</span>
+                        </div>
+                        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(0.9rem, 2vw, 1.1rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1.2, marginBottom: 3 }}>{rec.name}</p>
+                        <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.1em", color: "#7a6e64" }}>{rec.price}</p>
+                      </button>
+                    );
+                    return (
+                      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 0 56px 28px" }}>
+                        {/* Header row */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", paddingRight: 28, marginBottom: 40 }}>
+                          <div>
+                            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase", color: "#7a6e64", marginBottom: 14 }}>You May Also Like</p>
+                            <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", fontWeight: 400, letterSpacing: "0.04em", color: "#1e1814" }}>Curated For You</h2>
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
-                            <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: rec.swatch, border: "1px solid rgba(30,24,20,0.14)", flexShrink: 0 }} />
-                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase" as const, color: "#8a7e74" }}>{rec.color}</span>
+                          {!isMobile && (
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button type="button" aria-label="Previous" onClick={() => { const el = recsRef.current; if (el) el.scrollBy({ left: -((el.firstElementChild as HTMLElement | null)?.offsetWidth ?? 280) - 16, behavior: "smooth" }); }} style={{ width: 40, height: 40, border: "1px solid rgba(30,24,20,0.2)", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e1814", borderRadius: 2 }}>
+                                <ChevronLeft size={18} />
+                              </button>
+                              <button type="button" aria-label="Next" onClick={() => { const el = recsRef.current; if (el) el.scrollBy({ left: ((el.firstElementChild as HTMLElement | null)?.offsetWidth ?? 280) + 16, behavior: "smooth" }); }} style={{ width: 40, height: 40, border: "1px solid rgba(30,24,20,0.2)", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e1814", borderRadius: 2 }}>
+                                <ChevronRight size={18} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {isMobile ? (
+                          /* Mobile: seamless infinite auto-scroll — items doubled, translateX driven by rAF */
+                          <div style={{ overflow: "hidden", touchAction: "none" }}>
+                            <div ref={recsTrackRef} style={{ display: "flex", gap: 16, width: "max-content", willChange: "transform" }}>
+                              {[...recs, ...recs].map((rec, i) => renderCard(rec, `${rec.handle}-${i}`, false))}
+                            </div>
                           </div>
-                          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(0.9rem, 2vw, 1.1rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1.2, marginBottom: 3 }}>
-                            {rec.name}
-                          </p>
-                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.1em", color: "#7a6e64" }}>
-                            {rec.price}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                        ) : (
+                          /* Desktop: grab-to-drag + arrow buttons */
+                          <div ref={recsRef} style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 16, paddingRight: 28, scrollbarWidth: "none" as const, cursor: "grab" }}>
+                            {recs.map((rec) => renderCard(rec, rec.handle, true))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
