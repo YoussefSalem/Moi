@@ -154,6 +154,8 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const recsDragScrollLeftRef = useRef(0);
   const recsRafRef = useRef(0);
   const recsMobileXRef = useRef(0);
+  const desktopXRef = useRef(0);
+  const desktopAnimatingRef = useRef(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
   const addingRef = useRef(false);
@@ -232,34 +234,62 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     };
   }, [isMobile]);
 
-  // Desktop: grab-to-drag scroll
+  // Desktop: set initial translateX to the middle set (-oneSetWidth) after paint
+  useLayoutEffect(() => {
+    if (isMobile) return;
+    const raf = requestAnimationFrame(() => {
+      const track = recsTrackRef.current;
+      if (!track) return;
+      desktopXRef.current = -(track.scrollWidth / 3);
+      track.style.transition = "none";
+      track.style.transform = `translateX(${desktopXRef.current}px)`;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [isMobile]);
+
+  // Desktop: grab-to-drag via translateX; normalises position after drag ends
   useEffect(() => {
     if (isMobile) return;
     const el = recsRef.current;
     if (!el) return;
-    const DRAG_THRESHOLD = 5; // px — below this it's a click, not a drag
+    const DRAG_THRESHOLD = 5;
     let didDrag = false;
+    let startClientX = 0;
+    let startX = 0;
+
     const onDown = (e: MouseEvent) => {
+      if (desktopAnimatingRef.current) return;
       recsDraggingRef.current = true;
       didDrag = false;
-      recsDragStartXRef.current = e.pageX - el.offsetLeft;
-      recsDragScrollLeftRef.current = el.scrollLeft;
+      startClientX = e.clientX;
+      startX = desktopXRef.current;
+      const track = recsTrackRef.current;
+      if (track) track.style.transition = "none";
       el.style.cursor = "grabbing";
     };
     const onMove = (e: MouseEvent) => {
       if (!recsDraggingRef.current) return;
-      const x = e.pageX - el.offsetLeft;
-      const dx = x - recsDragStartXRef.current;
-      if (!didDrag && Math.abs(dx) < DRAG_THRESHOLD) return; // not a drag yet
+      const dx = e.clientX - startClientX;
+      if (!didDrag && Math.abs(dx) < DRAG_THRESHOLD) return;
       didDrag = true;
       e.preventDefault();
-      el.scrollLeft = recsDragScrollLeftRef.current - dx * 1.5;
+      desktopXRef.current = startX + dx;
+      const track = recsTrackRef.current;
+      if (track) track.style.transform = `translateX(${desktopXRef.current}px)`;
     };
     const onUp = () => {
+      if (!recsDraggingRef.current) return;
       recsDraggingRef.current = false;
       el.style.cursor = "grab";
-      // Suppress the upcoming click only if the user actually dragged
       if (didDrag) {
+        const track = recsTrackRef.current;
+        if (track) {
+          const osw = track.scrollWidth / 3;
+          // Wrap: pull back into the middle set so we always have room to loop
+          while (desktopXRef.current < -2 * osw) desktopXRef.current += osw;
+          while (desktopXRef.current > 0) desktopXRef.current -= osw;
+          track.style.transform = `translateX(${desktopXRef.current}px)`;
+        }
         const suppressClick = (ev: MouseEvent) => {
           ev.stopPropagation();
           ev.preventDefault();
@@ -269,6 +299,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       }
       didDrag = false;
     };
+
     el.addEventListener("mousedown", onDown);
     el.addEventListener("mousemove", onMove);
     el.addEventListener("mouseup", onUp);
@@ -1087,6 +1118,29 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.1em", color: "#7a6e64" }}>{rec.price}</p>
                       </button>
                     );
+                    // Animate desktop track one card-width step; normalise position after transition so
+                    // there is always room to loop in either direction. dir: 1 = next, -1 = prev.
+                    const scrollDesktop = (dir: 1 | -1) => {
+                      if (desktopAnimatingRef.current) return;
+                      const track = recsTrackRef.current;
+                      if (!track) return;
+                      const firstCard = track.firstElementChild as HTMLElement | null;
+                      const step = (firstCard?.offsetWidth ?? 280) + 16;
+                      desktopXRef.current -= dir * step; // next → x decreases (track moves left)
+                      desktopAnimatingRef.current = true;
+                      track.style.transition = "transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+                      track.style.transform = `translateX(${desktopXRef.current}px)`;
+                      const onEnd = () => {
+                        track.removeEventListener("transitionend", onEnd);
+                        desktopAnimatingRef.current = false;
+                        track.style.transition = "none";
+                        const osw = track.scrollWidth / 3;
+                        while (desktopXRef.current < -2 * osw) desktopXRef.current += osw;
+                        while (desktopXRef.current > 0) desktopXRef.current -= osw;
+                        track.style.transform = `translateX(${desktopXRef.current}px)`;
+                      };
+                      track.addEventListener("transitionend", onEnd);
+                    };
                     return (
                       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 0 56px 28px" }}>
                         {/* Header row */}
@@ -1097,10 +1151,10 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                           </div>
                           {!isMobile && (
                             <div style={{ display: "flex", gap: 8 }}>
-                              <button type="button" aria-label="Previous" onClick={() => { const el = recsRef.current; if (el) el.scrollBy({ left: -((el.firstElementChild as HTMLElement | null)?.offsetWidth ?? 280) - 16, behavior: "smooth" }); }} style={{ width: 40, height: 40, border: "1px solid rgba(30,24,20,0.2)", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e1814", borderRadius: 2 }}>
+                              <button type="button" aria-label="Previous" onClick={() => scrollDesktop(-1)} style={{ width: 40, height: 40, border: "1px solid rgba(30,24,20,0.2)", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e1814", borderRadius: 2 }}>
                                 <ChevronLeft size={18} />
                               </button>
-                              <button type="button" aria-label="Next" onClick={() => { const el = recsRef.current; if (el) el.scrollBy({ left: ((el.firstElementChild as HTMLElement | null)?.offsetWidth ?? 280) + 16, behavior: "smooth" }); }} style={{ width: 40, height: 40, border: "1px solid rgba(30,24,20,0.2)", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e1814", borderRadius: 2 }}>
+                              <button type="button" aria-label="Next" onClick={() => scrollDesktop(1)} style={{ width: 40, height: 40, border: "1px solid rgba(30,24,20,0.2)", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e1814", borderRadius: 2 }}>
                                 <ChevronRight size={18} />
                               </button>
                             </div>
@@ -1111,13 +1165,15 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                           /* Mobile: seamless infinite auto-scroll — items doubled, translateX driven by rAF, touch-to-pan enabled */
                           <div style={{ overflow: "hidden" }}>
                             <div ref={recsTrackRef} style={{ display: "flex", gap: 16, width: "max-content", willChange: "transform" }}>
-                              {[...recs, ...recs].map((rec, i) => renderCard(rec, `${rec.handle}-${i}`))}
+                              {[...recs, ...recs].map((rec, i) => renderCard(rec, `m-${rec.handle}-${i}`))}
                             </div>
                           </div>
                         ) : (
-                          /* Desktop: grab-to-drag + arrow buttons */
-                          <div ref={recsRef} style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 16, paddingRight: 28, scrollbarWidth: "none" as const, cursor: "grab" }}>
-                            {recs.map((rec) => renderCard(rec, rec.handle))}
+                          /* Desktop: infinite loop via tripled track + translateX; grab-to-drag + arrow buttons */
+                          <div ref={recsRef} style={{ overflow: "hidden", cursor: "grab", paddingBottom: 16 }}>
+                            <div ref={recsTrackRef} style={{ display: "flex", gap: 16, width: "max-content", willChange: "transform" }}>
+                              {[...recs, ...recs, ...recs].map((rec, i) => renderCard(rec, `d-${rec.handle}-${i}`))}
+                            </div>
                           </div>
                         )}
                       </div>
