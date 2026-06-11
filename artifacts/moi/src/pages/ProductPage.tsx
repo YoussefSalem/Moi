@@ -873,12 +873,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       ref={recsRef}
                       style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 16, paddingRight: 28, scrollSnapType: "x mandatory", scrollbarWidth: "none" as const }}
                     >
-                      {ALL_RECS.filter((r) => r.handle !== handle).map((rec) => (
+                      {ALL_RECS.filter((r) => r.handle !== handle).slice(0, 4).map((rec) => (
                         <button
                           key={rec.handle}
                           type="button"
                           onClick={() => onNavigate(rec.handle)}
-                          style={{ flex: "0 0 auto", width: "clamp(160px, 18vw, 240px)", scrollSnapAlign: "start", cursor: "pointer", background: "none", border: "none", padding: 0, textAlign: "left" as const }}
+                          style={{ flex: "0 0 auto", width: "clamp(200px, 42vw, 320px)", scrollSnapAlign: "start", cursor: "pointer", background: "none", border: "none", padding: 0, textAlign: "left" as const }}
                         >
                           <div style={{ aspectRatio: "3/4", overflow: "hidden", marginBottom: 12, backgroundColor: "rgba(30,24,20,0.04)" }}>
                             <img
