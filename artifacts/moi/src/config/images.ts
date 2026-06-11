@@ -131,11 +131,11 @@ export const IMAGES = {
       Teal:     VERSA_TEAL_MAIN,
     },
     colorGalleries: {
-      White:    [VERSA_WHITE_MAIN],
-      Cashmere: [VERSA_CASHMERE_MAIN],
-      Beige:    [VERSA_BEIGE_MAIN],
-      Yellow:   [VERSA_YELLOW_MAIN],
-      Teal:     [VERSA_TEAL_MAIN],
+      White:    [VERSA_WHITE_MAIN, WHITE_ALT_ONE, WHITE_ALT_TWO],
+      Cashmere: [VERSA_CASHMERE_MAIN, CASHMERE_ALT_1, CASHMERE_ALT_2, CASHMERE_ALT_3],
+      Beige:    [VERSA_BEIGE_MAIN, BEIGE_ALT_1, BEIGE_ALT_2],
+      Yellow:   [VERSA_YELLOW_MAIN, YELLOW_ALT_1, YELLOW_ALT_2],
+      Teal:     [VERSA_TEAL_MAIN, TEAL_ALT_1, TEAL_ALT_2, TEAL_ALT_3],
     },
     colorSwatches: {
       white:    "#f5f0e8",
