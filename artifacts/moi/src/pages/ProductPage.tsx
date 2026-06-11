@@ -148,7 +148,38 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [waHover, setWaHover] = useState(false);
   const recsRef = useRef<HTMLDivElement>(null);
+  const recsPausedRef = useRef(false);
   const addingRef = useRef(false);
+
+  useEffect(() => {
+    const el = recsRef.current;
+    if (!el) return;
+    const onEnter = () => { recsPausedRef.current = true; };
+    const onLeave = () => { recsPausedRef.current = false; };
+    el.addEventListener("mouseenter", onEnter);
+    el.addEventListener("mouseleave", onLeave);
+    el.addEventListener("touchstart", onEnter, { passive: true });
+    el.addEventListener("touchend", onLeave, { passive: true });
+    const id = setInterval(() => {
+      if (recsPausedRef.current || !el) return;
+      const cardWidth = (el.firstElementChild as HTMLElement | null)?.offsetWidth ?? 0;
+      const gap = 16;
+      const step = cardWidth + gap;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (el.scrollLeft + step >= maxScroll - 1) {
+        el.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        el.scrollBy({ left: step, behavior: "smooth" });
+      }
+    }, 3000);
+    return () => {
+      clearInterval(id);
+      el.removeEventListener("mouseenter", onEnter);
+      el.removeEventListener("mouseleave", onLeave);
+      el.removeEventListener("touchstart", onEnter);
+      el.removeEventListener("touchend", onLeave);
+    };
+  }, []);
 
   // SEO: update all <head> meta tags imperatively when the product or image changes.
   // This covers document.title, description, and all Open Graph + Twitter Card tags so
