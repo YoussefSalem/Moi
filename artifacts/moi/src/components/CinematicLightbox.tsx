@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 interface CinematicLightboxProps {
@@ -54,7 +55,6 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
     ?.replace(/\.(webp|jpg|png)$/i, "")
     .replace(/-/g, " ") ?? "Image";
 
-  // Reset zoom/pan and preload on image change
   useLayoutEffect(() => {
     setZoomScale(1);
     setPan({ x: 0, y: 0 });
@@ -78,7 +78,6 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
     };
   }, [idx, current]);
 
-  // Scroll active thumbnail into view
   useEffect(() => {
     const strip = thumbsRef.current;
     if (!strip) return;
@@ -97,7 +96,6 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // Touch gesture handlers
   useEffect(() => {
     const el = containerRef.current;
     if (!el || !open) return;
@@ -190,10 +188,18 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
     else setZoomScale(2.2);
   };
 
-  return (
+  /*
+   * PERMANENTLY MOUNTED via CSS visibility/opacity (no AnimatePresence / motion.div).
+   * Rendered via createPortal into document.body so it sits in the ROOT stacking
+   * context — not inside the product-page's position:fixed z-51 stacking context
+   * which would cap its effective z-index and let the sticky header paint on top.
+   */
+  const lightbox = (
     <div
-      className="fixed inset-0 z-[100]"
       style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
         backgroundColor: "#000",
         opacity: open ? 1 : 0,
         visibility: open ? "visible" : "hidden",
@@ -203,36 +209,45 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
           : "opacity 0.14s ease-in, visibility 0s linear 0.14s",
       }}
     >
-      {/* ── Close button — circular, top right ── */}
+      {/* ── Close button ── circular, top-right, safe-area aware ──────────── */}
       <button
         type="button"
-        aria-label="Close"
+        aria-label="Close gallery"
         onClick={onClose}
         style={{
           position: "absolute",
-          top: 16,
+          // safe-area-inset-top handles notch/Dynamic Island; falls back to 16px
+          top: "max(calc(env(safe-area-inset-top, 0px) + 10px), 16px)",
           right: 16,
-          zIndex: 20,
-          width: 40,
-          height: 40,
+          zIndex: 10,
+          width: 44,
+          height: 44,
           borderRadius: "50%",
-          background: "rgba(0,0,0,0.45)",
-          border: "none",
+          // Strong dark fill so the X is legible over any image tone
+          background: "rgba(0,0,0,0.60)",
+          border: "1.5px solid rgba(255,255,255,0.18)",
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backdropFilter: "blur(6px)",
-          WebkitBackdropFilter: "blur(6px)",
-          transition: "background 0.2s",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          transition: "background 0.18s, transform 0.15s",
+          flexShrink: 0,
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(0,0,0,0.7)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(0,0,0,0.45)")}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "rgba(0,0,0,0.85)";
+          e.currentTarget.style.transform = "scale(1.08)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "rgba(0,0,0,0.60)";
+          e.currentTarget.style.transform = "scale(1)";
+        }}
       >
-        <X size={18} strokeWidth={2} color="#fff" />
+        <X size={20} strokeWidth={2.2} color="#fff" />
       </button>
 
-      {/* ── Main image — fills the full viewport, gestures here ── */}
+      {/* ── Image area — full viewport, gestures here ─────────────────────── */}
       <div
         ref={containerRef}
         style={{
@@ -247,18 +262,19 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
         onDoubleClick={handleDoubleTap}
         onClick={(e) => { if (e.target === e.currentTarget && zoomScale <= 1) onClose(); }}
       >
-        {/* Skeleton shimmer while loading */}
-        {!loaded && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "linear-gradient(90deg, #111 25%, #1e1e1e 50%, #111 75%)",
-              backgroundSize: "200% 100%",
-              animation: "shimmer 1.4s infinite",
-            }}
-          />
-        )}
+        {/* Dark shimmer skeleton — visible immediately before image loads */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(90deg, #0d0d0d 25%, #1a1a1a 50%, #0d0d0d 75%)",
+            backgroundSize: "200% 100%",
+            animation: "lb-shimmer 1.4s ease-in-out infinite",
+            opacity: loaded ? 0 : 1,
+            transition: "opacity 0.3s ease-out",
+            pointerEvents: "none",
+          }}
+        />
 
         <img
           key={current}
@@ -266,8 +282,9 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
           src={current || undefined}
           alt={currentAlt}
           style={{
+            // Leave room at bottom for thumbnail strip when multiple images
             width: "100%",
-            height: images.length > 1 ? "calc(100% - 96px)" : "100%",
+            height: images.length > 1 ? "calc(100% - 100px)" : "100%",
             objectFit: "contain",
             transform: `scale(${zoomScale}) translate(${pan.x}px, ${pan.y}px)`,
             transition: zoomScale === 1
@@ -286,7 +303,7 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
         />
       </div>
 
-      {/* ── Thumbnail strip — semi-transparent dark bar at the bottom ── */}
+      {/* ── Thumbnail strip — gradient veil + portrait thumbs ─────────────── */}
       {images.length > 1 && (
         <div
           style={{
@@ -294,12 +311,11 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
             bottom: 0,
             left: 0,
             right: 0,
-            height: 96,
-            background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.0) 100%)",
-            display: "flex",
-            alignItems: "flex-end",
-            paddingBottom: 14,
-            zIndex: 10,
+            // Respect home-indicator safe area
+            paddingBottom: "max(env(safe-area-inset-bottom, 0px), 12px)",
+            background: "linear-gradient(to top, rgba(0,0,0,0.90) 0%, rgba(0,0,0,0.0) 100%)",
+            zIndex: 5,
+            pointerEvents: "auto",
           }}
         >
           <div
@@ -309,17 +325,17 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
               gap: 8,
               overflowX: "auto",
               scrollbarWidth: "none",
-              paddingLeft: 16,
-              paddingRight: 16,
-              width: "100%",
-              alignItems: "center",
+              paddingInline: 16,
+              paddingTop: 20,
+              paddingBottom: 10,
+              alignItems: "flex-end",
             }}
           >
             {images.map((src, i) => (
               <button
                 key={src}
                 type="button"
-                aria-label={`Image ${i + 1}`}
+                aria-label={`Go to image ${i + 1}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setIdx(i);
@@ -332,9 +348,12 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
                   height: 68,
                   borderRadius: 6,
                   overflow: "hidden",
-                  border: i === idx ? "2px solid #fff" : "2px solid rgba(255,255,255,0.25)",
-                  opacity: i === idx ? 1 : 0.6,
-                  transition: "opacity 0.2s, border-color 0.2s",
+                  border: i === idx
+                    ? "2px solid #fff"
+                    : "2px solid rgba(255,255,255,0.2)",
+                  opacity: i === idx ? 1 : 0.55,
+                  transform: i === idx ? "scale(1.06)" : "scale(1)",
+                  transition: "opacity 0.2s, border-color 0.2s, transform 0.2s",
                   background: "none",
                   padding: 0,
                   cursor: "pointer",
@@ -353,8 +372,14 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
         </div>
       )}
 
-      {/* shimmer keyframe */}
-      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+      <style>{`
+        @keyframes lb-shimmer {
+          0%   { background-position: 200% 0 }
+          100% { background-position: -200% 0 }
+        }
+      `}</style>
     </div>
   );
+
+  return createPortal(lightbox, document.body);
 }
