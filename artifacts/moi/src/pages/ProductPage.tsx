@@ -159,7 +159,17 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [waHover, setWaHover] = useState(false);
   const [applePayAvailable, setApplePayAvailable] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia("(max-width: 767px)").matches);
-  const recs = useMemo(() => ALL_RECS.filter((r) => r.handle !== handle), [handle]);
+  const recs = useMemo(() => {
+    const currentSlug = fallback.slug;
+    const withoutSelf = ALL_RECS.filter((r) => r.handle !== handle);
+    const crossProduct = withoutSelf.filter(
+      (r) => !r.handle.startsWith(currentSlug + "-") && r.handle !== currentSlug,
+    );
+    const sameProductOtherColors = withoutSelf.filter(
+      (r) => r.handle.startsWith(currentSlug + "-") || r.handle === currentSlug,
+    );
+    return [...crossProduct, ...sameProductOtherColors];
+  }, [handle, fallback.slug]);
   const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
   const addingRef = useRef(false);
 
