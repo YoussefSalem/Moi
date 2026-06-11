@@ -58,23 +58,29 @@ export function resolveLineImage(
     }
   }
 
-  // 1. Product + color map lookup (hashed bundle URL, always fresh)
+  // 1. The image stored at add-to-cart time (product page's galleryImages[0]).
+  //    This is the exact image the shopper saw when they added the item, so it
+  //    is the most reliable source for cart/checkout. It is computed live on the
+  //    product page from the merged gallery (Shopify + local alt images) and is
+  //    always correct for the color the shopper is viewing.
+  if (localMatch?.image) return localMatch.image;
+
+  // 2. Shopify variant image (per-color, set in Shopify admin) — fallback
+  if (line.merchandise.image?.url) return line.merchandise.image.url;
+
+  // 3. Shopify product default image (fallback when variant lacks its own image)
+  if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
+
+  // 4. Local color image (static fallback, rebuilt from config on deploy)
   for (const color of colorCandidates) {
     const hit = PRODUCT_COLOR_MAP[`${normTitle}::${color}`]
       ?? PRODUCT_COLOR_MAP[`${rawTitle.toLowerCase()}::${color}`];
     if (hit) return hit;
   }
 
-  // 2. Product-level shot
+  // 5. Product-level shot
   const productHit = PRODUCT_SHOT_MAP[normTitle] ?? PRODUCT_SHOT_MAP[rawTitle.toLowerCase()];
   if (productHit) return productHit;
-
-  // 3. Shopify CDN image (set on the variant in Shopify admin)
-  if (line.merchandise.image?.url) return line.merchandise.image.url;
-  if (line.merchandise.product.featuredImage?.url) return line.merchandise.product.featuredImage.url;
-
-  // 4. Last resort: the stored localStorage URL (may be stale after a rebuild)
-  if (localMatch?.image) return localMatch.image;
 
   return null;
 }

@@ -28,6 +28,7 @@ const PUBLIC_COLOR_IMAGES: Record<string, string> = {
   navy:         `${BASE_IMG}/navi.jpg`,
   mint:         `${BASE_IMG}/mint.jpg`,
   "light blue": `${BASE_IMG}/light-blue-main.webp`,
+  sand:         `${BASE_IMG}/sand.webp`,
 };
 
 /** Convert any internal image URL to a public URL that works in emails. */
