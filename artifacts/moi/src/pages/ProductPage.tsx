@@ -1282,6 +1282,161 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                 )}
               </div>{/* end mobile */}
 
+              {/* ══ REVIEWS ══ */}
+              {reviewsLoaded && (() => {
+                const avg = reviews.length > 0
+                  ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+                  : 0;
+                const avgRounded = Math.round(avg);
+                return (
+                  <div style={{ borderTop: "1px solid rgba(30,24,20,0.08)" }}>
+                    {/* ── Header bar ── */}
+                    <div style={{ padding: "52px 24px 0" }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
+                        {/* Left: label + score */}
+                        <div>
+                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.32em", textTransform: "uppercase", color: "#a09890", margin: "0 0 14px" }}>
+                            Customer Reviews
+                          </p>
+                          {reviews.length > 0 ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+                              <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(3.5rem, 7vw, 5rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1, letterSpacing: "-0.02em" }}>
+                                {avg % 1 === 0 ? avg.toFixed(0) : avg.toFixed(1)}
+                              </span>
+                              <div>
+                                <div style={{ display: "flex", gap: 3, marginBottom: 8 }}>
+                                  {[1,2,3,4,5].map((s) => (
+                                    <svg key={s} width={15} height={15} viewBox="0 0 12 12">
+                                      <path d="M6 1l1.2 2.9L10.5 4l-2.25 2.2.53 3.15L6 7.85l-2.78 1.5.53-3.15L1.5 4l3.3-.1z" fill={s <= avgRounded ? "#1e1814" : "#e0dcd8"} />
+                                    </svg>
+                                  ))}
+                                </div>
+                                <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 400, color: "#9a8e84", letterSpacing: "0.06em", margin: 0 }}>
+                                  {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.7rem, 4vw, 2.4rem)", fontWeight: 400, letterSpacing: "0.03em", color: "#1e1814", margin: 0, lineHeight: 1.1 }}>
+                              Be the First to Review
+                            </h2>
+                          )}
+                        </div>
+                        {/* Right: CTA */}
+                        <button
+                          type="button"
+                          onClick={() => setReviewModalOpen(true)}
+                          style={{
+                            fontFamily: "'Montserrat', sans-serif",
+                            fontSize: 9,
+                            fontWeight: 700,
+                            letterSpacing: "0.26em",
+                            textTransform: "uppercase",
+                            color: "#faf8f5",
+                            backgroundColor: "#1e1814",
+                            border: "none",
+                            padding: "13px 26px",
+                            cursor: "pointer",
+                            flexShrink: 0,
+                            marginTop: 4,
+                            transition: "opacity 0.2s",
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.78"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+                        >
+                          Write a Review
+                        </button>
+                      </div>
+
+                      {/* Thin rule */}
+                      <div style={{ height: 1, backgroundColor: "rgba(30,24,20,0.08)", margin: "36px 0 0" }} />
+                    </div>
+
+                    {/* ── Body ── */}
+                    {reviews.length === 0 ? (
+                      /* Empty state */
+                      <div style={{ padding: "56px 24px 72px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 16 }}>
+                        <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+                          {[1,2,3,4,5].map((s) => (
+                            <svg key={s} width={18} height={18} viewBox="0 0 12 12">
+                              <path d="M6 1l1.2 2.9L10.5 4l-2.25 2.2.53 3.15L6 7.85l-2.78 1.5.53-3.15L1.5 4l3.3-.1z" fill="#e0dcd8" />
+                            </svg>
+                          ))}
+                        </div>
+                        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.1rem, 3vw, 1.35rem)", fontStyle: "italic", fontWeight: 400, color: "#9a8e84", margin: 0, lineHeight: 1.6, maxWidth: 360 }}>
+                          No reviews yet — be the first to share your experience with this piece.
+                        </p>
+                      </div>
+                    ) : (
+                      /* Review cards */
+                      <div style={{ padding: "0 24px 64px" }}>
+                        {reviews.map((review, idx) => (
+                          <div
+                            key={review.id}
+                            style={{
+                              padding: "40px 0",
+                              borderBottom: idx < reviews.length - 1 ? "1px solid rgba(30,24,20,0.07)" : "none",
+                              position: "relative",
+                            }}
+                          >
+                            {/* Decorative quote mark */}
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                position: "absolute",
+                                top: 28,
+                                left: -6,
+                                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                                fontSize: "6rem",
+                                fontWeight: 300,
+                                lineHeight: 1,
+                                color: "rgba(30,24,20,0.06)",
+                                pointerEvents: "none",
+                                userSelect: "none",
+                                letterSpacing: 0,
+                              }}
+                            >
+                              "
+                            </span>
+
+                            {/* Stars + date */}
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
+                              <div style={{ display: "flex", gap: 3 }}>
+                                {[1,2,3,4,5].map((s) => (
+                                  <svg key={s} width={13} height={13} viewBox="0 0 12 12">
+                                    <path d="M6 1l1.2 2.9L10.5 4l-2.25 2.2.53 3.15L6 7.85l-2.78 1.5.53-3.15L1.5 4l3.3-.1z" fill={s <= review.rating ? "#1e1814" : "#e0dcd8"} />
+                                  </svg>
+                                ))}
+                              </div>
+                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: "0.12em", color: "#b5aea8", flexShrink: 0 }}>
+                                {review.date}
+                              </span>
+                            </div>
+
+                            {/* Title */}
+                            {review.title && (
+                              <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "1.25rem", fontWeight: 600, letterSpacing: "0.02em", color: "#1e1814", margin: "0 0 10px", lineHeight: 1.25 }}>
+                                {review.title}
+                              </p>
+                            )}
+
+                            {/* Body */}
+                            <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "1.1rem", fontStyle: "italic", fontWeight: 400, color: "#4a4038", lineHeight: 1.8, margin: "0 0 18px", letterSpacing: "0.01em" }}>
+                              {review.body}
+                            </p>
+
+                            {/* Author */}
+                            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: "#7a6e64", margin: 0 }}>
+                              — {review.author}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* ══ YOU MAY ALSO LIKE ══ */}
               {onNavigate && recs.length > 0 && (() => {
                 const carouselItems: CarouselItem[] = recs.map((rec) => ({
@@ -1301,123 +1456,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                   />
                 );
               })()}
-
-              {/* ══ REVIEWS ══ */}
-              {reviewsLoaded && (
-                <div style={{ padding: "48px 24px 56px", borderTop: "1px solid rgba(30,24,20,0.10)" }}>
-                  {/* Section header */}
-                  <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: reviews.length > 0 ? 32 : 24 }}>
-                    <div>
-                      <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.22em", textTransform: "uppercase", color: "#7a6e64", margin: "0 0 6px" }}>
-                        Customer Reviews
-                      </p>
-                      <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.55rem, 4vw, 2rem)", fontWeight: 400, letterSpacing: "0.04em", color: "#1e1814", margin: 0, lineHeight: 1 }}>
-                        {reviews.length > 0
-                          ? (() => {
-                              const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
-                              return `${avg % 1 === 0 ? avg.toFixed(0) : avg.toFixed(1)} out of 5`;
-                            })()
-                          : "Be the First to Review"}
-                      </h2>
-                      {reviews.length > 0 && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
-                          {/* Average stars */}
-                          <div style={{ display: "flex", gap: 2 }}>
-                            {[1, 2, 3, 4, 5].map((s) => {
-                              const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-                              const fill = s <= Math.round(avg) ? "#1e1814" : "#ddd9d5";
-                              return (
-                                <svg key={s} width={14} height={14} viewBox="0 0 12 12">
-                                  <path d="M6 1l1.2 2.9L10.5 4l-2.25 2.2.53 3.15L6 7.85l-2.78 1.5.53-3.15L1.5 4l3.3-.1z" fill={fill} />
-                                </svg>
-                              );
-                            })}
-                          </div>
-                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, fontWeight: 300, color: "#7a6e64", letterSpacing: "0.04em" }}>
-                            {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setReviewModalOpen(true)}
-                      style={{
-                        fontFamily: "'Montserrat', sans-serif",
-                        fontSize: 10,
-                        fontWeight: 600,
-                        letterSpacing: "0.2em",
-                        textTransform: "uppercase",
-                        color: "#1e1814",
-                        backgroundColor: "transparent",
-                        border: "1.5px solid #1e1814",
-                        padding: "11px 22px",
-                        cursor: "pointer",
-                        flexShrink: 0,
-                        transition: "background-color 0.2s, color 0.2s",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#1e1814"; e.currentTarget.style.color = "#faf8f5"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "#1e1814"; }}
-                    >
-                      Write a Review
-                    </button>
-                  </div>
-
-                  {/* Review list */}
-                  {reviews.length === 0 ? (
-                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 12, fontWeight: 300, color: "#9a8e84", lineHeight: 1.7, margin: 0 }}>
-                      No reviews yet. Share your experience and help others discover this piece.
-                    </p>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                      {reviews.map((review, idx) => (
-                        <div
-                          key={review.id}
-                          style={{
-                            padding: "28px 0",
-                            borderBottom: idx < reviews.length - 1 ? "1px solid rgba(30,24,20,0.08)" : "none",
-                          }}
-                        >
-                          {/* Stars + date row */}
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
-                            <div style={{ display: "flex", gap: 2 }}>
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <svg key={s} width={13} height={13} viewBox="0 0 12 12">
-                                  <path
-                                    d="M6 1l1.2 2.9L10.5 4l-2.25 2.2.53 3.15L6 7.85l-2.78 1.5.53-3.15L1.5 4l3.3-.1z"
-                                    fill={s <= review.rating ? "#1e1814" : "#ddd9d5"}
-                                  />
-                                </svg>
-                              ))}
-                            </div>
-                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 300, color: "#a09890", letterSpacing: "0.04em", flexShrink: 0 }}>
-                              {review.date}
-                            </span>
-                          </div>
-
-                          {/* Title */}
-                          {review.title && (
-                            <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "1.05rem", fontWeight: 600, letterSpacing: "0.03em", color: "#1e1814", margin: "0 0 6px", lineHeight: 1.3 }}>
-                              {review.title}
-                            </p>
-                          )}
-
-                          {/* Body */}
-                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 12.5, fontWeight: 300, color: "#4a4038", lineHeight: 1.75, margin: "0 0 10px" }}>
-                            {review.body}
-                          </p>
-
-                          {/* Author */}
-                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "#7a6e64", margin: 0 }}>
-                            — {review.author}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
             </motion.div>
           )}
