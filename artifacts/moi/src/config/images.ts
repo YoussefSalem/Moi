@@ -139,7 +139,7 @@ export const IMAGES = {
     },
     colorSwatches: {
       white:    "#f5f0e8",
-      cashmere: "#d4c4b0",
+      cashmere: "#c898a0",
       beige:    "#c8b8a0",
       yellow:   "#e8d080",
       teal:     "#4a8a8a",
