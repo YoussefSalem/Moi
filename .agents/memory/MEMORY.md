@@ -11,3 +11,4 @@
 - [Moi iOS back-gesture blank fix](moi-ios-back-gesture.md) — product page must be position:fixed overlay (z-51, overflow-y:auto) so home stays live in document flow; snapshots/willChange tricks don't work.
 - [Moi mobile recs carousel](moi-mobile-carousel.md) — 3 cards/view, seamless infinite loop via native overflow-x scroll + tripled-set wrap; measure set period from child offsets (not scrollWidth/3).
 - [Moi lightbox portal](moi-lightbox-portal.md) — CinematicLightbox must createPortal into document.body or product-page's fixed z-51 stacking context caps its z-index and header paints over it.
+- [Moi product carousel imperative pattern](moi-product-carousel.md) — never put transform in React inline style when driving it imperatively; use useLayoutEffect for initial position; no useState in carousel body or React re-renders reset the offset.

@@ -33,7 +33,8 @@ const CustomerAuthModal = lazy(() => import("@/components/CustomerAuthModal").th
 const AccountPage = lazy(() => import("@/components/AccountPage").then(m => ({ default: m.AccountPage })));
 const SearchDrawer = lazy(() => import("@/components/SearchDrawer").then(m => ({ default: m.SearchDrawer })));
 import type { SearchItem } from "@/components/SearchDrawer";
-const ProductPage = lazy(() => import("@/pages/ProductPage").then(m => ({ default: m.ProductPage })));
+import { ProductCarousel } from "@/components/ProductCarousel";
+import type { ProductCarouselHandle } from "@/components/ProductCarousel";
 const OrderConfirmationPage = lazy(() => import("@/pages/OrderConfirmationPage").then(m => ({ default: m.OrderConfirmationPage })));
 const ApplePayIframePage = lazy(() => import("@/pages/ApplePayIframePage").then(m => ({ default: m.ApplePayIframePage })));
 const PaymentFailedPage = lazy(() => import("@/pages/PaymentFailedPage").then(m => ({ default: m.PaymentFailedPage })));
@@ -158,11 +159,7 @@ function AppContent() {
   // animation for popstate navigations eliminates this entirely.
   const [skipExitAnimation, setSkipExitAnimation] = useState(false);
   const [isGoingBack, setIsGoingBack] = useState(false);
-  // Set to true when navigating product → product (via "You May Also Like" or browser
-  // back between two product pages). Switches the transition to a quick cross-fade
-  // instead of the full slide-up, giving a content-replacement feel rather than a
-  // full page navigation feel.
-  const [isProductSwitch, setIsProductSwitch] = useState(false);
+  const carouselRef = useRef<ProductCarouselHandle | null>(null);
 
   function handleColorCardAddToCart(handle: string, _image?: string) {
     // Use Shopify-fetched products (real variant GIDs) — all three products now in `products`.
@@ -223,12 +220,16 @@ function AppContent() {
   const navigateToProduct = useCallback((handle: string) => {
     closeCartRef.current();
     closeMenuRef.current();
+    if (currentPageRef.current === "product") {
+      // Already in the carousel — slide to the target product without a route push
+      carouselRef.current?.jumpTo(handle);
+      setProductHandle(handle);
+      window.history.replaceState(null, "", `/products/${handle}`);
+      return;
+    }
     savedScrollRef.current = window.scrollY;
     setIsGoingBack(false);
-    // Product → Product (e.g. "You May Also Like"): use a quick cross-fade instead
-    // of the full slide-up so it feels like content replacement, not a page push.
-    setIsProductSwitch(currentPageRef.current === "product");
-    setHomeRevealed(false); // Hide home immediately so product page owns the scroll
+    setHomeRevealed(false);
     setPage("product");
     setProductHandle(handle);
     window.history.pushState(null, "", `/products/${handle}`);
@@ -345,55 +346,9 @@ function AppContent() {
         // flushSync forces a render with isGoingBack=true while the page overlay
         // is still mounted so AnimatePresence captures the correct exit direction.
         setSkipExitAnimation(false);
-        setIsProductSwitch(false);
         flushSync(() => setIsGoingBack(true));
-      } else if (
-        parsed.page === "product" &&
-        currentPageRef.current === "product" &&
-        parsed.productHandle !== currentHandleRef.current
-      ) {
-        // Product → Product back navigation (browser back / iOS swipe-back between
-        // two product pages reached via "You May Also Like").
-        const isSwipe = edgeSwipePendingRef.current;
-        edgeSwipePendingRef.current = false;
-
-        if (isSwipe) {
-          // iOS has already animated the slide. Apply the same swipe-back-exit
-          // pattern: move the current product off-screen via CSS transition, then
-          // swap the handle so the previous product renders without a flash.
-          const el = document.getElementById("product-scroll-container");
-          if (el) {
-            el.classList.add("swipe-back-exit");
-            const done = () => {
-              el.removeEventListener("transitionend", done);
-              setSkipExitAnimation(true);
-              setIsProductSwitch(true);
-              setProductHandle(parsed.productHandle);
-              setScrollTarget(parsed.section ?? "");
-            };
-            el.addEventListener("transitionend", done);
-            setTimeout(() => {
-              el.removeEventListener("transitionend", done);
-              setSkipExitAnimation(true);
-              setIsProductSwitch(true);
-              setProductHandle(parsed.productHandle);
-              setScrollTarget(parsed.section ?? "");
-            }, 400);
-            return; // Defer state update until CSS transition finishes
-          }
-        }
-
-        // Toolbar / keyboard back: play the backward (slide-down) exit animation,
-        // then the previous product fades in cleanly.
-        setSkipExitAnimation(false);
-        setIsProductSwitch(false);
-        flushSync(() => setIsGoingBack(true));
-        setProductHandle(parsed.productHandle);
-        setScrollTarget(parsed.section ?? "");
-        return; // page stays "product" — no need to call setPage
       } else {
         setIsGoingBack(false);
-        setIsProductSwitch(false);
         setHomeRevealed(false);
       }
       setPage(parsed.page);
@@ -732,7 +687,6 @@ function AppContent() {
           // Reset direction + skip flags after the exit animation completes.
           setSkipExitAnimation(false);
           setIsGoingBack(false);
-          setIsProductSwitch(false);
           // Clean up any leftover swipe-back class so the element is fresh next mount.
           const el = document.getElementById("product-scroll-container");
           if (el) el.classList.remove("swipe-back-exit");
@@ -741,26 +695,24 @@ function AppContent() {
         {page !== "home" && (
           <motion.div
             id="product-scroll-container"
-            key={isProductPage ? `product-${productHandle}` : page}
-            initial={isProductSwitch ? { opacity: 0 } : { opacity: 0, y: 18 }}
+            key={isProductPage ? "product-carousel" : page}
+            initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             exit={
               skipExitAnimation
                 ? { opacity: 0, transition: { duration: 0 } }
                 : isGoingBack
                   ? { opacity: 0, y: 14, transition: { duration: 0.28, ease: [0.25, 0.1, 0.25, 1] } }
-                  : isProductSwitch
-                    ? { opacity: 0, transition: { duration: 0.18 } }
-                    : { opacity: 0, y: -4, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] } }
+                  : { opacity: 0, y: -4, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] } }
             }
-            transition={{ duration: isProductSwitch ? 0.26 : 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
             style={{
               willChange: "opacity, transform",
               backgroundColor: "#faf8f5",
               position: "fixed",
               inset: 0,
               zIndex: 51,
-              overflowY: "auto",
+              overflow: isProductPage ? "hidden" : "auto",
             }}
           >
             {page === "order-confirmation" ? (
@@ -775,14 +727,13 @@ function AppContent() {
                 onContinueShopping={() => navigateTo("home")}
               />
             ) : isProductPage ? (
-              <div>
-                <ProductPage
-                  handle={productHandle}
-                  onBack={() => navigateTo("home", undefined, true)}
-                  onNavigate={navigateToProduct}
-                />
-                <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
-              </div>
+              <ProductCarousel
+                ref={carouselRef}
+                products={products}
+                initialHandle={productHandle}
+                onBack={() => navigateTo("home", undefined, true)}
+                onProductChange={(newHandle) => setProductHandle(newHandle)}
+              />
             ) : page === "accessories" ? (
               <div>
                 <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>

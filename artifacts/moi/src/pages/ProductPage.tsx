@@ -976,6 +976,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                   return (
                     <div
                       className="relative overflow-hidden"
+                      data-no-carousel
                       style={{ backgroundColor: "rgba(30,24,20,0.04)", touchAction: N > 1 ? "pan-y" : "auto" }}
                     >
                       <div
