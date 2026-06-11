@@ -857,18 +857,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       )}
                     </div>
 
-                    {/* ── Details accordion ── */}
-                    <div style={{ borderTop: "1px solid rgba(30,24,20,0.09)" }}>
-                      {ACCORDION_ITEMS.map((item) => (
-                        <AccordionItem
-                          key={item.key}
-                          label={item.label}
-                          body={item.body}
-                          open={openAccordion === item.key}
-                          onToggle={() => setOpenAccordion((p) => p === item.key ? null : item.key)}
-                        />
-                      ))}
-                    </div>
 
                   </div>
                   {/* end right col */}
