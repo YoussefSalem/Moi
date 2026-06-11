@@ -846,15 +846,37 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                 {!isOutOfStock && (
                   <div style={{ padding: "16px 20px", paddingBottom: "calc(16px + env(safe-area-inset-bottom))", display: "flex", flexDirection: "column" as const, gap: 10 }}>
                     <motion.button type="button" onClick={handleAddToCart} whileTap={{ scale: 0.98 }}
-                      style={{ width: "100%", height: 52, borderRadius: 0, backgroundColor: addedFeedback ? "#2d6a4f" : "#1e1814", color: "#faf8f5", border: "none", fontSize: 10, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "background-color 0.3s" }}
+                      style={{ width: "100%", height: 52, borderRadius: 0, backgroundColor: addedFeedback ? "#2d6a4f" : "transparent", color: addedFeedback ? "#faf8f5" : "#1e1814", border: addedFeedback ? "none" : "1.5px solid #1e1814", fontSize: 10, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "background-color 0.3s, color 0.3s, border-color 0.3s" }}
                     >
                       {addedFeedback ? "Added ✓" : `Add to Bag — ${effectivePrice}`}
                     </motion.button>
                     <motion.button type="button" onClick={handleBuyNow} whileTap={{ scale: 0.98 }}
-                      style={{ width: "100%", height: 48, borderRadius: 0, border: "none", backgroundColor: "#342b26", color: "#faf8f5", fontSize: 9, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif" }}
+                      style={{ width: "100%", height: 52, borderRadius: 0, border: "none", backgroundColor: "#1e1814", color: "#faf8f5", fontSize: 10, fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif" }}
                     >
                       Buy Now
                     </motion.button>
+                    {/* Trust badges */}
+                    <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, paddingTop: 4 }}>
+                      {[
+                        {
+                          icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="7" rx="1" stroke="#a9a09a" strokeWidth="1.2"/><path d="M4 6V5a4 4 0 018 0v1" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round"/><circle cx="5" cy="12" r="1.5" fill="#a9a09a"/><circle cx="11" cy="12" r="1.5" fill="#a9a09a"/></svg>,
+                          text: "2–4 day delivery in Egypt",
+                        },
+                        {
+                          icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="9" rx="1" stroke="#a9a09a" strokeWidth="1.2"/><path d="M5 6V4.5A3 3 0 018 1.5v0A3 3 0 0111 4.5V6" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round"/><line x1="8" y1="9" x2="8" y2="12" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round"/><line x1="6.5" y1="10.5" x2="9.5" y2="10.5" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round"/></svg>,
+                          text: "Cash on delivery available",
+                        },
+                        {
+                          icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none"><path d="M8 1.5L2 4v4c0 3.5 2.5 6 6 7 3.5-1 6-3.5 6-7V4L8 1.5z" stroke="#a9a09a" strokeWidth="1.2" strokeLinejoin="round"/><path d="M5.5 8l1.5 1.5L10.5 6" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                          text: "Secure checkout",
+                        },
+                      ].map(({ icon, text }) => (
+                        <div key={text} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          {icon}
+                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#a9a09a", fontWeight: 300, letterSpacing: "0.03em" }}>{text}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>{/* end mobile */}
