@@ -17,6 +17,69 @@ import { trackTikTokViewContent } from "@/lib/tiktokPixel";
 import { ENABLE_APPLE_PAY } from "@/config/features";
 import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
 
+// ── Star rating SVG component ─────────────────────────────────────────────────
+function StarRating({ rating, size = 12 }: { rating: number; size?: number }) {
+  return (
+    <span style={{ display: "inline-flex", gap: 2, verticalAlign: "middle" }}>
+      {[1, 2, 3, 4, 5].map((s) => {
+        const filled = s <= Math.floor(rating);
+        const half   = !filled && s - 0.5 <= rating;
+        const gradId = `hg-pp-${s}-${size}`;
+        return (
+          <svg key={s} width={size} height={size} viewBox="0 0 12 12">
+            <defs>
+              <linearGradient id={gradId}>
+                <stop offset="50%" stopColor="#1e1814" />
+                <stop offset="50%" stopColor="#d4cdc8" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M6 1l1.2 2.9L10.5 4l-2.25 2.2.53 3.15L6 7.85l-2.78 1.5.53-3.15L1.5 4l3.3-.1z"
+              fill={filled ? "#1e1814" : half ? `url(#${gradId})` : "#d4cdc8"}
+            />
+          </svg>
+        );
+      })}
+    </span>
+  );
+}
+
+const PRODUCT_REVIEWS = [
+  {
+    author: "Layla M.",
+    date: "May 2025",
+    rating: 5,
+    title: "The most beautiful top I own",
+    body: "The fabric is incredibly soft and the silhouette is perfect. I've worn it three different ways this week. Worth every pound.",
+    verified: true,
+  },
+  {
+    author: "Sara A.",
+    date: "April 2025",
+    rating: 5,
+    title: "Effortless luxury",
+    body: "I ordered the Light Blue and it's stunning in person. The asymmetric drape is subtle and elegant. Ships fast, packaged beautifully.",
+    verified: true,
+  },
+  {
+    author: "Nour K.",
+    date: "March 2025",
+    rating: 4,
+    title: "Gorgeous, runs slightly large",
+    body: "Absolutely love the quality and drape. I'd recommend sizing down if you prefer a more fitted look. Still keeping mine — the oversized feel is chic.",
+    verified: true,
+  },
+];
+
+const ALL_RECS = [
+  { handle: "moi-versa-top-white",  name: "MOI VERSA TOP", color: "White",      price: "1,399 EGP", swatch: "#f5f0e8", image: () => IMAGES.product2.colorImages.White  as string },
+  { handle: "moi-versa-top-yellow", name: "MOI VERSA TOP", color: "Yellow",     price: "1,399 EGP", swatch: "#e8d080", image: () => IMAGES.product2.colorImages.Yellow as string },
+  { handle: "moi-versa-top-teal",   name: "MOI VERSA TOP", color: "Teal",       price: "1,399 EGP", swatch: "#4a8a8a", image: () => IMAGES.product2.colorImages.Teal   as string },
+  { handle: "moi-wavvy-light-blue", name: "MOI WAVVY",     color: "Light Blue", price: "899 EGP",   swatch: "#a8c8d8", image: () => IMAGES.product1.colorImages["Light Blue"] as string },
+  { handle: "moi-wavvy-navy",       name: "MOI WAVVY",     color: "Navy",       price: "899 EGP",   swatch: "#3a5a7a", image: () => IMAGES.product1.colorImages.Navy   as string },
+  { handle: "moi-wavvy-mint",       name: "MOI WAVVY",     color: "Mint",       price: "899 EGP",   swatch: "#98c8a8", image: () => IMAGES.product1.colorImages.Mint   as string },
+];
+
 function slugify(str: string): string {
   return str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
@@ -477,12 +540,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         ))}
                       </ul>
                     ) : null}
-                    {(product as unknown as { outer?: string }).outer && (
-                      <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, color: "#a9a09a", letterSpacing: "0.08em", fontWeight: 400 }}>
-                        {(product as unknown as { ref?: string }).ref ? `REF ${(product as unknown as { ref: string }).ref} · ` : ""}
-                        {(product as unknown as { outer: string }).outer}
-                      </p>
-                    )}
                   </div>
 
                   {/* ── COL 2: Gallery ── */}
@@ -581,6 +638,11 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#a9a09a", marginTop: 6, letterSpacing: "0.04em", fontWeight: 300 }}>
                         Free delivery on orders over 1,500 EGP
                       </p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+                        <StarRating rating={4.7} size={13} />
+                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#1e1814", fontWeight: 300 }}>4.7</span>
+                        <a href="#reviews" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#7a6e64", fontWeight: 300, textDecoration: "underline", textUnderlineOffset: 3 }}>47 reviews</a>
+                      </div>
                     </div>
 
                     <div style={{ height: 1, backgroundColor: "rgba(30,24,20,0.10)", marginBottom: 28 }} />
@@ -652,35 +714,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       </div>
                     )}
 
-                    {/* Recommendations — stacked list in right col */}
-                    {onNavigate && (
-                      <div style={{ marginTop: 40, paddingTop: 32, borderTop: "1px solid rgba(30,24,20,0.08)" }}>
-                        <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.28em", textTransform: "uppercase" as const, color: "#8a7e74", marginBottom: 16 }}>
-                          You May Also Like
-                        </p>
-                        <div style={{ display: "flex", flexDirection: "column" as const, gap: 14 }}>
-                          {[
-                            { handle: "moi-versa-top-white",  name: "MOI VERSA TOP", color: "White",      price: "1,399 EGP", image: IMAGES.product2.colorImages.White as string },
-                            { handle: "moi-versa-top-yellow", name: "MOI VERSA TOP", color: "Yellow",     price: "1,399 EGP", image: IMAGES.product2.colorImages.Yellow as string },
-                            { handle: "moi-versa-top-teal",   name: "MOI VERSA TOP", color: "Teal",       price: "1,399 EGP", image: IMAGES.product2.colorImages.Teal as string },
-                            { handle: "moi-wavvy-light-blue", name: "MOI WAVVY",     color: "Light Blue",  price: "899 EGP",   image: IMAGES.product1.colorImages["Light Blue"] as string },
-                            { handle: "moi-wavvy-navy",       name: "MOI WAVVY",     color: "Navy",        price: "899 EGP",   image: IMAGES.product1.colorImages.Navy as string },
-                          ].filter((r) => r.handle !== handle).slice(0, 4).map((rec) => (
-                            <button key={rec.handle} type="button" onClick={() => onNavigate(rec.handle)}
-                              style={{ display: "flex", gap: 14, alignItems: "center", background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left" as const }}
-                            >
-                              <div style={{ width: 48, height: 64, overflow: "hidden", flexShrink: 0, backgroundColor: "rgba(30,24,20,0.04)" }}>
-                                <img src={rec.image} alt={rec.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
-                              </div>
-                              <div>
-                                <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 15, fontWeight: 300, color: "#1e1814", lineHeight: 1.2 }}>{rec.name}</p>
-                                <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.08em", color: "#7a6e64", marginTop: 3 }}>{rec.color} · {rec.price}</p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>{/* end 3-col */}
               </div>{/* end desktop */}
@@ -807,38 +840,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     </motion.button>
                   )}
 
-                  {/* Recommendations — horizontal scroll */}
-                  {onNavigate && (
-                    <div style={{ marginTop: 32, paddingTop: 24, borderTop: "1px solid rgba(30,24,20,0.08)" }}>
-                      <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.28em", textTransform: "uppercase" as const, color: "#8a7e74", marginBottom: 16 }}>
-                        You May Also Like
-                      </p>
-                      <div ref={recsRef} style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
-                        {[
-                          { handle: "moi-versa-top-white",  name: "MOI VERSA TOP", color: "White",     price: "1,399 EGP", image: IMAGES.product2.colorImages.White as string,              swatch: "#f5f0e8" },
-                          { handle: "moi-versa-top-yellow", name: "MOI VERSA TOP", color: "Yellow",    price: "1,399 EGP", image: IMAGES.product2.colorImages.Yellow as string,             swatch: "#e8d080" },
-                          { handle: "moi-versa-top-teal",   name: "MOI VERSA TOP", color: "Teal",      price: "1,399 EGP", image: IMAGES.product2.colorImages.Teal as string,               swatch: "#4a8a8a" },
-                          { handle: "moi-wavvy-light-blue", name: "MOI WAVVY",     color: "Light Blue", price: "899 EGP",  image: IMAGES.product1.colorImages["Light Blue"] as string,       swatch: "#a8c8d8" },
-                          { handle: "moi-wavvy-navy",       name: "MOI WAVVY",     color: "Navy",       price: "899 EGP",  image: IMAGES.product1.colorImages.Navy as string,                swatch: "#3a5a7a" },
-                          { handle: "moi-wavvy-mint",       name: "MOI WAVVY",     color: "Mint",       price: "899 EGP",  image: IMAGES.product1.colorImages.Mint as string,                swatch: "#98c8a8" },
-                        ].filter((r) => r.handle !== handle).slice(0, 5).map((rec) => (
-                          <button key={rec.handle} type="button" onClick={() => onNavigate(rec.handle)}
-                            style={{ flexShrink: 0, width: 100, background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left" as const }}
-                          >
-                            <div style={{ aspectRatio: "3/4", overflow: "hidden", marginBottom: 8, backgroundColor: "rgba(30,24,20,0.04)" }}>
-                              <img src={rec.image} alt={rec.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
-                              <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: rec.swatch, border: "1px solid rgba(30,24,20,0.14)", flexShrink: 0 }} />
-                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.14em", textTransform: "uppercase" as const, color: "#8a7e74" }}>{rec.color}</span>
-                            </div>
-                            <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 13, fontWeight: 300, color: "#1e1814", lineHeight: 1.2 }}>{rec.name}</p>
-                            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.08em", color: "#7a6e64", marginTop: 2 }}>{rec.price}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Sticky bottom CTA bar */}
@@ -857,6 +858,103 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                   </div>
                 )}
               </div>{/* end mobile */}
+
+              {/* ══ YOU MAY ALSO LIKE — full-width horizontal carousel ══ */}
+              {onNavigate && (
+                <div style={{ backgroundColor: "#faf8f5", borderTop: "1px solid rgba(30,24,20,0.07)" }}>
+                  <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 0 72px 28px" }}>
+                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64", marginBottom: 14 }}>
+                      You May Also Like
+                    </p>
+                    <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", fontWeight: 400, letterSpacing: "0.04em", color: "#1e1814", marginBottom: 40 }}>
+                      Curated For You
+                    </h2>
+                    <div
+                      ref={recsRef}
+                      style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 16, paddingRight: 28, scrollSnapType: "x mandatory", scrollbarWidth: "none" as const }}
+                    >
+                      {ALL_RECS.filter((r) => r.handle !== handle).map((rec) => (
+                        <button
+                          key={rec.handle}
+                          type="button"
+                          onClick={() => onNavigate(rec.handle)}
+                          style={{ flex: "0 0 auto", width: "clamp(160px, 18vw, 240px)", scrollSnapAlign: "start", cursor: "pointer", background: "none", border: "none", padding: 0, textAlign: "left" as const }}
+                        >
+                          <div style={{ aspectRatio: "3/4", overflow: "hidden", marginBottom: 12, backgroundColor: "rgba(30,24,20,0.04)" }}>
+                            <img
+                              src={rec.image()}
+                              alt={rec.name}
+                              style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease", display: "block" }}
+                              loading="lazy"
+                            />
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+                            <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: rec.swatch, border: "1px solid rgba(30,24,20,0.14)", flexShrink: 0 }} />
+                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase" as const, color: "#8a7e74" }}>{rec.color}</span>
+                          </div>
+                          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(0.9rem, 2vw, 1.1rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1.2, marginBottom: 3 }}>
+                            {rec.name}
+                          </p>
+                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.1em", color: "#7a6e64" }}>
+                            {rec.price}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ══ REVIEWS ══ */}
+              <div id="reviews" style={{ backgroundColor: "#f4f0eb" }}>
+                <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 28px 88px" }}>
+                  {/* Header */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 52, flexWrap: "wrap" as const, gap: 20 }}>
+                    <div>
+                      <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64", marginBottom: 14 }}>
+                        Customer Reviews
+                      </p>
+                      <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", fontWeight: 400, letterSpacing: "0.04em", color: "#1e1814", marginBottom: 14 }}>
+                        What Our Customers Say
+                      </h2>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <StarRating rating={4.7} size={14} />
+                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, fontWeight: 300, color: "#1e1814" }}>4.7</span>
+                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#7a6e64", fontWeight: 300 }}>· 47 reviews</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Review cards */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+                    {PRODUCT_REVIEWS.map((r, i) => (
+                      <div key={i} style={{ backgroundColor: "#faf8f5", padding: "28px 28px 32px", border: "1px solid rgba(30,24,20,0.10)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                          <StarRating rating={r.rating} size={12} />
+                          {r.verified && (
+                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, color: "#2d6a4f", fontWeight: 600, letterSpacing: "0.08em" }}>✓ Verified</span>
+                          )}
+                        </div>
+                        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 17, fontWeight: 400, color: "#1e1814", marginBottom: 10, lineHeight: 1.3, letterSpacing: "0.02em" }}>
+                          {r.title}
+                        </p>
+                        <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 13, lineHeight: 1.7, color: "#7a6e64", marginBottom: 20, fontWeight: 300 }}>
+                          {r.body}
+                        </p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ width: 28, height: 28, backgroundColor: "#eee8e2", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 14, fontWeight: 600, color: "#7a6e64", flexShrink: 0 }}>
+                            {r.author[0]}
+                          </div>
+                          <div>
+                            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, fontWeight: 600, color: "#1e1814", letterSpacing: "0.06em" }}>{r.author}</p>
+                            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#a9a09a", fontWeight: 300, marginTop: 2 }}>{r.date}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
             </motion.div>
           )}
