@@ -10,7 +10,6 @@ import { useCustomer } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { NotifyMeModal } from "@/components/NotifyMeModal";
 import { CinematicLightbox } from "@/components/CinematicLightbox";
-import { WriteReviewModal } from "@/components/WriteReviewModal";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
 import { trackAddToCart } from "@/lib/analytics";
 import { trackViewContent } from "@/lib/metaPixel";
@@ -20,59 +19,6 @@ import { ENABLE_APPLE_PAY } from "@/config/features";
 import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
 
 // ── Star rating SVG component ─────────────────────────────────────────────────
-function StarRating({ rating, size = 12 }: { rating: number; size?: number }) {
-  return (
-    <span style={{ display: "inline-flex", gap: 2, verticalAlign: "middle" }}>
-      {[1, 2, 3, 4, 5].map((s) => {
-        const filled = s <= Math.floor(rating);
-        const half   = !filled && s - 0.5 <= rating;
-        const gradId = `hg-pp-${s}-${size}`;
-        return (
-          <svg key={s} width={size} height={size} viewBox="0 0 12 12">
-            <defs>
-              <linearGradient id={gradId}>
-                <stop offset="50%" stopColor="#1e1814" />
-                <stop offset="50%" stopColor="#d4cdc8" />
-              </linearGradient>
-            </defs>
-            <path
-              d="M6 1l1.2 2.9L10.5 4l-2.25 2.2.53 3.15L6 7.85l-2.78 1.5.53-3.15L1.5 4l3.3-.1z"
-              fill={filled ? "#1e1814" : half ? `url(#${gradId})` : "#d4cdc8"}
-            />
-          </svg>
-        );
-      })}
-    </span>
-  );
-}
-
-const PRODUCT_REVIEWS = [
-  {
-    author: "Layla M.",
-    date: "May 2025",
-    rating: 5,
-    title: "The most beautiful top I own",
-    body: "The fabric is incredibly soft and the silhouette is perfect. I've worn it three different ways this week. Worth every pound.",
-    verified: true,
-  },
-  {
-    author: "Sara A.",
-    date: "April 2025",
-    rating: 5,
-    title: "Effortless luxury",
-    body: "I ordered the Light Blue and it's stunning in person. The asymmetric drape is subtle and elegant. Ships fast, packaged beautifully.",
-    verified: true,
-  },
-  {
-    author: "Nour K.",
-    date: "March 2025",
-    rating: 4,
-    title: "Gorgeous, runs slightly large",
-    body: "Absolutely love the quality and drape. I'd recommend sizing down if you prefer a more fitted look. Still keeping mine — the oversized feel is chic.",
-    verified: true,
-  },
-];
-
 interface RecItem {
   handle: string;
   name: string;
@@ -176,8 +122,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [thumbLoaded, setThumbLoaded] = useState<boolean[]>([]);
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [liveReviews, setLiveReviews] = useState<null | Array<{ id: number; author: string; title: string; body: string; rating: number; date: string; verified: boolean }>>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [waHover, setWaHover] = useState(false);
   const [applePayAvailable, setApplePayAvailable] = useState(false);
@@ -187,18 +131,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
 
   // Media query helper for mobile
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
-
-  // Load approved reviews from API; fall back to PRODUCT_REVIEWS if none returned
-  useEffect(() => {
-    fetch(`/api/reviews/public?handle=${encodeURIComponent(handle)}`)
-      .then(async (r) => {
-        if (!r.ok) return;
-        const data = await r.json() as { reviews: Array<{ id: number; author: string; title: string; body: string; rating: number; date: string; verified: boolean }> };
-        if (data.reviews.length > 0) setLiveReviews(data.reviews);
-      })
-      .catch(() => { /* silently fall back to static reviews */ });
-  }, [handle]);
-
 
   // Detect Apple Pay availability once on mount
   useEffect(() => {
@@ -729,11 +661,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#a9a09a", marginTop: 6, letterSpacing: "0.04em", fontWeight: 300 }}>
                         Free delivery on orders over 1,500 EGP
                       </p>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
-                        <StarRating rating={4.7} size={13} />
-                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#1e1814", fontWeight: 300 }}>4.7</span>
-                        <a href="#reviews" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#7a6e64", fontWeight: 300, textDecoration: "underline", textUnderlineOffset: 3 }}>47 reviews</a>
-                      </div>
                     </div>
 
                     <div style={{ height: 1, backgroundColor: "rgba(30,24,20,0.10)", marginBottom: 24 }} />
@@ -1180,94 +1107,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               })()}
 
               {/* ══ REVIEWS ══ */}
-              <div id="reviews" style={{ backgroundColor: "#f4f0eb" }}>
-                <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 28px 88px" }}>
-                  {/* Header */}
-                  {(() => {
-                    const displayReviews = liveReviews ?? PRODUCT_REVIEWS;
-                    const reviewCount = displayReviews.length;
-                    const reviewAvg = reviewCount > 0
-                      ? Math.round(displayReviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount * 10) / 10
-                      : 0;
-                    return (
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 52, flexWrap: "wrap" as const, gap: 20 }}>
-                        <div>
-                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64", marginBottom: 14 }}>
-                            Customer Reviews
-                          </p>
-                          <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", fontWeight: 400, letterSpacing: "0.04em", color: "#1e1814", marginBottom: 14 }}>
-                            What Our Customers Say
-                          </h2>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <StarRating rating={reviewAvg} size={14} />
-                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, fontWeight: 300, color: "#1e1814" }}>{reviewAvg.toFixed(1)}</span>
-                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#7a6e64", fontWeight: 300 }}>· {reviewCount} {reviewCount === 1 ? "review" : "reviews"}</span>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setReviewModalOpen(true)}
-                          style={{
-                            fontFamily: "'Montserrat', sans-serif",
-                            fontSize: 10,
-                            fontWeight: 600,
-                            letterSpacing: "0.22em",
-                            textTransform: "uppercase",
-                            color: "#1e1814",
-                            backgroundColor: "transparent",
-                            border: "1px solid rgba(30,24,20,0.35)",
-                            padding: "11px 22px",
-                            cursor: "pointer",
-                            transition: "background-color 0.2s, color 0.2s, border-color 0.2s",
-                            whiteSpace: "nowrap",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "#1e1814";
-                            e.currentTarget.style.color = "#faf8f5";
-                            e.currentTarget.style.borderColor = "#1e1814";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "transparent";
-                            e.currentTarget.style.color = "#1e1814";
-                            e.currentTarget.style.borderColor = "rgba(30,24,20,0.35)";
-                          }}
-                        >
-                          Write a Review
-                        </button>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Review cards */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-                    {(liveReviews ?? PRODUCT_REVIEWS).map((r, i) => (
-                      <div key={i} style={{ backgroundColor: "#faf8f5", padding: "28px 28px 32px", border: "1px solid rgba(30,24,20,0.10)" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                          <StarRating rating={r.rating} size={12} />
-                          {r.verified && (
-                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, color: "#2d6a4f", fontWeight: 600, letterSpacing: "0.08em" }}>✓ Verified</span>
-                          )}
-                        </div>
-                        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 17, fontWeight: 400, color: "#1e1814", marginBottom: 10, lineHeight: 1.3, letterSpacing: "0.02em" }}>
-                          {r.title}
-                        </p>
-                        <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 13, lineHeight: 1.7, color: "#7a6e64", marginBottom: 20, fontWeight: 300 }}>
-                          {r.body}
-                        </p>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ width: 28, height: 28, backgroundColor: "#eee8e2", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 14, fontWeight: 600, color: "#7a6e64", flexShrink: 0 }}>
-                            {r.author[0]}
-                          </div>
-                          <div>
-                            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, fontWeight: 600, color: "#1e1814", letterSpacing: "0.06em" }}>{r.author}</p>
-                            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#a9a09a", fontWeight: 300, marginTop: 2 }}>{r.date}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
 
             </motion.div>
           )}
@@ -1296,12 +1135,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
         initialIndex={carouselLb.idx}
         open={carouselLb.open}
         onClose={() => setCarouselLb((s) => ({ ...s, open: false }))}
-      />
-
-      <WriteReviewModal
-        open={reviewModalOpen}
-        onClose={() => setReviewModalOpen(false)}
-        productHandle={handle}
       />
     </>
   );
