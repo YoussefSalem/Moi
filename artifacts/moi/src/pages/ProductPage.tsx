@@ -844,14 +844,14 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
 
                 {/* Sticky bottom CTA bar */}
                 {!isOutOfStock && (
-                  <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 90, backgroundColor: "rgba(250,248,245,0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderTop: "1px solid rgba(30,24,20,0.10)", padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", display: "flex", flexDirection: "column" as const, gap: 8 }}>
+                  <div style={{ padding: "16px 20px", paddingBottom: "calc(16px + env(safe-area-inset-bottom))", display: "flex", flexDirection: "column" as const, gap: 10 }}>
                     <motion.button type="button" onClick={handleAddToCart} whileTap={{ scale: 0.98 }}
-                      style={{ width: "100%", height: 48, borderRadius: 0, backgroundColor: addedFeedback ? "#2d6a4f" : "#1e1814", color: "#faf8f5", border: "none", fontSize: 10, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "background-color 0.3s" }}
+                      style={{ width: "100%", height: 52, borderRadius: 0, backgroundColor: addedFeedback ? "#2d6a4f" : "#1e1814", color: "#faf8f5", border: "none", fontSize: 10, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "background-color 0.3s" }}
                     >
                       {addedFeedback ? "Added ✓" : `Add to Bag — ${effectivePrice}`}
                     </motion.button>
                     <motion.button type="button" onClick={handleBuyNow} whileTap={{ scale: 0.98 }}
-                      style={{ width: "100%", height: 44, borderRadius: 0, border: "1px solid #d4cdc8", backgroundColor: "transparent", color: "#1e1814", fontSize: 9, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif" }}
+                      style={{ width: "100%", height: 48, borderRadius: 0, border: "none", backgroundColor: "#342b26", color: "#faf8f5", fontSize: 9, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif" }}
                     >
                       Buy Now
                     </motion.button>
