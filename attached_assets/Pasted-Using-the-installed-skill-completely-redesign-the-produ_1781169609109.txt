@@ -1,0 +1,58 @@
+Using the installed skill, completely redesign the product page from the ground up for both desktop and mobile. Do not reuse any part of the current product page design.
+
+Goal
+
+Create a premium, elegant, high-converting product page that feels modern, fashion-focused, and visually refined. Every element should be carefully proportioned, with strong visual hierarchy and excellent use of whitespace.
+
+Desktop Layout
+
+Design the page with the following structure:
+
+Large product image/gallery centered as the primary focal point.
+Product description and key product information on the left.
+Price, purchase actions, and variant selection on the right.
+Ensure all sections are perfectly balanced and proportioned across the viewport.
+Reviews Section
+
+Directly below the product information:
+
+Add a beautiful customer reviews section with a premium, trustworthy appearance.
+Display 3 featured reviews by default.
+Allow users to either:
+Swipe horizontally through reviews, or
+Click "View All Reviews" to expand the full review list.
+The section should showcase social proof without consuming excessive vertical space.
+Recommended Products
+
+Below the reviews section:
+
+Add an auto-scrolling, swipeable carousel of recommended products ("You May Also Like").
+Use large product images with the product title displayed beneath each image.
+Prioritize visual appeal and product discovery.
+The carousel should feel smooth, premium, and luxurious.
+Mobile Layout
+
+Research and follow the highest-converting product page patterns used by leading fashion and apparel brands.
+
+Choose the mobile layout based on proven ecommerce conversion principles rather than simply adapting the desktop version. Focus on:
+
+Fast product comprehension
+Strong purchase visibility
+Smooth thumb-friendly interactions
+Minimal friction to purchase
+Premium visual presentation
+Design Direction
+Luxury fashion brand aesthetic
+Clean and modern
+Elegant typography
+Generous spacing
+Strong visual hierarchy
+Premium imagery presentation
+Conversion-focused UX
+Important
+Do not include any accordion sections.
+Do not add "Made in Egypt" or similar origin badges.
+Do not introduce additional informational sections that are not directly related to conversion.
+Keep the experience focused on the product, reviews, and product discovery.
+
+The objective is to create the most visually appealing and highest-converting product page possible while maintaining a premium fashion-brand feel.
