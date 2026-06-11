@@ -10,20 +10,58 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
   const featuredUrl = shopify.featuredImage?.url;
 
   // For color-specific pages, fallback.filmstrip holds colorGalleries images
-  // (accurate per-color shots). Prefer those over Shopify's all-product images
-  // which mix every color variant together and are not color-filtered.
+  // (accurate per-color shots). We merge Shopify's per-variant image with local
+  // alt images so the hero shot is the real Shopify photo while extras stay local.
   const fallbackFilm = fallback.filmstrip as string[];
-  const filmstrip = fallbackFilm.length > 0
-    ? fallbackFilm
-    : shopifyImageUrls.length > 0
-      ? shopifyImageUrls
-      : [];
 
-  // On color-specific pages, keep the color-accurate local productShot.
-  // Only use Shopify's featuredImage for generic (non-color) product pages.
-  const productShot = fallbackFilm.length > 0
-    ? fallback.productShot
-    : (featuredUrl ?? fallback.productShot);
+  // Color suffix from fallback name, e.g. "MOI WAVVY — Sand" → "Sand"
+  const pageColorName = fallback.name.includes(" — ")
+    ? (fallback.name.split(" — ").pop() ?? "")
+    : "";
+
+  // Build merged colorGalleries first so we can use them for the current page
+  const localGalleries = (fallback.colorGalleries ?? {}) as Record<string, string[]>;
+
+  const shopifyMainByColor: Record<string, string> = {};
+  for (const v of shopify.variants.nodes) {
+    if (!v.image?.url) continue;
+    const colorOpt = v.selectedOptions.find(
+      (o) => o.name.toLowerCase() === "color",
+    );
+    if (!colorOpt) continue;
+    const colorName = colorOpt.value;
+    if (!shopifyMainByColor[colorName]) {
+      shopifyMainByColor[colorName] = v.image.url;
+    }
+  }
+
+  const mergedColorGalleries: Record<string, string[]> = {};
+  for (const [k, imgs] of Object.entries(localGalleries)) {
+    mergedColorGalleries[k] = [...(imgs as string[])];
+  }
+  for (const [colorName, shopifyMain] of Object.entries(shopifyMainByColor)) {
+    const localImgs = (localGalleries[colorName] ?? []) as string[];
+    const localAlts = localImgs.slice(1);
+    const combined = [shopifyMain, ...localAlts.filter((u) => u !== shopifyMain)];
+    mergedColorGalleries[colorName] = combined;
+  }
+
+  // For color-specific pages: use the merged gallery (Shopify hero + local alts).
+  // For generic pages: fall back to the old behavior.
+  const mergedFilm = pageColorName ? mergedColorGalleries[pageColorName] : undefined;
+  const filmstrip = mergedFilm?.length
+    ? mergedFilm
+    : fallbackFilm.length > 0
+      ? fallbackFilm
+      : shopifyImageUrls.length > 0
+        ? shopifyImageUrls
+        : [];
+
+  const productShot = mergedFilm?.length
+    ? mergedFilm[0]
+    : fallbackFilm.length > 0
+      ? fallback.productShot
+      : (featuredUrl ?? fallback.productShot);
 
   const extraShopifyImages = shopifyImageUrls
     .filter((url) => url !== featuredUrl)
