@@ -188,6 +188,44 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     // fetch resolves; without it the effect runs on mount when the track is null.
   }, [isMobile, loading]);
 
+  // Mobile: infinite scroll position wrapping. Cards are tripled (A B C).
+  // Start at the middle set (B) so the user can scroll both ways.
+  // On scroll, if the position enters the left (A) or right (C) zone, snap it
+  // back to the equivalent position inside B. The jump is instant (scroll
+  // behaviour is "auto" on the container) so the user never sees the reset.
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = recsOuterRef.current;
+    if (!el) return;
+
+    // Set initial position to the middle set after the DOM is ready
+    const setInitial = () => {
+      const oneSet = el.scrollWidth / 3;
+      el.scrollLeft = oneSet;
+    };
+    const raf = requestAnimationFrame(setInitial);
+
+    const onScroll = () => {
+      const sw = el.scrollWidth;
+      const oneSet = sw / 3;
+      const left = el.scrollLeft;
+      // If the user is in the first set (A), jump back to the same position
+      // in the middle set (B). If in the last set (C), jump back to B.
+      // The tolerance (half a card) prevents jitter at the exact boundary.
+      if (left < oneSet - 60) {
+        el.scrollLeft = left + oneSet;
+      } else if (left > oneSet * 2 - 60) {
+        el.scrollLeft = left - oneSet;
+      }
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener("scroll", onScroll);
+    };
+  }, [isMobile, loading]);
+
   // Desktop: grab-to-drag via translateX; normalises position after drag ends
   useEffect(() => {
     if (isMobile) return;
@@ -1036,7 +1074,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                 <div style={{ backgroundColor: "#faf8f5", borderTop: "1px solid rgba(30,24,20,0.07)" }}>
                   {(() => {
                     const recs = ALL_RECS.filter((r) => r.handle !== handle);
-                    const cardStyle: React.CSSProperties = { flex: "0 0 auto", width: "clamp(180px, 38vw, 280px)", background: "none", border: "none", padding: 0, textAlign: "left", userSelect: "none", scrollSnapAlign: "start" };
+                    const cardStyle: React.CSSProperties = { flex: "0 0 auto", width: "clamp(180px, 38vw, 280px)", background: "none", border: "none", padding: 0, textAlign: "left", userSelect: "none" };
                     const openGallery = (rec: typeof recs[0]) => {
                       const imgs = rec.gallery();
                       setCarouselLb({ open: true, images: imgs, idx: 0 });
@@ -1104,9 +1142,11 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         </div>
 
                         {isMobile ? (
-                          /* Mobile: native horizontal scroll — browser handles momentum, tap-vs-swipe,
-                             and direction disambiguation. scroll-snap gives a clean settle per card.
-                             scrollbar hidden via the .moi-hscroll utility (see index.css). */
+                          /* Mobile: infinite native scroll — cards tripled (set A B C).
+                             Start at the middle set (B). On scroll, wrap back to B whenever
+                             the user scrolls past A or C. The scroll is instant (no transition)
+                             so the user never sees the jump. Browser handles momentum, tap,
+                             and direction disambiguation natively. */
                           <div
                             ref={recsOuterRef}
                             className="moi-hscroll"
@@ -1116,13 +1156,13 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                               overflowX: "auto",
                               overflowY: "hidden",
                               WebkitOverflowScrolling: "touch",
-                              scrollSnapType: "x proximity",
                               overscrollBehaviorX: "contain",
                               paddingRight: 28,
                               paddingBottom: 8,
+                              scrollBehavior: "auto", // instant jumps (no transition on scrollLeft)
                             }}
                           >
-                            {recs.map((rec, i) => renderCard(rec, `m-${rec.handle}-${i}`))}
+                            {[...recs, ...recs, ...recs].map((rec, i) => renderCard(rec, `m-${rec.handle}-${i}`))}
                           </div>
                         ) : (
                           /* Desktop: infinite loop via tripled track + translateX; grab-to-drag + arrow buttons */
