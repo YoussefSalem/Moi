@@ -170,6 +170,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [avgRatingData, setAvgRatingData] = useState<{ avg: number; count: number } | null>(null);
+  const [recsPage, setRecsPage] = useState(0);
 
   const recsRef = useRef<HTMLDivElement>(null);
   const addingRef = useRef(false);
@@ -867,48 +868,150 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               {/* ── Full-width: Reviews ── */}
               <ReviewSection productHandle={handle} productName={product.name} />
 
-              {/* ── Full-width: You May Also Like (centred grid) ── */}
-              {onNavigate && clothingRecs.length > 0 && (
-                <section style={{ borderTop: "1px solid rgba(30,24,20,0.08)", paddingTop: 56, paddingBottom: 80 }}>
-                  <div className="max-w-5xl mx-auto px-5 md:px-12 text-center">
-                    <p style={{ ...SANS, fontSize: 9, letterSpacing: "0.30em", textTransform: "uppercase", color: "#8a7e74", marginBottom: 8 }}>
-                      You May Also Like
-                    </p>
-                    <div ref={recsRef}
-                      className="grid gap-x-5 gap-y-8 mt-8"
-                      style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
-                    >
-                      {clothingRecs.map((rec) => (
-                        <button
-                          key={rec.handle}
-                          type="button"
-                          onClick={() => onNavigate(rec.handle)}
-                          className="text-left group w-full"
-                        >
-                          <div
-                            className="overflow-hidden mb-3 w-full"
-                            style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.04)" }}
-                          >
-                            <img
-                              src={rec.image}
-                              alt={rec.name}
-                              className="w-full h-full"
-                              style={{ objectFit: "cover", transition: "transform 0.65s ease" }}
-                              loading="lazy"
-                            />
-                          </div>
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <span className="rounded-full flex-shrink-0" style={{ width: 7, height: 7, backgroundColor: rec.swatch, border: "1px solid rgba(30,24,20,0.14)" }} />
-                            <span style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a7e74" }}>{rec.color}</span>
-                          </div>
-                          <p style={{ ...SERIF, fontSize: "clamp(0.88rem, 2.2vw, 1.05rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1.2 }}>{rec.name}</p>
-                          <p style={{ ...SANS, fontSize: 10, letterSpacing: "0.09em", color: "#7a6e64", marginTop: 3 }}>{rec.price}</p>
-                        </button>
-                      ))}
+              {/* ── Full-width: You May Also Like (carousel) ── */}
+              {onNavigate && clothingRecs.length > 0 && (() => {
+                const perPage = 3;
+                const totalPages = Math.ceil(clothingRecs.length / perPage);
+                const canPrev = recsPage > 0;
+                const canNext = recsPage < totalPages - 1;
+                return (
+                  <section style={{ borderTop: "1px solid rgba(30,24,20,0.08)", paddingTop: 64, paddingBottom: 88 }}>
+                    {/* Heading */}
+                    <div className="text-center px-5 mb-10">
+                      <h2 style={{
+                        ...SERIF,
+                        fontSize: "clamp(2.2rem, 7vw, 4.5rem)",
+                        fontWeight: 300,
+                        color: "#1e1814",
+                        letterSpacing: "0.04em",
+                        lineHeight: 1,
+                        margin: 0,
+                      }}>
+                        You May Also Like
+                      </h2>
                     </div>
-                  </div>
-                </section>
-              )}
+
+                    {/* Carousel track + arrows */}
+                    <div className="relative" style={{ maxWidth: "100%", overflow: "hidden" }}>
+                      {/* Track */}
+                      <div
+                        ref={recsRef}
+                        style={{
+                          display: "flex",
+                          transform: `translateX(-${recsPage * 100}%)`,
+                          transition: "transform 0.55s cubic-bezier(0.22,1,0.36,1)",
+                          willChange: "transform",
+                        }}
+                      >
+                        {Array.from({ length: totalPages }).map((_, pageIdx) => (
+                          <div
+                            key={pageIdx}
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(3, 1fr)",
+                              gap: "clamp(8px, 1.5vw, 20px)",
+                              width: "100%",
+                              flexShrink: 0,
+                              padding: "0 clamp(16px, 4vw, 48px)",
+                              boxSizing: "border-box",
+                            }}
+                          >
+                            {clothingRecs.slice(pageIdx * perPage, pageIdx * perPage + perPage).map((rec) => (
+                              <button
+                                key={rec.handle}
+                                type="button"
+                                onClick={() => onNavigate(rec.handle)}
+                                className="text-left group w-full"
+                              >
+                                <div
+                                  className="overflow-hidden mb-3 w-full"
+                                  style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.04)" }}
+                                >
+                                  <img
+                                    src={rec.image}
+                                    alt={rec.name}
+                                    className="w-full h-full"
+                                    style={{ objectFit: "cover", transition: "transform 0.65s ease" }}
+                                    loading="lazy"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1.5 mb-1.5">
+                                  <span className="rounded-full flex-shrink-0" style={{ width: 7, height: 7, backgroundColor: rec.swatch, border: "1px solid rgba(30,24,20,0.14)" }} />
+                                  <span style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a7e74" }}>{rec.color}</span>
+                                </div>
+                                <p style={{ ...SERIF, fontSize: "clamp(0.88rem, 2.2vw, 1.05rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1.2 }}>{rec.name}</p>
+                                <p style={{ ...SANS, fontSize: 10, letterSpacing: "0.09em", color: "#7a6e64", marginTop: 3 }}>{rec.price}</p>
+                              </button>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Prev arrow */}
+                      {canPrev && (
+                        <button
+                          type="button"
+                          onClick={() => setRecsPage((p) => Math.max(0, p - 1))}
+                          className="absolute left-2 top-1/3 -translate-y-1/2 flex items-center justify-center"
+                          style={{
+                            width: 40, height: 40,
+                            backgroundColor: "rgba(250,248,245,0.92)",
+                            border: "1px solid rgba(30,24,20,0.14)",
+                            backdropFilter: "blur(8px)",
+                            zIndex: 10,
+                          }}
+                          aria-label="Previous"
+                        >
+                          <ChevronLeft size={18} color="#1e1814" strokeWidth={1.5} />
+                        </button>
+                      )}
+
+                      {/* Next arrow */}
+                      {canNext && (
+                        <button
+                          type="button"
+                          onClick={() => setRecsPage((p) => Math.min(totalPages - 1, p + 1))}
+                          className="absolute right-2 top-1/3 -translate-y-1/2 flex items-center justify-center"
+                          style={{
+                            width: 40, height: 40,
+                            backgroundColor: "rgba(250,248,245,0.92)",
+                            border: "1px solid rgba(30,24,20,0.14)",
+                            backdropFilter: "blur(8px)",
+                            zIndex: 10,
+                          }}
+                          aria-label="Next"
+                        >
+                          <ChevronRight size={18} color="#1e1814" strokeWidth={1.5} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Dot indicators */}
+                    {totalPages > 1 && (
+                      <div className="flex justify-center gap-2 mt-8">
+                        {Array.from({ length: totalPages }).map((_, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setRecsPage(i)}
+                            style={{
+                              width: i === recsPage ? 20 : 6,
+                              height: 6,
+                              borderRadius: 3,
+                              backgroundColor: i === recsPage ? "#1e1814" : "rgba(30,24,20,0.2)",
+                              border: "none",
+                              padding: 0,
+                              transition: "width 0.3s ease, background-color 0.3s ease",
+                              cursor: "pointer",
+                            }}
+                            aria-label={`Page ${i + 1}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                );
+              })()}
 
               {/* Spacer for mobile sticky bar */}
               <div className="md:hidden" style={{ height: 80 }} />
