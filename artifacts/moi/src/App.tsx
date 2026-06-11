@@ -160,10 +160,14 @@ function AppContent() {
   const [isGoingBack, setIsGoingBack] = useState(false);
 
   function handleColorCardAddToCart(handle: string, _image?: string) {
-    // Use Shopify-fetched products (real variant GIDs) — all three products now in `products`.
-    // DO NOT shadow the outer `products` state — we need the live Shopify data.
-    const allProducts: ProductConfig[] = [...products];
-    const product = allProducts.find((p) => handle.startsWith(p.slug + "-") || handle === p.slug);
+    // Resolve products by slug — always maps the right config regardless of Shopify order.
+    // Prefer Shopify-enriched products (real variant GIDs); fall back to local config.
+    const slugProducts: ProductConfig[] = [
+      products.find((p) => p.slug === "moi-wavvy") ?? (IMAGES.product1 as unknown as ProductConfig),
+      products.find((p) => p.slug === "moi-versa-top") ?? (IMAGES.product2 as unknown as ProductConfig),
+      products.find((p) => p.slug === "trio-bangles") ?? (IMAGES.product3 as unknown as ProductConfig),
+    ];
+    const product = slugProducts.find((p) => handle.startsWith(p.slug + "-") || handle === p.slug);
     if (!product) return;
     const colorSlug = handle.startsWith(product.slug + "-")
       ? handle.slice(product.slug.length + 1)
@@ -172,11 +176,16 @@ function AppContent() {
       (c) => c.toLowerCase().replace(/\s+/g, "-") === colorSlug,
     ) ?? "";
     const image = ((product.colorImages ?? {}) as Record<string, string>)[colorName] ?? product.productShot;
-    // Find the color-specific Shopify variant; fall back to first available
+    // Find the color-specific Shopify variant using case-insensitive matching so
+    // "White" in local config matches "white" or "WHITE" in Shopify option values.
+    const colorLower = colorName.toLowerCase();
     const variant = product.variants?.find((v) =>
-      v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === colorName)
+      v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorLower)
     );
-    const variantId = variant?.id ?? product.variantId ?? handle;
+    // Only use product.variantId when there is no color constraint (i.e. colorName is empty).
+    // If colorName is set but no variant was found, skip the Shopify add entirely rather
+    // than silently adding the wrong color's variant to the cart.
+    const variantId = variant?.id ?? (colorName ? undefined : product.variantId) ?? handle;
     const sizeValue = variant?.selectedOptions.find(
       (o) => o.name.toLowerCase() === "size" || o.name.toLowerCase() === "titre"
     )?.value ?? "One Size";
@@ -500,8 +509,9 @@ function AppContent() {
         const colorSlug = colorName.toLowerCase().replace(/\s+/g, "-");
         const handle = `${product.slug}-${colorSlug}`;
         const colorImage = colorImages?.[colorName] ?? product.productShot;
+        const colorNameLower = colorName.toLowerCase();
         const variant = product.variants?.find((v) =>
-          v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === colorName)
+          v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorNameLower)
         );
         const price = variant?.price ?? product.price;
 

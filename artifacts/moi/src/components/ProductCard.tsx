@@ -151,12 +151,14 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
   const selectedVariant: VariantOption | undefined = useMemo(() => {
     if (!hasShopifyVariants || !product.variants) return undefined;
+    const colorLower = selectedColor.toLowerCase();
+    const sizeLower = selectedSize.toLowerCase();
     return product.variants.find((v) => {
       const colorMatch = !colorOption || v.selectedOptions.some(
-        (o) => o.name.toLowerCase() === "color" && o.value === selectedColor
+        (o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorLower
       );
       const sizeMatch = !sizeOption || v.selectedOptions.some(
-        (o) => o.name.toLowerCase() === sizeOption.optionName.toLowerCase() && o.value === selectedSize
+        (o) => o.name.toLowerCase() === sizeOption.optionName.toLowerCase() && o.value.toLowerCase() === sizeLower
       );
       return colorMatch && sizeMatch;
     }) ?? product.variants[0];
@@ -167,12 +169,14 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
   function isSizeAvailable(size: string): boolean {
     if (!hasShopifyVariants || !product.variants) return true;
+    const colorLower = selectedColor.toLowerCase();
+    const sizeOptName = sizeOption?.optionName.toLowerCase() ?? "size";
     return product.variants.some((v) => {
       const sizeMatch = v.selectedOptions.some(
-        (o) => o.name.toLowerCase() === (sizeOption?.optionName.toLowerCase() ?? "size") && o.value === size
+        (o) => o.name.toLowerCase() === sizeOptName && o.value.toLowerCase() === size.toLowerCase()
       );
       const colorMatch = !colorOption || v.selectedOptions.some(
-        (o) => o.name.toLowerCase() === "color" && o.value === selectedColor
+        (o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorLower
       );
       return sizeMatch && colorMatch && v.availableForSale;
     });
@@ -180,15 +184,17 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
 
   useEffect(() => {
     if (!sizeOption || !product.variants) return;
+    const colorLower = selectedColor.toLowerCase();
+    const sizeOptName = sizeOption.optionName.toLowerCase();
     const sizeExistsForColor = product.variants.some((v) =>
-      v.selectedOptions.some((o) => o.name.toLowerCase() === (sizeOption.optionName.toLowerCase() ?? "size") && o.value === selectedSize) &&
-      (!colorOption || v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === selectedColor))
+      v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOptName && o.value.toLowerCase() === selectedSize.toLowerCase()) &&
+      (!colorOption || v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorLower))
     );
     if (!sizeExistsForColor) {
       const firstExisting = sizeOption.values.find((s) =>
         product.variants!.some((v) =>
-          v.selectedOptions.some((o) => o.name.toLowerCase() === (sizeOption.optionName.toLowerCase() ?? "size") && o.value === s) &&
-          (!colorOption || v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === selectedColor))
+          v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOptName && o.value.toLowerCase() === s.toLowerCase()) &&
+          (!colorOption || v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorLower))
         )
       );
       if (firstExisting) setSelectedSize(firstExisting);

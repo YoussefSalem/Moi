@@ -104,9 +104,10 @@ export function ProductColorSection({
             const swatchKey = c.name.toLowerCase();
             const swatch = colorSwatches[swatchKey];
             const handle = `${product.slug}-${slugify(c.name)}`;
-            // Find the Shopify variant for this specific color
+            // Find the Shopify variant for this specific color (case-insensitive)
+            const cNameLower = c.name.toLowerCase();
             const variant = product.variants?.find((v) =>
-              v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value === c.name)
+              v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === cNameLower)
             );
             const outOfStock = variant !== undefined && !variant.availableForSale;
 

@@ -373,19 +373,37 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const mobileGalleryDragRef = useRef<{ x: number } | null>(null);
   const mobileGalleryDidDragRef = useRef(false);
 
-  const selectedVariant = product.variants?.find((v) => {
-    const colorMatch = !pageColorName || v.selectedOptions.some(
-      (o) => o.name.toLowerCase() === "color" && o.value === pageColorName,
-    );
-    const sizeMatch = !sizeOption || v.selectedOptions.some(
-      (o) => o.name.toLowerCase() === sizeOption.optionName.toLowerCase() && o.value === selectedSize,
-    );
-    return colorMatch && sizeMatch;
-  }) ?? product.variants?.find((v) =>
-    !pageColorName || v.selectedOptions.some(
-      (o) => o.name.toLowerCase() === "color" && o.value === pageColorName,
-    ),
-  ) ?? product.variants?.[0];
+  const selectedVariant = (() => {
+    const variants = product.variants;
+    if (!variants?.length) return undefined;
+    const colorLower = pageColorName.toLowerCase();
+    const sizeOptName = sizeOption?.optionName.toLowerCase() ?? "";
+    const sizeLower = selectedSize.toLowerCase();
+
+    if (pageColorName) {
+      // 1. Color (case-insensitive) + size match
+      const withBoth = variants.find((v) =>
+        v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorLower) &&
+        (!sizeOption || v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOptName && o.value.toLowerCase() === sizeLower))
+      );
+      if (withBoth) return withBoth;
+      // 2. Color match only (ignore size)
+      const colorOnly = variants.find((v) =>
+        v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorLower)
+      );
+      if (colorOnly) return colorOnly;
+      // 3. No color match at all — return undefined so we never leak a wrong-color variant
+      return undefined;
+    }
+
+    // No color constraint on this page — pick by size or fallback to first
+    if (sizeOption) {
+      return variants.find((v) =>
+        v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOptName && o.value.toLowerCase() === sizeLower)
+      ) ?? variants[0];
+    }
+    return variants[0];
+  })();
 
   const isOutOfStock = selectedVariant ? !selectedVariant.availableForSale : false;
   const effectivePrice = selectedVariant?.price ?? product.price;
@@ -731,7 +749,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(displaySizes.length, 4)}, 1fr)`, gap: 8 }}>
                           {displaySizes.map((size) => {
-                            const available = product.variants?.some((v) => v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOption?.optionName.toLowerCase() && o.value === size) && v.availableForSale) ?? true;
+                            const available = product.variants?.some((v) => v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOption?.optionName.toLowerCase() && o.value.toLowerCase() === size.toLowerCase()) && v.availableForSale) ?? true;
                             const isSelected = selectedSize === size;
                             return (
                               <button key={size} type="button" onClick={() => setSelectedSize(size)}
@@ -1020,7 +1038,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
                         {displaySizes.map((size) => {
-                          const available = product.variants?.some((v) => v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOption?.optionName.toLowerCase() && o.value === size) && v.availableForSale) ?? true;
+                          const available = product.variants?.some((v) => v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOption?.optionName.toLowerCase() && o.value.toLowerCase() === size.toLowerCase()) && v.availableForSale) ?? true;
                           const isSelected = selectedSize === size;
                           return (
                             <button key={size} type="button" onClick={() => setSelectedSize(size)}
