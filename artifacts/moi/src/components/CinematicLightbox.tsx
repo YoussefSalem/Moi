@@ -200,7 +200,9 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
         position: "fixed",
         inset: 0,
         zIndex: 9999,
-        backgroundColor: "#000",
+        backgroundColor: "rgba(250,248,245,0.60)",
+        backdropFilter: "blur(28px)",
+        WebkitBackdropFilter: "blur(28px)",
         opacity: open ? 1 : 0,
         visibility: open ? "visible" : "hidden",
         pointerEvents: open ? "auto" : "none",
@@ -223,9 +225,9 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
           width: 44,
           height: 44,
           borderRadius: "50%",
-          // Strong dark fill so the X is legible over any image tone
-          background: "rgba(0,0,0,0.60)",
-          border: "1.5px solid rgba(255,255,255,0.18)",
+          // Strong dark fill so the X is legible over the light backdrop
+          background: "rgba(30,24,20,0.70)",
+          border: "1.5px solid rgba(30,24,20,0.18)",
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
@@ -236,11 +238,11 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
           flexShrink: 0,
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = "rgba(0,0,0,0.85)";
+          e.currentTarget.style.background = "rgba(30,24,20,0.90)";
           e.currentTarget.style.transform = "scale(1.08)";
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = "rgba(0,0,0,0.60)";
+          e.currentTarget.style.background = "rgba(30,24,20,0.70)";
           e.currentTarget.style.transform = "scale(1)";
         }}
       >
@@ -262,12 +264,12 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
         onDoubleClick={handleDoubleTap}
         onClick={(e) => { if (e.target === e.currentTarget && zoomScale <= 1) onClose(); }}
       >
-        {/* Dark shimmer skeleton — visible immediately before image loads */}
+        {/* Light shimmer skeleton — visible immediately before image loads */}
         <div
           style={{
             position: "absolute",
             inset: 0,
-            background: "linear-gradient(90deg, #0d0d0d 25%, #1a1a1a 50%, #0d0d0d 75%)",
+            background: "linear-gradient(90deg, rgba(210,200,190,0.18) 25%, rgba(230,222,212,0.32) 50%, rgba(210,200,190,0.18) 75%)",
             backgroundSize: "200% 100%",
             animation: "lb-shimmer 1.4s ease-in-out infinite",
             opacity: loaded ? 0 : 1,
@@ -313,7 +315,7 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
             right: 0,
             // Respect home-indicator safe area
             paddingBottom: "max(env(safe-area-inset-bottom, 0px), 12px)",
-            background: "linear-gradient(to top, rgba(0,0,0,0.90) 0%, rgba(0,0,0,0.0) 100%)",
+            background: "linear-gradient(to top, rgba(250,248,245,0.85) 0%, rgba(250,248,245,0.0) 100%)",
             zIndex: 5,
             pointerEvents: "auto",
           }}
@@ -349,8 +351,8 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
                   borderRadius: 6,
                   overflow: "hidden",
                   border: i === idx
-                    ? "2px solid #fff"
-                    : "2px solid rgba(255,255,255,0.2)",
+                    ? "2px solid rgba(30,24,20,0.85)"
+                    : "2px solid rgba(30,24,20,0.18)",
                   opacity: i === idx ? 1 : 0.55,
                   transform: i === idx ? "scale(1.06)" : "scale(1)",
                   transition: "opacity 0.2s, border-color 0.2s, transform 0.2s",

@@ -548,6 +548,9 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     </p>
                     <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(2rem, 2.8vw, 2.6rem)", fontWeight: 400, lineHeight: 1.05, letterSpacing: "0.04em", color: "#1e1814", marginBottom: 16 }}>
                       {product.name.split(" — ")[0]}
+                      {pageColorName && (
+                        <span style={{ color: "#8a7e74" }}> — {pageColorName}</span>
+                      )}
                     </h1>
                     <p style={{ fontSize: 14, lineHeight: 1.6, letterSpacing: "0.02em", color: "#7a6e64", marginBottom: 20, fontWeight: 300 }}>
                       {product.description}
@@ -941,6 +944,9 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 20 }}>
                     <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.77rem, 7vw, 2.4rem)", fontWeight: 400, letterSpacing: "0.04em", lineHeight: 1.1, color: "#1e1814" }}>
                       {product.name.split(" — ")[0]}
+                      {pageColorName && (
+                        <span style={{ color: "#8a7e74" }}> — {pageColorName}</span>
+                      )}
                     </h1>
                     <div style={{ textAlign: "right" as const, flexShrink: 0 }}>
                       {effectiveCompareAtPrice && (
