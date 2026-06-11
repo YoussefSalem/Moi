@@ -84,34 +84,29 @@ interface RecItem {
 }
 
 function buildAllRecs(): RecItem[] {
-  type Entry = { product: typeof IMAGES.product1 | typeof IMAGES.product2; colorName: string };
-  const entries: Entry[] = [
-    { product: IMAGES.product1, colorName: "White" },
-    { product: IMAGES.product1, colorName: "Cashmere" },
-    { product: IMAGES.product1, colorName: "Beige" },
-    { product: IMAGES.product1, colorName: "Yellow" },
-    { product: IMAGES.product1, colorName: "Sand" },
-    { product: IMAGES.product2, colorName: "White" },
-    { product: IMAGES.product2, colorName: "Cashmere" },
-    { product: IMAGES.product2, colorName: "Beige" },
-    { product: IMAGES.product2, colorName: "Yellow" },
-    { product: IMAGES.product2, colorName: "Teal" },
-  ];
-  return entries.map(({ product, colorName }) => {
-    const colorImages = product.colorImages as Record<string, string>;
-    const colorSwatches = product.colorSwatches as Record<string, string>;
-    const image = colorImages[colorName] ?? product.productShot;
-    const swatch = colorSwatches[colorName.toLowerCase()] ?? "";
-    return {
-      handle: `${product.slug}-${slugify(colorName)}`,
-      name: product.name,
-      color: colorName,
-      price: product.price,
-      swatch,
-      image: () => image,
-      gallery: () => [image],
-    };
-  });
+  const allProducts = [IMAGES.product1, IMAGES.product2] as const;
+  const items: RecItem[] = [];
+  for (const product of allProducts) {
+    const colorImages = product.colorImages as Record<string, string> | undefined;
+    const colorGalleries = product.colorGalleries as Record<string, readonly string[]> | undefined;
+    const colorSwatches = product.colorSwatches as Record<string, string> | undefined;
+    if (!colorImages) continue;
+    for (const colorName of Object.keys(colorImages)) {
+      const swatch = colorSwatches?.[colorName.toLowerCase()] ?? colorSwatches?.[colorName] ?? "";
+      if (!swatch) continue;
+      const handle = `${product.slug}-${slugify(colorName)}`;
+      items.push({
+        handle,
+        name: product.name,
+        color: colorName,
+        price: product.price,
+        swatch,
+        image: () => colorImages[colorName] ?? product.productShot,
+        gallery: () => colorGalleries?.[colorName] ?? [colorImages[colorName] ?? product.productShot],
+      });
+    }
+  }
+  return items;
 }
 
 const ALL_RECS = buildAllRecs();
@@ -186,10 +181,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [waHover, setWaHover] = useState(false);
   const [applePayAvailable, setApplePayAvailable] = useState(false);
-  const recs = useMemo(
-    () => ALL_RECS.filter((r) => handle !== r.handle && !handle.startsWith(r.handle + "-")),
-    [handle],
-  );
+  const recs = useMemo(() => ALL_RECS.filter((r) => r.handle !== handle), [handle]);
   const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
   const addingRef = useRef(false);
 
