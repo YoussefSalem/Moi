@@ -92,8 +92,11 @@ function buildAllRecs(): RecItem[] {
     const colorSwatches = product.colorSwatches as Record<string, string> | undefined;
     if (!colorImages) continue;
     for (const colorName of Object.keys(colorImages)) {
+      // Skip size-like entries (e.g. "One Size", "Default Title") that don't
+      // have a real color swatch — they are not color variants.
+      const swatch = colorSwatches?.[colorName.toLowerCase()] ?? colorSwatches?.[colorName] ?? "";
+      if (!swatch) continue;
       const handle = `${product.slug}-${slugify(colorName)}`;
-      const swatch = colorSwatches?.[colorName.toLowerCase()] ?? colorSwatches?.[colorName] ?? "#c8bdb5";
       items.push({
         handle,
         name: product.name,
