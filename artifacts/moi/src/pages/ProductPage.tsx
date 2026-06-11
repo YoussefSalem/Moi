@@ -10,6 +10,7 @@ import { useCustomer } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { NotifyMeModal } from "@/components/NotifyMeModal";
 import { CinematicLightbox } from "@/components/CinematicLightbox";
+import { WriteReviewModal } from "@/components/WriteReviewModal";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
 import { trackAddToCart } from "@/lib/analytics";
 import { trackViewContent } from "@/lib/metaPixel";
@@ -146,12 +147,35 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [thumbLoaded, setThumbLoaded] = useState<boolean[]>([]);
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [liveReviews, setLiveReviews] = useState<null | Array<{ id: number; author: string; title: string; body: string; rating: number; date: string; verified: boolean }>>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [waHover, setWaHover] = useState(false);
   const [applePayAvailable, setApplePayAvailable] = useState(false);
   const recs = useMemo(() => ALL_RECS.filter((r) => r.handle !== handle), [handle]);
   const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
   const addingRef = useRef(false);
+
+  // Sync isMobile with viewport
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // Load approved reviews from API; fall back to PRODUCT_REVIEWS if none returned
+  useEffect(() => {
+    fetch(`/api/reviews/public?handle=${encodeURIComponent(handle)}`)
+      .then(async (r) => {
+        if (!r.ok) return;
+        const data = await r.json() as { reviews: Array<{ id: number; author: string; title: string; body: string; rating: number; date: string; verified: boolean }> };
+        if (data.reviews.length > 0) setLiveReviews(data.reviews);
+      })
+      .catch(() => { /* silently fall back to static reviews */ });
+  }, [handle]);
+
 
   // Detect Apple Pay availability once on mount
   useEffect(() => {
@@ -1118,25 +1142,64 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               <div id="reviews" style={{ backgroundColor: "#f4f0eb" }}>
                 <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 28px 88px" }}>
                   {/* Header */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 52, flexWrap: "wrap" as const, gap: 20 }}>
-                    <div>
-                      <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64", marginBottom: 14 }}>
-                        Customer Reviews
-                      </p>
-                      <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", fontWeight: 400, letterSpacing: "0.04em", color: "#1e1814", marginBottom: 14 }}>
-                        What Our Customers Say
-                      </h2>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <StarRating rating={4.7} size={14} />
-                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, fontWeight: 300, color: "#1e1814" }}>4.7</span>
-                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#7a6e64", fontWeight: 300 }}>· 47 reviews</span>
+                  {(() => {
+                    const displayReviews = liveReviews ?? PRODUCT_REVIEWS;
+                    const reviewCount = displayReviews.length;
+                    const reviewAvg = reviewCount > 0
+                      ? Math.round(displayReviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount * 10) / 10
+                      : 0;
+                    return (
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 52, flexWrap: "wrap" as const, gap: 20 }}>
+                        <div>
+                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64", marginBottom: 14 }}>
+                            Customer Reviews
+                          </p>
+                          <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", fontWeight: 400, letterSpacing: "0.04em", color: "#1e1814", marginBottom: 14 }}>
+                            What Our Customers Say
+                          </h2>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <StarRating rating={reviewAvg} size={14} />
+                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, fontWeight: 300, color: "#1e1814" }}>{reviewAvg.toFixed(1)}</span>
+                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#7a6e64", fontWeight: 300 }}>· {reviewCount} {reviewCount === 1 ? "review" : "reviews"}</span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setReviewModalOpen(true)}
+                          style={{
+                            fontFamily: "'Montserrat', sans-serif",
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: "0.22em",
+                            textTransform: "uppercase",
+                            color: "#1e1814",
+                            backgroundColor: "transparent",
+                            border: "1px solid rgba(30,24,20,0.35)",
+                            padding: "11px 22px",
+                            cursor: "pointer",
+                            transition: "background-color 0.2s, color 0.2s, border-color 0.2s",
+                            whiteSpace: "nowrap",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "#1e1814";
+                            e.currentTarget.style.color = "#faf8f5";
+                            e.currentTarget.style.borderColor = "#1e1814";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "transparent";
+                            e.currentTarget.style.color = "#1e1814";
+                            e.currentTarget.style.borderColor = "rgba(30,24,20,0.35)";
+                          }}
+                        >
+                          Write a Review
+                        </button>
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                   {/* Review cards */}
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-                    {PRODUCT_REVIEWS.map((r, i) => (
+                    {(liveReviews ?? PRODUCT_REVIEWS).map((r, i) => (
                       <div key={i} style={{ backgroundColor: "#faf8f5", padding: "28px 28px 32px", border: "1px solid rgba(30,24,20,0.10)" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                           <StarRating rating={r.rating} size={12} />
@@ -1192,6 +1255,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
         initialIndex={carouselLb.idx}
         open={carouselLb.open}
         onClose={() => setCarouselLb((s) => ({ ...s, open: false }))}
+      />
+
+      <WriteReviewModal
+        open={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        productHandle={handle}
       />
     </>
   );

@@ -30,3 +30,4 @@ export * from "./analyticsEvents";
 export * from "./chatInteractions";
 export * from "./conversations";
 export * from "./messages";
+export * from "./productReviews";

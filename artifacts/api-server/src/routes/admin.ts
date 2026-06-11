@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db } from "@workspace/db";
-import { instapayProofs, abandonedCarts, paymobIntents } from "@workspace/db/schema";
+import { instapayProofs, abandonedCarts, paymobIntents, productReviews } from "@workspace/db/schema";
 import { eq, desc, and, gte, lte, count, isNull, inArray } from "drizzle-orm";
 import { objectStorageClient } from "../lib/objectStorage";
 import {
@@ -1043,6 +1043,77 @@ router.delete("/admin/abandoned-carts/:id", requireAdminAuth, async (req, res) =
     req.log.error({ err, id }, "abandoned-cart: delete failed");
     res.status(500).json({ error: "Failed to delete" });
   }
+});
+
+// ── Reviews moderation ────────────────────────────────────────────────────────
+
+// GET /admin/reviews?status=pending|approved|rejected|spam|all
+router.get("/admin/reviews", async (req, res): Promise<void> => {
+  const statusFilter = typeof req.query.status === "string" ? req.query.status : "all";
+  const rows = await db
+    .select()
+    .from(productReviews)
+    .where(statusFilter !== "all" ? eq(productReviews.status, statusFilter) : undefined)
+    .orderBy(desc(productReviews.submittedAt));
+
+  res.status(200).json({
+    reviews: rows.map((r) => ({
+      id: r.id,
+      productHandle: r.productHandle,
+      author: r.author,
+      email: r.email,
+      title: r.title,
+      body: r.body,
+      rating: r.rating,
+      status: r.status,
+      spamReason: r.spamReason,
+      ipAddress: r.ipAddress,
+      submittedAt: r.submittedAt,
+      reviewedAt: r.reviewedAt,
+    })),
+  });
+});
+
+// PATCH /admin/reviews/:id — { status: "approved" | "rejected" | "spam" | "pending" }
+router.patch("/admin/reviews/:id", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const { status } = req.body as { status?: string };
+  const allowed = ["pending", "approved", "rejected", "spam"];
+  if (!status || !allowed.includes(status)) {
+    res.status(400).json({ error: `status must be one of: ${allowed.join(", ")}` });
+    return;
+  }
+
+  const [updated] = await db
+    .update(productReviews)
+    .set({ status, reviewedAt: new Date() })
+    .where(eq(productReviews.id, id))
+    .returning();
+
+  if (!updated) { res.status(404).json({ error: "Review not found" }); return; }
+
+  req.log.info({ id, status }, "review: status updated by admin");
+  res.status(200).json({ ok: true, status: updated.status });
+});
+
+// DELETE /admin/reviews/:id
+router.delete("/admin/reviews/:id", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [deleted] = await db
+    .delete(productReviews)
+    .where(eq(productReviews.id, id))
+    .returning();
+
+  if (!deleted) { res.status(404).json({ error: "Review not found" }); return; }
+
+  req.log.info({ id }, "review: deleted by admin");
+  res.status(200).json({ ok: true });
 });
 
 // GET /admin/paymob-config

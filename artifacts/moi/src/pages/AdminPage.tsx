@@ -1738,6 +1738,238 @@ function AbandonedCartsTab({ token, onAuth }: { token: string; onAuth?: (t: stri
   );
 }
 
+// ── Reviews Tab ────────────────────────────────────────────────────────────────
+
+interface AdminReview {
+  id: number;
+  productHandle: string;
+  author: string | null;
+  email: string | null;
+  title: string | null;
+  body: string;
+  rating: number;
+  status: string;
+  spamReason: string | null;
+  ipAddress: string | null;
+  submittedAt: string;
+  reviewedAt: string | null;
+}
+
+function ReviewStars({ rating }: { rating: number }) {
+  return (
+    <span style={{ display: "inline-flex", gap: 1 }}>
+      {[1,2,3,4,5].map((s) => (
+        <svg key={s} width={11} height={11} viewBox="0 0 12 12">
+          <path d="M6 1l1.2 2.9L10.5 4l-2.25 2.2.53 3.15L6 7.85l-2.78 1.5.53-3.15L1.5 4l3.3-.1z"
+            fill={s <= rating ? "#1e1814" : "#d4cdc8"} />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
+function ReviewStatusBadge({ status }: { status: string }) {
+  const map: Record<string, { bg: string; text: string }> = {
+    pending:  { bg: "rgba(180,140,40,0.12)",  text: "#8a6a10" },
+    approved: { bg: "rgba(60,120,60,0.12)",   text: "#2d6e2d" },
+    rejected: { bg: "rgba(192,57,43,0.10)",   text: "#b22a1e" },
+    spam:     { bg: "rgba(130,0,130,0.10)",   text: "#7a007a" },
+  };
+  const c = map[status] ?? { bg: "rgba(30,24,20,0.08)", text: "rgba(30,24,20,0.6)" };
+  return (
+    <span style={{ ...mono, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 700, padding: "2px 7px", backgroundColor: c.bg, color: c.text }}>
+      {status}
+    </span>
+  );
+}
+
+function ReviewsTab({ token, onAuth }: { token: string; onAuth?: (t: string | null) => void }) {
+  const [reviews, setReviews] = useState<AdminReview[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "approved" | "rejected" | "spam">("pending");
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/reviews?status=${filterStatus}`, { headers: apiHeaders(token) });
+      if (res.status === 401 || res.status === 403) {
+        sessionStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_EXPIRY_KEY);
+        onAuth?.(null);
+        return;
+      }
+      if (!res.ok) { setError(`Failed to load reviews. (${res.status})`); return; }
+      const data = await res.json() as { reviews: AdminReview[] };
+      setReviews(data.reviews);
+    } catch {
+      setError("Network error.");
+    } finally {
+      setLoading(false);
+    }
+  }, [token, onAuth, filterStatus]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const setStatus = async (id: number, status: string) => {
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/admin/reviews/${id}`, {
+        method: "PATCH",
+        headers: apiHeaders(token),
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) void load();
+    } finally { setActionLoading(null); }
+  };
+
+  const deleteReview = async (id: number) => {
+    if (!window.confirm("Delete this review permanently?")) return;
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/admin/reviews/${id}`, { method: "DELETE", headers: apiHeaders(token) });
+      if (res.ok) void load();
+    } finally { setActionLoading(null); }
+  };
+
+  const pendingCount = reviews.filter((r) => r.status === "pending").length;
+  const spamCount = reviews.filter((r) => r.status === "spam").length;
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 26, fontWeight: 400, color: "#1e1814", margin: 0 }}>Customer Reviews</h2>
+          <p style={{ ...mono, fontSize: 11, color: "rgba(30,24,20,0.5)", marginTop: 4 }}>
+            {filterStatus === "all" ? `${reviews.length} total` : `${reviews.length} ${filterStatus}`}
+            {filterStatus !== "pending" && pendingCount > 0 && ` · ${pendingCount} pending`}
+            {filterStatus !== "spam" && spamCount > 0 && ` · ${spamCount} spam`}
+          </p>
+        </div>
+        <button onClick={() => void load()} style={{ ...btn, backgroundColor: "transparent", border: "1px solid rgba(30,24,20,0.2)", color: "rgba(30,24,20,0.7)", display: "flex", alignItems: "center", gap: 6, fontSize: 10 }}>
+          <RefreshCw size={11} />Refresh
+        </button>
+      </div>
+
+      {/* Filter tabs */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 20, flexWrap: "wrap" }}>
+        {(["pending", "approved", "rejected", "spam", "all"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setFilterStatus(s)}
+            style={{ ...btn, fontSize: 10, padding: "5px 12px", backgroundColor: filterStatus === s ? "#1e1814" : "transparent", color: filterStatus === s ? "#fff" : "rgba(30,24,20,0.6)", border: "1px solid rgba(30,24,20,0.2)", borderRadius: 2 }}
+          >
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {error && <p style={{ fontSize: 12, color: "#c0392b", fontFamily: "'Montserrat', sans-serif", marginBottom: 16 }}>{error}</p>}
+      {loading && <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.5)" }}>Loading…</p>}
+
+      {!loading && reviews.length === 0 && (
+        <p style={{ ...mono, fontSize: 13, color: "rgba(30,24,20,0.4)", textAlign: "center", padding: "48px 0" }}>
+          No {filterStatus === "all" ? "" : filterStatus} reviews yet.
+        </p>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {reviews.map((r) => (
+          <div key={r.id} style={{ backgroundColor: "#fff", border: "1px solid rgba(30,24,20,0.10)", padding: "16px 18px" }}>
+            {/* Row header */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
+                  <ReviewStars rating={r.rating} />
+                  <ReviewStatusBadge status={r.status} />
+                  <span style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.4)" }}>
+                    {new Date(r.submittedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  {r.spamReason && (
+                    <span style={{ ...mono, fontSize: 10, color: "#7a007a" }}>· {r.spamReason.replace("_", " ")}</span>
+                  )}
+                </div>
+                {r.title && (
+                  <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 15, fontWeight: 600, color: "#1e1814", margin: "0 0 4px" }}>{r.title}</p>
+                )}
+                <p style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.75)", lineHeight: 1.6, margin: 0,
+                  ...(expanded !== r.id ? { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } : {})
+                }}>
+                  {r.body}
+                </p>
+                {r.body.length > 120 && (
+                  <button
+                    onClick={() => setExpanded(expanded === r.id ? null : r.id)}
+                    style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.45)", background: "none", border: "none", cursor: "pointer", padding: "2px 0", marginTop: 2 }}
+                  >
+                    {expanded === r.id ? "Show less" : "Read more"}
+                  </button>
+                )}
+                <div style={{ display: "flex", gap: 16, marginTop: 6, flexWrap: "wrap" }}>
+                  {r.author && <span style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.5)" }}>By {r.author}</span>}
+                  {r.email && <span style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.45)" }}>{r.email}</span>}
+                  {r.ipAddress && <span style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.3)" }}>IP {r.ipAddress}</span>}
+                  <span style={{ ...mono, fontSize: 10, color: "rgba(30,24,20,0.3)" }}>{r.productHandle}</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap" }}>
+                {r.status !== "approved" && (
+                  <button
+                    disabled={actionLoading === r.id}
+                    onClick={() => void setStatus(r.id, "approved")}
+                    style={{ ...btn, fontSize: 10, padding: "4px 10px", backgroundColor: "rgba(45,110,45,0.1)", color: "#2d6e2d", border: "1px solid rgba(45,110,45,0.25)" }}
+                  >
+                    {actionLoading === r.id ? "…" : "Approve"}
+                  </button>
+                )}
+                {r.status !== "rejected" && (
+                  <button
+                    disabled={actionLoading === r.id}
+                    onClick={() => void setStatus(r.id, "rejected")}
+                    style={{ ...btn, fontSize: 10, padding: "4px 10px", backgroundColor: "rgba(192,57,43,0.08)", color: "#c0392b", border: "1px solid rgba(192,57,43,0.22)" }}
+                  >
+                    {actionLoading === r.id ? "…" : "Reject"}
+                  </button>
+                )}
+                {r.status !== "spam" && (
+                  <button
+                    disabled={actionLoading === r.id}
+                    onClick={() => void setStatus(r.id, "spam")}
+                    style={{ ...btn, fontSize: 10, padding: "4px 10px", backgroundColor: "rgba(130,0,130,0.07)", color: "#7a007a", border: "1px solid rgba(130,0,130,0.2)" }}
+                  >
+                    {actionLoading === r.id ? "…" : "Spam"}
+                  </button>
+                )}
+                {r.status === "spam" && (
+                  <button
+                    disabled={actionLoading === r.id}
+                    onClick={() => void setStatus(r.id, "pending")}
+                    style={{ ...btn, fontSize: 10, padding: "4px 10px", backgroundColor: "rgba(180,140,40,0.1)", color: "#8a6a10", border: "1px solid rgba(180,140,40,0.25)" }}
+                  >
+                    {actionLoading === r.id ? "…" : "Unblock"}
+                  </button>
+                )}
+                <button
+                  disabled={actionLoading === r.id}
+                  onClick={() => void deleteReview(r.id)}
+                  style={{ ...btn, fontSize: 10, padding: "4px 8px", backgroundColor: "transparent", color: "#c0392b", border: "1px solid rgba(192,57,43,0.22)", display: "flex", alignItems: "center" }}
+                >
+                  <Trash2 size={11} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function useAuth() {
   const [token, setToken] = useState<string | null>(() => getStoredToken());
   const logout = useCallback(() => {
@@ -1750,7 +1982,7 @@ function useAuth() {
 
 export function AdminPage() {
   const { token, setToken, logout } = useAuth();
-  const [tab, setTab] = useState<"analytics" | "proofs" | "transactions" | "abandoned" | "discounts" | "settings">("analytics");
+  const [tab, setTab] = useState<"analytics" | "proofs" | "transactions" | "abandoned" | "discounts" | "reviews" | "settings">("analytics");
 
   if (!token) {
     return <PinGate onAuth={setToken} />;
@@ -1775,7 +2007,7 @@ export function AdminPage() {
 
       {/* Tabs */}
       <div style={{ borderBottom: "1px solid rgba(30,24,20,0.16)", backgroundColor: "#fff", paddingLeft: 24, overflowX: "auto", whiteSpace: "nowrap" }}>
-        {(["analytics", "proofs", "transactions", "abandoned", "discounts", "settings"] as const).map((t) => (
+        {(["analytics", "proofs", "transactions", "abandoned", "discounts", "reviews", "settings"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1790,7 +2022,7 @@ export function AdminPage() {
               borderRadius: 0,
             }}
           >
-            {t === "analytics" ? "Analytics" : t === "proofs" ? "InstaPay" : t === "transactions" ? "Transactions" : t === "abandoned" ? "Abandoned Carts" : t === "discounts" ? "Discounts" : "Settings"}
+            {t === "analytics" ? "Analytics" : t === "proofs" ? "InstaPay" : t === "transactions" ? "Transactions" : t === "abandoned" ? "Abandoned Carts" : t === "discounts" ? "Discounts" : t === "reviews" ? "Reviews" : "Settings"}
           </button>
         ))}
       </div>
@@ -1817,6 +2049,10 @@ export function AdminPage() {
           ) : tab === "discounts" ? (
             <motion.div key="discounts" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <DiscountsTab token={token} onAuth={setToken} />
+            </motion.div>
+          ) : tab === "reviews" ? (
+            <motion.div key="reviews" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <ReviewsTab token={token} onAuth={setToken} />
             </motion.div>
           ) : (
             <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

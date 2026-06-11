@@ -1158,3 +1158,86 @@ export function buildAdminPaymentNotificationEmail(params: {
 
   return { html, text };
 }
+
+// ---------------------------------------------------------------------------
+// New Review Admin Notification
+// ---------------------------------------------------------------------------
+
+export function buildNewReviewAdminEmail(params: {
+  author: string;
+  email: string;
+  productHandle: string;
+  rating: number;
+  title: string;
+  body: string;
+  adminUrl: string;
+}): { html: string; text: string } {
+  const { author, email, productHandle, rating, title, body, adminUrl } = params;
+  const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>New Review — Moi Admin</title>
+</head>
+<body style="margin:0;padding:0;background:#e8e3dc;font-family:Arial,Helvetica,sans-serif;">
+<div style="display:none;overflow:hidden;max-height:0;">New ${rating}-star review awaiting moderation on ${productHandle}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e8e3dc;">
+<tr><td align="center" style="padding:40px 16px 48px;">
+  <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#fff;">
+    <tr><td style="background:#1a1714;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+    <tr><td style="padding:32px 40px 24px;border-bottom:1px solid #ede9e3;">
+      <p style="margin:0 0 4px;font-size:9px;letter-spacing:0.45em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Moi Admin</p>
+      <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:400;color:#1a1714;">New Review Submitted</h1>
+    </td></tr>
+    <tr><td style="padding:28px 40px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-size:12px;color:#9a8e82;padding:10px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;width:110px;">Product</td>
+          <td style="font-size:13px;color:#1a1714;padding:10px 0;border-top:1px solid #ede9e3;font-weight:600;">${productHandle}</td>
+        </tr>
+        <tr>
+          <td style="font-size:12px;color:#9a8e82;padding:10px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">Rating</td>
+          <td style="font-size:15px;color:#c8a96e;padding:10px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">${stars}</td>
+        </tr>
+        <tr>
+          <td style="font-size:12px;color:#9a8e82;padding:10px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;">Reviewer</td>
+          <td style="font-size:13px;color:#1a1714;padding:10px 0;border-top:1px solid #ede9e3;">${author || "Anonymous"}${email ? ` &lt;<a href="mailto:${email}" style="color:#1a1714;">${email}</a>&gt;` : ""}</td>
+        </tr>
+        ${title ? `<tr>
+          <td style="font-size:12px;color:#9a8e82;padding:10px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;vertical-align:top;">Title</td>
+          <td style="font-size:13px;color:#1a1714;padding:10px 0;border-top:1px solid #ede9e3;">${title}</td>
+        </tr>` : ""}
+        <tr>
+          <td style="font-size:12px;color:#9a8e82;padding:10px 0;border-top:1px solid #ede9e3;letter-spacing:0.05em;vertical-align:top;">Review</td>
+          <td style="font-size:13px;color:#1a1714;padding:10px 0;border-top:1px solid #ede9e3;line-height:1.7;">${body.replace(/\n/g, "<br />")}</td>
+        </tr>
+      </table>
+    </td></tr>
+    <tr><td style="padding:28px 40px 40px;">
+      <a href="${adminUrl}" style="display:inline-block;padding:12px 28px;background:#1a1714;font-size:10px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#fff;text-decoration:none;">Review in Admin</a>
+    </td></tr>
+    <tr><td style="background:#1a1714;height:2px;font-size:0;line-height:0;">&nbsp;</td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+  const text = [
+    `NEW REVIEW — MOI ADMIN`,
+    ``,
+    `Product: ${productHandle}`,
+    `Rating:  ${rating}/5`,
+    `By:      ${author || "Anonymous"}${email ? ` <${email}>` : ""}`,
+    title ? `Title:   ${title}` : "",
+    ``,
+    body,
+    ``,
+    `Moderate: ${adminUrl}`,
+  ].filter((l) => l !== "").join("\n");
+
+  return { html, text };
+}
