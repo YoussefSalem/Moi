@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import { ImageSkeleton } from "@/components/ImageSkeleton";
+import { X } from "lucide-react";
 
 interface CinematicLightboxProps {
   images: readonly string[];
@@ -16,14 +15,13 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const thumbsRef = useRef<HTMLDivElement>(null);
 
-  // Refs so gesture handlers always read latest values without re-attaching
   const zoomScaleRef = useRef(zoomScale);
   const panRef = useRef(pan);
   useEffect(() => { zoomScaleRef.current = zoomScale; }, [zoomScale]);
   useEffect(() => { panRef.current = pan; }, [pan]);
 
-  // Mutable gesture state — updated imperatively, never causes re-renders
   const gesture = useRef({
     pointers: new Map<number, { x: number; y: number }>(),
     startX: 0, startY: 0, startTime: 0,
@@ -46,7 +44,6 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
     setIdx((i) => (i + delta + images.length) % images.length);
   }, [images.length]);
 
-  // Stable refs for callbacks — avoids re-attaching listeners when these change
   const goRef = useRef(go);
   useEffect(() => { goRef.current = go; }, [go]);
   const onCloseRef = useRef(onClose);
@@ -57,10 +54,7 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
     ?.replace(/\.(webp|jpg|png)$/i, "")
     .replace(/-/g, " ") ?? "Image";
 
-  // SINGLE SOURCE OF TRUTH for loaded state — runs synchronously after paint.
-  // Reset zoom/pan to neutral, set loaded=false, then immediately check if the
-  // image is already cached (or preload it). This prevents the race where one
-  // effect sets loaded=false while another tries to set it=true.
+  // Reset zoom/pan and preload on image change
   useLayoutEffect(() => {
     setZoomScale(1);
     setPan({ x: 0, y: 0 });
@@ -84,6 +78,14 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
     };
   }, [idx, current]);
 
+  // Scroll active thumbnail into view
+  useEffect(() => {
+    const strip = thumbsRef.current;
+    if (!strip) return;
+    const btn = strip.children[idx] as HTMLElement | undefined;
+    btn?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [idx]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!open) return;
@@ -95,8 +97,7 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // Touch gesture handlers — only re-attached when `open` changes.
-  // zoomScale/pan are read from refs so stale closures are not an issue.
+  // Touch gesture handlers
   useEffect(() => {
     const el = containerRef.current;
     if (!el || !open) return;
@@ -182,7 +183,7 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
       el.removeEventListener("touchend", onEnd);
       el.removeEventListener("touchcancel", onEnd);
     };
-  }, [open, gesture]); // ← NOT [zoomScale, pan] — refs handle those
+  }, [open, gesture]);
 
   const handleDoubleTap = () => {
     if (zoomScaleRef.current > 1) { setZoomScale(1); setPan({ x: 0, y: 0 }); }
@@ -190,153 +191,170 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
   };
 
   return (
-    /*
-     * PERMANENTLY MOUNTED — no AnimatePresence, no motion.div, no GPU layer cycling.
-     *
-     * Previous approach (AnimatePresence + motion.div):
-     *   Every open/close cycle mounted a new DOM subtree with willChange:"opacity",
-     *   forcing iOS to allocate and deallocate a full-screen GPU compositor layer
-     *   repeatedly. Rapid open/close → memory fragmentation → WebKit process kill.
-     *
-     * Current approach (CSS visibility + opacity):
-     *   The div is always in the DOM. visibility:hidden removes it from hit-testing
-     *   and accessibility. The opacity transition is handled by the CSS compositor
-     *   with zero JavaScript overhead. No new GPU layer is ever allocated because
-     *   there is no willChange on this element.
-     *   Crucially: the skeleton inside is ALREADY RENDERED when the user taps —
-     *   it becomes visible within one paint frame (~16ms) vs 100-300ms before.
-     */
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
+      className="fixed inset-0 z-[100]"
       style={{
-        backgroundColor: "#faf8f5",
+        backgroundColor: "#000",
         opacity: open ? 1 : 0,
         visibility: open ? "visible" : "hidden",
         pointerEvents: open ? "auto" : "none",
-        // Open: opacity fades in; visibility switches immediately (0s delay)
-        // Close: opacity fades out first; visibility hides after fade completes
         transition: open
-          ? "opacity 0.15s ease-out, visibility 0s linear 0s"
-          : "opacity 0.12s ease-in, visibility 0s linear 0.12s",
+          ? "opacity 0.18s ease-out, visibility 0s linear 0s"
+          : "opacity 0.14s ease-in, visibility 0s linear 0.14s",
       }}
-      onClick={(e) => { if (e.target === e.currentTarget && zoomScale <= 1) onClose(); }}
     >
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between px-5 md:px-8 py-4 z-10 shrink-0">
-        <span
-          className="text-[10px] tracking-[0.35em] uppercase"
-          style={{ color: "rgba(120,108,96,0.6)", fontFamily: "'Montserrat', sans-serif" }}
-        >
-          {idx + 1} / {images.length}
-        </span>
-        <button onClick={onClose} className="hover:opacity-50 transition-opacity" aria-label="Close">
-          <X size={22} strokeWidth={1.2} style={{ color: "#1e1814" }} />
-        </button>
-      </div>
+      {/* ── Close button — circular, top right ── */}
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={onClose}
+        style={{
+          position: "absolute",
+          top: 16,
+          right: 16,
+          zIndex: 20,
+          width: 40,
+          height: 40,
+          borderRadius: "50%",
+          background: "rgba(0,0,0,0.45)",
+          border: "none",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+          transition: "background 0.2s",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(0,0,0,0.7)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(0,0,0,0.45)")}
+      >
+        <X size={18} strokeWidth={2} color="#fff" />
+      </button>
 
-      {/* ── Main image area ── */}
+      {/* ── Main image — fills the full viewport, gestures here ── */}
       <div
         ref={containerRef}
-        className="flex-1 flex items-center justify-center relative overflow-hidden select-none"
-        style={{ touchAction: "none" }}
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          touchAction: "none",
+          userSelect: "none",
+        }}
         onDoubleClick={handleDoubleTap}
+        onClick={(e) => { if (e.target === e.currentTarget && zoomScale <= 1) onClose(); }}
       >
-        {/* Loading skeleton — visible immediately on tap (pre-rendered in DOM) */}
-        <div
-          className="absolute inset-0 flex items-center justify-center pointer-events-none"
-          style={{
-            opacity: loaded ? 0 : 1,
-            transition: "opacity 0.25s ease-out",
-          }}
-        >
-          <ImageSkeleton
-            variant="card"
+        {/* Skeleton shimmer while loading */}
+        {!loaded && (
+          <div
             style={{
-              width: "min(72%, 340px)",
-              height: "min(55vh, 480px)",
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(90deg, #111 25%, #1e1e1e 50%, #111 75%)",
+              backgroundSize: "200% 100%",
+              animation: "shimmer 1.4s infinite",
             }}
-            borderRadius={2}
           />
-        </div>
+        )}
 
         <img
           key={current}
           ref={imgRef}
           src={current || undefined}
           alt={currentAlt}
-          className="max-w-full max-h-full object-contain"
           style={{
+            width: "100%",
+            height: images.length > 1 ? "calc(100% - 96px)" : "100%",
+            objectFit: "contain",
             transform: `scale(${zoomScale}) translate(${pan.x}px, ${pan.y}px)`,
             transition: zoomScale === 1
-              ? "transform 0.35s cubic-bezier(0.32,0,0.16,1), opacity 0.28s ease-out"
-              : "opacity 0.28s ease-out",
+              ? "transform 0.35s cubic-bezier(0.32,0,0.16,1), opacity 0.22s ease-out"
+              : "opacity 0.22s ease-out",
             willChange: zoomScale > 1 ? "transform" : "auto",
+            opacity: loaded ? 1 : 0,
             userSelect: "none",
             WebkitUserSelect: "none",
             WebkitTouchCallout: "none",
-            opacity: loaded ? 1 : 0,
+            display: "block",
           }}
           draggable={false}
           onLoad={() => setLoaded(true)}
           onError={() => setLoaded(true)}
         />
-
-        {/* Arrow nav (desktop only) */}
-        {images.length > 1 && zoomScale <= 1 && (
-          <>
-            <button
-              type="button"
-              aria-label="Previous"
-              onClick={(e) => { e.stopPropagation(); go(-1); }}
-              className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 z-10 hidden md:flex items-center justify-center"
-              style={{ width: 36, height: 36, background: "none", border: "none", cursor: "pointer", color: "rgba(30,24,20,0.25)", transition: "color 0.25s ease" }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(30,24,20,0.7)")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(30,24,20,0.25)")}
-            >
-              <ChevronLeft size={24} strokeWidth={1} />
-            </button>
-            <button
-              type="button"
-              aria-label="Next"
-              onClick={(e) => { e.stopPropagation(); go(1); }}
-              className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 z-10 hidden md:flex items-center justify-center"
-              style={{ width: 36, height: 36, background: "none", border: "none", cursor: "pointer", color: "rgba(30,24,20,0.25)", transition: "color 0.25s ease" }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(30,24,20,0.7)")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(30,24,20,0.25)")}
-            >
-              <ChevronRight size={24} strokeWidth={1} />
-            </button>
-          </>
-        )}
       </div>
 
-      {/* ── Thumbnail strip ── */}
+      {/* ── Thumbnail strip — semi-transparent dark bar at the bottom ── */}
       {images.length > 1 && (
-        <div className="flex items-center justify-center gap-2 px-5 pb-6 pt-2 shrink-0">
-          {images.map((src, i) => (
-            <button
-              key={src}
-              type="button"
-              aria-label={`Image ${i + 1}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIdx(i);
-                setZoomScale(1);
-                setPan({ x: 0, y: 0 });
-              }}
-              className="flex-shrink-0 overflow-hidden transition-all duration-200"
-              style={{
-                width: 44, height: 44,
-                border: i === idx ? "2px solid #1e1814" : "2px solid transparent",
-                opacity: i === idx ? 1 : 0.5,
-                borderRadius: 2,
-              }}
-            >
-              <img src={src || undefined} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-            </button>
-          ))}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 96,
+            background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.0) 100%)",
+            display: "flex",
+            alignItems: "flex-end",
+            paddingBottom: 14,
+            zIndex: 10,
+          }}
+        >
+          <div
+            ref={thumbsRef}
+            style={{
+              display: "flex",
+              gap: 8,
+              overflowX: "auto",
+              scrollbarWidth: "none",
+              paddingLeft: 16,
+              paddingRight: 16,
+              width: "100%",
+              alignItems: "center",
+            }}
+          >
+            {images.map((src, i) => (
+              <button
+                key={src}
+                type="button"
+                aria-label={`Image ${i + 1}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIdx(i);
+                  setZoomScale(1);
+                  setPan({ x: 0, y: 0 });
+                }}
+                style={{
+                  flexShrink: 0,
+                  width: 52,
+                  height: 68,
+                  borderRadius: 6,
+                  overflow: "hidden",
+                  border: i === idx ? "2px solid #fff" : "2px solid rgba(255,255,255,0.25)",
+                  opacity: i === idx ? 1 : 0.6,
+                  transition: "opacity 0.2s, border-color 0.2s",
+                  background: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                }}
+              >
+                <img
+                  src={src || undefined}
+                  alt=""
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </button>
+            ))}
+          </div>
         </div>
       )}
+
+      {/* shimmer keyframe */}
+      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
     </div>
   );
 }
