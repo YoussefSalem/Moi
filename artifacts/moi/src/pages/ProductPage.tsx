@@ -722,6 +722,19 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                           <svg width={15} height={15} viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.526 5.856L.057 23.215a.75.75 0 00.928.908l5.444-1.466A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.714 9.714 0 01-4.95-1.355l-.355-.211-3.676.99.997-3.584-.232-.37A9.715 9.715 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg>
                           Order via WhatsApp
                         </a>
+                        {/* Trust badges */}
+                        <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, paddingTop: 4 }}>
+                          {[
+                            { icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="7" rx="1" stroke="#a9a09a" strokeWidth="1.2"/><path d="M4 6V5a4 4 0 018 0v1" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round"/><circle cx="5" cy="12" r="1.5" fill="#a9a09a"/><circle cx="11" cy="12" r="1.5" fill="#a9a09a"/></svg>, text: "2–4 day delivery in Egypt" },
+                            { icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="9" rx="1" stroke="#a9a09a" strokeWidth="1.2"/><path d="M5 6V4.5A3 3 0 018 1.5v0A3 3 0 0111 4.5V6" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round"/><line x1="8" y1="9" x2="8" y2="12" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round"/><line x1="6.5" y1="10.5" x2="9.5" y2="10.5" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round"/></svg>, text: "Cash on delivery available" },
+                            { icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none"><path d="M8 1.5L2 4v4c0 3.5 2.5 6 6 7 3.5-1 6-3.5 6-7V4L8 1.5z" stroke="#a9a09a" strokeWidth="1.2" strokeLinejoin="round"/><path d="M5.5 8l1.5 1.5L10.5 6" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>, text: "Secure checkout" },
+                          ].map(({ icon, text }) => (
+                            <div key={text} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              {icon}
+                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#a9a09a", fontWeight: 300, letterSpacing: "0.03em" }}>{text}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
 
