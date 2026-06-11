@@ -141,7 +141,9 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
     <link rel="preconnect" href="https://cdn.shopify.com" crossorigin />
     <link rel="dns-prefetch" href="https://cdn.shopify.com" />
     <link rel="dns-prefetch" href="https://images.unsplash.com" />
-    <!-- Non-blocking font load: media="print" trick defers until after first paint -->
+    <!-- Preload font CSS so gstatic woff2 fetches start as early as possible -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" />
+    <!-- Non-blocking font apply: media="print" trick avoids render-blocking -->
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap"

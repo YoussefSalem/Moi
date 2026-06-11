@@ -159,7 +159,7 @@ function AppContent() {
   const [skipExitAnimation, setSkipExitAnimation] = useState(false);
   const [isGoingBack, setIsGoingBack] = useState(false);
 
-  function handleColorCardAddToCart(handle: string, _image?: string) {
+  const handleColorCardAddToCart = useCallback((handle: string, _image?: string) => {
     // Resolve products by slug — always maps the right config regardless of Shopify order.
     // Prefer Shopify-enriched products (real variant GIDs); fall back to local config.
     const slugProducts: ProductConfig[] = [
@@ -209,7 +209,8 @@ function AppContent() {
       description: [colorName, sizeValue].filter(Boolean).join(" · "),
       duration: 2500,
     });
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, cart.addToCart]);
 
   const [page, setPage] = useState<PageType>(() => parsePath().page);
   const [productHandle, setProductHandle] = useState<string>(() => parsePath().productHandle);
@@ -437,12 +438,10 @@ function AppContent() {
     }
 
     const list = [...urls];
-    if (list.length === 0) {
-      setAssetsReady(true);
-      return;
-    }
 
-    let remaining = list.length;
+    // +1 slot for document.fonts.ready — the loading screen must never exit
+    // before fonts are ready, otherwise the MOI logotype flashes unstyled.
+    let remaining = list.length + 1;
     const markDone = () => {
       remaining -= 1;
       if (remaining <= 0 && !cancelled) setAssetsReady(true);
@@ -454,6 +453,9 @@ function AppContent() {
     const safety = setTimeout(() => {
       if (!cancelled) setAssetsReady(true);
     }, 7000);
+
+    // Wait for fonts in parallel with images.
+    document.fonts.ready.then(() => { if (!cancelled) markDone(); });
 
     for (const url of list) {
       const img = new Image();

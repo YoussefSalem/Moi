@@ -1,5 +1,5 @@
 // @refresh reset
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   type ShopifyCart,
   type ShopifyCartLine,
@@ -720,54 +720,68 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
   }, [shopifyCart, localItems]);
 
+  const openCart = useCallback(() => {
+    setCartOpen(true);
+    trackShopifyCartViewed({
+      cartId: shopifyCart?.id,
+      totalPrice: shopifyCart
+        ? parseFloat(shopifyCart.cost.totalAmount.amount)
+        : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0),
+      currencyCode: shopifyCart?.cost.totalAmount.currencyCode
+        ?? localItems[0]?.currencyCode
+        ?? "EGP",
+    });
+  }, [shopifyCart, localItems]);
+
+  const closeCart = useCallback(() => setCartOpen(false), []);
+
+  const closeCheckout = useCallback(() => {
+    setCheckoutOpen(false);
+    setPrefilledEmail(null);
+    if (typeof window !== "undefined" && window.location.pathname === "/checkout") {
+      window.history.replaceState(null, "", "/");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  }, []);
+
+  const contextValue = useMemo<CartContextValue>(() => ({
+    shopifyCart,
+    localItems,
+    cartOpen,
+    checkoutOpen,
+    loading,
+    isAddingToCart,
+    itemCount,
+    openCart,
+    closeCart,
+    openCheckout,
+    closeCheckout,
+    prefilledEmail,
+    addToCart,
+    buyNow,
+    buyNowCheckoutUrl,
+    removeItem,
+    updateQuantity,
+    applyDiscount,
+    clearCart,
+    replaceRecoveredCart,
+    checkoutUrl: shopifyCart?.checkoutUrl ?? null,
+    formatShopifyLinePrice,
+    cartTotal,
+    cartRawTotal,
+    cartSubtotal,
+    isShopify: shopifyActive,
+    waitForSync,
+  }), [
+    shopifyCart, localItems, cartOpen, checkoutOpen, loading, isAddingToCart, itemCount,
+    openCart, closeCart, openCheckout, closeCheckout, prefilledEmail,
+    addToCart, buyNow, buyNowCheckoutUrl, removeItem, updateQuantity, applyDiscount,
+    clearCart, replaceRecoveredCart, formatShopifyLinePrice,
+    cartTotal, cartRawTotal, cartSubtotal, shopifyActive, waitForSync,
+  ]);
+
   return (
-    <CartContext.Provider value={{
-      shopifyCart,
-      localItems,
-      cartOpen,
-      checkoutOpen,
-      loading,
-      isAddingToCart,
-      itemCount,
-      openCart: () => {
-        setCartOpen(true);
-        trackShopifyCartViewed({
-          cartId: shopifyCart?.id,
-          totalPrice: shopifyCart
-            ? parseFloat(shopifyCart.cost.totalAmount.amount)
-            : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0),
-          currencyCode: shopifyCart?.cost.totalAmount.currencyCode
-            ?? localItems[0]?.currencyCode
-            ?? "EGP",
-        });
-      },
-      closeCart: () => setCartOpen(false),
-      openCheckout,
-      closeCheckout: () => {
-        setCheckoutOpen(false);
-        setPrefilledEmail(null);
-        if (typeof window !== "undefined" && window.location.pathname === "/checkout") {
-          window.history.replaceState(null, "", "/");
-          window.dispatchEvent(new PopStateEvent("popstate"));
-        }
-      },
-      prefilledEmail,
-      addToCart,
-      buyNow,
-      buyNowCheckoutUrl,
-      removeItem,
-      updateQuantity,
-      applyDiscount,
-      clearCart,
-      replaceRecoveredCart,
-      checkoutUrl: shopifyCart?.checkoutUrl ?? null,
-      formatShopifyLinePrice,
-      cartTotal,
-      cartRawTotal,
-      cartSubtotal,
-      isShopify: shopifyActive,
-      waitForSync,
-    }}>
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );

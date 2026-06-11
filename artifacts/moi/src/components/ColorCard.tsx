@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
 import { QuickPreview } from "@/components/QuickPreview";
@@ -21,7 +21,7 @@ interface ColorCardProps {
   className?: string;
 }
 
-export function ColorCard({
+export const ColorCard = memo(function ColorCard({
   productName,
   colorName,
   image,
@@ -561,4 +561,4 @@ export function ColorCard({
       />
     </>
   );
-}
+});

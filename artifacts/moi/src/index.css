@@ -27,6 +27,7 @@ body {
 button, a, [role="button"] {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  cursor: pointer;
 }
 
 /* Prevent text selection jitter on interactive elements */
