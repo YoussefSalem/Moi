@@ -149,15 +149,9 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [waHover, setWaHover] = useState(false);
   const recsRef = useRef<HTMLDivElement>(null);
   const recsTrackRef = useRef<HTMLDivElement>(null);
-  const recsScrollMobileRef = useRef<HTMLDivElement>(null);
   const recsDraggingRef = useRef(false);
   const desktopXRef = useRef(0);
   const desktopAnimatingRef = useRef(false);
-  const recsTrackMobileRef = useRef<HTMLDivElement>(null);
-  const mobileCardWRef = useRef(0);
-  const recsDragRef = useRef<{ x: number; idx: number } | null>(null);
-  const recsDidDragRef = useRef(false);
-  const [recsIndex, setRecsIndex] = useState(0);
   const recs = useMemo(() => ALL_RECS.filter((r) => r.handle !== handle), [handle]);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
@@ -171,21 +165,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
-
-  // Mobile recs carousel: snap-to-card translateX, 3 cards visible, infinite loop via tripled
-  // track. Same pointer-drag/snap interaction as the 1-card version, just scaled to 1/3 width.
-  useEffect(() => {
-    if (!isMobile || loading) return;
-    const clip = recsScrollMobileRef.current;
-    const track = recsTrackMobileRef.current;
-    if (!clip || !track) return;
-    mobileCardWRef.current = clip.offsetWidth / 3;
-    const startIdx = recs.length; // begin in the middle set
-    track.style.transition = "none";
-    track.style.transform = `translateX(${-startIdx * mobileCardWRef.current}px)`;
-    setRecsIndex(startIdx);
-    // recs is derived from handle (useMemo), so handle in deps keeps recs.length current.
-  }, [isMobile, loading, handle]);
 
   // Desktop: set initial translateX to the middle set (-oneSetWidth) after paint
   useLayoutEffect(() => {
@@ -1160,17 +1139,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               {onNavigate && (
                 <div style={{ backgroundColor: "#faf8f5", borderTop: "1px solid rgba(30,24,20,0.07)" }}>
                   {(() => {
-                    const openGallery = (rec: typeof recs[0]) => {
-                      // Native scroll handles tap-vs-swipe: a click never fires after a scroll gesture.
-                      const imgs = rec.gallery();
-                      setCarouselLb({ open: true, images: imgs, idx: 0 });
-                    };
-                    const renderCard = (rec: typeof recs[0], key: string, fullWidth = false) => (
+                    const renderCard = (rec: typeof recs[0], key: string) => (
                       <button
                         key={key}
                         type="button"
-                        onClick={() => openGallery(rec)}
-                        style={{ flex: "0 0 auto", width: fullWidth ? "100%" : "clamp(180px, 38vw, 280px)", background: "none", border: "none", padding: 0, textAlign: "left", userSelect: "none", cursor: "pointer" }}
+                        onClick={() => onNavigate?.(rec.handle)}
+                        style={{ flex: "0 0 auto", width: "clamp(160px, 42vw, 260px)", background: "none", border: "none", padding: 0, textAlign: "left", userSelect: "none", cursor: "pointer" }}
                         draggable={false}
                       >
                         <div style={{ aspectRatio: "3/4", overflow: "hidden", marginBottom: 12, backgroundColor: "rgba(30,24,20,0.04)" }}>
@@ -1191,8 +1165,8 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       const track = recsTrackRef.current;
                       if (!track) return;
                       const firstCard = track.firstElementChild as HTMLElement | null;
-                      const step = (firstCard?.offsetWidth ?? 280) + 16;
-                      desktopXRef.current -= dir * step; // next → x decreases (track moves left)
+                      const step = (firstCard?.offsetWidth ?? 280) + 24;
+                      desktopXRef.current -= dir * step;
                       desktopAnimatingRef.current = true;
                       track.style.transition = "transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
                       track.style.transform = `translateX(${desktopXRef.current}px)`;
@@ -1206,61 +1180,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         track.style.transform = `translateX(${desktopXRef.current}px)`;
                       };
                       track.addEventListener("transitionend", onEnd);
-                    };
-                    // Mobile pointer-drag handlers — advance one card per swipe, same feel as the
-                    // 1-card carousel but scaled to 3 visible cards.
-                    const N = recs.length;
-                    const SWIPE_THRESHOLD = 20;
-                    const onMobileDown = (e: React.PointerEvent) => {
-                      recsDragRef.current = { x: e.clientX, idx: recsIndex };
-                      recsDidDragRef.current = false;
-                      const track = recsTrackMobileRef.current;
-                      if (track) track.style.transition = "none";
-                    };
-                    const onMobileMove = (e: React.PointerEvent) => {
-                      if (!recsDragRef.current) return;
-                      const dx = e.clientX - recsDragRef.current.x;
-                      if (!recsDidDragRef.current && Math.abs(dx) < SWIPE_THRESHOLD) return;
-                      recsDidDragRef.current = true;
-                      e.preventDefault();
-                      const track = recsTrackMobileRef.current;
-                      if (track) track.style.transform = `translateX(${-(recsDragRef.current.idx * mobileCardWRef.current) + dx}px)`;
-                    };
-                    const onMobileUp = (e: React.PointerEvent) => {
-                      if (!recsDragRef.current) return;
-                      const { x: startX, idx: startIdx } = recsDragRef.current;
-                      recsDragRef.current = null;
-                      const didDrag = recsDidDragRef.current;
-                      recsDidDragRef.current = false;
-                      const track = recsTrackMobileRef.current;
-                      if (!track) return;
-                      // Cancel or no real drag: snap back to where we started
-                      if (e.type === "pointercancel" || !didDrag) {
-                        track.style.transition = "transform 0.3s ease";
-                        track.style.transform = `translateX(${-startIdx * mobileCardWRef.current}px)`;
-                        return;
-                      }
-                      const dx = e.clientX - startX;
-                      const dir = dx < -SWIPE_THRESHOLD ? 1 : dx > SWIPE_THRESHOLD ? -1 : 0;
-                      let newIdx = startIdx + dir;
-                      track.style.transition = "transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
-                      track.style.transform = `translateX(${-newIdx * mobileCardWRef.current}px)`;
-                      // Suppress the click that fires after pointerup so swiping never navigates
-                      const suppressClick = (ev: MouseEvent) => {
-                        ev.stopPropagation(); ev.preventDefault();
-                        window.removeEventListener("click", suppressClick, true);
-                      };
-                      window.addEventListener("click", suppressClick, true);
-                      track.addEventListener("transitionend", function onEnd() {
-                        track.removeEventListener("transitionend", onEnd);
-                        // Silently reposition to the middle set — all three sets show identical cards
-                        // so the jump is invisible.
-                        if (newIdx >= 2 * N) newIdx -= N;
-                        if (newIdx < N) newIdx += N;
-                        track.style.transition = "none";
-                        track.style.transform = `translateX(${-newIdx * mobileCardWRef.current}px)`;
-                        setRecsIndex(newIdx);
-                      });
                     };
                     return (
                       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 0 56px 28px" }}>
@@ -1283,41 +1202,24 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         </div>
 
                         {isMobile ? (
-                          /* Mobile: translateX snap carousel, 3 cards per view, infinite loop via
-                             tripled track [A,B,C]. Pointer-drag advances one card at a time with
-                             a smooth CSS transition — same interaction as the 1-card version. */
-                          <div>
-                            <div
-                              ref={recsScrollMobileRef}
-                              style={{ overflow: "hidden", touchAction: "pan-y" }}
-                            >
-                              <div
-                                ref={recsTrackMobileRef}
-                                style={{ display: "flex", willChange: "transform" }}
-                                onPointerDown={onMobileDown}
-                                onPointerMove={onMobileMove}
-                                onPointerUp={onMobileUp}
-                                onPointerCancel={onMobileUp}
-                              >
-                                {[...recs, ...recs, ...recs].map((rec, i) => (
-                                  <div key={`m-${rec.handle}-${i}`} style={{ flex: `0 0 ${100 / 3}%` }}>
-                                    {renderCard(rec, `mc-${rec.handle}-${i}`, true)}
-                                  </div>
-                                ))}
-                              </div>
+                          /* Mobile: native free-scroll — no snapping, full momentum, tap navigates */
+                          <div
+                            style={{
+                              overflowX: "auto",
+                              overflowY: "hidden",
+                              WebkitOverflowScrolling: "touch" as unknown as undefined,
+                              scrollbarWidth: "none",
+                              msOverflowStyle: "none",
+                            } as React.CSSProperties}
+                          >
+                            <div style={{ display: "flex", gap: 20, paddingRight: 20, width: "max-content" }}>
+                              {recs.map((rec, i) => renderCard(rec, `m-${rec.handle}-${i}`))}
                             </div>
-                            {recs.length > 1 && (
-                              <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18 }}>
-                                {recs.map((_, i) => (
-                                  <div key={i} style={{ width: i === recsIndex % recs.length ? 18 : 6, height: 6, borderRadius: 9999, backgroundColor: i === recsIndex % recs.length ? "#1e1814" : "rgba(30,24,20,0.2)", transition: "width 0.22s, background-color 0.22s" }} />
-                                ))}
-                              </div>
-                            )}
                           </div>
                         ) : (
                           /* Desktop: infinite loop via tripled track + translateX; grab-to-drag + arrow buttons */
                           <div ref={recsRef} style={{ overflow: "hidden", cursor: "grab", paddingBottom: 16 }}>
-                            <div ref={recsTrackRef} style={{ display: "flex", gap: 16, width: "max-content", willChange: "transform" }}>
+                            <div ref={recsTrackRef} style={{ display: "flex", gap: 24, width: "max-content", willChange: "transform" }}>
                               {[...recs, ...recs, ...recs].map((rec, i) => renderCard(rec, `d-${rec.handle}-${i}`))}
                             </div>
                           </div>
