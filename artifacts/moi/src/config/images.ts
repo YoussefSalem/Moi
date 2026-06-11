@@ -42,6 +42,7 @@ const WAVVY_LOOK_3 = "/images/wavvy-look-3.jpg";
 const WAVVY_LOOK_4 = "/images/wavvy-look-4.jpg";
 const WAVVY_LOOK_5 = "/images/wavvy-look-5.jpg";
 const SAND_MAIN = "/images/sand.webp";
+const VERSA_TOP_CARD = "/images/moi-versa-top-beige-card.webp";
 
 export const IMAGES = {
   hero: {
@@ -124,7 +125,7 @@ export const IMAGES = {
    */
   product2: {
     slug: "moi-versa-top",
-    productShot: WHITE_MAIN,
+    productShot: VERSA_TOP_CARD,
     filmstrip: [] as string[],
     look: {
       model:   WAVVY_LOOK_3,
@@ -134,18 +135,18 @@ export const IMAGES = {
       extra:   WAVVY_LOOK_2,
     },
     colorImages: {
-      White:    WHITE_MAIN,
-      Cashmere: CASHMERE_MAIN,
-      Beige:    BEIGE_MAIN,
-      Yellow:   YELLOW_MAIN,
-      Teal:     TEAL_MAIN,
+      White:    VERSA_TOP_CARD,
+      Cashmere: VERSA_TOP_CARD,
+      Beige:    VERSA_TOP_CARD,
+      Yellow:   VERSA_TOP_CARD,
+      Teal:     VERSA_TOP_CARD,
     },
     colorGalleries: {
-      White:    WHITE_GALLERY,
-      Cashmere: CASHMERE_GALLERY,
-      Beige:    BEIGE_GALLERY,
-      Yellow:   YELLOW_GALLERY,
-      Teal:     TEAL_GALLERY,
+      White:    [VERSA_TOP_CARD],
+      Cashmere: [VERSA_TOP_CARD],
+      Beige:    [VERSA_TOP_CARD],
+      Yellow:   [VERSA_TOP_CARD],
+      Teal:     [VERSA_TOP_CARD],
     },
     colorSwatches: {
       white:    "#f5f0e8",
