@@ -42,7 +42,11 @@ const WAVVY_LOOK_3 = "/images/wavvy-look-3.jpg";
 const WAVVY_LOOK_4 = "/images/wavvy-look-4.jpg";
 const WAVVY_LOOK_5 = "/images/wavvy-look-5.jpg";
 const SAND_MAIN = "/images/sand.webp";
-const VERSA_TOP_CARD = "/images/moi-versa-top-beige-card.webp";
+const VERSA_WHITE_MAIN = "/images/versa-white-main.jpg";
+const VERSA_CASHMERE_MAIN = "/images/versa-cashmere-main.jpg";
+const VERSA_BEIGE_MAIN = "/images/versa-beige-main.jpg";
+const VERSA_YELLOW_MAIN = "/images/versa-yellow-main.jpg";
+const VERSA_TEAL_MAIN = "/images/versa-teal-main.jpg";
 
 export const IMAGES = {
   hero: {
@@ -110,7 +114,7 @@ export const IMAGES = {
    */
   product2: {
     slug: "moi-versa-top",
-    productShot: VERSA_TOP_CARD,
+    productShot: VERSA_WHITE_MAIN,
     filmstrip: [] as string[],
     look: {
       model:   WAVVY_LOOK_3,
@@ -120,18 +124,18 @@ export const IMAGES = {
       extra:   WAVVY_LOOK_2,
     },
     colorImages: {
-      White:    VERSA_TOP_CARD,
-      Cashmere: VERSA_TOP_CARD,
-      Beige:    VERSA_TOP_CARD,
-      Yellow:   VERSA_TOP_CARD,
-      Teal:     VERSA_TOP_CARD,
+      White:    VERSA_WHITE_MAIN,
+      Cashmere: VERSA_CASHMERE_MAIN,
+      Beige:    VERSA_BEIGE_MAIN,
+      Yellow:   VERSA_YELLOW_MAIN,
+      Teal:     VERSA_TEAL_MAIN,
     },
     colorGalleries: {
-      White:    [VERSA_TOP_CARD],
-      Cashmere: [VERSA_TOP_CARD],
-      Beige:    [VERSA_TOP_CARD],
-      Yellow:   [VERSA_TOP_CARD],
-      Teal:     [VERSA_TOP_CARD],
+      White:    [VERSA_WHITE_MAIN],
+      Cashmere: [VERSA_CASHMERE_MAIN],
+      Beige:    [VERSA_BEIGE_MAIN],
+      Yellow:   [VERSA_YELLOW_MAIN],
+      Teal:     [VERSA_TEAL_MAIN],
     },
     colorSwatches: {
       white:    "#f5f0e8",
