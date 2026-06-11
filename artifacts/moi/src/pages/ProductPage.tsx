@@ -717,7 +717,16 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         {/* Express Checkout — only on Apple Pay capable devices */}
                         {applePayAvailable && (
                           <>
-                            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64", margin: "0 0 2px" }}>Express Checkout</p>
+                            <p style={{
+                              fontFamily: "'Montserrat', sans-serif",
+                              fontSize: 10,
+                              fontWeight: 400,
+                              letterSpacing: "0.3em",
+                              textTransform: "uppercase" as const,
+                              color: "rgba(30,24,20,0.38)",
+                              textAlign: "center",
+                              marginBottom: "12px",
+                            }}>Express Checkout</p>
                             <ShopifyApplePayButton
                               variantId={selectedVariant?.id ?? product.variantId ?? ""}
                               quantity={1}
@@ -1007,7 +1016,16 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     {/* Express Checkout — only on Apple Pay capable devices */}
                     {applePayAvailable && (
                       <>
-                        <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64", margin: "0 0 2px" }}>Express Checkout</p>
+                        <p style={{
+                          fontFamily: "'Montserrat', sans-serif",
+                          fontSize: 10,
+                          fontWeight: 400,
+                          letterSpacing: "0.3em",
+                          textTransform: "uppercase" as const,
+                          color: "rgba(30,24,20,0.38)",
+                          textAlign: "center",
+                          marginBottom: "12px",
+                        }}>Express Checkout</p>
                         <ShopifyApplePayButton
                           variantId={selectedVariant?.id ?? product.variantId ?? ""}
                           quantity={1}
