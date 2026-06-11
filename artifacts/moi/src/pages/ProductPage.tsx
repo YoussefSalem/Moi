@@ -690,12 +690,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
                         <motion.button type="button" onClick={handleAddToCart} whileTap={{ scale: 0.98 }}
-                          style={{ width: "100%", height: 48, borderRadius: 0, border: "none", backgroundColor: addedFeedback ? "#2d6a4f" : "#1e1814", color: "#faf8f5", fontSize: 11, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "background-color 0.3s" }}
+                          style={{ width: "100%", height: 48, borderRadius: 0, backgroundColor: addedFeedback ? "#2d6a4f" : "transparent", color: addedFeedback ? "#faf8f5" : "#1e1814", border: addedFeedback ? "none" : "1.5px solid #1e1814", fontSize: 11, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "background-color 0.3s, color 0.3s, border-color 0.3s" }}
                         >
                           {addedFeedback ? "Added to Bag ✓" : "Add to Bag"}
                         </motion.button>
                         <motion.button type="button" onClick={handleBuyNow} whileTap={{ scale: 0.98 }}
-                          style={{ width: "100%", height: 48, borderRadius: 0, border: "1px solid #d4cdc8", backgroundColor: "transparent", color: "#1e1814", fontSize: 11, fontWeight: 500, letterSpacing: "0.14em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "background-color 0.15s" }}
+                          style={{ width: "100%", height: 48, borderRadius: 0, border: "none", backgroundColor: "#1e1814", color: "#faf8f5", fontSize: 11, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif" }}
                         >
                           Buy It Now
                         </motion.button>
