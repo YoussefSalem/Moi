@@ -255,6 +255,69 @@ export function ProductCarousel({
     };
   }, [N]);
 
+  // Wheel / trackpad momentum scroll
+  const wheelVelRef = useRef(0); // accumulated velocity for inertia
+  const wheelTimerRef = useRef<number | null>(null);
+
+  function onWheel(e: React.WheelEvent) {
+    if (N <= 1) return;
+    // Trackpads produce smooth deltaX; mice produce deltaY. Accept both.
+    const delta = e.deltaX || e.deltaY;
+    if (Math.abs(delta) < 1) return;
+
+    // If the scroll is clearly horizontal (or only deltaY exists), prevent page scroll.
+    // For trackpads with deltaX, prevent. For mice with deltaY on this container, prevent
+    // only if deltaY is small and deltaX is dominant (typical two-finger horizontal).
+    const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY) * 0.5;
+    if (isHorizontal) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    // Cancel any active snap / inertia so the wheel is responsive
+    if (isSnappingRef.current) {
+      const track = trackRef.current;
+      if (track) {
+        const transformStr = window.getComputedStyle(track).transform;
+        if (transformStr && transformStr !== "none") {
+          const matrix = new DOMMatrix(transformStr);
+          rawPxRef.current = -matrix.m41;
+          track.style.transition = "none";
+          track.style.transform = `translateX(${matrix.m41}px)`;
+        }
+      }
+      isSnappingRef.current = false;
+    }
+    cancelRaf();
+
+    // Accumulate position
+    const step = getStep();
+    const newPx = rawPxRef.current + delta;
+    if (N > 1) {
+      rawPxRef.current = wrapMiddle(newPx, step);
+    } else {
+      rawPxRef.current = newPx;
+    }
+    rawApply(rawPxRef.current, false);
+
+    // Accumulate velocity (px/frame) for inertia
+    wheelVelRef.current += delta;
+
+    if (wheelTimerRef.current !== null) {
+      window.clearTimeout(wheelTimerRef.current);
+    }
+
+    wheelTimerRef.current = window.setTimeout(() => {
+      const vel = wheelVelRef.current / 16; // rough px/ms assuming 60fps
+      wheelVelRef.current = 0;
+      if (Math.abs(vel) > MIN_SNAP_VEL * 3) {
+        startInertia(vel);
+      } else {
+        snapNearest();
+      }
+    }, 80);
+  }
+
   // ── Window-level pointer handlers ─────────────────────────────────────────
 
   useEffect(() => {
@@ -342,6 +405,7 @@ export function ProductCarousel({
       window.removeEventListener("pointerup", onWindowUp);
       window.removeEventListener("pointercancel", onWindowCancel);
       cancelRaf();
+      if (wheelTimerRef.current !== null) window.clearTimeout(wheelTimerRef.current);
     };
   }, [N]);
 
@@ -493,6 +557,7 @@ export function ProductCarousel({
               cursor: N > 1 ? "grab" : "default",
             }}
             onPointerDown={onPointerDown}
+            onWheel={onWheel}
           >
             <div
               ref={trackRef}
