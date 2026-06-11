@@ -269,7 +269,7 @@ router.post("/admin/instapay-proofs/:id/approve", async (req, res) => {
     );
   }
   if (customerEmail) {
-    const shippingPrice = parseEGP(proof.amount ?? "0") >= 2000 ? "0.00" : "50.00";
+    const shippingPrice = parseEGP(proof.amount ?? "0") >= 2000 ? "0.00" : "75.00";
     const { html, text } = buildInstapayConfirmedEmail({
       orderNumber: orderNumber!,
       customerName: proof.customerName ?? "",
