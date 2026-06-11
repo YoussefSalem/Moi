@@ -189,6 +189,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const recsRef = useRef<HTMLDivElement>(null);
   const addingRef = useRef(false);
   const ctaRef = useRef<HTMLDivElement>(null);
+  const mobileCTARef = useRef<HTMLDivElement>(null);
 
   // ── SEO head tags ──
   useEffect(() => {
@@ -291,9 +292,9 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     }
   }, [handle]);
 
-  // ── Mobile sticky CTA bar: appears when the main CTA row scrolls off ──
+  // ── Mobile sticky CTA bar: appears when the mobile CTA row scrolls off ──
   useEffect(() => {
-    const el = ctaRef.current;
+    const el = mobileCTARef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => setShowStickyBar(!entry.isIntersecting),
@@ -532,89 +533,330 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                 {/* ══ LEFT: Gallery ══ */}
                 <div className="relative">
 
-                  {/* ── MOBILE: full-bleed image ── */}
-                  <div
-                    className="md:hidden relative overflow-hidden"
-                    style={{
-                      aspectRatio: "3/4",
-                      backgroundColor: T.canvasWarm,
-                      touchAction: "pan-y",
-                      userSelect: "none",
-                      WebkitUserSelect: "none",
-                    } as React.CSSProperties}
-                    onClick={() => setLightboxOpen(true)}
-                    onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
-                    onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
-                    onPointerUp={(e) => {
-                      const start = dragStartXRef.current;
-                      if (start === null) return;
-                      const delta = (dragLastXRef.current ?? e.clientX) - start;
-                      dragStartXRef.current = null; dragLastXRef.current = null;
-                      if (Math.abs(delta) > 32) { delta < 0 ? nextImg() : prevImg(); }
-                    }}
-                    onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
-                  >
-                    <AnimatePresence initial={false} mode="wait">
-                      <motion.img
-                        key={mainImage}
-                        src={mainImage}
-                        alt={product.name}
-                        className="absolute inset-0 w-full h-full"
-                        style={{ objectFit: "cover", objectPosition: "center top" }}
-                        loading="eager"
-                        decoding="async"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: imgLoaded ? 1 : 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.35 }}
-                        onLoad={() => setImgLoaded(true)}
-                        onError={() => setImgLoaded(true)}
-                      />
-                    </AnimatePresence>
-                    {!imgLoaded && <ImageSkeleton variant="warm" />}
+                  {/* ══════════════════════════════════════════════
+                      MOBILE LAYOUT — compact boutique card
+                      ══════════════════════════════════════════════ */}
+                  <div className="md:hidden">
 
-                    {/* Sold out banner */}
-                    {isOutOfStock && (
-                      <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center py-4 pointer-events-none" style={{ background: "rgba(26,20,16,0.58)", backdropFilter: "blur(4px)" }}>
-                        <span style={{ ...SANS, fontSize: "0.6rem", letterSpacing: "0.30em", textTransform: "uppercase", color: "rgba(250,248,245,0.92)", fontWeight: 600 }}>Sold Out</span>
+                    {/* ── Top card: square image left + key info right ── */}
+                    <div
+                      className="flex items-stretch"
+                      style={{
+                        paddingTop: "max(68px, calc(env(safe-area-inset-top) + 60px))",
+                        paddingLeft: 20,
+                        paddingRight: 20,
+                        gap: 16,
+                        paddingBottom: 0,
+                      }}
+                    >
+                      {/* Square image */}
+                      <div
+                        className="relative flex-shrink-0 overflow-hidden"
+                        style={{
+                          width: "46%",
+                          aspectRatio: "1/1",
+                          backgroundColor: T.canvasWarm,
+                          cursor: "pointer",
+                          touchAction: "pan-y",
+                          userSelect: "none",
+                          WebkitUserSelect: "none",
+                        } as React.CSSProperties}
+                        onClick={() => setLightboxOpen(true)}
+                        onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
+                        onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
+                        onPointerUp={(e) => {
+                          const start = dragStartXRef.current;
+                          if (start === null) return;
+                          const delta = (dragLastXRef.current ?? e.clientX) - start;
+                          dragStartXRef.current = null; dragLastXRef.current = null;
+                          if (Math.abs(delta) > 28) { delta < 0 ? nextImg() : prevImg(); }
+                        }}
+                        onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
+                      >
+                        <AnimatePresence initial={false} mode="wait">
+                          <motion.img
+                            key={mainImage}
+                            src={mainImage}
+                            alt={product.name}
+                            className="absolute inset-0 w-full h-full"
+                            style={{ objectFit: "cover", objectPosition: "center top" }}
+                            loading="eager"
+                            decoding="async"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: imgLoaded ? 1 : 0 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            onLoad={() => setImgLoaded(true)}
+                            onError={() => setImgLoaded(true)}
+                          />
+                        </AnimatePresence>
+                        {!imgLoaded && <ImageSkeleton variant="warm" />}
+                        {isOutOfStock && (
+                          <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center py-2 pointer-events-none" style={{ background: "rgba(26,20,16,0.55)" }}>
+                            <span style={{ ...SANS, fontSize: "0.5rem", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(250,248,245,0.9)", fontWeight: 600 }}>Sold Out</span>
+                          </div>
+                        )}
+                        {/* Image counter dot */}
+                        {galleryImages.length > 1 && (
+                          <div className="absolute bottom-2 right-2" style={{ ...SANS, fontSize: 7, color: "rgba(250,248,245,0.7)", letterSpacing: "0.1em" }}>
+                            {galleryIndex + 1}/{galleryImages.length}
+                          </div>
+                        )}
                       </div>
-                    )}
 
-                    {/* Image counter — top right */}
+                      {/* Key info — right side */}
+                      <div className="flex flex-col justify-between flex-1 min-w-0" style={{ paddingTop: 2, paddingBottom: 4 }}>
+                        {/* Category */}
+                        <p style={{ ...SANS, fontSize: 7.5, letterSpacing: "0.32em", textTransform: "uppercase", color: T.inkFaint, fontWeight: 500, marginBottom: 8 }}>
+                          New Collection
+                        </p>
+
+                        {/* Name */}
+                        <h1 style={{ ...SERIF, fontSize: "clamp(1.35rem, 6vw, 1.6rem)", fontWeight: 300, color: T.ink, letterSpacing: "0.02em", lineHeight: 1.1, marginBottom: 6 }}>
+                          {productBaseName}
+                        </h1>
+
+                        {/* Color */}
+                        {productColorLabel && (
+                          <p style={{ ...SANS, fontSize: 8, letterSpacing: "0.24em", textTransform: "uppercase", color: T.inkMuted, fontWeight: 500, marginBottom: 10 }}>
+                            {productColorLabel}
+                          </p>
+                        )}
+
+                        {/* Rating */}
+                        {avgRatingData && (
+                          <div className="flex items-center gap-1.5 mb-8">
+                            <StarDisplay value={avgRatingData.avg} size={10} />
+                            <span style={{ ...SANS, fontSize: 8.5, color: T.inkMuted }}>
+                              {avgRatingData.avg.toFixed(1)}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Price */}
+                        <div className="mt-auto">
+                          <div className="flex flex-wrap items-baseline gap-2">
+                            <span style={{ ...SERIF, fontSize: "clamp(1.1rem, 4.5vw, 1.3rem)", fontWeight: 400, color: effectiveCompareAtPrice ? T.accent : T.ink, letterSpacing: "0.02em" }}>
+                              {effectivePrice}
+                            </span>
+                            {effectiveCompareAtPrice && (
+                              <span style={{ ...SANS, fontSize: 9.5, color: T.inkFaint, textDecoration: "line-through", letterSpacing: "0.05em" }}>
+                                {effectiveCompareAtPrice}
+                              </span>
+                            )}
+                          </div>
+                          {effectiveCompareAtPrice && (() => {
+                            const p = parseEGP(String(effectivePrice));
+                            const c = parseEGP(String(effectiveCompareAtPrice));
+                            if (!p || !c || c <= p) return null;
+                            return <span style={{ ...SANS, fontSize: 8.5, fontWeight: 600, letterSpacing: "0.18em", color: T.accent, textTransform: "uppercase", display: "block", marginTop: 3 }}>Save {Math.round((1 - p / c) * 100)}%</span>;
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── Horizontal thumbnail filmstrip ── */}
                     {galleryImages.length > 1 && (
                       <div
-                        className="absolute top-4 right-4 z-10 flex items-center gap-1"
-                        style={{ ...SANS, fontSize: 8, letterSpacing: "0.18em", color: "rgba(250,248,245,0.75)" }}
+                        className="flex gap-2 overflow-x-auto"
+                        style={{ padding: "14px 20px 0", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
                       >
-                        <span style={{ fontWeight: 600 }}>{galleryIndex + 1}</span>
-                        <span style={{ opacity: 0.5 }}>/</span>
-                        <span>{galleryImages.length}</span>
+                        {galleryImages.map((src, i) => (
+                          <button
+                            key={`${src}-${i}`}
+                            type="button"
+                            onClick={() => { setGalleryIndex(i); setImgLoaded(false); }}
+                            className="flex-shrink-0 overflow-hidden transition-all duration-200"
+                            style={{
+                              width: 52,
+                              height: 52,
+                              border: "none",
+                              outline: i === galleryIndex ? `1.5px solid ${T.ink}` : `1px solid ${T.hairline}`,
+                              opacity: i === galleryIndex ? 1 : 0.5,
+                              padding: 0,
+                              cursor: "pointer",
+                              backgroundColor: T.canvasWarm,
+                            }}
+                          >
+                            <img
+                              src={src}
+                              alt={`View ${i + 1}`}
+                              className="w-full h-full"
+                              style={{ objectFit: "cover" }}
+                              loading="eager"
+                            />
+                          </button>
+                        ))}
                       </div>
                     )}
-                  </div>
 
-                  {/* Mobile dot indicators */}
-                  {galleryImages.length > 1 && (
-                    <div className="md:hidden flex items-center justify-center gap-2 mt-4">
-                      {galleryImages.map((_, i) => (
-                        <button
-                          key={i}
+                    {/* ── Divider ── */}
+                    <div style={{ height: 1, backgroundColor: T.hairline, margin: "20px 20px 0" }} />
+
+                    {/* ── Description ── */}
+                    <div style={{ padding: "20px 20px 0" }}>
+                      {"descriptionBullets" in (product as unknown as Record<string, unknown>) && (product as unknown as { descriptionBullets?: string[] }).descriptionBullets?.length ? (
+                        <ul className="space-y-2">
+                          {(product as unknown as { descriptionBullets: string[] }).descriptionBullets.map((bullet, i) => (
+                            <li key={i} className="flex items-start gap-3">
+                              <span style={{ flexShrink: 0, width: 3, height: 3, borderRadius: "50%", backgroundColor: T.inkFaint, marginTop: 8, display: "block" }} />
+                              <span style={{ ...SERIF, fontSize: "clamp(0.83rem, 3.5vw, 0.9rem)", color: T.inkMuted, lineHeight: 1.7 }}>{bullet}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p style={{ ...SERIF, fontSize: "clamp(0.83rem, 3.5vw, 0.9rem)", color: T.inkMuted, lineHeight: 1.75 }}>
+                          {product.description}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* ── Size selector ── */}
+                    {displaySizes.length > 1 && (
+                      <div style={{ padding: "24px 20px 0" }}>
+                        <div className="flex items-center justify-between mb-3">
+                          <p style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.26em", textTransform: "uppercase", color: T.inkFaint, fontWeight: 500 }}>Size</p>
+                          <span style={{ ...SANS, fontSize: 9, letterSpacing: "0.14em", color: T.ink, fontWeight: 600, textTransform: "uppercase" }}>{selectedSize}</span>
+                        </div>
+                        <div className="flex gap-2 flex-wrap">
+                          {displaySizes.map((size) => {
+                            const available = product.variants?.some(
+                              (v) => v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOption?.optionName.toLowerCase() && o.value === size) && v.availableForSale,
+                            ) ?? true;
+                            const isSel = selectedSize === size;
+                            return (
+                              <button
+                                key={size}
+                                type="button"
+                                onClick={() => setSelectedSize(size)}
+                                className="size-pill relative transition-all duration-200 active:scale-[0.96]"
+                                style={{
+                                  minWidth: 54,
+                                  minHeight: 44,
+                                  padding: "10px 14px",
+                                  fontSize: 9,
+                                  letterSpacing: "0.20em",
+                                  textTransform: "uppercase",
+                                  ...SANS,
+                                  fontWeight: isSel ? 600 : 500,
+                                  color: !available ? "rgba(26,20,16,0.25)" : isSel ? T.ink : T.inkMuted,
+                                  border: `1px solid ${isSel ? T.ink : T.hairlineStrong}`,
+                                  backgroundColor: isSel ? "rgba(26,20,16,0.06)" : "transparent",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {!available && (
+                                  <span aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+                                    <svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0 }}>
+                                      <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(26,20,16,0.12)" strokeWidth="1" />
+                                    </svg>
+                                  </span>
+                                )}
+                                {size}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── One size ── */}
+                    {displaySizes.length <= 1 && sizeOption && (
+                      <div style={{ padding: "20px 20px 0" }}>
+                        <button type="button" disabled style={{ ...SANS, padding: "11px 20px", fontSize: 9, letterSpacing: "0.20em", textTransform: "uppercase", fontWeight: 600, color: T.ink, border: `1px solid ${T.ink}`, backgroundColor: "rgba(26,20,16,0.04)", minHeight: 44, cursor: "default" }}>
+                          One Size
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ── CTAs ── */}
+                    <div ref={mobileCTARef} className="flex flex-col gap-2.5" style={{ padding: "20px 20px 0" }}>
+                      {isOutOfStock ? (
+                        <motion.button
                           type="button"
-                          onClick={() => { setGalleryIndex(i); setImgLoaded(false); }}
-                          aria-label={`Image ${i + 1}`}
-                          style={{
-                            width: i === galleryIndex ? 24 : 5,
-                            height: 2,
-                            backgroundColor: i === galleryIndex ? T.ink : "rgba(26,20,16,0.22)",
-                            transition: "all 0.3s cubic-bezier(0.22,1,0.36,1)",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 0,
-                          }}
+                          onClick={handleNotifyMe}
+                          whileTap={{ scale: 0.99 }}
+                          className="cta-btn-mobile flex items-center justify-center gap-2.5 w-full"
+                          style={{ ...SANS, padding: "17px 0", fontSize: "0.72rem", letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 600, color: "#faf8f5", backgroundColor: T.ink, border: "none", cursor: "pointer", minHeight: 52 }}
+                        >
+                          <Bell size={11} strokeWidth={1.8} />
+                          Notify Me When Back
+                        </motion.button>
+                      ) : (
+                        <>
+                          <motion.button
+                            type="button"
+                            onClick={handleBuyNow}
+                            whileTap={{ scale: 0.99 }}
+                            className="cta-btn-mobile w-full flex items-center justify-center"
+                            style={{ ...SANS, padding: "17px 0", fontSize: "0.72rem", letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 600, color: "#faf8f5", backgroundColor: T.ink, border: "none", cursor: "pointer", minHeight: 52 }}
+                          >
+                            Buy It Now
+                          </motion.button>
+                          <motion.button
+                            type="button"
+                            onClick={handleAddToCart}
+                            whileTap={{ scale: 0.99 }}
+                            className="cta-btn-mobile w-full flex items-center justify-center transition-all duration-300"
+                            style={{
+                              ...SANS,
+                              padding: "16px 0",
+                              fontSize: "0.72rem",
+                              letterSpacing: "0.28em",
+                              textTransform: "uppercase",
+                              fontWeight: 500,
+                              color: addedFeedback ? T.inkMuted : T.ink,
+                              backgroundColor: "transparent",
+                              border: `1px solid ${addedFeedback ? T.hairlineStrong : T.ink}`,
+                              cursor: "pointer",
+                              minHeight: 52,
+                            }}
+                          >
+                            {addedFeedback ? "Added to Bag ✓" : "Add to Bag"}
+                          </motion.button>
+                          {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
+                            <>
+                              <div className="flex items-center gap-3 my-1">
+                                <div style={{ flex: 1, height: 1, backgroundColor: T.hairline }} />
+                                <span style={{ ...SANS, fontSize: 8, letterSpacing: "0.22em", color: T.inkFaint, textTransform: "uppercase" }}>or</span>
+                                <div style={{ flex: 1, height: 1, backgroundColor: T.hairline }} />
+                              </div>
+                              <ShopifyApplePayButton
+                                variantId={selectedVariant?.id ?? product.variantId ?? ""}
+                                quantity={1}
+                                priceEGP={parseEGP(String(effectivePrice)) || 0}
+                                disabled={isOutOfStock}
+                                style={{ width: "100%" }}
+                                onSuccess={(orderNumber, total) => toast.success(`Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`, { duration: 5000 })}
+                                onError={(msg) => toast.error(msg, { duration: 4000 })}
+                              />
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* ── Accordion ── */}
+                    <div style={{ margin: "28px 20px 0", borderTop: `1px solid ${T.hairline}` }}>
+                      {ACCORDION_ITEMS.map((item) => (
+                        <AccordionItem
+                          key={item.key}
+                          label={item.label}
+                          body={item.body}
+                          open={openAccordion === item.key}
+                          onToggle={() => setOpenAccordion((p) => p === item.key ? null : item.key)}
                         />
                       ))}
                     </div>
-                  )}
+
+                    {/* ── Provenance ── */}
+                    <div style={{ margin: "20px 20px 40px", borderTop: `1px solid ${T.hairline}`, paddingTop: 16 }}>
+                      <p style={{ ...SANS, fontSize: 8, letterSpacing: "0.20em", textTransform: "uppercase", color: T.inkFaint, lineHeight: 1.9 }}>
+                        Designed &amp; crafted with care · <span style={{ color: T.inkMuted }}>Ships from Egypt</span>
+                      </p>
+                    </div>
+                  </div>
+                  {/* end mobile layout */}
 
                   {/* ── DESKTOP: thumb rail + main image ── */}
                   <div className="hidden md:flex" style={{ paddingTop: 80, gap: 16, paddingLeft: 40, paddingRight: 0, paddingBottom: 40 }}>
@@ -736,9 +978,9 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                   </div>
                 </div>
 
-                {/* ══ RIGHT: Product info ══ */}
+                {/* ══ RIGHT: Product info — desktop only ══ */}
                 <div
-                  className="md:sticky"
+                  className="hidden md:block md:sticky"
                   style={{ top: 0, paddingTop: 0 }}
                 >
                   {/* ─── Info panel ─── */}
