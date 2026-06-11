@@ -18,63 +18,30 @@ const C = {
 const serif   = '"Cormorant Garamond", Georgia, "Times New Roman", serif';
 const sans    = '"Montserrat", "Helvetica Neue", Helvetica, Arial, sans-serif';
 
-// ── Image data ──────────────────────────────────────────────────
-const COLOR_GALLERY: Record<string, string[]> = {
-  White: [
-    "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=900&q=85&auto=format&fit=crop",
+// ── Product data (real) ──────────────────────────────────────────
+const PRODUCT = {
+  name:  "MOI WAVVY",
+  price: "899 EGP",
+  description: "The ultimate throw-and-go. Effortless design, Wavy is light, breathable, and made for drifting.",
+  bullets: [
+    "The ultimate throw-and-go piece.",
+    "Effortless design makes it easy to wear.",
+    "Wavy is light for all-day comfort.",
+    "Breathable fabric keeps you cool.",
+    "Made for drifting with ease.",
   ],
-  Cashmere: [
-    "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1488161628813-04466f872be2?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1583744946564-b52ac1c389c8?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=900&q=85&auto=format&fit=crop",
-  ],
-  Beige: [
-    "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1562157873-818bc0726f68?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1546938576-6e12d9468cbe?w=900&q=85&auto=format&fit=crop",
-  ],
-  Teal: [
-    "https://images.unsplash.com/photo-1552664730-d307ca884978?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1543525238-54e3d131d627?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900&q=85&auto=format&fit=crop",
-  ],
-  "Light Blue": [
-    "https://images.unsplash.com/photo-1481233085934-e3c49c9e18dc?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1532453288672-3a17cdc67d4f?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900&q=85&auto=format&fit=crop",
-  ],
-  Navy: [
-    "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1488161628813-04466f872be2?w=900&q=85&auto=format&fit=crop",
-  ],
-  Mint: [
-    "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900&q=85&auto=format&fit=crop",
-  ],
+  material: "Outer shell: 100% Polyester",
+  ref: "2076/511/400",
 };
 
-const COLORS = [
-  { name: "White",      hex: "#f0ece5", border: "#c8c2ba" },
-  { name: "Cashmere",   hex: "#c9aa87", border: "#b89870" },
-  { name: "Beige",      hex: "#d6c4a8", border: "#c4b090" },
-  { name: "Teal",       hex: "#5f9ea0", border: "#4e8a8c" },
-  { name: "Light Blue", hex: "#a8c8e0", border: "#90b4d0" },
-  { name: "Navy",       hex: "#1e2d5a", border: "#162245" },
-  { name: "Mint",       hex: "#98d4b8", border: "#7ec0a4" },
+const GALLERY = [
+  "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=900&q=85&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1488161628813-04466f872be2?w=900&q=85&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1583744946564-b52ac1c389c8?w=900&q=85&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=900&q=85&auto=format&fit=crop",
 ];
 
-const SIZES = ["XS", "S", "M", "L", "XL"];
+const SIZES = ["S", "M", "L"];
 
 const REVIEWS = [
   {
@@ -140,14 +107,13 @@ function StarRating({ rating, size = 12 }: { rating: number; size?: number }) {
 
 // ── Main component ───────────────────────────────────────────────
 export default function AppleStyle() {
-  const [selectedColor, setSelectedColor] = useState(COLORS[0].name);
-  const [selectedSize,  setSelectedSize]  = useState<string | null>(null);
-  const [activeImg,     setActiveImg]     = useState(0);
-  const [showAll,       setShowAll]       = useState(false);
-  const [addedToBag,    setAddedToBag]    = useState(false);
-  const [saved,         setSaved]         = useState(false);
-  const [mobileIdx,     setMobileIdx]     = useState(0);
-  const [isDesktop,     setIsDesktop]     = useState(window.innerWidth >= 900);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [activeImg,    setActiveImg]    = useState(0);
+  const [showAll,      setShowAll]      = useState(false);
+  const [addedToBag,   setAddedToBag]   = useState(false);
+  const [saved,        setSaved]        = useState(false);
+  const [mobileIdx,    setMobileIdx]    = useState(0);
+  const [isDesktop,    setIsDesktop]    = useState(window.innerWidth >= 900);
   const touchX = useRef(0);
 
   useEffect(() => {
@@ -165,14 +131,6 @@ export default function AppleStyle() {
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
-
-  const gallery = COLOR_GALLERY[selectedColor] ?? COLOR_GALLERY["White"];
-
-  const handleColor = (name: string) => {
-    setSelectedColor(name);
-    setActiveImg(0);
-    setMobileIdx(0);
-  };
 
   const handleAddToBag = useCallback(() => {
     if (!selectedSize) return;
@@ -276,36 +234,26 @@ export default function AppleStyle() {
             </h1>
 
             <p style={{
-              fontFamily: serif,
-              fontSize: 22, fontWeight: 300, fontStyle: "italic",
-              lineHeight: 1.5, color: C.muted, marginBottom: 36,
-              letterSpacing: "0.02em",
-            }}>
-              Effortlessly draped.<br/>Infinitely wearable.
-            </p>
-
-            <div style={{ height: 1, backgroundColor: C.border, marginBottom: 36 }} />
-
-            <p style={{
               fontSize: 14, lineHeight: 1.75, letterSpacing: "0.02em",
-              color: C.ink, marginBottom: 32, fontWeight: 300,
+              color: C.muted, marginBottom: 32, fontWeight: 300,
             }}>
-              Woven from 100% premium cotton in a relaxed silhouette that moves with you. The WAVVY top features a signature asymmetric hem and deep-set side seams — designed to layer beautifully or stand alone.
+              {PRODUCT.description}
             </p>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {[
-                ["Material", "100% Premium Egyptian Cotton"],
-                ["Fit",      "Relaxed — asymmetric hem"],
-                ["Care",     "Machine wash cold, lay flat"],
-                ["Origin",   "Locally crafted in Egypt"],
-              ].map(([k, v]) => (
-                <div key={k} style={{ display: "flex", gap: 20 }}>
-                  <span style={{ ...label({ minWidth: 68 }) }}>{k}</span>
-                  <span style={{ fontSize: 13, color: C.ink, fontWeight: 300, letterSpacing: "0.02em" }}>{v}</span>
-                </div>
+            <div style={{ height: 1, backgroundColor: C.border, marginBottom: 32 }} />
+
+            <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+              {PRODUCT.bullets.map((b) => (
+                <li key={b} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{ color: C.faint, flexShrink: 0, marginTop: 1 }}>—</span>
+                  <span style={{ fontSize: 13, color: C.ink, fontWeight: 300, letterSpacing: "0.02em", lineHeight: 1.6 }}>{b}</span>
+                </li>
               ))}
-            </div>
+            </ul>
+
+            <p style={{ fontSize: 10, color: C.faint, letterSpacing: "0.08em", fontWeight: 400, marginTop: 28 }}>
+              REF {PRODUCT.ref} · {PRODUCT.material}
+            </p>
           </div>
 
           {/* ── CENTER: gallery ── */}
@@ -318,7 +266,7 @@ export default function AppleStyle() {
               boxShadow: "0 16px 56px rgba(30,24,20,0.10)",
             }}>
               <img
-                src={gallery[activeImg]}
+                src={GALLERY[activeImg]}
                 alt="Product"
                 style={{
                   width: "100%", height: "100%",
@@ -330,7 +278,7 @@ export default function AppleStyle() {
 
             {/* Thumbnails */}
             <div style={{ display: "flex", gap: 8, marginTop: 10, justifyContent: "center" }}>
-              {gallery.map((img, i) => (
+              {GALLERY.map((img, i) => (
                 <button
                   key={i}
                   className="thumb"
@@ -360,7 +308,7 @@ export default function AppleStyle() {
                 fontFamily: serif,
                 fontSize: 34, fontWeight: 400, letterSpacing: "0.04em", color: C.ink,
               }}>
-                899 EGP
+                {PRODUCT.price}
               </p>
               <p style={{ fontSize: 11, color: C.faint, marginTop: 6, letterSpacing: "0.04em", fontWeight: 300 }}>
                 Free delivery on orders over 1,500 EGP
@@ -368,34 +316,6 @@ export default function AppleStyle() {
             </div>
 
             <div style={{ height: 1, backgroundColor: C.border, marginBottom: 28 }} />
-
-            {/* Color */}
-            <div style={{ marginBottom: 28 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
-                <span style={label()}>Color</span>
-                <span style={{ fontSize: 12, color: C.muted, fontWeight: 300, letterSpacing: "0.04em" }}>{selectedColor}</span>
-              </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {COLORS.map((c) => (
-                  <button
-                    key={c.name}
-                    className="swatch"
-                    onClick={() => handleColor(c.name)}
-                    title={c.name}
-                    style={{
-                      width: 26, height: 26, borderRadius: "50%",
-                      backgroundColor: c.hex,
-                      border: selectedColor === c.name
-                        ? `2px solid ${C.ink}`
-                        : `1.5px solid ${c.border}`,
-                      cursor: "pointer", padding: 0,
-                      transition: "transform 0.15s",
-                      transform: selectedColor === c.name ? "scale(1.14)" : "scale(1)",
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
 
             {/* Size */}
             <div style={{ marginBottom: 32 }}>
@@ -405,7 +325,7 @@ export default function AppleStyle() {
                   Size guide
                 </a>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
                 {SIZES.map((sz) => (
                   <button
                     key={sz}
@@ -489,7 +409,7 @@ export default function AppleStyle() {
           onTouchEnd={(e) => {
             const dx = touchX.current - e.changedTouches[0].clientX;
             if (Math.abs(dx) > 40) {
-              if (dx > 0) setMobileIdx((i) => Math.min(i + 1, gallery.length - 1));
+              if (dx > 0) setMobileIdx((i) => Math.min(i + 1, GALLERY.length - 1));
               else        setMobileIdx((i) => Math.max(i - 1, 0));
             }
           }}
@@ -499,7 +419,7 @@ export default function AppleStyle() {
             transform: `translateX(-${mobileIdx * 100}%)`,
             transition: "transform 0.32s cubic-bezier(0.22,1,0.36,1)",
           }}>
-            {gallery.map((img, i) => (
+            {GALLERY.map((img, i) => (
               <div key={i} style={{ flex: "0 0 100%", aspectRatio: "3/4" }}>
                 <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
               </div>
@@ -510,7 +430,7 @@ export default function AppleStyle() {
             position: "absolute", bottom: 14, left: 0, right: 0,
             display: "flex", justifyContent: "center", gap: 6,
           }}>
-            {gallery.map((_, i) => (
+            {GALLERY.map((_, i) => (
               <button key={i} onClick={() => setMobileIdx(i)} style={{
                 width: mobileIdx === i ? 18 : 6, height: 6, borderRadius: 9999,
                 border: "none", padding: 0, cursor: "pointer",
@@ -528,15 +448,12 @@ export default function AppleStyle() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
             <div>
               <h1 style={{ fontFamily: serif, fontSize: 32, fontWeight: 400, letterSpacing: "0.04em", lineHeight: 1.1, color: C.ink }}>
-                MOI WAVVY
+                {PRODUCT.name}
               </h1>
-              <p style={{ fontFamily: serif, fontSize: 16, fontStyle: "italic", fontWeight: 300, color: C.muted, marginTop: 6 }}>
-                Effortlessly draped.
-              </p>
             </div>
             <div style={{ textAlign: "right", flexShrink: 0 }}>
               <p style={{ fontFamily: serif, fontSize: 24, fontWeight: 400, letterSpacing: "0.04em", color: C.ink }}>
-                899 EGP
+                {PRODUCT.price}
               </p>
               <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end", marginTop: 6 }}>
                 <StarRating rating={4.7} size={11} />
@@ -545,34 +462,8 @@ export default function AppleStyle() {
             </div>
           </div>
 
-          {/* Color */}
-          <div style={{ marginTop: 28 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-              <span style={label()}>Color</span>
-              <span style={{ fontSize: 11, color: C.muted, fontWeight: 300, letterSpacing: "0.04em" }}>{selectedColor}</span>
-            </div>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {COLORS.map((c) => (
-                <button
-                  key={c.name}
-                  className="swatch"
-                  onClick={() => handleColor(c.name)}
-                  title={c.name}
-                  style={{
-                    width: 28, height: 28, borderRadius: "50%",
-                    backgroundColor: c.hex,
-                    border: selectedColor === c.name ? `2px solid ${C.ink}` : `1.5px solid ${c.border}`,
-                    cursor: "pointer", padding: 0,
-                    transform: selectedColor === c.name ? "scale(1.12)" : "scale(1)",
-                    transition: "transform 0.15s",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
           {/* Size */}
-          <div style={{ marginTop: 24 }}>
+          <div style={{ marginTop: 28 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
               <span style={label()}>Size</span>
               <a href="#" style={{ fontSize: 11, color: C.muted, textDecoration: "underline", textUnderlineOffset: 3, letterSpacing: "0.04em" }}>Guide</a>
@@ -598,7 +489,7 @@ export default function AppleStyle() {
             fontSize: 13, lineHeight: 1.75, color: C.muted,
             marginTop: 28, fontWeight: 300, letterSpacing: "0.02em",
           }}>
-            100% premium Egyptian cotton. Relaxed silhouette with signature asymmetric hem. Locally crafted.
+            {PRODUCT.description}
           </p>
         </div>
 
@@ -640,7 +531,7 @@ export default function AppleStyle() {
               fontFamily: sans,
             }}
           >
-            {addedToBag ? "Added ✓" : `Add to Bag — 899 EGP`}
+            {addedToBag ? "Added ✓" : `Add to Bag — ${PRODUCT.price}`}
           </button>
         </div>
       </div>{/* end mobile */}
