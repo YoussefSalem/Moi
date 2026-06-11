@@ -729,7 +729,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                           Order via WhatsApp
                         </a>
                         {/* Trust badges */}
-                        <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, paddingTop: 4 }}>
+                        <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, padding: "12px 14px", border: "1px solid rgba(30,24,20,0.10)", borderRadius: 4 }}>
                           {[
                             { icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="7" rx="1" stroke="#a9a09a" strokeWidth="1.2"/><path d="M4 6V5a4 4 0 018 0v1" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round"/><circle cx="5" cy="12" r="1.5" fill="#a9a09a"/><circle cx="11" cy="12" r="1.5" fill="#a9a09a"/></svg>, text: "2–4 day delivery in Egypt" },
                             { icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="9" rx="1" stroke="#a9a09a" strokeWidth="1.2"/><path d="M5 6V4.5A3 3 0 018 1.5v0A3 3 0 0111 4.5V6" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round"/><line x1="8" y1="9" x2="8" y2="12" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round"/><line x1="6.5" y1="10.5" x2="9.5" y2="10.5" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round"/></svg>, text: "Cash on delivery available" },
@@ -902,7 +902,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       Order via WhatsApp
                     </a>
                     {/* Trust badges */}
-                    <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, paddingTop: 4 }}>
+                    <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, padding: "12px 14px", border: "1px solid rgba(30,24,20,0.10)", borderRadius: 4 }}>
                       {[
                         {
                           icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="7" rx="1" stroke="#a9a09a" strokeWidth="1.2"/><path d="M4 6V5a4 4 0 018 0v1" stroke="#a9a09a" strokeWidth="1.2" strokeLinecap="round"/><circle cx="5" cy="12" r="1.5" fill="#a9a09a"/><circle cx="11" cy="12" r="1.5" fill="#a9a09a"/></svg>,
