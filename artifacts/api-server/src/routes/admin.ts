@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import rateLimit from "express-rate-limit";
 import { db } from "@workspace/db";
 import { instapayProofs, abandonedCarts, paymobIntents, productReviews } from "@workspace/db/schema";
 import { eq, desc, and, gte, lte, count, isNull, inArray } from "drizzle-orm";
@@ -19,6 +20,15 @@ import { completeShopifyDraftOrder, recordShopifyPaymentTransaction } from "../l
 import { parseEGP } from "@workspace/utils";
 
 const router: IRouter = Router();
+
+// 5 attempts per IP per 15 minutes — prevents admin PIN brute-force
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts. Try again in 15 minutes." },
+});
 
 /**
  * Derives a scoped session token from ADMIN_SECRET using HMAC-SHA256.
@@ -87,7 +97,7 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
 // from ADMIN_SECRET). On success returns a derived session token (HMAC of
 // ADMIN_SECRET); the raw secret is never transmitted to the browser and the PIN
 // is never used for signing — the two concerns are deliberately separate.
-router.post("/admin/login", (req, res) => {
+router.post("/admin/login", adminLoginLimiter, (req, res) => {
   const adminSecret = process.env.ADMIN_SECRET;
   const adminPin = process.env.ADMIN_PIN ?? process.env.VITE_ADMIN_PIN;
   if (!adminSecret || !adminPin) {
@@ -703,7 +713,12 @@ router.post("/admin/test-discount-counter", requireAdminAuth, async (req, res) =
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
         body: JSON.stringify({
-          query: `{ codeDiscountNodeByCode(code: "${code}") { codeDiscount { ... on DiscountCodeBasic { usageLimit asyncUsageCount } } } }`,
+          query: `query GetDiscountUsage($code: String!) {
+            codeDiscountNodeByCode(code: $code) {
+              codeDiscount { ... on DiscountCodeBasic { usageLimit asyncUsageCount } }
+            }
+          }`,
+          variables: { code },
         }),
       });
       if (!r.ok) return null;
