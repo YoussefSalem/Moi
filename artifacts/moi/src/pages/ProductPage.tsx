@@ -84,16 +84,33 @@ interface RecItem {
 }
 
 function buildAllRecs(): RecItem[] {
-  const allProducts = [IMAGES.product1, IMAGES.product2, IMAGES.product3] as const;
-  return allProducts.map((product) => ({
-    handle: product.slug,
-    name: product.name,
-    color: "",
-    price: product.price,
-    swatch: "",
-    image: () => product.productShot,
-    gallery: () => [product.productShot],
-  }));
+  type Entry = { product: typeof IMAGES.product1 | typeof IMAGES.product2; colorName: string };
+  const entries: Entry[] = [
+    { product: IMAGES.product1, colorName: "White" },
+    { product: IMAGES.product1, colorName: "Cashmere" },
+    { product: IMAGES.product1, colorName: "Beige" },
+    { product: IMAGES.product1, colorName: "Yellow" },
+    { product: IMAGES.product2, colorName: "White" },
+    { product: IMAGES.product2, colorName: "Cashmere" },
+    { product: IMAGES.product2, colorName: "Beige" },
+    { product: IMAGES.product2, colorName: "Yellow" },
+    { product: IMAGES.product2, colorName: "Teal" },
+  ];
+  return entries.map(({ product, colorName }) => {
+    const colorImages = product.colorImages as Record<string, string>;
+    const colorSwatches = product.colorSwatches as Record<string, string>;
+    const image = colorImages[colorName] ?? product.productShot;
+    const swatch = colorSwatches[colorName.toLowerCase()] ?? "";
+    return {
+      handle: `${product.slug}-${slugify(colorName)}`,
+      name: product.name,
+      color: colorName,
+      price: product.price,
+      swatch,
+      image: () => image,
+      gallery: () => [image],
+    };
+  });
 }
 
 const ALL_RECS = buildAllRecs();
