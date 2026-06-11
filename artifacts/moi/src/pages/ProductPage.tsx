@@ -171,6 +171,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [avgRatingData, setAvgRatingData] = useState<{ avg: number; count: number } | null>(null);
   const [recsPage, setRecsPage] = useState(0);
+  const [recsDir, setRecsDir] = useState<1 | -1>(1);
 
   const recsRef = useRef<HTMLDivElement>(null);
   const addingRef = useRef(false);
@@ -868,12 +869,15 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               {/* ── Full-width: Reviews ── */}
               <ReviewSection productHandle={handle} productName={product.name} />
 
-              {/* ── Full-width: You May Also Like (carousel) ── */}
+              {/* ── Full-width: You May Also Like (infinite carousel) ── */}
               {onNavigate && clothingRecs.length > 0 && (() => {
                 const perPage = 3;
-                const totalPages = Math.ceil(clothingRecs.length / perPage);
-                const canPrev = recsPage > 0;
-                const canNext = recsPage < totalPages - 1;
+                const n = clothingRecs.length;
+                const visibleRecs = Array.from({ length: perPage }, (_, i) =>
+                  clothingRecs[((recsPage * perPage + i) % n + n) % n]
+                );
+                const goNext = () => { setRecsDir(1);  setRecsPage((p) => p + 1); };
+                const goPrev = () => { setRecsDir(-1); setRecsPage((p) => p - 1); };
                 return (
                   <section style={{ borderTop: "1px solid rgba(30,24,20,0.08)", paddingTop: 64, paddingBottom: 88 }}>
                     {/* Heading */}
@@ -891,37 +895,49 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       </h2>
                     </div>
 
-                    {/* Carousel track + arrows */}
-                    <div className="relative" style={{ maxWidth: "100%", overflow: "hidden" }}>
-                      {/* Track */}
-                      <div
-                        ref={recsRef}
+                    {/* Carousel */}
+                    <div ref={recsRef} className="relative flex items-center" style={{ padding: "0 clamp(20px, 5vw, 64px)" }}>
+
+                      {/* ← Prev arrow */}
+                      <button
+                        type="button"
+                        onClick={goPrev}
+                        aria-label="Previous"
+                        className="group flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-300 hover:scale-105 active:scale-95"
                         style={{
-                          display: "flex",
-                          transform: `translateX(-${recsPage * 100}%)`,
-                          transition: "transform 0.55s cubic-bezier(0.22,1,0.36,1)",
-                          willChange: "transform",
+                          width: 48, height: 48,
+                          border: "1.5px solid rgba(30,24,20,0.22)",
+                          backgroundColor: "transparent",
+                          marginRight: "clamp(10px, 2vw, 24px)",
+                          zIndex: 10,
                         }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#1e1814"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#1e1814"; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(30,24,20,0.22)"; }}
                       >
-                        {Array.from({ length: totalPages }).map((_, pageIdx) => (
-                          <div
-                            key={pageIdx}
+                        <ChevronLeft size={16} strokeWidth={1.5} className="transition-colors duration-300 group-hover:stroke-white" style={{ color: "#1e1814" }} />
+                      </button>
+
+                      {/* Cards */}
+                      <div className="flex-1 overflow-hidden">
+                        <AnimatePresence mode="wait" initial={false}>
+                          <motion.div
+                            key={recsPage}
+                            initial={{ x: recsDir * 48, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: recsDir * -48, opacity: 0 }}
+                            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
                             style={{
                               display: "grid",
                               gridTemplateColumns: "repeat(3, 1fr)",
-                              gap: "clamp(8px, 1.5vw, 20px)",
-                              width: "100%",
-                              flexShrink: 0,
-                              padding: "0 clamp(16px, 4vw, 48px)",
-                              boxSizing: "border-box",
+                              gap: "clamp(10px, 2vw, 24px)",
                             }}
                           >
-                            {clothingRecs.slice(pageIdx * perPage, pageIdx * perPage + perPage).map((rec) => (
+                            {visibleRecs.map((rec, i) => (
                               <button
-                                key={rec.handle}
+                                key={`${rec.handle}-${recsPage}-${i}`}
                                 type="button"
                                 onClick={() => onNavigate(rec.handle)}
-                                className="text-left group w-full"
+                                className="text-left group/card w-full"
                               >
                                 <div
                                   className="overflow-hidden mb-3 w-full"
@@ -930,8 +946,8 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                                   <img
                                     src={rec.image}
                                     alt={rec.name}
-                                    className="w-full h-full"
-                                    style={{ objectFit: "cover", transition: "transform 0.65s ease" }}
+                                    className="w-full h-full transition-transform duration-700 group-hover/card:scale-[1.03]"
+                                    style={{ objectFit: "cover" }}
                                     loading="lazy"
                                   />
                                 </div>
@@ -943,72 +959,29 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                                 <p style={{ ...SANS, fontSize: 10, letterSpacing: "0.09em", color: "#7a6e64", marginTop: 3 }}>{rec.price}</p>
                               </button>
                             ))}
-                          </div>
-                        ))}
+                          </motion.div>
+                        </AnimatePresence>
                       </div>
 
-                      {/* Prev arrow */}
-                      {canPrev && (
-                        <button
-                          type="button"
-                          onClick={() => setRecsPage((p) => Math.max(0, p - 1))}
-                          className="absolute left-2 top-1/3 -translate-y-1/2 flex items-center justify-center"
-                          style={{
-                            width: 40, height: 40,
-                            backgroundColor: "rgba(250,248,245,0.92)",
-                            border: "1px solid rgba(30,24,20,0.14)",
-                            backdropFilter: "blur(8px)",
-                            zIndex: 10,
-                          }}
-                          aria-label="Previous"
-                        >
-                          <ChevronLeft size={18} color="#1e1814" strokeWidth={1.5} />
-                        </button>
-                      )}
-
-                      {/* Next arrow */}
-                      {canNext && (
-                        <button
-                          type="button"
-                          onClick={() => setRecsPage((p) => Math.min(totalPages - 1, p + 1))}
-                          className="absolute right-2 top-1/3 -translate-y-1/2 flex items-center justify-center"
-                          style={{
-                            width: 40, height: 40,
-                            backgroundColor: "rgba(250,248,245,0.92)",
-                            border: "1px solid rgba(30,24,20,0.14)",
-                            backdropFilter: "blur(8px)",
-                            zIndex: 10,
-                          }}
-                          aria-label="Next"
-                        >
-                          <ChevronRight size={18} color="#1e1814" strokeWidth={1.5} />
-                        </button>
-                      )}
+                      {/* → Next arrow */}
+                      <button
+                        type="button"
+                        onClick={goNext}
+                        aria-label="Next"
+                        className="group flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-300 hover:scale-105 active:scale-95"
+                        style={{
+                          width: 48, height: 48,
+                          border: "1.5px solid rgba(30,24,20,0.22)",
+                          backgroundColor: "transparent",
+                          marginLeft: "clamp(10px, 2vw, 24px)",
+                          zIndex: 10,
+                        }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#1e1814"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#1e1814"; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(30,24,20,0.22)"; }}
+                      >
+                        <ChevronRight size={16} strokeWidth={1.5} className="transition-colors duration-300 group-hover:stroke-white" style={{ color: "#1e1814" }} />
+                      </button>
                     </div>
-
-                    {/* Dot indicators */}
-                    {totalPages > 1 && (
-                      <div className="flex justify-center gap-2 mt-8">
-                        {Array.from({ length: totalPages }).map((_, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => setRecsPage(i)}
-                            style={{
-                              width: i === recsPage ? 20 : 6,
-                              height: 6,
-                              borderRadius: 3,
-                              backgroundColor: i === recsPage ? "#1e1814" : "rgba(30,24,20,0.2)",
-                              border: "none",
-                              padding: 0,
-                              transition: "width 0.3s ease, background-color 0.3s ease",
-                              cursor: "pointer",
-                            }}
-                            aria-label={`Page ${i + 1}`}
-                          />
-                        ))}
-                      </div>
-                    )}
                   </section>
                 );
               })()}
