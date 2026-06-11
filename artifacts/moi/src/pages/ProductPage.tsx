@@ -84,7 +84,7 @@ interface RecItem {
 }
 
 function buildAllRecs(): RecItem[] {
-  const allProducts = [IMAGES.product1, IMAGES.product2, IMAGES.product3] as const;
+  const allProducts = [IMAGES.product2, IMAGES.product1, IMAGES.product3] as const;
   const items: RecItem[] = [];
   for (const product of allProducts) {
     const colorImages = product.colorImages as Record<string, string> | undefined;
