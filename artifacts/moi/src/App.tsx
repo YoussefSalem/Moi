@@ -33,8 +33,7 @@ const CustomerAuthModal = lazy(() => import("@/components/CustomerAuthModal").th
 const AccountPage = lazy(() => import("@/components/AccountPage").then(m => ({ default: m.AccountPage })));
 const SearchDrawer = lazy(() => import("@/components/SearchDrawer").then(m => ({ default: m.SearchDrawer })));
 import type { SearchItem } from "@/components/SearchDrawer";
-import { ProductCarousel } from "@/components/ProductCarousel";
-import type { ProductCarouselHandle } from "@/components/ProductCarousel";
+import { ProductPage } from "@/pages/ProductPage";
 const OrderConfirmationPage = lazy(() => import("@/pages/OrderConfirmationPage").then(m => ({ default: m.OrderConfirmationPage })));
 const ApplePayIframePage = lazy(() => import("@/pages/ApplePayIframePage").then(m => ({ default: m.ApplePayIframePage })));
 const PaymentFailedPage = lazy(() => import("@/pages/PaymentFailedPage").then(m => ({ default: m.PaymentFailedPage })));
@@ -159,7 +158,6 @@ function AppContent() {
   // animation for popstate navigations eliminates this entirely.
   const [skipExitAnimation, setSkipExitAnimation] = useState(false);
   const [isGoingBack, setIsGoingBack] = useState(false);
-  const carouselRef = useRef<ProductCarouselHandle | null>(null);
 
   function handleColorCardAddToCart(handle: string, _image?: string) {
     // Use Shopify-fetched products (real variant GIDs) — all three products now in `products`.
@@ -221,8 +219,7 @@ function AppContent() {
     closeCartRef.current();
     closeMenuRef.current();
     if (currentPageRef.current === "product") {
-      // Already in the carousel — slide to the target product without a route push
-      carouselRef.current?.jumpTo(handle);
+      // Already on a product page — update the handle in-place (no new overlay push)
       setProductHandle(handle);
       window.history.replaceState(null, "", `/products/${handle}`);
       return;
@@ -695,7 +692,7 @@ function AppContent() {
         {page !== "home" && (
           <motion.div
             id="product-scroll-container"
-            key={isProductPage ? "product-carousel" : page}
+            key={isProductPage ? "product" : page}
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             exit={
@@ -712,7 +709,8 @@ function AppContent() {
               position: "fixed",
               inset: 0,
               zIndex: 51,
-              overflow: isProductPage ? "hidden" : "auto",
+              overflowX: "hidden",
+              overflowY: "auto",
             }}
           >
             {page === "order-confirmation" ? (
@@ -727,12 +725,10 @@ function AppContent() {
                 onContinueShopping={() => navigateTo("home")}
               />
             ) : isProductPage ? (
-              <ProductCarousel
-                ref={carouselRef}
-                products={products}
-                initialHandle={productHandle}
+              <ProductPage
+                handle={productHandle}
                 onBack={() => navigateTo("home", undefined, true)}
-                onProductChange={(newHandle) => setProductHandle(newHandle)}
+                onNavigate={navigateToProduct}
               />
             ) : page === "accessories" ? (
               <div>

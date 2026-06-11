@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, ArrowLeft, Bell } from "lucide-react";
+import { ArrowLeft, Bell } from "lucide-react";
+import { ProductCarousel, type CarouselItem } from "@/components/ProductCarousel";
 import { toast } from "sonner";
 import { useShopifyProductByHandle } from "@/hooks/useShopifyProductByHandle";
 import { parseEGP } from "@/lib/price";
@@ -148,24 +149,9 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [waHover, setWaHover] = useState(false);
   const [applePayAvailable, setApplePayAvailable] = useState(false);
-  const recsRef = useRef<HTMLDivElement>(null);
-  const recsTrackRef = useRef<HTMLDivElement>(null);
-  const recsDraggingRef = useRef(false);
-  const desktopXRef = useRef(0);
-  const desktopAnimatingRef = useRef(false);
   const recs = useMemo(() => ALL_RECS.filter((r) => r.handle !== handle), [handle]);
-  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
   const addingRef = useRef(false);
-
-  // Sync isMobile with viewport
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 767px)");
-    setIsMobile(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
 
   // Detect Apple Pay availability once on mount
   useEffect(() => {
@@ -173,86 +159,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     setApplePayAvailable(!!(ENABLE_APPLE_PAY && AP?.canMakePayments?.()));
   }, []);
 
-  // Desktop: set initial translateX to the middle set (-oneSetWidth) after paint
-  useLayoutEffect(() => {
-    if (isMobile) return;
-    const raf = requestAnimationFrame(() => {
-      const track = recsTrackRef.current;
-      if (!track) return;
-      desktopXRef.current = -(track.scrollWidth / 3);
-      track.style.transition = "none";
-      track.style.transform = `translateX(${desktopXRef.current}px)`;
-    });
-    return () => cancelAnimationFrame(raf);
-    // `loading` is in deps because the recs DOM only renders after the Shopify
-    // fetch resolves; without it the effect runs on mount when the track is null.
-  }, [isMobile, loading]);
-
-  // Desktop: grab-to-drag via translateX; normalises position after drag ends
-  useEffect(() => {
-    if (isMobile) return;
-    const el = recsRef.current;
-    if (!el) return;
-    const DRAG_THRESHOLD = 5;
-    let didDrag = false;
-    let startClientX = 0;
-    let startX = 0;
-
-    const onDown = (e: MouseEvent) => {
-      if (desktopAnimatingRef.current) return;
-      recsDraggingRef.current = true;
-      didDrag = false;
-      startClientX = e.clientX;
-      startX = desktopXRef.current;
-      const track = recsTrackRef.current;
-      if (track) track.style.transition = "none";
-      el.style.cursor = "grabbing";
-    };
-    const onMove = (e: MouseEvent) => {
-      if (!recsDraggingRef.current) return;
-      const dx = e.clientX - startClientX;
-      if (!didDrag && Math.abs(dx) < DRAG_THRESHOLD) return;
-      didDrag = true;
-      e.preventDefault();
-      desktopXRef.current = startX + dx;
-      const track = recsTrackRef.current;
-      if (track) track.style.transform = `translateX(${desktopXRef.current}px)`;
-    };
-    const onUp = () => {
-      if (!recsDraggingRef.current) return;
-      recsDraggingRef.current = false;
-      el.style.cursor = "grab";
-      if (didDrag) {
-        const track = recsTrackRef.current;
-        if (track) {
-          const osw = track.scrollWidth / 3;
-          // Wrap: pull back into the middle set so we always have room to loop
-          while (desktopXRef.current < -2 * osw) desktopXRef.current += osw;
-          while (desktopXRef.current > 0) desktopXRef.current -= osw;
-          track.style.transform = `translateX(${desktopXRef.current}px)`;
-        }
-        const suppressClick = (ev: MouseEvent) => {
-          ev.stopPropagation();
-          ev.preventDefault();
-          window.removeEventListener("click", suppressClick, true);
-        };
-        window.addEventListener("click", suppressClick, true);
-      }
-      didDrag = false;
-    };
-
-    el.addEventListener("mousedown", onDown);
-    el.addEventListener("mousemove", onMove);
-    el.addEventListener("mouseup", onUp);
-    el.addEventListener("mouseleave", onUp);
-    return () => {
-      el.removeEventListener("mousedown", onDown);
-      el.removeEventListener("mousemove", onMove);
-      el.removeEventListener("mouseup", onUp);
-      el.removeEventListener("mouseleave", onUp);
-    };
-    // `loading` in deps: recs DOM (and recsRef) only exists after the fetch resolves.
-  }, [isMobile, loading]);
 
   // SEO: update all <head> meta tags imperatively when the product or image changes.
   // This covers document.title, description, and all Open Graph + Twitter Card tags so
@@ -1170,100 +1076,25 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                 )}
               </div>{/* end mobile */}
 
-              {/* ══ YOU MAY ALSO LIKE — full-width horizontal carousel ══ */}
-              {onNavigate && (
-                <div style={{ backgroundColor: "#faf8f5", borderTop: "1px solid rgba(30,24,20,0.07)" }}>
-                  {(() => {
-                    const renderCard = (rec: typeof recs[0], key: string) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => onNavigate?.(rec.handle)}
-                        style={{ flex: "0 0 auto", width: "clamp(160px, 42vw, 260px)", background: "none", border: "none", padding: 0, textAlign: "left", userSelect: "none", cursor: "pointer" }}
-                        draggable={false}
-                      >
-                        <div style={{ aspectRatio: "3/4", overflow: "hidden", marginBottom: 12, backgroundColor: "rgba(30,24,20,0.04)" }}>
-                          <img src={rec.image()} alt={rec.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }} loading="lazy" draggable={false} />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: rec.swatch, border: "1px solid rgba(30,24,20,0.14)", flexShrink: 0 }} />
-                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "#8a7e74" }}>{rec.color}</span>
-                        </div>
-                        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(0.9rem, 2vw, 1.1rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1.2, marginBottom: 3 }}>{rec.name}</p>
-                        <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.1em", color: "#7a6e64" }}>{rec.price}</p>
-                      </button>
-                    );
-                    // Animate desktop track one card-width step; normalise position after transition so
-                    // there is always room to loop in either direction. dir: 1 = next, -1 = prev.
-                    const scrollDesktop = (dir: 1 | -1) => {
-                      if (desktopAnimatingRef.current) return;
-                      const track = recsTrackRef.current;
-                      if (!track) return;
-                      const firstCard = track.firstElementChild as HTMLElement | null;
-                      const step = (firstCard?.offsetWidth ?? 280) + 24;
-                      desktopXRef.current -= dir * step;
-                      desktopAnimatingRef.current = true;
-                      track.style.transition = "transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
-                      track.style.transform = `translateX(${desktopXRef.current}px)`;
-                      const onEnd = () => {
-                        track.removeEventListener("transitionend", onEnd);
-                        desktopAnimatingRef.current = false;
-                        track.style.transition = "none";
-                        const osw = track.scrollWidth / 3;
-                        while (desktopXRef.current < -2 * osw) desktopXRef.current += osw;
-                        while (desktopXRef.current > 0) desktopXRef.current -= osw;
-                        track.style.transform = `translateX(${desktopXRef.current}px)`;
-                      };
-                      track.addEventListener("transitionend", onEnd);
-                    };
-                    return (
-                      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 0 56px 28px" }}>
-                        {/* Header row */}
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", paddingRight: 28, marginBottom: 40 }}>
-                          <div>
-                            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase", color: "#7a6e64", marginBottom: 14 }}>You May Also Like</p>
-                            <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", fontWeight: 400, letterSpacing: "0.04em", color: "#1e1814" }}>Curated For You</h2>
-                          </div>
-                          {!isMobile && (
-                            <div style={{ display: "flex", gap: 8 }}>
-                              <button type="button" aria-label="Previous" onClick={() => scrollDesktop(-1)} style={{ width: 40, height: 40, border: "1px solid rgba(30,24,20,0.2)", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e1814", borderRadius: 2 }}>
-                                <ChevronLeft size={18} />
-                              </button>
-                              <button type="button" aria-label="Next" onClick={() => scrollDesktop(1)} style={{ width: 40, height: 40, border: "1px solid rgba(30,24,20,0.2)", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e1814", borderRadius: 2 }}>
-                                <ChevronRight size={18} />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {isMobile ? (
-                          /* Mobile: native free-scroll — no snapping, full momentum, tap navigates */
-                          <div
-                            style={{
-                              overflowX: "auto",
-                              overflowY: "hidden",
-                              WebkitOverflowScrolling: "touch" as unknown as undefined,
-                              scrollbarWidth: "none",
-                              msOverflowStyle: "none",
-                            } as React.CSSProperties}
-                          >
-                            <div style={{ display: "flex", gap: 20, paddingRight: 20, width: "max-content" }}>
-                              {recs.map((rec, i) => renderCard(rec, `m-${rec.handle}-${i}`))}
-                            </div>
-                          </div>
-                        ) : (
-                          /* Desktop: infinite loop via tripled track + translateX; grab-to-drag + arrow buttons */
-                          <div ref={recsRef} style={{ overflow: "hidden", cursor: "grab", paddingBottom: 16 }}>
-                            <div ref={recsTrackRef} style={{ display: "flex", gap: 24, width: "max-content", willChange: "transform" }}>
-                              {[...recs, ...recs, ...recs].map((rec, i) => renderCard(rec, `d-${rec.handle}-${i}`))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
+              {/* ══ YOU MAY ALSO LIKE ══ */}
+              {onNavigate && recs.length > 0 && (() => {
+                const carouselItems: CarouselItem[] = recs.map((rec) => ({
+                  handle: rec.handle,
+                  name: rec.name,
+                  color: rec.color,
+                  swatch: rec.swatch,
+                  price: rec.price,
+                  image: rec.image(),
+                }));
+                return (
+                  <ProductCarousel
+                    items={carouselItems}
+                    onItemClick={onNavigate}
+                    subheading="You May Also Like"
+                    heading="Curated For You"
+                  />
+                );
+              })()}
 
               {/* ══ REVIEWS ══ */}
               <div id="reviews" style={{ backgroundColor: "#f4f0eb" }}>
