@@ -352,8 +352,8 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
           background: "radial-gradient(ellipse at 30% 20%, rgba(245,240,232,0.6) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(230,220,205,0.25) 0%, transparent 50%), #faf8f5",
         }}
       >
-        {/* Back button — extra top padding to clear the fixed header (h-16 + safe-area) */}
-        <div className="w-full px-5 md:px-12 pt-20 md:pt-24 pb-3">
+        {/* Back button — mobile/tablet only; desktop uses breadcrumb inside content */}
+        <div className="lg:hidden w-full px-5 pt-20 pb-3">
           <button
             type="button"
             onClick={onBack}
@@ -428,29 +428,269 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="max-w-6xl mx-auto px-5 md:px-12 pt-4 md:pt-6 pb-12 md:pb-16 flex flex-col md:grid md:grid-cols-2 gap-6 md:gap-10 md:items-start"
             >
-            {/* ── IMAGE GALLERY ── */}
-            <div className="w-full flex flex-col gap-3">
-              {/* Image row: arrow | image | arrow */}
-              <div className="flex items-center gap-4 justify-center">
-                {/* Previous — minimal, outside image */}
-                {galleryImages.length > 1 && (
-                  <button
-                    type="button"
-                    aria-label="Previous image"
-                    onClick={(e) => { e.stopPropagation(); prevImg(); }}
-                    className="hidden md:flex shrink-0 items-center justify-center text-[rgba(30,24,20,0.15)] hover:text-[rgba(30,24,20,0.55)] transition-colors duration-200"
-                    style={{ width: 28, height: 60, background: "none", border: "none", cursor: "pointer" }}
-                  >
-                    <ChevronLeft size={22} strokeWidth={1} />
-                  </button>
-                )}
 
-                {/* Main image — click opens lightbox zoom */}
+              {/* ══ DESKTOP — 3-column grid (≥ lg) ══ */}
+              <div className="hidden lg:block">
+                {/* Breadcrumb */}
+                <div style={{ maxWidth: 1280, margin: "0 auto", padding: "88px 28px 0" }}>
+                  <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" as const, color: "#a9a09a" }}>
+                    <button type="button" onClick={onBack} style={{ background: "none", border: "none", color: "#7a6e64", cursor: "pointer", padding: 0, fontFamily: "inherit", fontSize: "inherit", letterSpacing: "inherit", textTransform: "inherit" as const }}>
+                      All Products
+                    </button>
+                    <span style={{ margin: "0 8px" }}>›</span>
+                    <span style={{ color: "#1e1814" }}>{product.name.split(" — ")[0]}</span>
+                  </p>
+                </div>
+
+                {/* 3-col grid */}
                 <div
-                  className="relative flex-1 overflow-hidden rounded-sm cursor-pointer"
-                  onClick={() => setLightboxOpen(true)}
+                  style={{
+                    maxWidth: 1280,
+                    margin: "0 auto",
+                    padding: "40px 28px 96px",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1.1fr 1fr",
+                    gap: "0 64px",
+                    alignItems: "start",
+                  }}
+                >
+                  {/* ── COL 1: Story ── */}
+                  <div style={{ paddingTop: 4 }}>
+                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64", marginBottom: 18 }}>
+                      New Arrival
+                    </p>
+                    <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(2rem, 3vw, 2.8rem)", fontWeight: 400, lineHeight: 1.05, letterSpacing: "0.04em", color: "#1e1814", marginBottom: 20 }}>
+                      {product.name.split(" — ")[0]}
+                    </h1>
+                    <p style={{ fontSize: 14, lineHeight: 1.75, letterSpacing: "0.02em", color: "#7a6e64", marginBottom: 28, fontWeight: 300 }}>
+                      {product.description}
+                    </p>
+                    <div style={{ height: 1, backgroundColor: "rgba(30,24,20,0.10)", marginBottom: 28 }} />
+                    {"descriptionBullets" in (product as unknown as Record<string, unknown>) && (product as unknown as { descriptionBullets?: string[] }).descriptionBullets?.length ? (
+                      <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column" as const, gap: 10, marginBottom: 28 }}>
+                        {(product as unknown as { descriptionBullets: string[] }).descriptionBullets.map((bullet, i) => (
+                          <li key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                            <span style={{ color: "#a9a09a", flexShrink: 0, marginTop: 2, fontFamily: "'Montserrat', sans-serif", fontSize: 12 }}>—</span>
+                            <span style={{ fontSize: 13, color: "#1e1814", fontWeight: 300, letterSpacing: "0.02em", lineHeight: 1.65 }}>{bullet}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {(product as unknown as { outer?: string }).outer && (
+                      <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, color: "#a9a09a", letterSpacing: "0.08em", fontWeight: 400 }}>
+                        {(product as unknown as { ref?: string }).ref ? `REF ${(product as unknown as { ref: string }).ref} · ` : ""}
+                        {(product as unknown as { outer: string }).outer}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* ── COL 2: Gallery ── */}
+                  <div>
+                    <div
+                      className="relative overflow-hidden cursor-pointer"
+                      style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.04)", boxShadow: "0 16px 56px rgba(30,24,20,0.10)" }}
+                      onClick={() => setLightboxOpen(true)}
+                      onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
+                      onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
+                      onPointerUp={(e) => {
+                        const start = dragStartXRef.current;
+                        if (start === null) return;
+                        const delta = (dragLastXRef.current ?? e.clientX) - start;
+                        dragStartXRef.current = null; dragLastXRef.current = null;
+                        if (Math.abs(delta) > 40) { delta < 0 ? nextImg() : prevImg(); setImgLoaded(false); }
+                      }}
+                      onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
+                    >
+                      <AnimatePresence initial={false} mode="wait">
+                        <motion.img
+                          key={mainImage}
+                          src={mainImage}
+                          alt={product.name}
+                          className="absolute inset-0 w-full h-full"
+                          style={{ objectFit: "cover" }}
+                          loading="eager"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: imgLoaded ? 1 : 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.4 }}
+                          onLoad={() => setImgLoaded(true)}
+                          onError={() => setImgLoaded(true)}
+                        />
+                      </AnimatePresence>
+                      {!imgLoaded && <ImageSkeleton variant="warm" />}
+                      {isOutOfStock && (
+                        <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center py-2 pointer-events-none" style={{ background: "rgba(30,24,20,0.52)", backdropFilter: "blur(2px)" }}>
+                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.6rem", letterSpacing: "0.22em", textTransform: "uppercase" as const, color: "rgba(250,248,245,0.92)", fontWeight: 500 }}>Sold Out</span>
+                        </div>
+                      )}
+                    </div>
+                    {galleryImages.length > 1 && (
+                      <div style={{ display: "flex", gap: 8, marginTop: 10, justifyContent: "center" }}>
+                        {galleryImages.map((src, i) => (
+                          <button
+                            key={`${src}-${i}`}
+                            type="button"
+                            onClick={() => { setGalleryIndex(i); setImgLoaded(false); }}
+                            style={{
+                              width: 58, height: 76, border: "none", padding: 0, cursor: "pointer",
+                              overflow: "hidden",
+                              outline: i === galleryIndex ? "1.5px solid #1e1814" : "1px solid rgba(30,24,20,0.12)",
+                              outlineOffset: i === galleryIndex ? 2 : 0,
+                              opacity: i === galleryIndex ? 1 : 0.5,
+                              transition: "opacity 0.2s, outline 0.15s",
+                              flexShrink: 0, background: "none",
+                            }}
+                          >
+                            <div className="relative w-full h-full">
+                              {!thumbLoaded[i] && (
+                                <div className="absolute inset-0 overflow-hidden" style={{ background: "rgba(230,220,205,0.55)" }}>
+                                  <div className="absolute inset-0" style={{ background: "linear-gradient(105deg, transparent 30%, rgba(245,240,232,0.75) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
+                                </div>
+                              )}
+                              <img src={src} alt={`View ${i + 1}`} className="w-full h-full" style={{ objectFit: "cover", opacity: thumbLoaded[i] ? 1 : 0, transition: "opacity 0.2s ease" }} loading="eager"
+                                onLoad={() => setThumbLoaded(prev => { const next = [...prev]; next[i] = true; return next; })}
+                                onError={() => setThumbLoaded(prev => { const next = [...prev]; next[i] = true; return next; })}
+                              />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── COL 3: Purchase ── */}
+                  <div style={{ paddingTop: 4 }}>
+                    {/* Price */}
+                    <div style={{ marginBottom: 28 }}>
+                      {effectiveCompareAtPrice && (
+                        <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.94rem", fontWeight: 400, letterSpacing: "0.08em", color: "#8a7e74", textDecoration: "line-through", textDecorationColor: "#c83232", lineHeight: 1.2, marginBottom: 4 }}>
+                          {effectiveCompareAtPrice}
+                        </p>
+                      )}
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 34, fontWeight: 400, letterSpacing: "0.04em", color: effectiveCompareAtPrice ? "#c83232" : "#1e1814", lineHeight: 1 }}>
+                          {effectivePrice}
+                        </p>
+                        {effectiveCompareAtPrice && (
+                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, fontWeight: 500, letterSpacing: "0.14em", color: "#c83232" }}>
+                            {(() => { const p = parseEGP(String(effectivePrice)); const c = parseEGP(String(effectiveCompareAtPrice)); if (!p || !c || c <= p) return null; return `Save ${Math.round((1 - p / c) * 100)}%`; })()}
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#a9a09a", marginTop: 6, letterSpacing: "0.04em", fontWeight: 300 }}>
+                        Free delivery on orders over 1,500 EGP
+                      </p>
+                    </div>
+
+                    <div style={{ height: 1, backgroundColor: "rgba(30,24,20,0.10)", marginBottom: 28 }} />
+
+                    {/* Size */}
+                    {displaySizes.length > 1 && (
+                      <div style={{ marginBottom: 32 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64" }}>Size</span>
+                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#7a6e64", fontWeight: 300, letterSpacing: "0.04em" }}>{selectedSize}</span>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(displaySizes.length, 4)}, 1fr)`, gap: 8 }}>
+                          {displaySizes.map((size) => {
+                            const available = product.variants?.some((v) => v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOption?.optionName.toLowerCase() && o.value === size) && v.availableForSale) ?? true;
+                            const isSelected = selectedSize === size;
+                            return (
+                              <button key={size} type="button" onClick={() => setSelectedSize(size)}
+                                style={{ height: 40, position: "relative", overflow: "hidden", border: isSelected ? "1.5px solid #1e1814" : "1px solid #d4cdc8", borderRadius: 0, backgroundColor: isSelected ? "#1e1814" : "transparent", color: !available ? "rgba(30,24,20,0.36)" : isSelected ? "#faf8f5" : "#1e1814", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "all 0.15s" }}
+                              >
+                                {!available && (<span aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}><svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0 }}><line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(30,24,20,0.18)" strokeWidth="1" /></svg></span>)}
+                                {size}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {displaySizes.length <= 1 && sizeOption && (
+                      <div style={{ marginBottom: 32 }}>
+                        <button type="button" disabled style={{ padding: "11px 24px", fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase" as const, fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "#1e1814", border: "1px solid #1e1814", backgroundColor: "rgba(30,24,20,0.04)", borderRadius: 0 }}>
+                          One Size
+                        </button>
+                      </div>
+                    )}
+
+                    {/* CTAs */}
+                    {isOutOfStock ? (
+                      <motion.button type="button" onClick={handleNotifyMe} whileTap={{ scale: 0.98 }}
+                        style={{ width: "100%", height: 48, backgroundColor: "rgba(30,24,20,0.9)", color: "#f5f0e8", border: "none", borderRadius: 0, fontSize: 11, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                      >
+                        <Bell size={11} strokeWidth={1.8} />
+                        Notify Me When Back
+                      </motion.button>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
+                        <motion.button type="button" onClick={handleAddToCart} whileTap={{ scale: 0.98 }}
+                          style={{ width: "100%", height: 48, borderRadius: 0, border: "none", backgroundColor: addedFeedback ? "#2d6a4f" : "#1e1814", color: "#faf8f5", fontSize: 11, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "background-color 0.3s" }}
+                        >
+                          {addedFeedback ? "Added to Bag ✓" : "Add to Bag"}
+                        </motion.button>
+                        <motion.button type="button" onClick={handleBuyNow} whileTap={{ scale: 0.98 }}
+                          style={{ width: "100%", height: 48, borderRadius: 0, border: "1px solid #d4cdc8", backgroundColor: "transparent", color: "#1e1814", fontSize: 11, fontWeight: 500, letterSpacing: "0.14em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "background-color 0.15s" }}
+                        >
+                          Buy It Now
+                        </motion.button>
+                        {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
+                          <>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
+                              <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" as const }}>or</span>
+                              <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                            </div>
+                            <ShopifyApplePayButton variantId={selectedVariant?.id ?? product.variantId ?? ""} quantity={1} priceEGP={parseEGP(String(effectivePrice)) || 0} disabled={isOutOfStock} style={{ width: "100%" }}
+                              onSuccess={(orderNumber, total) => { toast.success(`Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`, { duration: 5000 }); }}
+                              onError={(msg) => { toast.error(msg, { duration: 4000 }); }}
+                            />
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Recommendations — stacked list in right col */}
+                    {onNavigate && (
+                      <div style={{ marginTop: 40, paddingTop: 32, borderTop: "1px solid rgba(30,24,20,0.08)" }}>
+                        <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.28em", textTransform: "uppercase" as const, color: "#8a7e74", marginBottom: 16 }}>
+                          You May Also Like
+                        </p>
+                        <div style={{ display: "flex", flexDirection: "column" as const, gap: 14 }}>
+                          {[
+                            { handle: "moi-versa-top-white",  name: "MOI VERSA TOP", color: "White",      price: "1,399 EGP", image: IMAGES.product2.colorImages.White as string },
+                            { handle: "moi-versa-top-yellow", name: "MOI VERSA TOP", color: "Yellow",     price: "1,399 EGP", image: IMAGES.product2.colorImages.Yellow as string },
+                            { handle: "moi-versa-top-teal",   name: "MOI VERSA TOP", color: "Teal",       price: "1,399 EGP", image: IMAGES.product2.colorImages.Teal as string },
+                            { handle: "moi-wavvy-light-blue", name: "MOI WAVVY",     color: "Light Blue",  price: "899 EGP",   image: IMAGES.product1.colorImages["Light Blue"] as string },
+                            { handle: "moi-wavvy-navy",       name: "MOI WAVVY",     color: "Navy",        price: "899 EGP",   image: IMAGES.product1.colorImages.Navy as string },
+                          ].filter((r) => r.handle !== handle).slice(0, 4).map((rec) => (
+                            <button key={rec.handle} type="button" onClick={() => onNavigate(rec.handle)}
+                              style={{ display: "flex", gap: 14, alignItems: "center", background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left" as const }}
+                            >
+                              <div style={{ width: 48, height: 64, overflow: "hidden", flexShrink: 0, backgroundColor: "rgba(30,24,20,0.04)" }}>
+                                <img src={rec.image} alt={rec.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+                              </div>
+                              <div>
+                                <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 15, fontWeight: 300, color: "#1e1814", lineHeight: 1.2 }}>{rec.name}</p>
+                                <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.08em", color: "#7a6e64", marginTop: 3 }}>{rec.color} · {rec.price}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>{/* end 3-col */}
+              </div>{/* end desktop */}
+
+              {/* ══ MOBILE / TABLET stacked (< lg) ══ */}
+              <div className="lg:hidden" style={{ paddingBottom: 96 }}>
+                {/* Full-bleed gallery */}
+                <div
+                  className="relative overflow-hidden"
+                  style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
                   onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
                   onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
                   onPointerUp={(e) => {
@@ -458,531 +698,169 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     if (start === null) return;
                     const delta = (dragLastXRef.current ?? e.clientX) - start;
                     dragStartXRef.current = null; dragLastXRef.current = null;
-                    if (Math.abs(delta) > 40) { delta < 0 ? nextImg() : prevImg(); }
+                    if (Math.abs(delta) > 40) { delta < 0 ? nextImg() : prevImg(); setImgLoaded(false); }
                   }}
                   onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
-                  style={{ touchAction: "pan-y", aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.03)", userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
+                  onClick={() => setLightboxOpen(true)}
                 >
-                  <AnimatePresence initial={false} mode="wait">
-                    <motion.img
-                      key={mainImage}
-                      src={mainImage}
-                      alt={`${product.name}`}
-                      className="absolute inset-0 w-full h-full"
-                      style={{ objectFit: "contain", objectPosition: "center" }}
-                      loading="eager"
-                      decoding="async"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: imgLoaded ? 1 : 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.4 }}
-                      onLoad={() => setImgLoaded(true)}
-                      onError={() => setImgLoaded(true)}
-                    />
-                  </AnimatePresence>
-                  {!imgLoaded && (
-                    <ImageSkeleton variant="warm" />
-                  )}
-
-                  {/* Out-of-stock banner */}
-                  {isOutOfStock && (
-                    <div
-                      className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center py-2 pointer-events-none"
-                      style={{ background: "rgba(30,24,20,0.52)", backdropFilter: "blur(2px)" }}
-                    >
-                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.6rem", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(250,248,245,0.92)", fontWeight: 500 }}>
-                        Sold Out
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Zoom hint — mobile only */}
-                  <div className="absolute bottom-3 right-3 md:hidden" style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 8, color: "rgba(30,24,20,0.35)", letterSpacing: "0.2em", textTransform: "uppercase" }}>
-                    tap to zoom
-                  </div>
-                </div>
-
-                {/* Next — minimal, outside image */}
-                {galleryImages.length > 1 && (
-                  <button
-                    type="button"
-                    aria-label="Next image"
-                    onClick={(e) => { e.stopPropagation(); nextImg(); }}
-                    className="hidden md:flex shrink-0 items-center justify-center text-[rgba(30,24,20,0.15)] hover:text-[rgba(30,24,20,0.55)] transition-colors duration-200"
-                    style={{ width: 28, height: 60, background: "none", border: "none", cursor: "pointer" }}
-                  >
-                    <ChevronRight size={22} strokeWidth={1} />
-                  </button>
-                )}
-              </div>
-
-              {/* Thumbnails — centered under image */}
-              {galleryImages.length > 1 && (
-                <div className="flex gap-2 flex-wrap justify-center">
-                  {galleryImages.map((src, i) => (
-                    <button
-                      key={`${src}-${i}`}
-                      type="button"
-                      onClick={() => { setGalleryIndex(i); setImgLoaded(false); }}
-                      className="overflow-hidden rounded-sm transition-all duration-200"
-                      style={{
-                        width: 64,
-                        height: 80,
-                        border: i === galleryIndex
-                          ? "1.5px solid #1e1814"
-                          : "1.5px solid rgba(30,24,20,0.12)",
-                        flexShrink: 0,
-                        opacity: i === galleryIndex ? 1 : 0.65,
-                      }}
-                    >
-                      <div className="relative w-full h-full">
-                        {/* Warm shimmer placeholder until image is ready */}
-                        {!thumbLoaded[i] && (
-                          <div className="absolute inset-0 overflow-hidden" style={{ background: "rgba(230,220,205,0.55)" }}>
-                            <div
-                              className="absolute inset-0"
-                              style={{ background: "linear-gradient(105deg, transparent 30%, rgba(245,240,232,0.75) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }}
-                            />
-                          </div>
-                        )}
-                        <img
-                          src={src}
-                          alt={`View ${i + 1}`}
-                          className="w-full h-full"
-                          style={{ objectFit: "cover", opacity: thumbLoaded[i] ? 1 : 0, transition: "opacity 0.2s ease" }}
-                          loading="eager"
-                          onLoad={() => setThumbLoaded(prev => { const next = [...prev]; next[i] = true; return next; })}
-                          onError={() => setThumbLoaded(prev => { const next = [...prev]; next[i] = true; return next; })}
-                        />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* ── PRODUCT INFO ── */}
-            <div className="flex flex-col pt-0 w-full">
-              {/* Name */}
-              <h1
-                style={{
-                  fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontSize: "clamp(1.77rem, 7vw, 3.12rem)",
-                  fontWeight: 300,
-                  color: "#1e1814",
-                  letterSpacing: "0.04em",
-                  lineHeight: 1.1,
-                  marginBottom: 8,
-                }}
-              >
-                {product.name}
-              </h1>
-
-              {/* Price */}
-              <div className="flex flex-col" style={{ marginBottom: 20, gap: 2 }}>
-                {effectiveCompareAtPrice && (
-                  <span
-                    style={{
-                      fontFamily: "'Montserrat', sans-serif",
-                      fontSize: "clamp(0.94rem, 2.6vw, 1.08rem)",
-                      fontWeight: 400,
-                      letterSpacing: "0.08em",
-                      color: "#8a7e74",
-                      textDecoration: "line-through",
-                      textDecorationThickness: 1,
-                      textDecorationColor: "#c83232",
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {effectiveCompareAtPrice}
-                  </span>
-                )}
-                <div className="flex items-center gap-2">
-                  <p
-                    style={{
-                      fontFamily: "'Montserrat', sans-serif",
-                      fontSize: "clamp(1.04rem, 3vw, 1.2rem)",
-                      fontWeight: 500,
-                      letterSpacing: "0.12em",
-                      color: effectiveCompareAtPrice ? "#c83232" : "#1e1814",
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {effectivePrice}
-                  </p>
-                  {effectiveCompareAtPrice && (
-                    <span
-                      style={{
-                        fontFamily: "'Montserrat', sans-serif",
-                        fontSize: "11px",
-                        fontWeight: 500,
-                        letterSpacing: "0.14em",
-                        color: "#c83232",
-                      }}
-                    >
-                      {(() => {
-                        const p = parseEGP(String(effectivePrice));
-                        const c = parseEGP(String(effectiveCompareAtPrice));
-                        if (!p || !c || c <= p) return null;
-                        return `Save ${Math.round((1 - p / c) * 100)}%`;
-                      })()}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="w-10 mb-6" style={{ height: 1, backgroundColor: "rgba(180,160,140,0.4)" }} />
-
-              {/* Description — bullets if available, otherwise plain text */}
-              {"descriptionBullets" in (product as unknown as Record<string, unknown>) && (product as unknown as { descriptionBullets?: string[] }).descriptionBullets?.length ? (
-                <ul className="mb-8 space-y-2" style={{ maxWidth: 400 }}>
-                  {(product as unknown as { descriptionBullets: string[] }).descriptionBullets.map((bullet, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <span
-                        className="flex-shrink-0 mt-2 rounded-full"
-                        style={{
-                          width: 6,
-                          height: 6,
-                          backgroundColor: "rgba(30,24,20,0.18)",
-                          border: "1px solid rgba(30,24,20,0.2)",
-                        }}
+                  <div style={{ aspectRatio: "3/4", position: "relative" }}>
+                    <AnimatePresence initial={false} mode="wait">
+                      <motion.img
+                        key={mainImage}
+                        src={mainImage}
+                        alt={product.name}
+                        className="absolute inset-0 w-full h-full"
+                        style={{ objectFit: "cover" }}
+                        loading="eager"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: imgLoaded ? 1 : 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        onLoad={() => setImgLoaded(true)}
+                        onError={() => setImgLoaded(true)}
                       />
-                      <span
-                        className="leading-relaxed font-light"
-                        style={{ color: "#6a5e56", fontSize: "clamp(0.85rem, 2.2vw, 0.94rem)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-                      >
-                        {bullet}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p
-                  className="leading-relaxed font-light mb-8"
-                  style={{ color: "#6a5e56", fontSize: "clamp(0.85rem, 2.2vw, 0.94rem)", maxWidth: 400 }}
-                >
-                  {product.description}
-                </p>
-              )}
-
-              {/* Size selector */}
-              {displaySizes.length > 1 && (
-                <div className="flex flex-col gap-3 mb-8">
-                  <p
-                    style={{
-                      fontFamily: "'Montserrat', sans-serif",
-                      fontSize: 10,
-                      letterSpacing: "0.28em",
-                      textTransform: "uppercase",
-                      color: "#8a7e74",
-                    }}
-                  >
-                    Size —{" "}
-                    <span style={{ color: "#1e1814" }}>{selectedSize}</span>
-                  </p>
-                  <div className="flex gap-2 flex-wrap">
-                    {displaySizes.map((size) => {
-                      const available = product.variants?.some(
-                        (v) => v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOption?.optionName.toLowerCase() && o.value === size) && v.availableForSale,
-                      ) ?? true;
-                      const isSelected = selectedSize === size;
-                      return (
-                        <button
-                          key={size}
-                          type="button"
-                          onClick={() => setSelectedSize(size)}
-                          className="relative overflow-hidden border transition-all duration-300"
-                          style={{
-                            minWidth: 88,
-                            padding: "9px 14px",
-                            fontSize: 11,
-                            letterSpacing: "0.22em",
-                            textTransform: "uppercase",
-                            fontFamily: "'Montserrat', sans-serif",
-                            fontWeight: 500,
-                            color: !available ? "rgba(30,24,20,0.36)" : isSelected ? "#1e1814" : "#5a4e44",
-                            borderColor: isSelected ? "#1e1814" : "rgba(30,24,20,0.28)",
-                            backgroundColor: isSelected ? "rgba(30,24,20,0.08)" : "rgba(250,248,245,0.8)",
-                          }}
-                        >
-                          {!available && (
-                            <span aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-                              <svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0 }}>
-                                <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(30,24,20,0.18)" strokeWidth="1" />
-                              </svg>
-                            </span>
-                          )}
-                          {size}
-                        </button>
-                      );
-                    })}
+                    </AnimatePresence>
+                    {!imgLoaded && <ImageSkeleton variant="warm" />}
+                    {isOutOfStock && (
+                      <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center py-2 pointer-events-none" style={{ background: "rgba(30,24,20,0.52)", backdropFilter: "blur(2px)" }}>
+                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.6rem", letterSpacing: "0.22em", textTransform: "uppercase" as const, color: "rgba(250,248,245,0.92)", fontWeight: 500 }}>Sold Out</span>
+                      </div>
+                    )}
+                    {/* Gallery dots */}
+                    {galleryImages.length > 1 && (
+                      <div style={{ position: "absolute", bottom: 14, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6, zIndex: 10 }}>
+                        {galleryImages.map((_, i) => (
+                          <button key={i} type="button"
+                            onClick={(e) => { e.stopPropagation(); setGalleryIndex(i); setImgLoaded(false); }}
+                            style={{ width: i === galleryIndex ? 18 : 6, height: 6, borderRadius: 9999, border: "none", padding: 0, cursor: "pointer", backgroundColor: i === galleryIndex ? "#faf8f5" : "rgba(250,248,245,0.45)", transition: "width 0.22s, background-color 0.22s" }}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {selectedSize && (
-                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "11.5px", color: "rgba(90,78,68,0.78)", lineHeight: 1.7 }}>
-                      {selectedSize.toLowerCase().includes("s") || selectedSize.toLowerCase().includes("m")
-                        ? <><span style={{ color: "rgba(30,24,20,0.8)" }}>{selectedSize}</span> — a closer fit. Best for heights up to 1.65 m.</>
-                        : <><span style={{ color: "rgba(30,24,20,0.8)" }}>{selectedSize}</span> — a relaxed fit. Best for heights 1.65 m and above.</>
-                      }
-                    </p>
+                </div>
+
+                {/* Info block */}
+                <div style={{ padding: "28px 20px 0" }}>
+                  <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64", marginBottom: 10 }}>
+                    New Arrival
+                  </p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 20 }}>
+                    <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.77rem, 7vw, 2.4rem)", fontWeight: 400, letterSpacing: "0.04em", lineHeight: 1.1, color: "#1e1814" }}>
+                      {product.name.split(" — ")[0]}
+                    </h1>
+                    <div style={{ textAlign: "right" as const, flexShrink: 0 }}>
+                      {effectiveCompareAtPrice && (
+                        <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.88rem", fontWeight: 400, letterSpacing: "0.08em", color: "#8a7e74", textDecoration: "line-through", textDecorationColor: "#c83232" }}>
+                          {effectiveCompareAtPrice}
+                        </p>
+                      )}
+                      <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.1rem, 4vw, 1.5rem)", fontWeight: 400, letterSpacing: "0.04em", color: effectiveCompareAtPrice ? "#c83232" : "#1e1814" }}>
+                        {effectivePrice}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Size */}
+                  {displaySizes.length > 1 && (
+                    <div style={{ marginBottom: 24 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64" }}>Size</span>
+                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#7a6e64", fontWeight: 300 }}>{selectedSize}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {displaySizes.map((size) => {
+                          const available = product.variants?.some((v) => v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOption?.optionName.toLowerCase() && o.value === size) && v.availableForSale) ?? true;
+                          const isSelected = selectedSize === size;
+                          return (
+                            <button key={size} type="button" onClick={() => setSelectedSize(size)}
+                              style={{ flex: 1, height: 42, position: "relative", overflow: "hidden", border: isSelected ? "1.5px solid #1e1814" : "1px solid #d4cdc8", borderRadius: 0, backgroundColor: isSelected ? "#1e1814" : "transparent", color: !available ? "rgba(30,24,20,0.36)" : isSelected ? "#faf8f5" : "#1e1814", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "all 0.15s" }}
+                            >
+                              {!available && (<span aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}><svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0 }}><line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(30,24,20,0.18)" strokeWidth="1" /></svg></span>)}
+                              {size}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {displaySizes.length <= 1 && sizeOption && (
+                    <div style={{ marginBottom: 24 }}>
+                      <button type="button" disabled style={{ padding: "11px 24px", fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase" as const, fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "#1e1814", border: "1px solid #1e1814", backgroundColor: "rgba(30,24,20,0.04)", borderRadius: 0 }}>
+                        One Size
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Description */}
+                  <p style={{ fontSize: 13, lineHeight: 1.75, color: "#7a6e64", fontWeight: 300, letterSpacing: "0.02em", marginBottom: 24 }}>
+                    {product.description}
+                  </p>
+
+                  {/* Out-of-stock CTA — inline */}
+                  {isOutOfStock && (
+                    <motion.button type="button" onClick={handleNotifyMe} whileTap={{ scale: 0.98 }}
+                      style={{ width: "100%", height: 48, backgroundColor: "rgba(30,24,20,0.9)", color: "#f5f0e8", border: "none", borderRadius: 0, fontSize: 11, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 16 }}
+                    >
+                      <Bell size={11} strokeWidth={1.8} />
+                      Notify Me When Back
+                    </motion.button>
+                  )}
+
+                  {/* Recommendations — horizontal scroll */}
+                  {onNavigate && (
+                    <div style={{ marginTop: 32, paddingTop: 24, borderTop: "1px solid rgba(30,24,20,0.08)" }}>
+                      <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.28em", textTransform: "uppercase" as const, color: "#8a7e74", marginBottom: 16 }}>
+                        You May Also Like
+                      </p>
+                      <div ref={recsRef} style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
+                        {[
+                          { handle: "moi-versa-top-white",  name: "MOI VERSA TOP", color: "White",     price: "1,399 EGP", image: IMAGES.product2.colorImages.White as string,              swatch: "#f5f0e8" },
+                          { handle: "moi-versa-top-yellow", name: "MOI VERSA TOP", color: "Yellow",    price: "1,399 EGP", image: IMAGES.product2.colorImages.Yellow as string,             swatch: "#e8d080" },
+                          { handle: "moi-versa-top-teal",   name: "MOI VERSA TOP", color: "Teal",      price: "1,399 EGP", image: IMAGES.product2.colorImages.Teal as string,               swatch: "#4a8a8a" },
+                          { handle: "moi-wavvy-light-blue", name: "MOI WAVVY",     color: "Light Blue", price: "899 EGP",  image: IMAGES.product1.colorImages["Light Blue"] as string,       swatch: "#a8c8d8" },
+                          { handle: "moi-wavvy-navy",       name: "MOI WAVVY",     color: "Navy",       price: "899 EGP",  image: IMAGES.product1.colorImages.Navy as string,                swatch: "#3a5a7a" },
+                          { handle: "moi-wavvy-mint",       name: "MOI WAVVY",     color: "Mint",       price: "899 EGP",  image: IMAGES.product1.colorImages.Mint as string,                swatch: "#98c8a8" },
+                        ].filter((r) => r.handle !== handle).slice(0, 5).map((rec) => (
+                          <button key={rec.handle} type="button" onClick={() => onNavigate(rec.handle)}
+                            style={{ flexShrink: 0, width: 100, background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left" as const }}
+                          >
+                            <div style={{ aspectRatio: "3/4", overflow: "hidden", marginBottom: 8, backgroundColor: "rgba(30,24,20,0.04)" }}>
+                              <img src={rec.image} alt={rec.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                              <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: rec.swatch, border: "1px solid rgba(30,24,20,0.14)", flexShrink: 0 }} />
+                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.14em", textTransform: "uppercase" as const, color: "#8a7e74" }}>{rec.color}</span>
+                            </div>
+                            <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 13, fontWeight: 300, color: "#1e1814", lineHeight: 1.2 }}>{rec.name}</p>
+                            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.08em", color: "#7a6e64", marginTop: 2 }}>{rec.price}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
-              )}
 
-              {/* One Size pill */}
-              {displaySizes.length <= 1 && sizeOption && (
-                <div className="mb-8">
-                  <button
-                    type="button"
-                    disabled
-                    style={{
-                      padding: "11px 24px",
-                      fontSize: 10,
-                      letterSpacing: "0.22em",
-                      textTransform: "uppercase",
-                      fontFamily: "'Montserrat', sans-serif",
-                      fontWeight: 500,
-                      color: "#1e1814",
-                      border: "1px solid #1e1814",
-                      backgroundColor: "rgba(30,24,20,0.04)",
-                    }}
-                  >
-                    One Size
-                  </button>
-                </div>
-              )}
-
-              {/* CTA — wide, luxurious, generous padding */}
-              {isOutOfStock ? (
-                <motion.button
-                  type="button"
-                  onClick={handleNotifyMe}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex items-center justify-center gap-2 border transition-all duration-300 w-full md:w-auto"
-                  style={{
-                    padding: "18px 48px",
-                    minWidth: 280,
-                    maxWidth: 400,
-                    fontSize: "clamp(0.73rem, 2.5vw, 0.83rem)",
-                    letterSpacing: "0.32em",
-                    textTransform: "uppercase",
-                    fontFamily: "'Montserrat', sans-serif",
-                    color: "#f5f0e8",
-                    borderColor: "rgba(245,240,232,0.2)",
-                    backgroundColor: "rgba(30,24,20,0.9)",
-                    borderRadius: 6,
-                  }}
-                >
-                  <Bell size={11} strokeWidth={1.8} />
-                  Notify Me When Back
-                </motion.button>
-              ) : (
-                <div className="flex flex-col gap-3 w-full md:w-auto">
-                  <motion.button
-                    type="button"
-                    onClick={handleAddToCart}
-                    whileTap={{ scale: 0.98 }}
-                    className="border transition-all duration-500 w-full flex items-center justify-center"
-                    style={{
-                      padding: "16px 56px",
-                      minWidth: 280,
-                      maxWidth: 400,
-                      fontSize: "clamp(0.73rem, 2.5vw, 0.83rem)",
-                      letterSpacing: "0.32em",
-                      textTransform: "uppercase",
-                      fontFamily: "'Montserrat', sans-serif",
-                      color: addedFeedback ? "#1e1814" : "#1e1814",
-                      borderColor: "#1e1814",
-                      backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "transparent",
-                      borderRadius: 6,
-                    }}
-                  >
-                    {addedFeedback ? "Added to Bag ✓" : "Add to Cart"}
-                  </motion.button>
-                  <motion.button
-                    type="button"
-                    onClick={handleBuyNow}
-                    whileTap={{ scale: 0.98 }}
-                    className="border transition-all duration-500 w-full flex items-center justify-center"
-                    style={{
-                      padding: "18px 56px",
-                      minWidth: 280,
-                      maxWidth: 400,
-                      fontSize: "clamp(0.73rem, 2.5vw, 0.83rem)",
-                      letterSpacing: "0.32em",
-                      textTransform: "uppercase",
-                      fontFamily: "'Montserrat', sans-serif",
-                      color: "#faf8f5",
-                      borderColor: "#1e1814",
-                      backgroundColor: "#1e1814",
-                      boxShadow: "0 10px 32px rgba(30,24,20,0.18)",
-                      borderRadius: 6,
-                    }}
-                  >
-                    Buy It Now
-                  </motion.button>
-
-                  {/* Apple Pay quick-buy */}
-                  {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
-                    <>
-                    <div className="flex items-center gap-3">
-                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
-                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" }}>or</span>
-                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
-                    </div>
-                    <ShopifyApplePayButton
-                      variantId={selectedVariant?.id ?? product.variantId ?? ""}
-                      quantity={1}
-                      priceEGP={parseEGP(String(effectivePrice)) || 0}
-                      disabled={isOutOfStock}
-                      style={{ width: "100%" }}
-                      onSuccess={(orderNumber, total) => {
-                        toast.success(
-                          `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
-                          { duration: 5000 },
-                        );
-                      }}
-                      onError={(msg) => {
-                        toast.error(msg, { duration: 4000 });
-                      }}
-                    />
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* You May Also Like — clothing recommendations */}
-              {onNavigate && (
-                <div className="mt-12 pt-10 border-t border-[rgba(30,24,20,0.08)]">
-                  <p
-                    className="text-center"
-                    style={{
-                      fontFamily: "'Montserrat', sans-serif",
-                      fontSize: "clamp(10px, 2.8vw, 11px)",
-                      letterSpacing: "0.28em",
-                      textTransform: "uppercase",
-                      color: "#8a7e74",
-                      marginBottom: 20,
-                    }}
-                  >
-                    You May Also Like
-                  </p>
-                  <div className="hidden md:flex items-center gap-3">
-                    <button
-                      type="button"
-                      aria-label="Scroll left"
-                      onClick={() => recsRef.current?.scrollBy({ left: -140, behavior: "smooth" })}
-                      className="shrink-0 flex items-center justify-center text-[rgba(30,24,20,0.18)] hover:text-[rgba(30,24,20,0.55)] transition-colors duration-200"
-                      style={{ width: 28, height: 60, background: "none", border: "none", cursor: "pointer" }}
+                {/* Sticky bottom CTA bar */}
+                {!isOutOfStock && (
+                  <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 90, backgroundColor: "rgba(250,248,245,0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderTop: "1px solid rgba(30,24,20,0.10)", padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", display: "flex", gap: 10 }}>
+                    <motion.button type="button" onClick={handleBuyNow} whileTap={{ scale: 0.98 }}
+                      style={{ width: 80, height: 48, borderRadius: 0, flexShrink: 0, border: "1px solid #d4cdc8", backgroundColor: "transparent", color: "#1e1814", fontSize: 9, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif" }}
                     >
-                      <ChevronLeft size={22} strokeWidth={1} />
-                    </button>
-                    <div ref={recsRef} className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
-                      {(() => {
-                        const clothingRecs = [
-                          { handle: "moi-versa-top-white", name: "MOI VERSA TOP", color: "White", price: "1,399 EGP", image: IMAGES.product2.colorImages.White as string, swatch: "#f5f0e8" },
-                          { handle: "moi-versa-top-yellow", name: "MOI VERSA TOP", color: "Yellow", price: "1,399 EGP", image: IMAGES.product2.colorImages.Yellow as string, swatch: "#e8d080" },
-                          { handle: "moi-versa-top-teal", name: "MOI VERSA TOP", color: "Teal", price: "1,399 EGP", image: IMAGES.product2.colorImages.Teal as string, swatch: "#4a8a8a" },
-                          { handle: "moi-wavvy-light-blue", name: "MOI WAVVY", color: "Light Blue", price: "899 EGP", image: IMAGES.product1.colorImages["Light Blue"] as string, swatch: "#a8c8d8" },
-                          { handle: "moi-wavvy-navy", name: "MOI WAVVY", color: "Navy", price: "899 EGP", image: IMAGES.product1.colorImages.Navy as string, swatch: "#3a5a7a" },
-                          { handle: "moi-wavvy-mint", name: "MOI WAVVY", color: "Mint", price: "899 EGP", image: IMAGES.product1.colorImages.Mint as string, swatch: "#98c8a8" },
-                        ];
-                        const visible = clothingRecs.filter((r) => r.handle !== handle).slice(0, 6);
-                        return visible.map((rec) => (
-                          <button
-                          key={rec.handle}
-                          type="button"
-                          onClick={() => onNavigate(rec.handle)}
-                          className="flex-shrink-0 text-left cursor-pointer group"
-                          style={{ width: 120 }}
-                        >
-                          <div className="overflow-hidden rounded-sm mb-2" style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.04)" }}>
-                            <img
-                              src={rec.image}
-                              alt={rec.name}
-                              className="w-full h-full"
-                              style={{ objectFit: "cover", transition: "transform 0.5s ease" }}
-                              loading="lazy"
-                            />
-                          </div>
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span className="rounded-full flex-shrink-0" style={{ width: 8, height: 8, backgroundColor: rec.swatch, border: "1px solid rgba(30,24,20,0.14)" }} />
-                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "#8a7e74" }}>
-                              {rec.color}
-                            </span>
-                          </div>
-                          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(0.82rem, 2vw, 0.94rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1.2 }}>
-                            {rec.name}
-                          </p>
-                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.1em", color: "#7a6e64", marginTop: 2 }}>
-                            {rec.price}
-                          </p>
-                        </button>
-                      ));
-                    })()}
-                    </div>
-                    <button
-                      type="button"
-                      aria-label="Scroll right"
-                      onClick={() => recsRef.current?.scrollBy({ left: 140, behavior: "smooth" })}
-                      className="shrink-0 flex items-center justify-center text-[rgba(30,24,20,0.18)] hover:text-[rgba(30,24,20,0.55)] transition-colors duration-200"
-                      style={{ width: 28, height: 60, background: "none", border: "none", cursor: "pointer" }}
+                      Buy Now
+                    </motion.button>
+                    <motion.button type="button" onClick={handleAddToCart} whileTap={{ scale: 0.98 }}
+                      style={{ flex: 1, height: 48, borderRadius: 0, backgroundColor: addedFeedback ? "#2d6a4f" : "#1e1814", color: "#faf8f5", border: "none", fontSize: 10, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "background-color 0.3s" }}
                     >
-                      <ChevronRight size={22} strokeWidth={1} />
-                    </button>
+                      {addedFeedback ? "Added ✓" : `Add to Bag — ${effectivePrice}`}
+                    </motion.button>
                   </div>
-                  {/* Mobile: same scrollable list, no arrows */}
-                  <div className="md:hidden flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
-                    {(() => {
-                      const clothingRecs = [
-                        { handle: "moi-versa-top-white", name: "MOI VERSA TOP", color: "White", price: "1,399 EGP", image: IMAGES.product2.colorImages.White as string, swatch: "#f5f0e8" },
-                        { handle: "moi-versa-top-yellow", name: "MOI VERSA TOP", color: "Yellow", price: "1,399 EGP", image: IMAGES.product2.colorImages.Yellow as string, swatch: "#e8d080" },
-                        { handle: "moi-versa-top-teal", name: "MOI VERSA TOP", color: "Teal", price: "1,399 EGP", image: IMAGES.product2.colorImages.Teal as string, swatch: "#4a8a8a" },
-                        { handle: "moi-wavvy-light-blue", name: "MOI WAVVY", color: "Light Blue", price: "899 EGP", image: IMAGES.product1.colorImages["Light Blue"] as string, swatch: "#a8c8d8" },
-                        { handle: "moi-wavvy-navy", name: "MOI WAVVY", color: "Navy", price: "899 EGP", image: IMAGES.product1.colorImages.Navy as string, swatch: "#3a5a7a" },
-                        { handle: "moi-wavvy-mint", name: "MOI WAVVY", color: "Mint", price: "899 EGP", image: IMAGES.product1.colorImages.Mint as string, swatch: "#98c8a8" },
-                      ];
-                      const visible = clothingRecs.filter((r) => r.handle !== handle).slice(0, 6);
-                      return visible.map((rec) => (
-                        <button
-                          key={rec.handle}
-                          type="button"
-                          onClick={() => onNavigate(rec.handle)}
-                          className="flex-shrink-0 text-left cursor-pointer group"
-                          style={{ width: 120 }}
-                        >
-                          <div className="overflow-hidden rounded-sm mb-2" style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.04)" }}>
-                            <img
-                              src={rec.image}
-                              alt={rec.name}
-                              className="w-full h-full"
-                              style={{ objectFit: "cover", transition: "transform 0.5s ease" }}
-                              loading="lazy"
-                            />
-                          </div>
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span className="rounded-full flex-shrink-0" style={{ width: 8, height: 8, backgroundColor: rec.swatch, border: "1px solid rgba(30,24,20,0.14)" }} />
-                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "#8a7e74" }}>
-                              {rec.color}
-                            </span>
-                          </div>
-                          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(0.82rem, 2vw, 0.94rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1.2 }}>
-                            {rec.name}
-                          </p>
-                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.1em", color: "#7a6e64", marginTop: 2 }}>
-                            {rec.price}
-                          </p>
-                        </button>
-                      ));
-                    })()}
-                  </div>
-                </div>
-              )}
+                )}
+              </div>{/* end mobile */}
 
-            </div>
-          </motion.div>
-        )}
-        </AnimatePresence>
+            </motion.div>
+          )}
+          </AnimatePresence>
       </div>
 
       <NotifyMeModal
