@@ -18,11 +18,14 @@ interface ProductCarouselProps {
 
 const GAP = 20;
 const CARD_W = "clamp(160px, 44vw, 260px)";
-const SNAP_MS = 300;
-// Continuous scroll speed on mobile (px/s). At 144fps each frame moves ~0.21px.
-const MOBILE_SCROLL_PX_PER_S = 30;
+const SNAP_MS = 380;
+const SNAP_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"; // ease-out-quint — snappy stop
+// Exponential friction: vel *= FRICTION^dt (dt in ms). Frame-rate independent.
+// 0.992^400 ≈ 0.041 → naturally drops below snap threshold (~0.05) in ~400ms.
+const FRICTION = 0.992;
+const MIN_SNAP_VEL = 0.05; // px/ms — velocity below which we snap
 
-// ─── Card image with shimmer skeleton ────────────────────────────────────────
+// ─── Image with shimmer skeleton ────────────────────────────────────────────
 function CardImage({ src, alt }: { src: string; alt: string }) {
   const [loaded, setLoaded] = useState(false);
   return (
@@ -33,8 +36,7 @@ function CardImage({ src, alt }: { src: string; alt: string }) {
           style={{
             position: "absolute",
             inset: 0,
-            background:
-              "linear-gradient(90deg,#f0ede8 25%,#e3dfd8 50%,#f0ede8 75%)",
+            background: "linear-gradient(90deg,#f0ede8 25%,#e3dfd8 50%,#f0ede8 75%)",
             backgroundSize: "200% 100%",
             animation: "moiCarouselShimmer 1.6s ease-in-out infinite",
           }}
@@ -63,7 +65,7 @@ function CardImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main carousel ───────────────────────────────────────────────────────────
 export function ProductCarousel({
   items,
   onItemClick,
@@ -72,227 +74,255 @@ export function ProductCarousel({
 }: ProductCarouselProps) {
   const N = items.length;
 
+  // Three copies for seamless infinite looping.
+  // copy1: positions [0, N·step)   copy2 (home): [N·step, 2N·step)   copy3: [2N·step, 3N·step)
   const slides = useMemo(
-    () => (N > 1 ? [items[N - 1], ...items, items[0]] : items),
+    () => N > 1 ? [...items, ...items, ...items] : [...items],
     [items, N],
   );
 
   const trackRef = useRef<HTMLDivElement>(null);
-  const rawIdxRef = useRef(N > 1 ? 1 : 0);
-  const settlingRef = useRef(false);
   const cardWRef = useRef(0);
 
-  // Continuous-scroll state (mobile only)
-  const subOffsetRef = useRef(0); // sub-step offset in px (0 → cardW+GAP)
+  // rawPxRef: absolute px offset — track renders at translateX(-rawPxRef).
+  // At rest, always kept within [N·step, 2N·step) via wrapMiddle().
+  const rawPxRef = useRef(0);
+  const isSnappingRef = useRef(false);
   const rafRef = useRef<number | null>(null);
-  const lastRafTimeRef = useRef<number | null>(null);
-  const isMobileRef = useRef(false);
 
   // Drag state
   const ptrIdRef = useRef<number | null>(null);
+  const startPxRef = useRef(0); // rawPxRef frozen at pointerdown (adjusted on wrap)
   const startXRef = useRef(0);
   const startYRef = useRef(0);
-  const startTRef = useRef(0);
   const lockRef = useRef<"h" | "v" | null>(null);
   const didDragRef = useRef(false);
-  // Sub-offset frozen at drag start so drag delta applies on top
-  const dragBaseSubRef = useRef(0);
 
-  function measure(): number {
+  // Velocity buffer: last 80ms of pointer positions for accurate release velocity
+  const velBufRef = useRef<Array<{ x: number; t: number }>>([]);
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function getStep() { return cardWRef.current + GAP; }
+
+  function measure() {
     const t = trackRef.current;
-    if (!t?.firstElementChild) return 0;
-    return (t.firstElementChild as HTMLElement).offsetWidth;
+    return t?.firstElementChild ? (t.firstElementChild as HTMLElement).offsetWidth : 0;
   }
 
-  function applyTransformRaw(totalDx: number, animated: boolean) {
+  function rawApply(px: number, animated: boolean) {
     const track = trackRef.current;
     if (!track) return;
-    const cw = cardWRef.current || measure();
-    if (cw === 0) return;
-    cardWRef.current = cw;
-    const step = cw + GAP;
-    track.style.transition = animated
-      ? `transform ${SNAP_MS}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`
-      : "none";
-    track.style.transform = `translateX(${-(rawIdxRef.current * step) + totalDx}px)`;
+    track.style.transition = animated ? `transform ${SNAP_MS}ms ${SNAP_EASE}` : "none";
+    track.style.transform = `translateX(${-px}px)`;
   }
 
-  // For snap actions (landOn, resize): always uses current subOffset = 0
-  function applyTransform(animated: boolean) {
-    applyTransformRaw(0, animated);
+  // Modular wrap into middle-copy range [N·step, 2N·step).
+  function wrapMiddle(px: number, step: number): number {
+    if (N <= 1 || step === 0) return px;
+    const lo = N * step;
+    const range = N * step;
+    return ((px - lo) % range + range) % range + lo;
   }
 
-  useLayoutEffect(() => {
-    cardWRef.current = measure();
-    applyTransform(false);
+  function cancelRaf() {
+    if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+  }
 
-    function onResize() {
-      cardWRef.current = measure();
-      applyTransform(false);
+  // Snap to nearest card. Handles cross-boundary snaps by teleporting first
+  // so the CSS transition only animates the short remaining distance.
+  function snapNearest() {
+    cancelRaf();
+    const step = getStep();
+    if (step === 0) return;
+
+    const snapped = Math.round(rawPxRef.current / step) * step;
+    const wrapped = wrapMiddle(snapped, step);
+
+    if (wrapped !== snapped) {
+      // Cross-boundary: teleport rawPxRef by the same delta so the visual position
+      // doesn't change, then let the transition close the remaining gap.
+      rawPxRef.current += wrapped - snapped;
+      rawApply(rawPxRef.current, false);
+      // Force a style recalc so the browser separates the instant jump
+      // from the upcoming transition (otherwise they're batched into one frame).
+      void trackRef.current?.offsetHeight;
     }
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [N]);
 
-  function landOn(newRaw: number) {
-    if (N <= 1) return;
-    subOffsetRef.current = 0;
-    rawIdxRef.current = newRaw;
-    settlingRef.current = true;
-    applyTransform(true);
+    rawPxRef.current = wrapped;
+    isSnappingRef.current = true;
+    rawApply(rawPxRef.current, true);
 
     const track = trackRef.current;
-    if (!track) return;
-
-    const cleanup = () => {
-      track.removeEventListener("transitionend", cleanup);
-      settlingRef.current = false;
-      if (newRaw === 0) {
-        rawIdxRef.current = N;
-        applyTransform(false);
-      } else if (newRaw === N + 1) {
-        rawIdxRef.current = 1;
-        applyTransform(false);
-      }
-    };
-    track.addEventListener("transitionend", cleanup, { once: true });
-    setTimeout(() => { if (settlingRef.current) cleanup(); }, SNAP_MS + 80);
+    if (track) {
+      const done = () => {
+        track.removeEventListener("transitionend", done);
+        isSnappingRef.current = false;
+      };
+      track.addEventListener("transitionend", done, { once: true });
+      setTimeout(() => { isSnappingRef.current = false; }, SNAP_MS + 80);
+    }
   }
 
-  // ── Continuous mobile scroll via requestAnimationFrame ───────────────────
-  useEffect(() => {
-    const checkMobile = () => { isMobileRef.current = window.matchMedia("(max-width: 767px)").matches; };
-    checkMobile();
-    const mq = window.matchMedia("(max-width: 767px)");
-    const mqHandler = (e: MediaQueryListEvent) => { isMobileRef.current = e.matches; };
-    mq.addEventListener("change", mqHandler);
+  // Inertia: exponential friction, then snap.
+  function startInertia(velPxMs: number) {
+    // velPxMs: px/ms, positive = forward (rawPx increasing = showing next cards)
+    cancelRaf();
+    const step = getStep();
+    if (step === 0) { snapNearest(); return; }
+
+    let vel = velPxMs;
+    let lastT: number | null = null;
 
     function tick(time: number) {
+      if (lastT === null) { lastT = time; rafRef.current = requestAnimationFrame(tick); return; }
+      const dt = Math.min(time - lastT, 50); // cap for tab-wake
+      lastT = time;
+
+      vel *= Math.pow(FRICTION, dt); // frame-rate-independent friction
+
+      if (Math.abs(vel) < MIN_SNAP_VEL) {
+        snapNearest();
+        return;
+      }
+
+      rawPxRef.current += vel * dt;
+
+      // Keep in middle-copy range for seamless looping
+      if (N > 1) rawPxRef.current = wrapMiddle(rawPxRef.current, step);
+
+      rawApply(rawPxRef.current, false);
       rafRef.current = requestAnimationFrame(tick);
-
-      if (!isMobileRef.current || N <= 1) {
-        lastRafTimeRef.current = null;
-        return;
-      }
-      // Pause during drag or CSS snap transition
-      if (ptrIdRef.current !== null || settlingRef.current) {
-        lastRafTimeRef.current = null;
-        return;
-      }
-
-      if (lastRafTimeRef.current === null) {
-        lastRafTimeRef.current = time;
-        return;
-      }
-
-      const dt = Math.min(time - lastRafTimeRef.current, 50); // cap for tab-wake scenarios
-      lastRafTimeRef.current = time;
-
-      const cw = cardWRef.current;
-      if (cw === 0) return;
-      const step = cw + GAP;
-
-      subOffsetRef.current += MOBILE_SCROLL_PX_PER_S * (dt / 1000);
-
-      // Advance to next card when sub-offset exceeds one step
-      if (subOffsetRef.current >= step) {
-        subOffsetRef.current -= step;
-        rawIdxRef.current += 1;
-        // Silently wrap: ghost of first → real first
-        if (rawIdxRef.current === N + 1) {
-          rawIdxRef.current = 1;
-        }
-      }
-
-      const track = trackRef.current;
-      if (!track) return;
-      track.style.transition = "none";
-      track.style.transform = `translateX(${-(rawIdxRef.current * step) - subOffsetRef.current}px)`;
     }
 
     rafRef.current = requestAnimationFrame(tick);
+  }
 
+  // Arrow navigation
+  function goTo(delta: number) {
+    if (isSnappingRef.current) return;
+    cancelRaf();
+    const step = getStep();
+    if (step === 0) return;
+
+    const currentSlot = Math.round(rawPxRef.current / step);
+    const targetPx = (currentSlot + delta) * step;
+    const wrapped = wrapMiddle(targetPx, step);
+
+    if (wrapped !== targetPx) {
+      rawPxRef.current += wrapped - targetPx;
+      rawApply(rawPxRef.current, false);
+      void trackRef.current?.offsetHeight;
+    }
+
+    rawPxRef.current = wrapped;
+    isSnappingRef.current = true;
+    rawApply(rawPxRef.current, true);
+
+    const track = trackRef.current;
+    if (track) {
+      const done = () => { track.removeEventListener("transitionend", done); isSnappingRef.current = false; };
+      track.addEventListener("transitionend", done, { once: true });
+      setTimeout(() => { isSnappingRef.current = false; }, SNAP_MS + 80);
+    }
+  }
+
+  // ── Layout: initialise position and handle resize ─────────────────────────
+
+  useLayoutEffect(() => {
+    cardWRef.current = measure();
+    const step = getStep();
+    rawPxRef.current = N > 1 ? N * step : 0; // start in middle copy
+    rawApply(rawPxRef.current, false);
+
+    let resizeRaf: number | null = null;
+    function onResize() {
+      if (resizeRaf !== null) cancelAnimationFrame(resizeRaf);
+      resizeRaf = requestAnimationFrame(() => {
+        const oldStep = cardWRef.current + GAP;
+        const oldSlot = Math.round(rawPxRef.current / oldStep);
+        cardWRef.current = measure();
+        const newStep = getStep();
+        rawPxRef.current = N > 1 ? wrapMiddle(oldSlot * newStep, newStep) : 0;
+        rawApply(rawPxRef.current, false);
+      });
+    }
+
+    window.addEventListener("resize", onResize);
     return () => {
-      mq.removeEventListener("change", mqHandler);
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      window.removeEventListener("resize", onResize);
+      if (resizeRaf !== null) cancelAnimationFrame(resizeRaf);
     };
   }, [N]);
 
-  // ── Window-level pointer listeners (drag handling) ───────────────────────
+  // ── Window-level pointer handlers ─────────────────────────────────────────
+
   useEffect(() => {
     function onWindowMove(e: PointerEvent) {
       if (ptrIdRef.current !== e.pointerId) return;
-      const dx = e.clientX - startXRef.current;
-      const dy = e.clientY - startYRef.current;
+
+      const dx = e.clientX - startXRef.current; // +ve = finger moved right = show prev
 
       if (lockRef.current === null) {
-        if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
-          lockRef.current = Math.abs(dx) > Math.abs(dy) * 1.2 ? "h" : "v";
+        const dy = e.clientY - startYRef.current;
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+          lockRef.current = Math.abs(dx) > Math.abs(dy) * 0.8 ? "h" : "v";
         }
         return;
       }
       if (lockRef.current === "v") return;
-      if (Math.abs(dx) > 5) didDragRef.current = true;
-      e.preventDefault();
 
-      const cw = cardWRef.current;
-      if (cw > 0) {
-        const step = cw + GAP;
-        const track = trackRef.current;
-        if (track) {
-          track.style.transition = "none";
-          // Base position includes the sub-offset frozen at drag start
-          track.style.transform = `translateX(${-(rawIdxRef.current * step) - dragBaseSubRef.current + dx}px)`;
-        }
+      e.preventDefault();
+      if (Math.abs(dx) > 3) didDragRef.current = true;
+
+      // Rolling velocity buffer: keep last 80ms
+      const now = e.timeStamp;
+      velBufRef.current.push({ x: e.clientX, t: now });
+      const cutoff = now - 80;
+      while (velBufRef.current.length > 1 && velBufRef.current[0].t < cutoff) {
+        velBufRef.current.shift();
       }
+
+      // Compute new position
+      const newPx = startPxRef.current - dx; // subtract dx: drag right → lower rawPx → prev cards
+      const step = getStep();
+
+      if (N > 1) {
+        const wrapped = wrapMiddle(newPx, step);
+        // If a wrap occurred, adjust startPxRef to keep subsequent frames continuous
+        if (wrapped !== newPx) startPxRef.current += wrapped - newPx;
+        rawPxRef.current = wrapped;
+      } else {
+        rawPxRef.current = newPx;
+      }
+
+      rawApply(rawPxRef.current, false);
     }
 
     function onWindowUp(e: PointerEvent) {
       if (ptrIdRef.current !== e.pointerId) return;
-      const wasH = lockRef.current === "h";
       ptrIdRef.current = null;
+
+      const wasH = lockRef.current === "h";
       lockRef.current = null;
 
-      if (!wasH) {
-        // Not a horizontal drag — snap back to current card, native click fires normally
-        subOffsetRef.current = 0;
-        applyTransform(false);
-        return;
+      if (!wasH) return; // not a horizontal drag — native click fires normally
+
+      // Velocity from buffer
+      const buf = velBufRef.current;
+      let vel = 0;
+      if (buf.length >= 2) {
+        const first = buf[0];
+        const last = buf[buf.length - 1];
+        const dt = last.t - first.t;
+        if (dt > 5) vel = -(last.x - first.x) / dt; // px/ms, +ve = forward
       }
+      velBufRef.current = [];
 
-      const cw = cardWRef.current;
-      if (cw === 0) return;
-      const step = cw + GAP;
-
-      // Effective drag delta accounting for sub-offset
-      const rawDx = e.clientX - startXRef.current;
-      const effectiveDx = rawDx - dragBaseSubRef.current; // normalise: positive = moved right
-      const dt = Math.max(e.timeStamp - startTRef.current, 1);
-
-      if (Math.abs(rawDx) > 40 || Math.abs(rawDx) / dt > 0.35) {
-        // Flick — snap to next/prev card
-        // Determine target based on effective position
-        const currentOffset = -(rawIdxRef.current * step) - dragBaseSubRef.current + rawDx;
-        const snapIdx = Math.round(-currentOffset / step);
-        const clamped = Math.max(0, Math.min(N + 1, snapIdx));
-        subOffsetRef.current = 0;
-        landOn(clamped !== rawIdxRef.current ? clamped : rawIdxRef.current + (rawDx < 0 ? 1 : -1));
+      if (Math.abs(vel) > MIN_SNAP_VEL * 3) {
+        startInertia(vel);
       } else {
-        // No flick — snap back
-        subOffsetRef.current = 0;
-        applyTransform(false);
-        const track = trackRef.current;
-        if (track) {
-          settlingRef.current = true;
-          track.style.transition = `transform ${SNAP_MS}ms cubic-bezier(0.25,0.46,0.45,0.94)`;
-          track.style.transform = `translateX(${-(rawIdxRef.current * step)}px)`;
-          const done = () => {
-            track.removeEventListener("transitionend", done);
-            settlingRef.current = false;
-          };
-          track.addEventListener("transitionend", done, { once: true });
-          setTimeout(() => { if (settlingRef.current) done(); }, SNAP_MS + 80);
-        }
+        snapNearest();
       }
     }
 
@@ -300,8 +330,8 @@ export function ProductCarousel({
       if (ptrIdRef.current !== e.pointerId) return;
       ptrIdRef.current = null;
       lockRef.current = null;
-      subOffsetRef.current = 0;
-      applyTransform(false);
+      velBufRef.current = [];
+      snapNearest();
     }
 
     window.addEventListener("pointermove", onWindowMove, { passive: false });
@@ -311,27 +341,44 @@ export function ProductCarousel({
       window.removeEventListener("pointermove", onWindowMove);
       window.removeEventListener("pointerup", onWindowUp);
       window.removeEventListener("pointercancel", onWindowCancel);
+      cancelRaf();
     };
   }, [N]);
 
+  // ── Pointer down: freeze mid-transition, start drag ──────────────────────
+
   function onPointerDown(e: React.PointerEvent) {
-    if (settlingRef.current || ptrIdRef.current !== null) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    // Freeze the current sub-offset so drag starts from the exact visual position
-    dragBaseSubRef.current = subOffsetRef.current;
+    if (ptrIdRef.current !== null) return;
+
+    cancelRaf();
+
+    // If a CSS transition is running, freeze the track at its current visual position.
+    const track = trackRef.current;
+    if (track && isSnappingRef.current) {
+      const transformStr = window.getComputedStyle(track).transform;
+      if (transformStr && transformStr !== "none") {
+        const matrix = new DOMMatrix(transformStr);
+        rawPxRef.current = -matrix.m41;
+        track.style.transition = "none";
+        track.style.transform = `translateX(${matrix.m41}px)`;
+      }
+    }
+    isSnappingRef.current = false;
+
     ptrIdRef.current = e.pointerId;
+    startPxRef.current = rawPxRef.current;
     startXRef.current = e.clientX;
     startYRef.current = e.clientY;
-    startTRef.current = e.timeStamp;
     lockRef.current = null;
     didDragRef.current = false;
+    velBufRef.current = [{ x: e.clientX, t: e.timeStamp }];
   }
 
   if (N === 0) return null;
 
   return (
     <>
-      {/* Keyframes injected once — shimmer + (unused outside this component) */}
       <style>{`
         @keyframes moiCarouselShimmer {
           0%   { background-position: 200% 0; }
@@ -352,7 +399,7 @@ export function ProductCarousel({
             padding: "72px 0 56px 28px",
           }}
         >
-          {/* Section header */}
+          {/* Header */}
           <div
             style={{
               display: "flex",
@@ -389,13 +436,13 @@ export function ProductCarousel({
               </h2>
             </div>
 
-            {/* Arrows — desktop only (hidden on mobile via Tailwind; no inline display override) */}
+            {/* Arrows — desktop only. No inline display on wrapper so Tailwind hidden/md:flex controls it. */}
             {N > 1 && (
               <div className="hidden md:flex" style={{ gap: 8 }}>
                 <button
                   type="button"
                   aria-label="Previous"
-                  onClick={() => !settlingRef.current && landOn(rawIdxRef.current - 1)}
+                  onClick={() => goTo(-1)}
                   style={{
                     width: 40,
                     height: 40,
@@ -416,7 +463,7 @@ export function ProductCarousel({
                 <button
                   type="button"
                   aria-label="Next"
-                  onClick={() => !settlingRef.current && landOn(rawIdxRef.current + 1)}
+                  onClick={() => goTo(1)}
                   style={{
                     width: 40,
                     height: 40,
@@ -440,7 +487,11 @@ export function ProductCarousel({
 
           {/* Carousel track */}
           <div
-            style={{ overflow: "hidden", touchAction: "pan-y", cursor: N > 1 ? "grab" : "default" }}
+            style={{
+              overflow: "hidden",
+              touchAction: "pan-y",
+              cursor: N > 1 ? "grab" : "default",
+            }}
             onPointerDown={onPointerDown}
           >
             <div

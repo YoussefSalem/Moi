@@ -1,24 +1,44 @@
 ---
 name: Moi product recommendations carousel
-description: Architecture of the "You May Also Like" carousel on product pages — imperative DOM pattern, infinite loop, drag support, click handling.
+description: Architecture of the "You May Also Like" carousel on product pages — imperative DOM pattern, infinite loop, drag + inertia, click handling.
 ---
 
 ## Rule
 
 `ProductCarousel.tsx` is a fully self-contained card carousel. Props: `items: CarouselItem[]`, `onItemClick`, optional `heading`/`subheading`. No ref/handle — App.tsx and ProductPage.tsx hold no carousel refs.
 
-**Infinite loop:** ghost clones `[last, ...all, first]`; `rawIdxRef` starts at 1 (first real slide). After `transitionend`, if on a ghost, immediately jump (no transition) to the mirror real slide.
+## Infinite loop: triple-copy track (NOT ghost clones)
 
-**60fps imperative updates:** card `transform` is written directly to DOM via ref — never via React `useState` or inline style driven by state. `useLayoutEffect` sets initial position; a resize listener re-measures and re-positions without triggering React renders.
+**Why triple copy instead of ghost clones:** Ghost clones ([last, ...all, first]) only work for snap-to-index navigation. For continuous inertia scrolling they cause a large position jump when wrapping that's visible between frames. Triple copy `[...items, ...items, ...items]` allows `rawPxRef` to stay within the middle copy `[N·step, 2N·step)` at all times. Wrap is seamless because N·step and 2N·step show identical content.
 
-**Drag:** `onPointerDown` fires on the clip div; window-level `pointermove` and `pointerup` listeners are registered via `useEffect` for the lifetime of the component. No `setPointerCapture`. Drag threshold 5px (`didDragRef`) distinguishes click from drag. On horizontal release, snap or flick; on vertical/null lock, let native click fire.
+**Position model:** `rawPxRef` (absolute px offset, `translateX(-rawPxRef)`). At rest, always in `[N·step, 2N·step)` via `wrapMiddle()`. Starts at `N·step` (middle copy's item 0).
 
-**Click handling:** native `onClick` on each card button, guarded by `if (!didDragRef.current)`. This works because we do NOT call `setPointerCapture` — without capture, the browser dispatches click events normally to the button.
+**`wrapMiddle(px, step)`:** `((px - lo) % range + range) % range + lo` — handles negative JS modulo correctly.
 
-**CRITICAL — do NOT add `setPointerCapture`:** `setPointerCapture` redirects `pointerup` to the capturing element and suppresses native `click` on child buttons. `e.target` also becomes the capturing element, so `closest("[data-handle]")` won't work. `document.elementFromPoint` as a workaround also doesn't reliably work inside the Replit proxy. The window-listener pattern avoids all of this.
+## Physics
 
-**Card width:** `clamp(160px, 44vw, 260px)` via CSS; actual px read from DOM in `useLayoutEffect`.
+**Drag:** `startPxRef - dx` (dx = clientX delta). When a wrap occurs mid-drag, `startPxRef` is adjusted by the wrap delta so subsequent frames remain continuous (no jump when looping during a single drag gesture).
 
-**Why window listeners over clip-div handlers:** without `setPointerCapture`, pointer events don't automatically follow the pointer outside the clip div. Window listeners ensure drag tracking works even when the pointer leaves the carousel boundary, preventing a stuck `ptrIdRef` that would lock out future interactions.
+**Inertia:** `vel *= Math.pow(FRICTION, dt)` where `FRICTION = 0.992` and `dt` is in ms. Frame-rate independent — same feel at 60/120/144Hz. Stops when `|vel| < 0.05 px/ms` (~400ms for a typical fast swipe).
 
-**How to apply:** treat `ProductCarousel` as a drop-in — pass items + click handler, nothing else. For new drag-enabled components that also need native click on child elements, always use window-level move/up listeners + native onClick, never setPointerCapture.
+**Snap:** `Math.round(rawPxRef / step) * step`. Cross-boundary snaps (target outside `[N·step, 2N·step)`) are handled by teleporting `rawPxRef` first (no transition), forcing a reflow (`offsetHeight`), then playing the CSS transition for the short remaining distance. Prevents huge animated jumps.
+
+**Interrupt mid-snap:** `onPointerDown` reads `DOMMatrix(computedStyle.transform).m41` to freeze the track at its current animated position before starting a new drag.
+
+## Click handling
+
+Native `onClick` on each card `<button>`, guarded by `if (!didDragRef.current)`. Works because we do NOT call `setPointerCapture`.
+
+**CRITICAL — do NOT add `setPointerCapture`:** Redirects `pointerup` to the capturing element and suppresses native `click` on child buttons. Window-level `pointermove`/`pointerup` listeners solve this without capture.
+
+## Axis locking
+
+`lockRef: "h" | "v" | null`. Set once movement exceeds 5px. "v" = let native scroll win (return immediately). "h" = take ownership, `e.preventDefault()` to stop page scroll. Axis lock is decided before any transform is applied, so the carousel never fights vertical scroll.
+
+## Why window listeners (not clip-div handlers)
+
+Without `setPointerCapture`, pointer events don't follow the pointer outside the clip. Window listeners ensure drag tracking works even when the finger leaves the carousel, preventing a stuck `ptrIdRef`.
+
+## How to apply
+
+Drop-in: pass items + click handler. For new drag components needing native child clicks, always use window-level listeners + native onClick — never `setPointerCapture`.
