@@ -151,10 +151,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const recsTrackRef = useRef<HTMLDivElement>(null);
   const recsOuterRef = useRef<HTMLDivElement>(null);
   const recsDraggingRef = useRef(false);
-  const recsDragStartXRef = useRef(0);
-  const recsDragScrollLeftRef = useRef(0);
-  const recsRafRef = useRef(0);
-  const recsMobileXRef = useRef(0);
   const desktopXRef = useRef(0);
   const desktopAnimatingRef = useRef(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
@@ -170,90 +166,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Mobile: infinite seamless auto-scroll + touch-to-pan support
-  // useLayoutEffect fires after DOM commit; inner RAF waits one paint so
-  // scrollWidth is fully resolved before we start animating.
-  useLayoutEffect(() => {
-    if (!isMobile) return;
-    let raf0 = 0;
-    let rafLoop = 0;
-    let paused = false;
-    let touchStartClientX = 0;
-    let touchStartClientY = 0;
-    let touchStartX = 0;
-    // null = direction not yet decided; true = horizontal; false = vertical (let page scroll)
-    let isHorizontal: boolean | null = null;
-    const speed = 0.7;
-    let onTouchStart: (e: TouchEvent) => void;
-    let onTouchMove: (e: TouchEvent) => void;
-    let onTouchEnd: () => void;
-    let attachedOuter: HTMLDivElement | null = null;
-
-    raf0 = requestAnimationFrame(() => {
-      const trackEl = recsTrackRef.current as HTMLDivElement;
-      // Listen on the outer overflow:hidden container so iOS page-scroll doesn't
-      // eat the events before they reach the inner track.
-      const outerEl = recsOuterRef.current as HTMLDivElement;
-      if (!trackEl || !outerEl) return;
-      attachedOuter = outerEl;
-      recsMobileXRef.current = 0;
-      trackEl.style.transform = "translateX(0px)";
-      const halfWidth = trackEl.scrollWidth / 2;
-
-      function tick() {
-        if (!paused) {
-          recsMobileXRef.current -= speed;
-          if (Math.abs(recsMobileXRef.current) >= halfWidth) recsMobileXRef.current = 0;
-          trackEl.style.transform = `translateX(${recsMobileXRef.current}px)`;
-        }
-        rafLoop = requestAnimationFrame(tick);
-      }
-
-      onTouchStart = (e: TouchEvent) => {
-        paused = true;
-        touchStartClientX = e.touches[0].clientX;
-        touchStartClientY = e.touches[0].clientY;
-        touchStartX = recsMobileXRef.current;
-        isHorizontal = null; // reset direction each gesture
-      };
-      onTouchMove = (e: TouchEvent) => {
-        const dx = e.touches[0].clientX - touchStartClientX;
-        const dy = e.touches[0].clientY - touchStartClientY;
-        // Lock direction on first meaningful movement
-        if (isHorizontal === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
-          isHorizontal = Math.abs(dx) > Math.abs(dy);
-        }
-        // Only translate if we've determined this is a horizontal swipe
-        if (isHorizontal === true) {
-          recsMobileXRef.current = touchStartX + dx;
-          trackEl.style.transform = `translateX(${recsMobileXRef.current}px)`;
-        }
-      };
-      onTouchEnd = () => {
-        isHorizontal = null;
-        paused = false;
-      };
-
-      // passive:true — we never call preventDefault, so page can scroll vertically
-      outerEl.addEventListener("touchstart", onTouchStart, { passive: true });
-      outerEl.addEventListener("touchmove", onTouchMove, { passive: true });
-      outerEl.addEventListener("touchend", onTouchEnd, { passive: true });
-      outerEl.addEventListener("touchcancel", onTouchEnd, { passive: true });
-
-      rafLoop = requestAnimationFrame(tick);
-    });
-
-    return () => {
-      cancelAnimationFrame(raf0);
-      cancelAnimationFrame(rafLoop);
-      if (attachedOuter && onTouchStart) {
-        attachedOuter.removeEventListener("touchstart", onTouchStart);
-        attachedOuter.removeEventListener("touchmove", onTouchMove);
-        attachedOuter.removeEventListener("touchend", onTouchEnd);
-        attachedOuter.removeEventListener("touchcancel", onTouchEnd);
-      }
-    };
-  }, [isMobile]);
+  // Mobile carousel uses a NATIVE horizontal scroll container (overflow-x:auto +
+  // -webkit-overflow-scrolling:touch). The browser handles momentum, tap-vs-swipe,
+  // and horizontal-vs-vertical disambiguation natively — no JS touch handlers, no
+  // RAF auto-scroll. This is the robust, modern e-commerce gallery pattern and works
+  // identically on iOS and Android. (Custom rAF/translateX approach was removed
+  // because nested fixed/overflow scroll containers swallowed the touch events.)
 
   // Desktop: set initial translateX to the middle set (-oneSetWidth) after paint
   useLayoutEffect(() => {
@@ -266,7 +184,9 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       track.style.transform = `translateX(${desktopXRef.current}px)`;
     });
     return () => cancelAnimationFrame(raf);
-  }, [isMobile]);
+    // `loading` is in deps because the recs DOM only renders after the Shopify
+    // fetch resolves; without it the effect runs on mount when the track is null.
+  }, [isMobile, loading]);
 
   // Desktop: grab-to-drag via translateX; normalises position after drag ends
   useEffect(() => {
@@ -331,7 +251,8 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
       el.removeEventListener("mouseup", onUp);
       el.removeEventListener("mouseleave", onUp);
     };
-  }, [isMobile]);
+    // `loading` in deps: recs DOM (and recsRef) only exists after the fetch resolves.
+  }, [isMobile, loading]);
 
   // SEO: update all <head> meta tags imperatively when the product or image changes.
   // This covers document.title, description, and all Open Graph + Twitter Card tags so
@@ -1115,7 +1036,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                 <div style={{ backgroundColor: "#faf8f5", borderTop: "1px solid rgba(30,24,20,0.07)" }}>
                   {(() => {
                     const recs = ALL_RECS.filter((r) => r.handle !== handle);
-                    const cardStyle: React.CSSProperties = { flex: "0 0 auto", width: "clamp(180px, 38vw, 280px)", background: "none", border: "none", padding: 0, textAlign: "left", userSelect: "none" };
+                    const cardStyle: React.CSSProperties = { flex: "0 0 auto", width: "clamp(180px, 38vw, 280px)", background: "none", border: "none", padding: 0, textAlign: "left", userSelect: "none", scrollSnapAlign: "start" };
                     const openGallery = (rec: typeof recs[0]) => {
                       const imgs = rec.gallery();
                       setCarouselLb({ open: true, images: imgs, idx: 0 });
@@ -1183,14 +1104,25 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         </div>
 
                         {isMobile ? (
-                          /* Mobile: seamless infinite auto-scroll — items doubled, translateX driven by rAF
-                             Outer div has touch-action:pan-y so iOS passes horizontal swipes to our handler
-                             while still allowing vertical page scroll. Listeners live on the outer container
-                             (not the inner track) so the page-scroll heuristic doesn't eat them first. */
-                          <div ref={recsOuterRef} style={{ overflow: "hidden", touchAction: "pan-y" }}>
-                            <div ref={recsTrackRef} style={{ display: "flex", gap: 16, width: "max-content", willChange: "transform" }}>
-                              {[...recs, ...recs].map((rec, i) => renderCard(rec, `m-${rec.handle}-${i}`))}
-                            </div>
+                          /* Mobile: native horizontal scroll — browser handles momentum, tap-vs-swipe,
+                             and direction disambiguation. scroll-snap gives a clean settle per card.
+                             scrollbar hidden via the .moi-hscroll utility (see index.css). */
+                          <div
+                            ref={recsOuterRef}
+                            className="moi-hscroll"
+                            style={{
+                              display: "flex",
+                              gap: 16,
+                              overflowX: "auto",
+                              overflowY: "hidden",
+                              WebkitOverflowScrolling: "touch",
+                              scrollSnapType: "x proximity",
+                              overscrollBehaviorX: "contain",
+                              paddingRight: 28,
+                              paddingBottom: 8,
+                            }}
+                          >
+                            {recs.map((rec, i) => renderCard(rec, `m-${rec.handle}-${i}`))}
                           </div>
                         ) : (
                           /* Desktop: infinite loop via tripled track + translateX; grab-to-drag + arrow buttons */

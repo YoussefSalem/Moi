@@ -392,6 +392,15 @@ header[class*="fixed"] {
   }
 }
 
+/* Horizontal scroll container (mobile recs carousel) — hide scrollbar, keep momentum */
+.moi-hscroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.moi-hscroll::-webkit-scrollbar {
+  display: none;
+}
+
 /* Force Sonner toast description to white */
 [data-sonner-toaster] [data-description] {
   color: #ffffff !important;
