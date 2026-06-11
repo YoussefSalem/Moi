@@ -17,6 +17,7 @@ import { trackTikTokViewContent } from "@/lib/tiktokPixel";
 
 import { ENABLE_APPLE_PAY } from "@/config/features";
 import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
+import { WriteReviewModal } from "@/components/WriteReviewModal";
 
 // ── Star rating SVG component ─────────────────────────────────────────────────
 interface RecItem {
@@ -288,6 +289,34 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const recs = useMemo(() => ALL_RECS.filter((r) => r.handle !== handle), [handle]);
   const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
   const addingRef = useRef(false);
+
+  // ── Reviews ──────────────────────────────────────────────────────────────────
+  interface ReviewItem {
+    id: number;
+    author: string;
+    title: string;
+    body: string;
+    rating: number;
+    date: string;
+  }
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [reviewsLoaded, setReviewsLoaded] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+
+  useEffect(() => {
+    const slug = product.slug;
+    if (!slug) return;
+    setReviewsLoaded(false);
+    fetch(`/api/reviews/public?handle=${encodeURIComponent(slug)}`)
+      .then((r) => r.json())
+      .then((data: { reviews: ReviewItem[] }) => {
+        setReviews(data.reviews ?? []);
+        setReviewsLoaded(true);
+      })
+      .catch(() => {
+        setReviewsLoaded(true);
+      });
+  }, [product.slug]);
 
   // Media query helper for mobile
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
@@ -1274,6 +1303,121 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               })()}
 
               {/* ══ REVIEWS ══ */}
+              {reviewsLoaded && (
+                <div style={{ padding: "48px 24px 56px", borderTop: "1px solid rgba(30,24,20,0.10)" }}>
+                  {/* Section header */}
+                  <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: reviews.length > 0 ? 32 : 24 }}>
+                    <div>
+                      <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.22em", textTransform: "uppercase", color: "#7a6e64", margin: "0 0 6px" }}>
+                        Customer Reviews
+                      </p>
+                      <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.55rem, 4vw, 2rem)", fontWeight: 400, letterSpacing: "0.04em", color: "#1e1814", margin: 0, lineHeight: 1 }}>
+                        {reviews.length > 0
+                          ? (() => {
+                              const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+                              return `${avg % 1 === 0 ? avg.toFixed(0) : avg.toFixed(1)} out of 5`;
+                            })()
+                          : "Be the First to Review"}
+                      </h2>
+                      {reviews.length > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+                          {/* Average stars */}
+                          <div style={{ display: "flex", gap: 2 }}>
+                            {[1, 2, 3, 4, 5].map((s) => {
+                              const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+                              const fill = s <= Math.round(avg) ? "#1e1814" : "#ddd9d5";
+                              return (
+                                <svg key={s} width={14} height={14} viewBox="0 0 12 12">
+                                  <path d="M6 1l1.2 2.9L10.5 4l-2.25 2.2.53 3.15L6 7.85l-2.78 1.5.53-3.15L1.5 4l3.3-.1z" fill={fill} />
+                                </svg>
+                              );
+                            })}
+                          </div>
+                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, fontWeight: 300, color: "#7a6e64", letterSpacing: "0.04em" }}>
+                            {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setReviewModalOpen(true)}
+                      style={{
+                        fontFamily: "'Montserrat', sans-serif",
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.2em",
+                        textTransform: "uppercase",
+                        color: "#1e1814",
+                        backgroundColor: "transparent",
+                        border: "1.5px solid #1e1814",
+                        padding: "11px 22px",
+                        cursor: "pointer",
+                        flexShrink: 0,
+                        transition: "background-color 0.2s, color 0.2s",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#1e1814"; e.currentTarget.style.color = "#faf8f5"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "#1e1814"; }}
+                    >
+                      Write a Review
+                    </button>
+                  </div>
+
+                  {/* Review list */}
+                  {reviews.length === 0 ? (
+                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 12, fontWeight: 300, color: "#9a8e84", lineHeight: 1.7, margin: 0 }}>
+                      No reviews yet. Share your experience and help others discover this piece.
+                    </p>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                      {reviews.map((review, idx) => (
+                        <div
+                          key={review.id}
+                          style={{
+                            padding: "28px 0",
+                            borderBottom: idx < reviews.length - 1 ? "1px solid rgba(30,24,20,0.08)" : "none",
+                          }}
+                        >
+                          {/* Stars + date row */}
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
+                            <div style={{ display: "flex", gap: 2 }}>
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <svg key={s} width={13} height={13} viewBox="0 0 12 12">
+                                  <path
+                                    d="M6 1l1.2 2.9L10.5 4l-2.25 2.2.53 3.15L6 7.85l-2.78 1.5.53-3.15L1.5 4l3.3-.1z"
+                                    fill={s <= review.rating ? "#1e1814" : "#ddd9d5"}
+                                  />
+                                </svg>
+                              ))}
+                            </div>
+                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 300, color: "#a09890", letterSpacing: "0.04em", flexShrink: 0 }}>
+                              {review.date}
+                            </span>
+                          </div>
+
+                          {/* Title */}
+                          {review.title && (
+                            <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "1.05rem", fontWeight: 600, letterSpacing: "0.03em", color: "#1e1814", margin: "0 0 6px", lineHeight: 1.3 }}>
+                              {review.title}
+                            </p>
+                          )}
+
+                          {/* Body */}
+                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 12.5, fontWeight: 300, color: "#4a4038", lineHeight: 1.75, margin: "0 0 10px" }}>
+                            {review.body}
+                          </p>
+
+                          {/* Author */}
+                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "#7a6e64", margin: 0 }}>
+                            — {review.author}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
             </motion.div>
           )}
@@ -1286,6 +1430,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
         variantTitle={selectedSize || "One Size"}
         onClose={() => setNotifyModalOpen(false)}
         onSubmit={subscribeToRestock}
+      />
+
+      <WriteReviewModal
+        open={reviewModalOpen}
+        productHandle={product.slug}
+        onClose={() => setReviewModalOpen(false)}
       />
 
       {/* Full-screen zoom lightbox — pinch, double-tap, swipe nav */}
