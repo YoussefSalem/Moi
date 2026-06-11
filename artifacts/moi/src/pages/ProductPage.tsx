@@ -80,6 +80,7 @@ const ALL_RECS = [
   { handle: "moi-wavvy-light-blue", name: "MOI WAVVY",     color: "Light Blue", price: "899 EGP",   swatch: "#a8c8d8", image: () => IMAGES.product1.colorImages["Light Blue"] as string, gallery: () => IMAGES.product1.colorGalleries["Light Blue"] as readonly string[] },
   { handle: "moi-wavvy-navy",       name: "MOI WAVVY",     color: "Navy",       price: "899 EGP",   swatch: "#3a5a7a", image: () => IMAGES.product1.colorImages.Navy   as string, gallery: () => IMAGES.product1.colorGalleries.Navy     as readonly string[] },
   { handle: "moi-wavvy-mint",       name: "MOI WAVVY",     color: "Mint",       price: "899 EGP",   swatch: "#98c8a8", image: () => IMAGES.product1.colorImages.Mint   as string, gallery: () => IMAGES.product1.colorGalleries.Mint     as readonly string[] },
+  { handle: "moi-wavvy-sand",       name: "MOI WAVVY",     color: "Sand",       price: "899 EGP",   swatch: "#d4c4a0", image: () => IMAGES.product1.colorImages.Sand  as string, gallery: () => IMAGES.product1.colorGalleries.Sand     as readonly string[] },
 ];
 
 function slugify(str: string): string {
@@ -156,14 +157,8 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
   const addingRef = useRef(false);
 
-  // Sync isMobile with viewport
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 767px)");
-    setIsMobile(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
+  // Media query helper for mobile
+  const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
 
   // Load approved reviews from API; fall back to PRODUCT_REVIEWS if none returned
   useEffect(() => {

@@ -41,6 +41,7 @@ const WAVVY_LOOK_2 = "/images/wavvy-look-2.jpg";
 const WAVVY_LOOK_3 = "/images/wavvy-look-3.jpg";
 const WAVVY_LOOK_4 = "/images/wavvy-look-4.jpg";
 const WAVVY_LOOK_5 = "/images/wavvy-look-5.jpg";
+const SAND_MAIN = "/images/sand.webp";
 
 export const IMAGES = {
   hero: {
@@ -74,6 +75,7 @@ export const IMAGES = {
       "Light Blue": LIGHT_BLUE_MAIN,
       Navy:        NAVI_MAIN,
       Mint:        MINT_MAIN,
+      Sand:        SAND_MAIN,
     },
     colorGalleries: {
       White:       WHITE_GALLERY,
@@ -84,6 +86,7 @@ export const IMAGES = {
       "Light Blue": [LIGHT_BLUE_MAIN, LIGHT_BLUE_ALT_1, LIGHT_BLUE_ALT_2],
       Navy:        [NAVI_MAIN, NAVI_ALT],
       Mint:        [MINT_MAIN, MINT_ALT_1, MINT_ALT_2],
+      Sand:        [SAND_MAIN],
     },
     colorSwatches: {
       white:        "#f5f0e8",
@@ -94,6 +97,7 @@ export const IMAGES = {
       "light blue": "#a8c8d8",
       navy:         "#3a5a7a",
       mint:         "#98c8a8",
+      sand:         "#d4c4a0",
     },
     name: "MOI WAVVY",
     shopifyTitle: "MOI WAVVY",
