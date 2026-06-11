@@ -1,56 +1,58 @@
 ---
 name: Moi mobile recs carousel
-description: Mobile "Curated For You" recs carousel — true infinite loop via index-wrap, ONE card per view, no duplicate cards in the DOM
+description: Mobile "Curated For You" recs carousel — 3 cards per view, seamless infinite loop via native horizontal scroll + tripled-set wrap
 ---
 
 # Moi mobile recommendations carousel
 
-The ProductPage "Curated For You" / recs carousel on **mobile** shows **one full-width
-card per view** and loops by wrapping an integer index — it renders a **single set of
-cards** (exactly `recs.length`), with **no duplicated/tripled cards** in the DOM.
+The ProductPage "Curated For You" / recs carousel on **mobile** shows **3 cards at a
+time** in a **native horizontal scroll** container with a **seamless infinite loop**.
 
-**Why:** The user explicitly rejected the tripled-cards approach (seeing repeated items
-in sequence). Requirement: one set of cards; swipe left past the last → first, swipe
-right past the first → last; smooth native-feeling touch both directions.
+**Why:** Evolved across two user requests. First the user rejected duplicated/tripled
+cards and wanted one card per view (index-wrap). Then the user changed direction: they
+want **3 cards visible AND seamless scrolling**. A seamless infinite loop inherently
+repeats items, so the no-duplicate constraint no longer applies — "seamless" (continuous
+momentum scroll, no jarring rewind/snap) is the governing requirement now.
 
 **Implementation (mobile):**
-- Viewport `div` (`overflow:hidden; touchAction:"pan-y"`) wraps an inner track
-  (`recsTrackMobileRef`, `display:flex`). Each slide is `flex:0 0 100%`, so the track
-  box width equals the viewport and `translateX(-index*100%)` advances exactly one card.
-  Do NOT give the track `width:max-content` — that breaks the `%` math.
-- Pointer handlers (`onPointerDown/Move/Up/Cancel`) on the viewport, NOT native scroll.
-  Down: store `{startX,startY,dx,active,decided,horizontal}` in `recsDragRef`, set
-  `transition:"none"`, reset `recsDidDragRef=false`. Move: decide axis at ~6px; if
-  horizontal set `recsDidDragRef=true` + `setPointerCapture`, drag track imperatively
-  with `translateX(calc(-index*100% + dx))` (rubber-band 0.35× at first/last edge).
-  Up: restore transition; if horizontal & |dx|>45 call `goTo(index±1)` (modulo wrap);
-  else snap back.
-- `goTo = i => setRecsIndex(((i%N)+N)%N)`. The index state change re-renders and React
-  re-applies `transform: translateX(-index*100%)` WITH the transition → smooth animate
-  (last→first is an animated rewind sweep, which reads as intentional).
-- Tap-vs-swipe: `openGallery` early-returns when `recsDidDragRef.current` is true so a
-  swipe never opens the lightbox. Must reset `recsDidDragRef=false` on every pointerdown
-  (a swipe with no trailing click otherwise suppresses the next genuine tap).
-- Pagination dots below mirror the main gallery dots (active dot widens to 18px).
+- Native scroll: `overflow-x:auto`, `-webkit-overflow-scrolling:touch`,
+  `overscrollBehaviorX:contain`, scrollbar hidden via `.moi-hscroll` (index.css).
+- Cards rendered THREE times `[...recs,...recs,...recs]`. Each slide wrapper is
+  `flex: 0 0 calc((100% - 24px)/3 - 10px)` with `gap:12` → 3 cards fit with a small peek
+  of the 4th (peek signals scrollability). `renderCard(rec,key,true)` → card width 100%.
+- Infinite wrap (effect, deps `[isMobile, loading, handle]`): measure one set's period
+  EXACTLY from the DOM as `children[recs.length].offsetLeft - children[0].offsetLeft`.
+  Do NOT use `scrollWidth/3` — `gap` (and any container padding) inflate scrollWidth so
+  `scrollWidth/3` overshoots the true period by ~5px, producing a visible jitter at every
+  loop boundary. On mount `scrollLeft = period` (middle set). On scroll (rAF-throttled):
+  if `scrollLeft < period*0.5` add `period`, else if `> period*1.5` subtract `period`.
+  Corrections are exactly one identical-set width → invisible, and never reach the hard
+  edges (no rubber-band blank). `handle` is in deps so navigating to another product
+  re-runs the effect (resets to the middle set + re-measures). Browser handles momentum,
+  tap-vs-swipe, and axis disambiguation — so NO custom pointer handlers and NO tap
+  suppression are needed (a click never fires after a scroll gesture). No `paddingRight`
+  on the container: the right end is never reached in a loop, so it only confused the math.
 
-**Desktop (independent, UNCHANGED):** still uses `translateX` + tripled track +
-`scrollWidth/3` wrapping (mouse drag + arrow buttons). Desktop shows MULTIPLE cards in a
-continuous loop where duplicates are invisible and seamless; the no-duplicate constraint
-was a mobile-only complaint, so desktop tripling was intentionally left in place.
+**Why native scroll (not custom JS touch):** A prior custom-touch carousel here
+"repeatedly failed to swipe on real iOS." ProductPage renders inside a `position:fixed;
+overflow-y:auto` overlay (`#product-scroll-container`, see moi-ios-back-gesture) whose
+scroll heuristic swallows raw touch listeners. Native overflow-x scroll is the robust,
+iOS-reliable pattern; reserve JS translateX for desktop where `overflow:hidden` passes
+mouse events cleanly.
 
-**How to apply:** For a one-card-per-view looping mobile carousel here, use index-wrap +
-`flex:0 0 100%` slides + pointer handlers, NOT native overflow scroll and NOT duplicated
-slides. Reserve the tripled-track translateX pattern for multi-card desktop strips.
+**iOS — verify on a REAL device before declaring carousel work done.** Assigning
+`scrollLeft` mid-momentum can cancel the fling on some iOS Safari versions (scroll stops
+dead at a wrap boundary). A desktop screenshot cannot prove the loop is smooth — always
+have the user confirm continuous looping on a real iPhone. (Native scroll is reliable for
+*touch input*; the *programmatic reposition during momentum* is the part that needs hardware
+verification.)
 
-**iOS CAUTION (unresolved root cause — verify on a real device):** ProductPage renders
-inside a `position:fixed; overflow-y:auto` overlay (`#product-scroll-container`, see
-moi-ios-back-gesture). A PRIOR custom-touch carousel here "repeatedly failed to swipe on
-real iOS" because iOS's scroll heuristic swallowed raw `touchstart/move/end` before the
-JS fired. The current rewrite uses **Pointer Events + `touchAction:"pan-y"` +
-`setPointerCapture`**, which is materially more robust than raw touch listeners — but a
-desktop screenshot CANNOT prove iOS swipe works. If it fails again, the symptom is
-`pointercancel` firing early mid-swipe. Always have the user confirm swipe on their
-actual phone before closing carousel work; do not declare done on visual inspection.
+**Desktop (independent, UNCHANGED):** `translateX` + tripled track + `scrollWidth/3`
+wrapping, mouse grab-drag + arrow buttons. Multiple cards in a continuous loop.
+
+**How to apply:** For a multi-card seamless looping mobile strip here, use native
+overflow-x scroll + tripled set + scrollLeft wrap. Do NOT use custom pointer handlers,
+and do NOT one-card-per-view paging unless the user explicitly asks for snapping.
 
 **Important:** The carousel section is gated behind `!loading`; any effect that measures
 or attaches to carousel DOM must include `loading` in its dep array. `useLayoutEffect`

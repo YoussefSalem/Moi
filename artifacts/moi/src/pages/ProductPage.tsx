@@ -149,11 +149,8 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [waHover, setWaHover] = useState(false);
   const recsRef = useRef<HTMLDivElement>(null);
   const recsTrackRef = useRef<HTMLDivElement>(null);
-  const recsTrackMobileRef = useRef<HTMLDivElement>(null);
+  const recsScrollMobileRef = useRef<HTMLDivElement>(null);
   const recsDraggingRef = useRef(false);
-  const recsDidDragRef = useRef(false);
-  const recsDragRef = useRef({ startX: 0, startY: 0, dx: 0, active: false, decided: false, horizontal: false });
-  const [recsIndex, setRecsIndex] = useState(0);
   const desktopXRef = useRef(0);
   const desktopAnimatingRef = useRef(false);
   const recs = useMemo(() => ALL_RECS.filter((r) => r.handle !== handle), [handle]);
@@ -170,9 +167,54 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Mobile recs carousel is index-based (one card per view, single set of cards,
-  // index wraps last→first / first→last). Swipe handlers + transform live inline in
-  // the JSX below; no native scroll, no duplicated/tripled cards.
+  // Mobile recs carousel: native horizontal scroll showing 3 cards at a time, with a
+  // seamless infinite loop. Cards are rendered as three identical sets [A,B,C]; we start
+  // scrolled into the middle set and silently reposition by one-set-width whenever the
+  // user drifts toward an edge. Native scroll gives real momentum + reliable iOS touch.
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = recsScrollMobileRef.current;
+    if (!el) return;
+    // Measure ONE set's period EXACTLY from the DOM: the x-distance between the first card
+    // of set A (child 0) and the first card of set B (child recs.length). This avoids the
+    // gap/padding rounding error of scrollWidth/3, so each wrap correction lands on a
+    // pixel-identical position and the loop is invisible.
+    let period = 0;
+    const measure = () => {
+      const first = el.children[0] as HTMLElement | undefined;
+      const setB = el.children[recs.length] as HTMLElement | undefined;
+      if (first && setB) period = setB.offsetLeft - first.offsetLeft;
+    };
+    // Start in the middle set so there's a full set of room to scroll either way.
+    const raf = requestAnimationFrame(() => {
+      measure();
+      if (period > 0) el.scrollLeft = period;
+    });
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        if (period <= 0) measure();
+        if (period > 0) {
+          // Keep within the middle set ±half a set; correct by exactly one period so the
+          // visible cards are identical and we never reach the hard edges (no blank).
+          if (el.scrollLeft < period * 0.5) el.scrollLeft += period;
+          else if (el.scrollLeft > period * 1.5) el.scrollLeft -= period;
+        }
+        ticking = false;
+      });
+    };
+    const onResize = () => measure();
+    window.addEventListener("resize", onResize);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+      el.removeEventListener("scroll", onScroll);
+    };
+    // deps: recs DOM renders after fetch (`loading`); reset + re-measure on product nav (`handle`).
+  }, [isMobile, loading, handle]);
 
   // Desktop: set initial translateX to the middle set (-oneSetWidth) after paint
   useLayoutEffect(() => {
@@ -331,7 +373,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     const el = document.getElementById("product-scroll-container");
     if (el) el.scrollTop = 0;
   }, [handle]);
-  useEffect(() => { setGalleryIndex(0); setImgLoaded(false); setRecsIndex(0); }, [handle]);
+  useEffect(() => { setGalleryIndex(0); setImgLoaded(false); }, [handle]);
 
   // Meta Pixel + TikTok Pixel ViewContent — fires once per product page load
   useEffect(() => {
@@ -1037,8 +1079,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                 <div style={{ backgroundColor: "#faf8f5", borderTop: "1px solid rgba(30,24,20,0.07)" }}>
                   {(() => {
                     const openGallery = (rec: typeof recs[0]) => {
-                      // Suppress the tap that follows a horizontal swipe so a drag never opens the gallery.
-                      if (recsDidDragRef.current) { recsDidDragRef.current = false; return; }
+                      // Native scroll handles tap-vs-swipe: a click never fires after a scroll gesture.
                       const imgs = rec.gallery();
                       setCarouselLb({ open: true, images: imgs, idx: 0 });
                     };
@@ -1084,56 +1125,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       };
                       track.addEventListener("transitionend", onEnd);
                     };
-
-                    // ── Mobile carousel: one card per view, single set of cards.
-                    // Index wraps last→first / first→last. translateX(-index * 100%)
-                    // moves one slide because each slide is flex:0 0 100% of the
-                    // viewport and the track's box width equals the viewport.
-                    const N = recs.length;
-                    const SWIPE_THRESHOLD = 45;
-                    const goTo = (i: number) => setRecsIndex(((i % N) + N) % N);
-                    const restMobileTransform = `translateX(-${recsIndex * 100}%)`;
-                    const onRecsDown = (e: React.PointerEvent) => {
-                      recsDidDragRef.current = false; // fresh gesture; only a real swipe sets this true
-                      recsDragRef.current = { startX: e.clientX, startY: e.clientY, dx: 0, active: true, decided: false, horizontal: false };
-                      const track = recsTrackMobileRef.current;
-                      if (track) track.style.transition = "none";
-                    };
-                    const onRecsMove = (e: React.PointerEvent) => {
-                      const d = recsDragRef.current;
-                      if (!d.active) return;
-                      const dx = e.clientX - d.startX;
-                      const dy = e.clientY - d.startY;
-                      if (!d.decided) {
-                        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-                        d.decided = true;
-                        d.horizontal = Math.abs(dx) > Math.abs(dy);
-                        if (d.horizontal) {
-                          recsDidDragRef.current = true; // a real swipe → suppress the trailing tap
-                          (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-                        }
-                      }
-                      if (!d.horizontal) return; // vertical gesture → let the page scroll
-                      d.dx = dx;
-                      const track = recsTrackMobileRef.current;
-                      // First / last slide: add rubber-band resistance so we don't reveal empty space.
-                      const atEdge = (recsIndex === 0 && dx > 0) || (recsIndex === N - 1 && dx < 0);
-                      const eff = atEdge ? dx * 0.35 : dx;
-                      if (track) track.style.transform = `translateX(calc(-${recsIndex * 100}% + ${eff}px))`;
-                    };
-                    const onRecsUp = () => {
-                      const d = recsDragRef.current;
-                      if (!d.active) return;
-                      d.active = false;
-                      const track = recsTrackMobileRef.current;
-                      if (track) track.style.transition = "transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)";
-                      const willChange = N > 1 && d.horizontal && Math.abs(d.dx) > SWIPE_THRESHOLD;
-                      if (willChange) {
-                        goTo(d.dx < 0 ? recsIndex + 1 : recsIndex - 1); // state change re-applies transform with transition
-                      } else if (track) {
-                        track.style.transform = restMobileTransform; // snap back to current slide
-                      }
-                    };
                     return (
                       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 0 56px 28px" }}>
                         {/* Header row */}
@@ -1155,48 +1146,28 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         </div>
 
                         {isMobile ? (
-                          /* Mobile: index-based infinite loop — ONE card per view, a single
-                             set of cards (no duplicates). Swiping past the last card wraps to
-                             the first and vice-versa. translateX(-index*100%) steps one slide
-                             because each slide is flex:0 0 100% and the track box = viewport. */
-                          <div style={{ paddingRight: 28 }}>
-                            <div
-                              style={{ overflow: "hidden", touchAction: "pan-y" }}
-                              onPointerDown={onRecsDown}
-                              onPointerMove={onRecsMove}
-                              onPointerUp={onRecsUp}
-                              onPointerCancel={onRecsUp}
-                            >
-                              <div
-                                ref={recsTrackMobileRef}
-                                style={{
-                                  display: "flex",
-                                  transform: restMobileTransform,
-                                  transition: "transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)",
-                                  willChange: "transform",
-                                }}
-                              >
-                                {recs.map((rec, i) => (
-                                  <div key={`m-${rec.handle}-${i}`} style={{ flex: "0 0 100%", boxSizing: "border-box", paddingRight: 6 }}>
-                                    {renderCard(rec, `mc-${rec.handle}-${i}`, true)}
-                                  </div>
-                                ))}
+                          /* Mobile: native horizontal scroll showing 3 cards at a time, with a
+                             seamless infinite loop. Cards are tripled [A,B,C]; the effect above
+                             starts in the middle set and silently repositions by one set width
+                             near the edges, so scrolling never hits a wall and never shows blank. */
+                          <div
+                            ref={recsScrollMobileRef}
+                            className="moi-hscroll"
+                            style={{
+                              display: "flex",
+                              gap: 12,
+                              overflowX: "auto",
+                              overflowY: "hidden",
+                              WebkitOverflowScrolling: "touch",
+                              overscrollBehaviorX: "contain",
+                              scrollBehavior: "auto",
+                            }}
+                          >
+                            {[...recs, ...recs, ...recs].map((rec, i) => (
+                              <div key={`m-${rec.handle}-${i}`} style={{ flex: "0 0 calc((100% - 24px) / 3 - 10px)" }}>
+                                {renderCard(rec, `mc-${rec.handle}-${i}`, true)}
                               </div>
-                            </div>
-                            {/* Dots */}
-                            {N > 1 && (
-                              <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 22 }}>
-                                {recs.map((_, i) => (
-                                  <button
-                                    key={i}
-                                    type="button"
-                                    aria-label={`Go to item ${i + 1}`}
-                                    onClick={() => setRecsIndex(i)}
-                                    style={{ width: i === recsIndex ? 18 : 6, height: 6, borderRadius: 9999, border: "none", padding: 0, cursor: "pointer", backgroundColor: i === recsIndex ? "#1e1814" : "rgba(30,24,20,0.2)", transition: "width 0.22s, background-color 0.22s" }}
-                                  />
-                                ))}
-                              </div>
-                            )}
+                            ))}
                           </div>
                         ) : (
                           /* Desktop: infinite loop via tripled track + translateX; grab-to-drag + arrow buttons */

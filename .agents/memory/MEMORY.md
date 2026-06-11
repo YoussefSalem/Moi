@@ -9,5 +9,5 @@
 - [Moi unified order confirmation](moi-unified-order-confirmation.md) — all methods → one OrderConfirmationPage at /order-confirmed; navigateToOrderConfirmed pattern; normalize snapshot or blank crash; Apple Pay uses dedicated applePayIntegrationId; global secrets can't be set/deleted programmatically.
 - [Moi SPA scroll restoration](moi-spa-scroll-restoration.md) — history.scrollRestoration MUST be "manual"; else iOS swipe-back lands on prev product scrolled to bottom (native restoration races app scroll-to-top).
 - [Moi iOS back-gesture blank fix](moi-ios-back-gesture.md) — product page must be position:fixed overlay (z-51, overflow-y:auto) so home stays live in document flow; snapshots/willChange tricks don't work.
-- [Moi mobile recs carousel](moi-mobile-carousel.md) — index-wrap infinite loop, ONE card/view, single set (no dupes); custom pointer handlers risky inside the fixed/overflow product overlay on iOS.
+- [Moi mobile recs carousel](moi-mobile-carousel.md) — 3 cards/view, seamless infinite loop via native overflow-x scroll + tripled-set wrap; measure set period from child offsets (not scrollWidth/3).
 - [Moi lightbox portal](moi-lightbox-portal.md) — CinematicLightbox must createPortal into document.body or product-page's fixed z-51 stacking context caps its z-index and header paints over it.
