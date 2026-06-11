@@ -153,6 +153,11 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const recsDraggingRef = useRef(false);
   const desktopXRef = useRef(0);
   const desktopAnimatingRef = useRef(false);
+  const recsTrackMobileRef = useRef<HTMLDivElement>(null);
+  const mobileCardWRef = useRef(0);
+  const recsDragRef = useRef<{ x: number; idx: number } | null>(null);
+  const recsDidDragRef = useRef(false);
+  const [recsIndex, setRecsIndex] = useState(0);
   const recs = useMemo(() => ALL_RECS.filter((r) => r.handle !== handle), [handle]);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
@@ -167,53 +172,19 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Mobile recs carousel: native horizontal scroll showing 3 cards at a time, with a
-  // seamless infinite loop. Cards are rendered as three identical sets [A,B,C]; we start
-  // scrolled into the middle set and silently reposition by one-set-width whenever the
-  // user drifts toward an edge. Native scroll gives real momentum + reliable iOS touch.
+  // Mobile recs carousel: snap-to-card translateX, 3 cards visible, infinite loop via tripled
+  // track. Same pointer-drag/snap interaction as the 1-card version, just scaled to 1/3 width.
   useEffect(() => {
-    if (!isMobile) return;
-    const el = recsScrollMobileRef.current;
-    if (!el) return;
-    // Measure ONE set's period EXACTLY from the DOM: the x-distance between the first card
-    // of set A (child 0) and the first card of set B (child recs.length). This avoids the
-    // gap/padding rounding error of scrollWidth/3, so each wrap correction lands on a
-    // pixel-identical position and the loop is invisible.
-    let period = 0;
-    const measure = () => {
-      const first = el.children[0] as HTMLElement | undefined;
-      const setB = el.children[recs.length] as HTMLElement | undefined;
-      if (first && setB) period = setB.offsetLeft - first.offsetLeft;
-    };
-    // Start in the middle set so there's a full set of room to scroll either way.
-    const raf = requestAnimationFrame(() => {
-      measure();
-      if (period > 0) el.scrollLeft = period;
-    });
-    let ticking = false;
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        if (period <= 0) measure();
-        if (period > 0) {
-          // Keep within the middle set ±half a set; correct by exactly one period so the
-          // visible cards are identical and we never reach the hard edges (no blank).
-          if (el.scrollLeft < period * 0.5) el.scrollLeft += period;
-          else if (el.scrollLeft > period * 1.5) el.scrollLeft -= period;
-        }
-        ticking = false;
-      });
-    };
-    const onResize = () => measure();
-    window.addEventListener("resize", onResize);
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", onResize);
-      el.removeEventListener("scroll", onScroll);
-    };
-    // deps: recs DOM renders after fetch (`loading`); reset + re-measure on product nav (`handle`).
+    if (!isMobile || loading) return;
+    const clip = recsScrollMobileRef.current;
+    const track = recsTrackMobileRef.current;
+    if (!clip || !track) return;
+    mobileCardWRef.current = clip.offsetWidth / 3;
+    const startIdx = recs.length; // begin in the middle set
+    track.style.transition = "none";
+    track.style.transform = `translateX(${-startIdx * mobileCardWRef.current}px)`;
+    setRecsIndex(startIdx);
+    // recs is derived from handle (useMemo), so handle in deps keeps recs.length current.
   }, [isMobile, loading, handle]);
 
   // Desktop: set initial translateX to the middle set (-oneSetWidth) after paint
@@ -1125,6 +1096,61 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       };
                       track.addEventListener("transitionend", onEnd);
                     };
+                    // Mobile pointer-drag handlers — advance one card per swipe, same feel as the
+                    // 1-card carousel but scaled to 3 visible cards.
+                    const N = recs.length;
+                    const SWIPE_THRESHOLD = 20;
+                    const onMobileDown = (e: React.PointerEvent) => {
+                      recsDragRef.current = { x: e.clientX, idx: recsIndex };
+                      recsDidDragRef.current = false;
+                      const track = recsTrackMobileRef.current;
+                      if (track) track.style.transition = "none";
+                    };
+                    const onMobileMove = (e: React.PointerEvent) => {
+                      if (!recsDragRef.current) return;
+                      const dx = e.clientX - recsDragRef.current.x;
+                      if (!recsDidDragRef.current && Math.abs(dx) < SWIPE_THRESHOLD) return;
+                      recsDidDragRef.current = true;
+                      e.preventDefault();
+                      const track = recsTrackMobileRef.current;
+                      if (track) track.style.transform = `translateX(${-(recsDragRef.current.idx * mobileCardWRef.current) + dx}px)`;
+                    };
+                    const onMobileUp = (e: React.PointerEvent) => {
+                      if (!recsDragRef.current) return;
+                      const { x: startX, idx: startIdx } = recsDragRef.current;
+                      recsDragRef.current = null;
+                      const didDrag = recsDidDragRef.current;
+                      recsDidDragRef.current = false;
+                      const track = recsTrackMobileRef.current;
+                      if (!track) return;
+                      // Cancel or no real drag: snap back to where we started
+                      if (e.type === "pointercancel" || !didDrag) {
+                        track.style.transition = "transform 0.3s ease";
+                        track.style.transform = `translateX(${-startIdx * mobileCardWRef.current}px)`;
+                        return;
+                      }
+                      const dx = e.clientX - startX;
+                      const dir = dx < -SWIPE_THRESHOLD ? 1 : dx > SWIPE_THRESHOLD ? -1 : 0;
+                      let newIdx = startIdx + dir;
+                      track.style.transition = "transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+                      track.style.transform = `translateX(${-newIdx * mobileCardWRef.current}px)`;
+                      // Suppress the click that fires after pointerup so swiping never navigates
+                      const suppressClick = (ev: MouseEvent) => {
+                        ev.stopPropagation(); ev.preventDefault();
+                        window.removeEventListener("click", suppressClick, true);
+                      };
+                      window.addEventListener("click", suppressClick, true);
+                      track.addEventListener("transitionend", function onEnd() {
+                        track.removeEventListener("transitionend", onEnd);
+                        // Silently reposition to the middle set — all three sets show identical cards
+                        // so the jump is invisible.
+                        if (newIdx >= 2 * N) newIdx -= N;
+                        if (newIdx < N) newIdx += N;
+                        track.style.transition = "none";
+                        track.style.transform = `translateX(${-newIdx * mobileCardWRef.current}px)`;
+                        setRecsIndex(newIdx);
+                      });
+                    };
                     return (
                       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 0 56px 28px" }}>
                         {/* Header row */}
@@ -1146,28 +1172,36 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         </div>
 
                         {isMobile ? (
-                          /* Mobile: native horizontal scroll showing 3 cards at a time, with a
-                             seamless infinite loop. Cards are tripled [A,B,C]; the effect above
-                             starts in the middle set and silently repositions by one set width
-                             near the edges, so scrolling never hits a wall and never shows blank. */
-                          <div
-                            ref={recsScrollMobileRef}
-                            className="moi-hscroll"
-                            style={{
-                              display: "flex",
-                              gap: 12,
-                              overflowX: "auto",
-                              overflowY: "hidden",
-                              WebkitOverflowScrolling: "touch",
-                              overscrollBehaviorX: "contain",
-                              scrollBehavior: "auto",
-                            }}
-                          >
-                            {[...recs, ...recs, ...recs].map((rec, i) => (
-                              <div key={`m-${rec.handle}-${i}`} style={{ flex: "0 0 calc((100% - 24px) / 3 - 10px)" }}>
-                                {renderCard(rec, `mc-${rec.handle}-${i}`, true)}
+                          /* Mobile: translateX snap carousel, 3 cards per view, infinite loop via
+                             tripled track [A,B,C]. Pointer-drag advances one card at a time with
+                             a smooth CSS transition — same interaction as the 1-card version. */
+                          <div>
+                            <div
+                              ref={recsScrollMobileRef}
+                              style={{ overflow: "hidden", touchAction: "pan-y" }}
+                            >
+                              <div
+                                ref={recsTrackMobileRef}
+                                style={{ display: "flex", willChange: "transform" }}
+                                onPointerDown={onMobileDown}
+                                onPointerMove={onMobileMove}
+                                onPointerUp={onMobileUp}
+                                onPointerCancel={onMobileUp}
+                              >
+                                {[...recs, ...recs, ...recs].map((rec, i) => (
+                                  <div key={`m-${rec.handle}-${i}`} style={{ flex: `0 0 ${100 / 3}%` }}>
+                                    {renderCard(rec, `mc-${rec.handle}-${i}`, true)}
+                                  </div>
+                                ))}
                               </div>
-                            ))}
+                            </div>
+                            {recs.length > 1 && (
+                              <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 18 }}>
+                                {recs.map((_, i) => (
+                                  <div key={i} style={{ width: i === recsIndex % recs.length ? 18 : 6, height: 6, borderRadius: 9999, backgroundColor: i === recsIndex % recs.length ? "#1e1814" : "rgba(30,24,20,0.2)", transition: "width 0.22s, background-color 0.22s" }} />
+                                ))}
+                              </div>
+                            )}
                           </div>
                         ) : (
                           /* Desktop: infinite loop via tripled track + translateX; grab-to-drag + arrow buttons */
