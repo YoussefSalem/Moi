@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ArrowLeft, Bell } from "lucide-react";
 import { toast } from "sonner";
@@ -168,46 +168,67 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   }, []);
 
   // Mobile: infinite seamless auto-scroll + touch-to-pan support
-  useEffect(() => {
+  // useLayoutEffect fires after DOM commit; inner RAF waits one paint so
+  // scrollWidth is fully resolved before we start animating.
+  useLayoutEffect(() => {
     if (!isMobile) return;
-    const track = recsTrackRef.current;
-    if (!track) return;
+    let raf0 = 0;
+    let rafLoop = 0;
     let paused = false;
     let touchStartClientX = 0;
     let touchStartX = 0;
     const speed = 0.7;
-    function tick() {
-      if (!track) return;
-      if (!paused) {
-        const halfWidth = track.scrollWidth / 2;
-        recsMobileXRef.current -= speed;
-        if (Math.abs(recsMobileXRef.current) >= halfWidth) recsMobileXRef.current = 0;
-        track.style.transform = `translateX(${recsMobileXRef.current}px)`;
+    let onTouchStart: (e: TouchEvent) => void;
+    let onTouchMove: (e: TouchEvent) => void;
+    let onTouchEnd: () => void;
+    let attachedTrack: HTMLDivElement | null = null;
+
+    raf0 = requestAnimationFrame(() => {
+      const trackEl = recsTrackRef.current as HTMLDivElement;
+      if (!trackEl) return;
+      attachedTrack = trackEl;
+      recsMobileXRef.current = 0;
+      trackEl.style.transform = "translateX(0px)";
+      const halfWidth = trackEl.scrollWidth / 2;
+
+      function tick() {
+        if (!paused) {
+          recsMobileXRef.current -= speed;
+          if (Math.abs(recsMobileXRef.current) >= halfWidth) recsMobileXRef.current = 0;
+          trackEl.style.transform = `translateX(${recsMobileXRef.current}px)`;
+        }
+        rafLoop = requestAnimationFrame(tick);
       }
-      recsRafRef.current = requestAnimationFrame(tick);
-    }
-    const onTouchStart = (e: TouchEvent) => {
-      paused = true;
-      touchStartClientX = e.touches[0].clientX;
-      touchStartX = recsMobileXRef.current;
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      const dx = e.touches[0].clientX - touchStartClientX;
-      recsMobileXRef.current = touchStartX + dx;
-      track.style.transform = `translateX(${recsMobileXRef.current}px)`;
-    };
-    const onTouchEnd = () => { paused = false; };
-    track.addEventListener("touchstart", onTouchStart, { passive: true });
-    track.addEventListener("touchmove", onTouchMove, { passive: true });
-    track.addEventListener("touchend", onTouchEnd, { passive: true });
-    track.addEventListener("touchcancel", onTouchEnd, { passive: true });
-    recsRafRef.current = requestAnimationFrame(tick);
+
+      onTouchStart = (e: TouchEvent) => {
+        paused = true;
+        touchStartClientX = e.touches[0].clientX;
+        touchStartX = recsMobileXRef.current;
+      };
+      onTouchMove = (e: TouchEvent) => {
+        const dx = e.touches[0].clientX - touchStartClientX;
+        recsMobileXRef.current = touchStartX + dx;
+        trackEl.style.transform = `translateX(${recsMobileXRef.current}px)`;
+      };
+      onTouchEnd = () => { paused = false; };
+
+      trackEl.addEventListener("touchstart", onTouchStart, { passive: true });
+      trackEl.addEventListener("touchmove", onTouchMove, { passive: true });
+      trackEl.addEventListener("touchend", onTouchEnd, { passive: true });
+      trackEl.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
+      rafLoop = requestAnimationFrame(tick);
+    });
+
     return () => {
-      cancelAnimationFrame(recsRafRef.current);
-      track.removeEventListener("touchstart", onTouchStart);
-      track.removeEventListener("touchmove", onTouchMove);
-      track.removeEventListener("touchend", onTouchEnd);
-      track.removeEventListener("touchcancel", onTouchEnd);
+      cancelAnimationFrame(raf0);
+      cancelAnimationFrame(rafLoop);
+      if (attachedTrack && onTouchStart) {
+        attachedTrack.removeEventListener("touchstart", onTouchStart);
+        attachedTrack.removeEventListener("touchmove", onTouchMove);
+        attachedTrack.removeEventListener("touchend", onTouchEnd);
+        attachedTrack.removeEventListener("touchcancel", onTouchEnd);
+      }
     };
   }, [isMobile]);
 
@@ -1041,7 +1062,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               {onNavigate && (
                 <div style={{ backgroundColor: "#faf8f5", borderTop: "1px solid rgba(30,24,20,0.07)" }}>
                   {(() => {
-                    const recs = ALL_RECS.filter((r) => r.handle !== handle).slice(0, 4);
+                    const recs = ALL_RECS.filter((r) => r.handle !== handle);
                     const cardStyle: React.CSSProperties = { flex: "0 0 auto", width: "clamp(180px, 38vw, 280px)", background: "none", border: "none", padding: 0, textAlign: "left", userSelect: "none" };
                     const openGallery = (rec: typeof recs[0]) => {
                       const imgs = rec.gallery();
