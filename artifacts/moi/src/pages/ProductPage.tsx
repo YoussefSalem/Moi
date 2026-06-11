@@ -434,12 +434,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
         }}
       >
         {/* ── Back button ── */}
-        <div className="px-5 md:px-12 pt-20 md:pt-24 pb-2">
+        <div className="px-5 md:px-12 pt-20 md:pt-22 pb-1">
           <button
             type="button"
             onClick={onBack}
             className="flex items-center gap-2 transition-opacity hover:opacity-60 active:opacity-40"
-            style={{ ...SANS, fontSize: 9, letterSpacing: "0.28em", textTransform: "uppercase", color: "#8a7e74", minHeight: 40 }}
+            style={{ ...SANS, fontSize: 9, letterSpacing: "0.28em", textTransform: "uppercase", color: "#8a7e74", minHeight: 36 }}
           >
             <ArrowLeft size={13} strokeWidth={1.4} />
             Back
@@ -482,18 +482,18 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
             >
 
               {/* ══════════ MAIN PRODUCT GRID ══════════ */}
-              <div className="max-w-6xl mx-auto md:px-12 pt-2 pb-10 md:pb-16">
-                <div className="flex flex-col md:grid md:grid-cols-[1fr_400px] md:gap-16 md:items-start">
+              <div className="max-w-6xl mx-auto md:px-12 pt-1 pb-6 md:pb-10">
+                <div className="flex flex-col md:grid md:grid-cols-[1fr_380px] md:gap-12 md:items-start">
 
                   {/* ══ LEFT: Gallery ══ */}
                   <div>
 
-                    {/* ── Mobile: full-bleed swipeable image ── */}
-                    <div className="md:hidden">
+                    {/* ── Mobile: contained swipeable image ── */}
+                    <div className="md:hidden px-5">
                       <div
                         className="relative overflow-hidden"
                         style={{
-                          aspectRatio: "4/5",
+                          aspectRatio: "3/4",
                           backgroundColor: "rgba(30,24,20,0.03)",
                           touchAction: "pan-y",
                           userSelect: "none",
@@ -671,18 +671,18 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                   </div>
 
                   {/* ══ RIGHT: Product info ══ */}
-                  <div className="px-5 md:px-0 pt-6 md:pt-0 md:sticky md:top-[80px]">
+                  <div className="px-5 md:px-0 pt-4 md:pt-0 md:sticky md:top-[80px]">
 
                     {/* Name */}
                     <h1
                       style={{
                         ...SERIF,
-                        fontSize: "clamp(1.75rem, 7vw, 2.7rem)",
+                        fontSize: "clamp(1.6rem, 6vw, 2.4rem)",
                         fontWeight: 300,
                         color: "#1e1814",
                         letterSpacing: "0.03em",
                         lineHeight: 1.1,
-                        marginBottom: 8,
+                        marginBottom: 6,
                       }}
                     >
                       {product.name}
@@ -690,7 +690,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
 
                     {/* Rating summary */}
                     {avgRatingData && (
-                      <div className="flex items-center gap-2 mb-4">
+                      <div className="flex items-center gap-2 mb-3">
                         <StarDisplay value={avgRatingData.avg} size={12} />
                         <span style={{ ...SANS, fontSize: 10, color: "#8a7e74", letterSpacing: "0.08em" }}>
                           {avgRatingData.avg.toFixed(1)} ({avgRatingData.count})
@@ -699,7 +699,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     )}
 
                     {/* Price row */}
-                    <div className="flex flex-wrap items-center gap-2.5 mb-5">
+                    <div className="flex flex-wrap items-center gap-2.5 mb-4">
                       {effectiveCompareAtPrice && (
                         <span style={{ ...SANS, fontSize: "clamp(0.85rem, 2.5vw, 0.98rem)", color: "#8a7e74", textDecoration: "line-through", textDecorationColor: "#c83232", textDecorationThickness: 1, letterSpacing: "0.07em" }}>
                           {effectiveCompareAtPrice}
@@ -717,11 +717,11 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                     </div>
 
                     {/* Divider */}
-                    <div className="mb-5" style={{ width: 32, height: 1, backgroundColor: "rgba(180,160,140,0.4)" }} />
+                    <div className="mb-4" style={{ width: 28, height: 1, backgroundColor: "rgba(180,160,140,0.4)" }} />
 
                     {/* Description */}
                     {"descriptionBullets" in (product as unknown as Record<string, unknown>) && (product as unknown as { descriptionBullets?: string[] }).descriptionBullets?.length ? (
-                      <ul className="mb-5 space-y-1.5">
+                      <ul className="mb-4 space-y-1">
                         {(product as unknown as { descriptionBullets: string[] }).descriptionBullets.map((bullet, i) => (
                           <li key={i} className="flex items-start gap-2.5">
                             <span className="flex-shrink-0 rounded-full" style={{ width: 5, height: 5, marginTop: 7, backgroundColor: "rgba(30,24,20,0.2)" }} />
@@ -730,14 +730,14 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         ))}
                       </ul>
                     ) : (
-                      <p style={{ ...SERIF, fontSize: "clamp(0.84rem, 2.2vw, 0.92rem)", color: "#6a5e56", lineHeight: 1.68, marginBottom: 20 }}>
+                      <p style={{ ...SERIF, fontSize: "clamp(0.84rem, 2.2vw, 0.92rem)", color: "#6a5e56", lineHeight: 1.68, marginBottom: 16 }}>
                         {product.description}
                       </p>
                     )}
 
                     {/* Size selector */}
                     {displaySizes.length > 1 && (
-                      <div className="flex flex-col gap-3 mb-5">
+                      <div className="flex flex-col gap-2.5 mb-4">
                         <p style={{ ...SANS, fontSize: 10, letterSpacing: "0.24em", textTransform: "uppercase", color: "#8a7e74" }}>
                           Size —{" "}<span style={{ color: "#1e1814" }}>{selectedSize}</span>
                         </p>
@@ -870,14 +870,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       ))}
                     </div>
 
-                    {/* Trust badges */}
-                    <div className="flex flex-wrap gap-x-4 gap-y-2 mt-5">
-                      {["Made in Egypt", "Free Delivery", "Easy Returns"].map((b) => (
-                        <span key={b} style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.16em", color: "rgba(30,24,20,0.38)", textTransform: "uppercase" }}>
-                          {b}
-                        </span>
-                      ))}
-                    </div>
                   </div>
                   {/* end right col */}
                 </div>
@@ -887,37 +879,42 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               {/* ── Full-width: Reviews ── */}
               <ReviewSection productHandle={handle} productName={product.name} />
 
-              {/* ── Full-width: You May Also Like ── */}
+              {/* ── Full-width: You May Also Like (centred grid) ── */}
               {onNavigate && clothingRecs.length > 0 && (
-                <section style={{ borderTop: "1px solid rgba(30,24,20,0.08)", paddingTop: 52, paddingBottom: 68 }}>
-                  <div className="max-w-6xl mx-auto px-5 md:px-12">
-                    <p style={{ ...SANS, fontSize: 9, letterSpacing: "0.26em", textTransform: "uppercase", color: "#8a7e74", marginBottom: 20 }}>
+                <section style={{ borderTop: "1px solid rgba(30,24,20,0.08)", paddingTop: 56, paddingBottom: 80 }}>
+                  <div className="max-w-5xl mx-auto px-5 md:px-12 text-center">
+                    <p style={{ ...SANS, fontSize: 9, letterSpacing: "0.30em", textTransform: "uppercase", color: "#8a7e74", marginBottom: 8 }}>
                       You May Also Like
                     </p>
-                    <div ref={recsRef} className="flex gap-4 md:gap-6 overflow-x-auto pb-3" style={{ scrollbarWidth: "none" }}>
+                    <div ref={recsRef}
+                      className="grid gap-x-5 gap-y-8 mt-8"
+                      style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
+                    >
                       {clothingRecs.map((rec) => (
                         <button
                           key={rec.handle}
                           type="button"
                           onClick={() => onNavigate(rec.handle)}
-                          className="flex-shrink-0 text-left group"
-                          style={{ width: "clamp(110px, 26vw, 150px)" }}
+                          className="text-left group w-full"
                         >
-                          <div className="overflow-hidden mb-2.5" style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.04)" }}>
+                          <div
+                            className="overflow-hidden mb-3 w-full"
+                            style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.04)" }}
+                          >
                             <img
                               src={rec.image}
                               alt={rec.name}
                               className="w-full h-full"
-                              style={{ objectFit: "cover", transition: "transform 0.55s ease" }}
+                              style={{ objectFit: "cover", transition: "transform 0.65s ease" }}
                               loading="lazy"
                             />
                           </div>
-                          <div className="flex items-center gap-1.5 mb-1">
+                          <div className="flex items-center gap-1.5 mb-1.5">
                             <span className="rounded-full flex-shrink-0" style={{ width: 7, height: 7, backgroundColor: rec.swatch, border: "1px solid rgba(30,24,20,0.14)" }} />
-                            <span style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.13em", textTransform: "uppercase", color: "#8a7e74" }}>{rec.color}</span>
+                            <span style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a7e74" }}>{rec.color}</span>
                           </div>
-                          <p style={{ ...SERIF, fontSize: "clamp(0.8rem, 2vw, 0.92rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1.2 }}>{rec.name}</p>
-                          <p style={{ ...SANS, fontSize: 9.5, letterSpacing: "0.08em", color: "#7a6e64", marginTop: 2 }}>{rec.price}</p>
+                          <p style={{ ...SERIF, fontSize: "clamp(0.88rem, 2.2vw, 1.05rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1.2 }}>{rec.name}</p>
+                          <p style={{ ...SANS, fontSize: 10, letterSpacing: "0.09em", color: "#7a6e64", marginTop: 3 }}>{rec.price}</p>
                         </button>
                       ))}
                     </div>
