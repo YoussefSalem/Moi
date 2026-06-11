@@ -143,7 +143,9 @@ function deriveFallbackFromHandle(handle: string): ProductConfig {
     ...(matched as unknown as ProductConfig),
     name: colorSlug ? `${matched.name} — ${colorName}` : matched.name,
     productShot: mainImage,
-    filmstrip: gallery,
+    // Preserve an intentionally empty filmstrip (e.g. Versa Top defers to Shopify CDN).
+    // For products with a real filmstrip, use the color-specific gallery.
+    filmstrip: (matched.filmstrip as string[]).length > 0 ? gallery : [],
     variants: resolvedVariants,
   } as ProductConfig;
 }

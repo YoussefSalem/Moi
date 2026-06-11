@@ -13,3 +13,4 @@
 - [Moi lightbox portal](moi-lightbox-portal.md) — CinematicLightbox must createPortal into document.body or product-page's fixed z-51 stacking context caps its z-index and header paints over it.
 - [Moi product carousel imperative pattern](moi-product-carousel.md) — never put transform in React inline style when driving it imperatively; use useLayoutEffect for initial position; no useState in carousel body or React re-renders reset the offset.
 - [Moi cart product identity bug](moi-cart-identity.md) — all Shopify variant lookups must use case-insensitive o.value comparison; handleColorCardAddToCart must use slug-resolved products not raw products array; never fall back to variants[0] when pageColorName is set.
+- [Moi deriveFallbackFromHandle filmstrip bug](moi-versa-top-filmstrip.md) — deriveFallbackFromHandle must preserve empty filmstrip when matched.filmstrip is empty; otherwise mapProductToConfig never falls through to Shopify CDN images.
