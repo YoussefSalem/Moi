@@ -73,12 +73,15 @@ export function ProductCarousel({
         .moi-carousel-track {
           display: flex;
           gap: 20px;
+          width: 100%;
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
           scroll-behavior: smooth;
           scrollbar-width: none;
           -ms-overflow-style: none;
           padding-bottom: 4px;
+          box-sizing: border-box;
+          touch-action: pan-x;
         }
         .moi-carousel-track::-webkit-scrollbar {
           display: none;
@@ -92,6 +95,7 @@ export function ProductCarousel({
           text-align: left;
           cursor: pointer;
           user-select: none;
+          touch-action: pan-x;
         }
       `}</style>
 
