@@ -90,6 +90,7 @@ function buildAllRecs(): RecItem[] {
     { product: IMAGES.product1, colorName: "Cashmere" },
     { product: IMAGES.product1, colorName: "Beige" },
     { product: IMAGES.product1, colorName: "Yellow" },
+    { product: IMAGES.product1, colorName: "Sand" },
     { product: IMAGES.product2, colorName: "White" },
     { product: IMAGES.product2, colorName: "Cashmere" },
     { product: IMAGES.product2, colorName: "Beige" },
