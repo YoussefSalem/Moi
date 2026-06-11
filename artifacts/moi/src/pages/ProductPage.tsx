@@ -147,6 +147,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [waHover, setWaHover] = useState(false);
+  const [applePayAvailable, setApplePayAvailable] = useState(false);
   const recsRef = useRef<HTMLDivElement>(null);
   const recsTrackRef = useRef<HTMLDivElement>(null);
   const recsDraggingRef = useRef(false);
@@ -164,6 +165,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // Detect Apple Pay availability once on mount
+  useEffect(() => {
+    const AP = (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession;
+    setApplePayAvailable(!!(ENABLE_APPLE_PAY && AP?.canMakePayments?.()));
   }, []);
 
   // Desktop: set initial translateX to the middle set (-oneSetWidth) after paint
@@ -801,6 +808,26 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       </motion.button>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
+                        {/* Express Checkout — only on Apple Pay capable devices */}
+                        {applePayAvailable && (
+                          <>
+                            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64", margin: "0 0 2px" }}>Express Checkout</p>
+                            <ShopifyApplePayButton
+                              variantId={selectedVariant?.id ?? product.variantId ?? ""}
+                              quantity={1}
+                              priceEGP={parseEGP(String(effectivePrice)) || 0}
+                              disabled={isOutOfStock}
+                              style={{ width: "100%" }}
+                              onSuccess={(orderNumber, total) => { toast.success(`Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`, { duration: 5000 }); }}
+                              onError={(msg) => { toast.error(msg, { duration: 4000 }); }}
+                            />
+                            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "2px 0" }}>
+                              <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" as const }}>or</span>
+                              <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                            </div>
+                          </>
+                        )}
                         <motion.button type="button" onClick={handleAddToCart} whileTap={{ scale: 0.98 }}
                           style={{ width: "100%", height: 48, borderRadius: 0, backgroundColor: addedFeedback ? "#2d6a4f" : "transparent", color: addedFeedback ? "#faf8f5" : "#1e1814", border: addedFeedback ? "none" : "1.5px solid #1e1814", fontSize: 11, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "background-color 0.3s, color 0.3s, border-color 0.3s" }}
                         >
@@ -811,19 +838,6 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         >
                           Buy It Now
                         </motion.button>
-                        {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
-                          <>
-                            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
-                              <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
-                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" as const }}>or</span>
-                              <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
-                            </div>
-                            <ShopifyApplePayButton variantId={selectedVariant?.id ?? product.variantId ?? ""} quantity={1} priceEGP={parseEGP(String(effectivePrice)) || 0} disabled={isOutOfStock} style={{ width: "100%" }}
-                              onSuccess={(orderNumber, total) => { toast.success(`Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`, { duration: 5000 }); }}
-                              onError={(msg) => { toast.error(msg, { duration: 4000 }); }}
-                            />
-                          </>
-                        )}
                         {/* or separator */}
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                           <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
@@ -1083,6 +1097,26 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                 {/* Sticky bottom CTA bar */}
                 {!isOutOfStock && (
                   <div style={{ padding: "16px 20px", paddingBottom: "calc(16px + env(safe-area-inset-bottom))", display: "flex", flexDirection: "column" as const, gap: 10 }}>
+                    {/* Express Checkout — only on Apple Pay capable devices */}
+                    {applePayAvailable && (
+                      <>
+                        <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "#7a6e64", margin: "0 0 2px" }}>Express Checkout</p>
+                        <ShopifyApplePayButton
+                          variantId={selectedVariant?.id ?? product.variantId ?? ""}
+                          quantity={1}
+                          priceEGP={parseEGP(String(effectivePrice)) || 0}
+                          disabled={isOutOfStock}
+                          style={{ width: "100%" }}
+                          onSuccess={(orderNumber, total) => { toast.success(`Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`, { duration: 5000 }); }}
+                          onError={(msg) => { toast.error(msg, { duration: 4000 }); }}
+                        />
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "2px 0" }}>
+                          <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" as const }}>or</span>
+                          <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
+                        </div>
+                      </>
+                    )}
                     <motion.button type="button" onClick={handleAddToCart} whileTap={{ scale: 0.98 }}
                       style={{ width: "100%", height: 52, borderRadius: 0, backgroundColor: addedFeedback ? "#2d6a4f" : "transparent", color: addedFeedback ? "#faf8f5" : "#1e1814", border: addedFeedback ? "none" : "1.5px solid #1e1814", fontSize: 10, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, cursor: "pointer", fontFamily: "'Montserrat', sans-serif", transition: "background-color 0.3s, color 0.3s, border-color 0.3s" }}
                     >
