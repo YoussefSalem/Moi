@@ -92,6 +92,19 @@ const ACCORDION_ITEMS = [
 const SERIF: React.CSSProperties = { fontFamily: "'Cormorant Garamond', Georgia, serif" };
 const SANS: React.CSSProperties = { fontFamily: "'Montserrat', sans-serif" };
 
+// ─── Design tokens (Ferrari-luxury adapted for Moi) ───────────────────────────
+const T = {
+  ink: "#1a1410",
+  inkMuted: "#6a5e56",
+  inkFaint: "rgba(26,20,16,0.38)",
+  hairline: "rgba(26,20,16,0.10)",
+  hairlineStrong: "rgba(26,20,16,0.18)",
+  canvas: "#faf8f5",
+  canvasWarm: "#f5f0e8",
+  surface: "rgba(26,20,16,0.04)",
+  accent: "#c83232",
+};
+
 // ─── Accordion item component ─────────────────────────────────────────────────
 function AccordionItem({
   label,
@@ -105,22 +118,22 @@ function AccordionItem({
   onToggle: () => void;
 }) {
   return (
-    <div style={{ borderBottom: "1px solid rgba(30,24,20,0.09)" }}>
+    <div style={{ borderBottom: `1px solid ${T.hairline}` }}>
       <button
         type="button"
         onClick={onToggle}
         className="w-full flex items-center justify-between text-left"
-        style={{ background: "none", border: "none", cursor: "pointer", padding: "14px 0", minHeight: 48 }}
+        style={{ background: "none", border: "none", cursor: "pointer", padding: "18px 0", minHeight: 56 }}
       >
-        <span style={{ ...SANS, fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#1e1814", fontWeight: 500 }}>
+        <span style={{ ...SANS, fontSize: 9.5, letterSpacing: "0.26em", textTransform: "uppercase", color: T.ink, fontWeight: 600 }}>
           {label}
         </span>
         <motion.span
           animate={{ rotate: open ? 45 : 0 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          style={{ color: "rgba(30,24,20,0.5)", lineHeight: 0, flexShrink: 0, marginLeft: 12 }}
+          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          style={{ color: T.inkFaint, lineHeight: 0, flexShrink: 0, marginLeft: 12 }}
         >
-          <Plus size={13} strokeWidth={1.5} />
+          <Plus size={12} strokeWidth={1.5} />
         </motion.span>
       </button>
       <AnimatePresence initial={false}>
@@ -130,10 +143,10 @@ function AccordionItem({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.30, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
             style={{ overflow: "hidden" }}
           >
-            <p style={{ ...SANS, fontSize: "clamp(0.73rem, 2vw, 0.8rem)", color: "#6a5e56", lineHeight: 1.80, letterSpacing: "0.025em", paddingBottom: 16 }}>
+            <p style={{ ...SANS, fontSize: "clamp(0.72rem, 2vw, 0.78rem)", color: T.inkMuted, lineHeight: 1.85, letterSpacing: "0.025em", paddingBottom: 20 }}>
               {body}
             </p>
           </motion.div>
@@ -424,6 +437,11 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     { handle: "moi-wavvy-mint",          name: "MOI WAVVY",     color: "Mint",       price: "899 EGP",   image: IMAGES.product1.colorImages.Mint as string,          swatch: "#98c8a8" },
   ].filter((r) => r.handle !== handle).slice(0, 6), [handle]);
 
+  // Product display name (split "Name — Color")
+  const [productBaseName, productColorLabel] = product.name.includes(" — ")
+    ? product.name.split(" — ")
+    : [product.name, ""];
+
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────────
@@ -431,20 +449,28 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     <>
       <div
         className="min-h-screen"
-        style={{
-          background: "radial-gradient(ellipse at 30% 20%, rgba(245,240,232,0.6) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(230,220,205,0.25) 0%, transparent 50%), #faf8f5",
-        }}
+        style={{ background: T.canvas }}
       >
-        {/* ── Back button ── */}
-        <div className="px-5 md:px-12 pt-20 md:pt-22 pb-1">
+        {/* ══ BACK NAV ══ */}
+        <div
+          className="absolute top-0 left-0 z-10 px-4 md:px-10"
+          style={{ paddingTop: "max(72px, calc(env(safe-area-inset-top) + 64px))" }}
+        >
           <button
             type="button"
             onClick={onBack}
-            className="flex items-center gap-2 transition-opacity hover:opacity-60 active:opacity-40"
-            style={{ ...SANS, fontSize: 9, letterSpacing: "0.28em", textTransform: "uppercase", color: "#8a7e74", minHeight: 36 }}
+            className="flex items-center gap-2.5 group"
+            style={{ background: "none", border: "none", cursor: "pointer", minHeight: 44, padding: "0 4px" }}
           >
-            <ArrowLeft size={13} strokeWidth={1.4} />
-            Back
+            <ArrowLeft
+              size={14}
+              strokeWidth={1.3}
+              style={{ color: T.inkMuted, transition: "transform 0.22s ease", display: "block" }}
+              className="group-hover:-translate-x-0.5 transition-transform"
+            />
+            <span style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.30em", textTransform: "uppercase", color: T.inkMuted, fontWeight: 500 }}>
+              Back
+            </span>
           </button>
         </div>
 
@@ -457,17 +483,28 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="max-w-6xl mx-auto px-5 md:px-12 pt-4 pb-12"
             >
-              <div className="flex flex-col md:grid md:grid-cols-[1fr_400px] md:gap-16 md:items-start">
-                <div className="w-full">
-                  <div className="relative aspect-[4/5] md:aspect-[3/4] overflow-hidden" style={{ backgroundColor: "rgba(30,24,20,0.04)" }}>
-                    <ImageSkeleton variant="warm" />
-                  </div>
+              {/* Mobile skeleton */}
+              <div className="md:hidden">
+                <div className="w-full" style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.04)" }}>
+                  <ImageSkeleton variant="warm" />
                 </div>
-                <div className="pt-6 md:pt-0 flex flex-col gap-5">
-                  {[["75%", 32], ["40%", 20], ["100%", 12], ["100%", 12], ["85%", 12]].map(([w, h], i) => (
-                    <div key={i} className="overflow-hidden relative rounded-sm" style={{ height: h as number, width: w as string, backgroundColor: "rgba(30,24,20,0.04)" }}>
+                <div className="px-5 pt-8 flex flex-col gap-4">
+                  {[["65%", 28], ["35%", 18], ["100%", 11], ["90%", 11]].map(([w, h], i) => (
+                    <div key={i} className="overflow-hidden relative" style={{ height: h as number, width: w as string, backgroundColor: "rgba(30,24,20,0.05)" }}>
+                      <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Desktop skeleton */}
+              <div className="hidden md:grid max-w-[1320px] mx-auto" style={{ gridTemplateColumns: "minmax(0,1fr) 420px", gap: 0, paddingTop: 88 }}>
+                <div className="w-full" style={{ aspectRatio: "4/5", backgroundColor: "rgba(30,24,20,0.04)" }}>
+                  <ImageSkeleton variant="warm" />
+                </div>
+                <div className="px-12 pt-8 flex flex-col gap-5">
+                  {[["70%", 36], ["40%", 22], ["100%", 12], ["90%", 12]].map(([w, h], i) => (
+                    <div key={i} className="overflow-hidden relative" style={{ height: h as number, width: w as string, backgroundColor: "rgba(30,24,20,0.05)" }}>
                       <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
                     </div>
                   ))}
@@ -477,272 +514,335 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
           ) : (
             <motion.div
               key="content"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             >
 
-              {/* ══════════ MAIN PRODUCT GRID ══════════ */}
-              <div className="max-w-6xl mx-auto md:px-12 pt-1 pb-6 md:pb-10">
-                <div className="flex flex-col md:grid md:grid-cols-[1fr_380px] md:gap-12 md:items-start">
+              {/* ══════════ MAIN PRODUCT LAYOUT ══════════ */}
+              <div
+                className="md:grid md:items-start"
+                style={{
+                  gridTemplateColumns: "minmax(0,1fr) 420px",
+                  maxWidth: 1320,
+                  margin: "0 auto",
+                }}
+              >
+                {/* ══ LEFT: Gallery ══ */}
+                <div className="relative">
 
-                  {/* ══ LEFT: Gallery ══ */}
-                  <div>
+                  {/* ── MOBILE: full-bleed image ── */}
+                  <div
+                    className="md:hidden relative overflow-hidden"
+                    style={{
+                      aspectRatio: "3/4",
+                      backgroundColor: T.canvasWarm,
+                      touchAction: "pan-y",
+                      userSelect: "none",
+                      WebkitUserSelect: "none",
+                    } as React.CSSProperties}
+                    onClick={() => setLightboxOpen(true)}
+                    onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
+                    onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
+                    onPointerUp={(e) => {
+                      const start = dragStartXRef.current;
+                      if (start === null) return;
+                      const delta = (dragLastXRef.current ?? e.clientX) - start;
+                      dragStartXRef.current = null; dragLastXRef.current = null;
+                      if (Math.abs(delta) > 32) { delta < 0 ? nextImg() : prevImg(); }
+                    }}
+                    onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
+                  >
+                    <AnimatePresence initial={false} mode="wait">
+                      <motion.img
+                        key={mainImage}
+                        src={mainImage}
+                        alt={product.name}
+                        className="absolute inset-0 w-full h-full"
+                        style={{ objectFit: "cover", objectPosition: "center top" }}
+                        loading="eager"
+                        decoding="async"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: imgLoaded ? 1 : 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.35 }}
+                        onLoad={() => setImgLoaded(true)}
+                        onError={() => setImgLoaded(true)}
+                      />
+                    </AnimatePresence>
+                    {!imgLoaded && <ImageSkeleton variant="warm" />}
 
-                    {/* ── Mobile: contained swipeable image ── */}
-                    <div className="md:hidden px-5">
-                      <div
-                        className="relative overflow-hidden"
-                        style={{
-                          aspectRatio: "3/4",
-                          backgroundColor: "rgba(30,24,20,0.03)",
-                          touchAction: "pan-y",
-                          userSelect: "none",
-                          WebkitUserSelect: "none",
-                        } as React.CSSProperties}
-                        onClick={() => setLightboxOpen(true)}
-                        onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
-                        onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
-                        onPointerUp={(e) => {
-                          const start = dragStartXRef.current;
-                          if (start === null) return;
-                          const delta = (dragLastXRef.current ?? e.clientX) - start;
-                          dragStartXRef.current = null; dragLastXRef.current = null;
-                          if (Math.abs(delta) > 32) { delta < 0 ? nextImg() : prevImg(); }
-                        }}
-                        onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
-                      >
-                        <AnimatePresence initial={false} mode="wait">
-                          <motion.img
-                            key={mainImage}
-                            src={mainImage}
-                            alt={product.name}
-                            className="absolute inset-0 w-full h-full"
-                            style={{ objectFit: "cover", objectPosition: "center top" }}
-                            loading="eager"
-                            decoding="async"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: imgLoaded ? 1 : 0 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                            onLoad={() => setImgLoaded(true)}
-                            onError={() => setImgLoaded(true)}
-                          />
-                        </AnimatePresence>
-                        {!imgLoaded && <ImageSkeleton variant="warm" />}
-
-                        {/* Sold out banner */}
-                        {isOutOfStock && (
-                          <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center py-3 pointer-events-none" style={{ background: "rgba(30,24,20,0.54)", backdropFilter: "blur(3px)" }}>
-                            <span style={{ ...SANS, fontSize: "0.58rem", letterSpacing: "0.26em", textTransform: "uppercase", color: "rgba(250,248,245,0.92)", fontWeight: 500 }}>Sold Out</span>
-                          </div>
-                        )}
-
-                        {/* Image counter */}
-                        {galleryImages.length > 1 && (
-                          <div className="absolute top-3 right-4 z-10" style={{ ...SANS, fontSize: 9, letterSpacing: "0.12em", color: "rgba(250,248,245,0.7)", textShadow: "0 1px 5px rgba(0,0,0,0.28)" }}>
-                            {galleryIndex + 1} / {galleryImages.length}
-                          </div>
-                        )}
+                    {/* Sold out banner */}
+                    {isOutOfStock && (
+                      <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center py-4 pointer-events-none" style={{ background: "rgba(26,20,16,0.58)", backdropFilter: "blur(4px)" }}>
+                        <span style={{ ...SANS, fontSize: "0.6rem", letterSpacing: "0.30em", textTransform: "uppercase", color: "rgba(250,248,245,0.92)", fontWeight: 600 }}>Sold Out</span>
                       </div>
+                    )}
 
-                      {/* Pill dots */}
-                      {galleryImages.length > 1 && (
-                        <div className="flex items-center justify-center gap-1.5 mt-3 px-5">
-                          {galleryImages.map((_, i) => (
-                            <button
-                              key={i}
-                              type="button"
-                              onClick={() => { setGalleryIndex(i); setImgLoaded(false); }}
-                              aria-label={`Image ${i + 1}`}
-                              style={{
-                                width: i === galleryIndex ? 20 : 6,
-                                height: 6,
-                                borderRadius: 3,
-                                backgroundColor: i === galleryIndex ? "#1e1814" : "rgba(30,24,20,0.2)",
-                                transition: "all 0.28s cubic-bezier(0.22,1,0.36,1)",
-                                border: "none",
-                                cursor: "pointer",
-                                padding: 0,
-                                minWidth: 6,
-                              }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ── Desktop: vertical thumb rail + main image ── */}
-                    <div className="hidden md:flex gap-3 items-start">
-
-                      {/* Vertical thumbnails */}
-                      {galleryImages.length > 1 && (
-                        <div
-                          className="flex flex-col gap-2 flex-shrink-0"
-                          style={{ width: 58, maxHeight: "calc(75vh)", overflowY: "auto", scrollbarWidth: "none" }}
-                        >
-                          {galleryImages.map((src, i) => (
-                            <button
-                              key={`${src}-${i}`}
-                              type="button"
-                              onClick={() => { setGalleryIndex(i); setImgLoaded(false); }}
-                              className="overflow-hidden flex-shrink-0 transition-all duration-200"
-                              style={{
-                                width: 58,
-                                height: 74,
-                                border: i === galleryIndex
-                                  ? "1.5px solid #1e1814"
-                                  : "1.5px solid rgba(30,24,20,0.11)",
-                                opacity: i === galleryIndex ? 1 : 0.52,
-                              }}
-                            >
-                              <div className="relative w-full h-full">
-                                {!thumbLoaded[i] && (
-                                  <div className="absolute inset-0 overflow-hidden" style={{ background: "rgba(230,220,205,0.55)" }}>
-                                    <div className="absolute inset-0" style={{ background: "linear-gradient(105deg, transparent 30%, rgba(245,240,232,0.75) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                                  </div>
-                                )}
-                                <img
-                                  src={src}
-                                  alt={`View ${i + 1}`}
-                                  className="w-full h-full"
-                                  style={{ objectFit: "cover", opacity: thumbLoaded[i] ? 1 : 0, transition: "opacity 0.2s ease" }}
-                                  loading="eager"
-                                  onLoad={() => setThumbLoaded((p) => { const n = [...p]; n[i] = true; return n; })}
-                                  onError={() => setThumbLoaded((p) => { const n = [...p]; n[i] = true; return n; })}
-                                />
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Main image */}
+                    {/* Image counter — top right */}
+                    {galleryImages.length > 1 && (
                       <div
-                        className="flex-1 relative overflow-hidden cursor-pointer"
-                        onClick={() => setLightboxOpen(true)}
-                        onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
-                        onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
-                        onPointerUp={(e) => {
-                          const start = dragStartXRef.current;
-                          if (start === null) return;
-                          const delta = (dragLastXRef.current ?? e.clientX) - start;
-                          dragStartXRef.current = null; dragLastXRef.current = null;
-                          if (Math.abs(delta) > 40) { delta < 0 ? nextImg() : prevImg(); }
-                        }}
-                        onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
-                        style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.03)", userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
+                        className="absolute top-4 right-4 z-10 flex items-center gap-1"
+                        style={{ ...SANS, fontSize: 8, letterSpacing: "0.18em", color: "rgba(250,248,245,0.75)" }}
                       >
-                        <AnimatePresence initial={false} mode="wait">
-                          <motion.img
-                            key={mainImage}
-                            src={mainImage}
-                            alt={product.name}
-                            className="absolute inset-0 w-full h-full"
-                            style={{ objectFit: "contain", objectPosition: "center" }}
-                            loading="eager"
-                            decoding="async"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: imgLoaded ? 1 : 0 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.35 }}
-                            onLoad={() => setImgLoaded(true)}
-                            onError={() => setImgLoaded(true)}
-                          />
-                        </AnimatePresence>
-                        {!imgLoaded && <ImageSkeleton variant="warm" />}
-                        {isOutOfStock && (
-                          <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center py-2 pointer-events-none" style={{ background: "rgba(30,24,20,0.52)", backdropFilter: "blur(2px)" }}>
-                            <span style={{ ...SANS, fontSize: "0.58rem", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(250,248,245,0.92)", fontWeight: 500 }}>Sold Out</span>
-                          </div>
-                        )}
-                        {galleryImages.length > 1 && (
-                          <>
-                            <button type="button" aria-label="Previous" onClick={(e) => { e.stopPropagation(); prevImg(); }} className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-[rgba(30,24,20,0.18)] hover:text-[rgba(30,24,20,0.6)] transition-colors" style={{ width: 32, height: 48, background: "none", border: "none", cursor: "pointer" }}>
-                              <ChevronLeft size={20} strokeWidth={1} />
-                            </button>
-                            <button type="button" aria-label="Next" onClick={(e) => { e.stopPropagation(); nextImg(); }} className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-[rgba(30,24,20,0.18)] hover:text-[rgba(30,24,20,0.6)] transition-colors" style={{ width: 32, height: 48, background: "none", border: "none", cursor: "pointer" }}>
-                              <ChevronRight size={20} strokeWidth={1} />
-                            </button>
-                          </>
-                        )}
-                        <div className="absolute bottom-3 right-3" style={{ ...SANS, fontSize: 7.5, color: "rgba(30,24,20,0.28)", letterSpacing: "0.2em", textTransform: "uppercase" }}>click to zoom</div>
+                        <span style={{ fontWeight: 600 }}>{galleryIndex + 1}</span>
+                        <span style={{ opacity: 0.5 }}>/</span>
+                        <span>{galleryImages.length}</span>
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* ══ RIGHT: Product info ══ */}
-                  <div className="px-5 md:px-0 pt-4 md:pt-0 md:sticky md:top-[80px]">
+                  {/* Mobile dot indicators */}
+                  {galleryImages.length > 1 && (
+                    <div className="md:hidden flex items-center justify-center gap-2 mt-4">
+                      {galleryImages.map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => { setGalleryIndex(i); setImgLoaded(false); }}
+                          aria-label={`Image ${i + 1}`}
+                          style={{
+                            width: i === galleryIndex ? 24 : 5,
+                            height: 2,
+                            backgroundColor: i === galleryIndex ? T.ink : "rgba(26,20,16,0.22)",
+                            transition: "all 0.3s cubic-bezier(0.22,1,0.36,1)",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 0,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
 
-                    {/* Name */}
+                  {/* ── DESKTOP: thumb rail + main image ── */}
+                  <div className="hidden md:flex" style={{ paddingTop: 80, gap: 16, paddingLeft: 40, paddingRight: 0, paddingBottom: 40 }}>
+
+                    {/* Vertical thumbnails */}
+                    {galleryImages.length > 1 && (
+                      <div
+                        className="flex flex-col gap-2.5 flex-shrink-0"
+                        style={{ width: 68, maxHeight: "calc(82vh)", overflowY: "auto", scrollbarWidth: "none" }}
+                      >
+                        {galleryImages.map((src, i) => (
+                          <button
+                            key={`${src}-${i}`}
+                            type="button"
+                            onClick={() => { setGalleryIndex(i); setImgLoaded(false); }}
+                            className="overflow-hidden flex-shrink-0 transition-all duration-250"
+                            style={{
+                              width: 68,
+                              height: 88,
+                              border: "none",
+                              outline: i === galleryIndex ? `1.5px solid ${T.ink}` : `1px solid ${T.hairline}`,
+                              opacity: i === galleryIndex ? 1 : 0.48,
+                              cursor: "pointer",
+                              padding: 0,
+                            }}
+                          >
+                            <div className="relative w-full h-full">
+                              {!thumbLoaded[i] && (
+                                <div className="absolute inset-0 overflow-hidden" style={{ background: T.canvasWarm }}>
+                                  <div className="absolute inset-0" style={{ background: "linear-gradient(105deg, transparent 30%, rgba(245,240,232,0.75) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
+                                </div>
+                              )}
+                              <img
+                                src={src}
+                                alt={`View ${i + 1}`}
+                                className="w-full h-full"
+                                style={{ objectFit: "cover", opacity: thumbLoaded[i] ? 1 : 0, transition: "opacity 0.2s ease" }}
+                                loading="eager"
+                                onLoad={() => setThumbLoaded((p) => { const n = [...p]; n[i] = true; return n; })}
+                                onError={() => setThumbLoaded((p) => { const n = [...p]; n[i] = true; return n; })}
+                              />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Main image */}
+                    <div
+                      className="flex-1 relative overflow-hidden cursor-zoom-in"
+                      onClick={() => setLightboxOpen(true)}
+                      onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
+                      onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
+                      onPointerUp={(e) => {
+                        const start = dragStartXRef.current;
+                        if (start === null) return;
+                        const delta = (dragLastXRef.current ?? e.clientX) - start;
+                        dragStartXRef.current = null; dragLastXRef.current = null;
+                        if (Math.abs(delta) > 40) { delta < 0 ? nextImg() : prevImg(); }
+                      }}
+                      onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
+                      style={{ aspectRatio: "4/5", backgroundColor: T.canvasWarm, userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
+                    >
+                      <AnimatePresence initial={false} mode="wait">
+                        <motion.img
+                          key={mainImage}
+                          src={mainImage}
+                          alt={product.name}
+                          className="absolute inset-0 w-full h-full"
+                          style={{ objectFit: "contain", objectPosition: "center" }}
+                          loading="eager"
+                          decoding="async"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: imgLoaded ? 1 : 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.35 }}
+                          onLoad={() => setImgLoaded(true)}
+                          onError={() => setImgLoaded(true)}
+                        />
+                      </AnimatePresence>
+                      {!imgLoaded && <ImageSkeleton variant="warm" />}
+
+                      {isOutOfStock && (
+                        <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center py-3 pointer-events-none" style={{ background: "rgba(26,20,16,0.52)", backdropFilter: "blur(3px)" }}>
+                          <span style={{ ...SANS, fontSize: "0.58rem", letterSpacing: "0.28em", textTransform: "uppercase", color: "rgba(250,248,245,0.92)", fontWeight: 600 }}>Sold Out</span>
+                        </div>
+                      )}
+
+                      {galleryImages.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            aria-label="Previous"
+                            onClick={(e) => { e.stopPropagation(); prevImg(); }}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center transition-all duration-200 hover:opacity-100"
+                            style={{ width: 36, height: 56, background: "none", border: "none", cursor: "pointer", opacity: 0.22, color: T.ink }}
+                          >
+                            <ChevronLeft size={20} strokeWidth={1} />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Next"
+                            onClick={(e) => { e.stopPropagation(); nextImg(); }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center transition-all duration-200 hover:opacity-100"
+                            style={{ width: 36, height: 56, background: "none", border: "none", cursor: "pointer", opacity: 0.22, color: T.ink }}
+                          >
+                            <ChevronRight size={20} strokeWidth={1} />
+                          </button>
+                        </>
+                      )}
+
+                      {/* Gallery count */}
+                      {galleryImages.length > 1 && (
+                        <div className="absolute bottom-4 right-4" style={{ ...SANS, fontSize: 7.5, color: "rgba(26,20,16,0.30)", letterSpacing: "0.22em", textTransform: "uppercase" }}>
+                          {galleryIndex + 1} / {galleryImages.length}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ══ RIGHT: Product info ══ */}
+                <div
+                  className="md:sticky"
+                  style={{ top: 0, paddingTop: 0 }}
+                >
+                  {/* ─── Info panel ─── */}
+                  <div
+                    className="px-6 md:px-10"
+                    style={{
+                      paddingTop: "clamp(28px, 6vw, 88px)",
+                      paddingBottom: 40,
+                      borderLeft: `1px solid ${T.hairline}`,
+                      minHeight: "100vh",
+                    }}
+                  >
+
+                    {/* Category eyebrow */}
+                    <p style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.35em", textTransform: "uppercase", color: T.inkFaint, fontWeight: 500, marginBottom: 18 }}>
+                      New Collection
+                    </p>
+
+                    {/* Product name */}
                     <h1
                       style={{
                         ...SERIF,
-                        fontSize: "clamp(1.6rem, 6vw, 2.4rem)",
+                        fontSize: "clamp(2rem, 5vw, 2.8rem)",
                         fontWeight: 300,
-                        color: "#1e1814",
-                        letterSpacing: "0.03em",
-                        lineHeight: 1.1,
-                        marginBottom: 6,
+                        color: T.ink,
+                        letterSpacing: "0.02em",
+                        lineHeight: 1.08,
+                        marginBottom: productColorLabel ? 8 : 16,
                       }}
                     >
-                      {product.name}
+                      {productBaseName}
                     </h1>
+
+                    {/* Color label */}
+                    {productColorLabel && (
+                      <p style={{ ...SANS, fontSize: 9.5, letterSpacing: "0.28em", textTransform: "uppercase", color: T.inkMuted, fontWeight: 500, marginBottom: 16 }}>
+                        {productColorLabel}
+                      </p>
+                    )}
 
                     {/* Rating summary */}
                     {avgRatingData && (
-                      <div className="flex items-center gap-2 mb-3">
-                        <StarDisplay value={avgRatingData.avg} size={12} />
-                        <span style={{ ...SANS, fontSize: 10, color: "#8a7e74", letterSpacing: "0.08em" }}>
-                          {avgRatingData.avg.toFixed(1)} ({avgRatingData.count})
+                      <div className="flex items-center gap-2 mb-4">
+                        <StarDisplay value={avgRatingData.avg} size={11} />
+                        <span style={{ ...SANS, fontSize: 9, color: T.inkMuted, letterSpacing: "0.08em" }}>
+                          {avgRatingData.avg.toFixed(1)} · {avgRatingData.count} {avgRatingData.count === 1 ? "review" : "reviews"}
                         </span>
                       </div>
                     )}
 
                     {/* Price row */}
-                    <div className="flex flex-wrap items-center gap-2.5 mb-4">
-                      {effectiveCompareAtPrice && (
-                        <span style={{ ...SANS, fontSize: "clamp(0.85rem, 2.5vw, 0.98rem)", color: "#8a7e74", textDecoration: "line-through", textDecorationColor: "#c83232", textDecorationThickness: 1, letterSpacing: "0.07em" }}>
-                          {effectiveCompareAtPrice}
-                        </span>
-                      )}
-                      <span style={{ ...SANS, fontSize: "clamp(1rem, 3vw, 1.12rem)", fontWeight: 500, letterSpacing: "0.10em", color: effectiveCompareAtPrice ? "#c83232" : "#1e1814" }}>
+                    <div className="flex flex-wrap items-baseline gap-3 mb-7">
+                      <span style={{ ...SERIF, fontSize: "clamp(1.4rem, 3vw, 1.7rem)", fontWeight: 400, letterSpacing: "0.04em", color: effectiveCompareAtPrice ? T.accent : T.ink }}>
                         {effectivePrice}
                       </span>
-                      {effectiveCompareAtPrice && (() => {
-                        const p = parseEGP(String(effectivePrice));
-                        const c = parseEGP(String(effectiveCompareAtPrice));
-                        if (!p || !c || c <= p) return null;
-                        return <span style={{ ...SANS, fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", color: "#c83232" }}>Save {Math.round((1 - p / c) * 100)}%</span>;
-                      })()}
+                      {effectiveCompareAtPrice && (
+                        <>
+                          <span style={{ ...SANS, fontSize: "clamp(0.78rem, 2vw, 0.88rem)", color: T.inkFaint, textDecoration: "line-through", textDecorationThickness: 1, letterSpacing: "0.06em" }}>
+                            {effectiveCompareAtPrice}
+                          </span>
+                          {(() => {
+                            const p = parseEGP(String(effectivePrice));
+                            const c = parseEGP(String(effectiveCompareAtPrice));
+                            if (!p || !c || c <= p) return null;
+                            return (
+                              <span style={{ ...SANS, fontSize: 9, fontWeight: 600, letterSpacing: "0.18em", color: T.accent, textTransform: "uppercase" }}>
+                                −{Math.round((1 - p / c) * 100)}%
+                              </span>
+                            );
+                          })()}
+                        </>
+                      )}
                     </div>
 
-                    {/* Divider */}
-                    <div className="mb-4" style={{ width: 28, height: 1, backgroundColor: "rgba(180,160,140,0.4)" }} />
+                    {/* Hairline */}
+                    <div style={{ height: 1, backgroundColor: T.hairline, marginBottom: 28 }} />
 
                     {/* Description */}
                     {"descriptionBullets" in (product as unknown as Record<string, unknown>) && (product as unknown as { descriptionBullets?: string[] }).descriptionBullets?.length ? (
-                      <ul className="mb-4 space-y-1">
+                      <ul className="mb-6 space-y-2">
                         {(product as unknown as { descriptionBullets: string[] }).descriptionBullets.map((bullet, i) => (
-                          <li key={i} className="flex items-start gap-2.5">
-                            <span className="flex-shrink-0 rounded-full" style={{ width: 5, height: 5, marginTop: 7, backgroundColor: "rgba(30,24,20,0.2)" }} />
-                            <span style={{ ...SERIF, fontSize: "clamp(0.84rem, 2.2vw, 0.92rem)", color: "#6a5e56", lineHeight: 1.65 }}>{bullet}</span>
+                          <li key={i} className="flex items-start gap-3">
+                            <span className="flex-shrink-0" style={{ width: 1, height: 1, marginTop: 9, padding: "0 0.5px 4px", backgroundColor: T.inkFaint, display: "block", marginLeft: 2 }} />
+                            <span style={{ ...SERIF, fontSize: "clamp(0.85rem, 2vw, 0.94rem)", color: T.inkMuted, lineHeight: 1.7 }}>{bullet}</span>
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <p style={{ ...SERIF, fontSize: "clamp(0.84rem, 2.2vw, 0.92rem)", color: "#6a5e56", lineHeight: 1.68, marginBottom: 16 }}>
+                      <p style={{ ...SERIF, fontSize: "clamp(0.86rem, 2vw, 0.95rem)", color: T.inkMuted, lineHeight: 1.75, marginBottom: 24 }}>
                         {product.description}
                       </p>
                     )}
 
                     {/* Size selector */}
                     {displaySizes.length > 1 && (
-                      <div className="flex flex-col gap-2.5 mb-4">
-                        <p style={{ ...SANS, fontSize: 10, letterSpacing: "0.24em", textTransform: "uppercase", color: "#8a7e74" }}>
-                          Size —{" "}<span style={{ color: "#1e1814" }}>{selectedSize}</span>
-                        </p>
+                      <div className="mb-7">
+                        <div className="flex items-center justify-between mb-3.5">
+                          <p style={{ ...SANS, fontSize: 9, letterSpacing: "0.26em", textTransform: "uppercase", color: T.inkFaint, fontWeight: 500 }}>
+                            Size
+                          </p>
+                          <span style={{ ...SANS, fontSize: 9.5, letterSpacing: "0.14em", color: T.ink, fontWeight: 600, textTransform: "uppercase" }}>
+                            {selectedSize}
+                          </span>
+                        </div>
                         <div className="flex gap-2 flex-wrap">
                           {displaySizes.map((size) => {
                             const available = product.variants?.some(
@@ -754,25 +854,26 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                                 key={size}
                                 type="button"
                                 onClick={() => setSelectedSize(size)}
-                                className="relative overflow-hidden border transition-all duration-200 active:scale-[0.96]"
+                                className="size-pill relative transition-all duration-200 active:scale-[0.96]"
                                 style={{
-                                  minWidth: 68,
-                                  minHeight: 44,
+                                  minWidth: 52,
+                                  minHeight: 46,
                                   padding: "10px 14px",
-                                  fontSize: 11,
-                                  letterSpacing: "0.18em",
+                                  fontSize: 9.5,
+                                  letterSpacing: "0.22em",
                                   textTransform: "uppercase",
                                   ...SANS,
-                                  fontWeight: 500,
-                                  color: !available ? "rgba(30,24,20,0.3)" : isSelected ? "#1e1814" : "#5a4e44",
-                                  borderColor: isSelected ? "#1e1814" : "rgba(30,24,20,0.2)",
-                                  backgroundColor: isSelected ? "rgba(30,24,20,0.07)" : "transparent",
+                                  fontWeight: isSelected ? 600 : 500,
+                                  color: !available ? "rgba(26,20,16,0.25)" : isSelected ? T.ink : T.inkMuted,
+                                  border: `1px solid ${isSelected ? T.ink : T.hairlineStrong}`,
+                                  backgroundColor: isSelected ? "rgba(26,20,16,0.06)" : "transparent",
+                                  cursor: "pointer",
                                 }}
                               >
                                 {!available && (
                                   <span aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
                                     <svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0 }}>
-                                      <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(30,24,20,0.14)" strokeWidth="1" />
+                                      <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(26,20,16,0.12)" strokeWidth="1" />
                                     </svg>
                                   </span>
                                 )}
@@ -782,10 +883,10 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                           })}
                         </div>
                         {selectedSize && (
-                          <p style={{ ...SANS, fontSize: 11, color: "rgba(90,78,68,0.75)", lineHeight: 1.6 }}>
+                          <p style={{ ...SANS, fontSize: 10, color: T.inkFaint, lineHeight: 1.6, marginTop: 10 }}>
                             {selectedSize.toLowerCase().startsWith("s") || selectedSize.toLowerCase().startsWith("m")
-                              ? <><span style={{ color: "rgba(30,24,20,0.85)" }}>{selectedSize}</span> — closer fit · heights up to 1.65 m</>
-                              : <><span style={{ color: "rgba(30,24,20,0.85)" }}>{selectedSize}</span> — relaxed fit · heights 1.65 m+</>
+                              ? <>Closer fit · heights up to 1.65 m</>
+                              : <>Relaxed fit · heights 1.65 m+</>
                             }
                           </p>
                         )}
@@ -794,22 +895,26 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
 
                     {/* One size */}
                     {displaySizes.length <= 1 && sizeOption && (
-                      <div className="mb-5">
-                        <button type="button" disabled style={{ ...SANS, padding: "10px 20px", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 500, color: "#1e1814", border: "1px solid #1e1814", backgroundColor: "rgba(30,24,20,0.04)", minHeight: 44 }}>
+                      <div className="mb-6">
+                        <button
+                          type="button"
+                          disabled
+                          style={{ ...SANS, padding: "12px 22px", fontSize: 9.5, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 600, color: T.ink, border: `1px solid ${T.ink}`, backgroundColor: "rgba(26,20,16,0.04)", minHeight: 46, cursor: "default" }}
+                        >
                           One Size
                         </button>
                       </div>
                     )}
 
                     {/* ── CTA buttons ── */}
-                    <div ref={ctaRef} className="flex flex-col gap-2.5 mb-6">
+                    <div ref={ctaRef} className="flex flex-col gap-3 mb-8">
                       {isOutOfStock ? (
                         <motion.button
                           type="button"
                           onClick={handleNotifyMe}
                           whileTap={{ scale: 0.98 }}
-                          className="flex items-center justify-center gap-2 border w-full active:scale-[0.97]"
-                          style={{ ...SANS, padding: "17px 0", fontSize: "clamp(0.68rem, 2.5vw, 0.78rem)", letterSpacing: "0.28em", textTransform: "uppercase", color: "#f5f0e8", borderColor: "rgba(245,240,232,0.2)", backgroundColor: "rgba(30,24,20,0.88)", borderRadius: 3 }}
+                          className="cta-btn-mobile flex items-center justify-center gap-2.5 w-full transition-opacity hover:opacity-80"
+                          style={{ ...SANS, padding: "18px 0", fontSize: "clamp(0.68rem, 2vw, 0.76rem)", letterSpacing: "0.30em", textTransform: "uppercase", fontWeight: 600, color: "#faf8f5", backgroundColor: T.ink, border: "none", cursor: "pointer", minHeight: 52 }}
                         >
                           <Bell size={11} strokeWidth={1.8} />
                           Notify Me When Back
@@ -818,31 +923,43 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         <>
                           <motion.button
                             type="button"
-                            onClick={handleAddToCart}
-                            whileTap={{ scale: 0.98 }}
-                            className="border transition-all duration-400 w-full flex items-center justify-center active:scale-[0.97]"
-                            style={{ ...SANS, padding: "16px 0", fontSize: "clamp(0.68rem, 2.5vw, 0.78rem)", letterSpacing: "0.28em", textTransform: "uppercase", color: addedFeedback ? "rgba(30,24,20,0.65)" : "#1e1814", borderColor: "#1e1814", backgroundColor: addedFeedback ? "rgba(30,24,20,0.06)" : "transparent", borderRadius: 3 }}
+                            onClick={handleBuyNow}
+                            whileTap={{ scale: 0.99 }}
+                            className="cta-btn-mobile w-full flex items-center justify-center transition-opacity hover:opacity-85"
+                            style={{ ...SANS, padding: "18px 0", fontSize: "clamp(0.68rem, 2vw, 0.76rem)", letterSpacing: "0.30em", textTransform: "uppercase", fontWeight: 600, color: "#faf8f5", backgroundColor: T.ink, border: "none", cursor: "pointer", minHeight: 52 }}
                           >
-                            {addedFeedback ? "Added to Bag ✓" : "Add to Cart"}
+                            Buy It Now
                           </motion.button>
 
                           <motion.button
                             type="button"
-                            onClick={handleBuyNow}
-                            whileTap={{ scale: 0.98 }}
-                            className="border transition-all duration-300 w-full flex items-center justify-center active:scale-[0.97]"
-                            style={{ ...SANS, padding: "17px 0", fontSize: "clamp(0.68rem, 2.5vw, 0.78rem)", letterSpacing: "0.28em", textTransform: "uppercase", color: "#faf8f5", borderColor: "#1e1814", backgroundColor: "#1e1814", boxShadow: "0 6px 20px rgba(30,24,20,0.16)", borderRadius: 3 }}
+                            onClick={handleAddToCart}
+                            whileTap={{ scale: 0.99 }}
+                            className="cta-btn-mobile w-full flex items-center justify-center transition-all duration-300"
+                            style={{
+                              ...SANS,
+                              padding: "17px 0",
+                              fontSize: "clamp(0.68rem, 2vw, 0.76rem)",
+                              letterSpacing: "0.30em",
+                              textTransform: "uppercase",
+                              fontWeight: 500,
+                              color: addedFeedback ? T.inkMuted : T.ink,
+                              backgroundColor: "transparent",
+                              border: `1px solid ${addedFeedback ? T.hairlineStrong : T.ink}`,
+                              cursor: "pointer",
+                              minHeight: 52,
+                            }}
                           >
-                            Buy It Now
+                            {addedFeedback ? "Added to Bag ✓" : "Add to Bag"}
                           </motion.button>
 
                           {/* Apple Pay */}
                           {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && (
                             <>
-                              <div className="flex items-center gap-3 my-0.5">
-                                <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.09)" }} />
-                                <span style={{ ...SANS, fontSize: 9, letterSpacing: "0.18em", color: "rgba(30,24,20,0.36)", textTransform: "uppercase" }}>or</span>
-                                <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.09)" }} />
+                              <div className="flex items-center gap-3 my-1">
+                                <div style={{ flex: 1, height: 1, backgroundColor: T.hairline }} />
+                                <span style={{ ...SANS, fontSize: 8, letterSpacing: "0.22em", color: T.inkFaint, textTransform: "uppercase" }}>or</span>
+                                <div style={{ flex: 1, height: 1, backgroundColor: T.hairline }} />
                               </div>
                               <ShopifyApplePayButton
                                 variantId={selectedVariant?.id ?? product.variantId ?? ""}
@@ -859,17 +976,39 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                       )}
                     </div>
 
+                    {/* ── Accordion ── */}
+                    <div style={{ borderTop: `1px solid ${T.hairline}` }}>
+                      {ACCORDION_ITEMS.map((item) => (
+                        <AccordionItem
+                          key={item.key}
+                          label={item.label}
+                          body={item.body}
+                          open={openAccordion === item.key}
+                          onToggle={() => setOpenAccordion((p) => p === item.key ? null : item.key)}
+                        />
+                      ))}
+                    </div>
+
+                    {/* ── Provenance note ── */}
+                    <div className="mt-8" style={{ borderTop: `1px solid ${T.hairline}`, paddingTop: 20 }}>
+                      <p style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.20em", textTransform: "uppercase", color: T.inkFaint, lineHeight: 1.9 }}>
+                        Designed &amp; crafted with care ·{" "}
+                        <span style={{ color: T.inkMuted }}>Ships from Egypt</span>
+                      </p>
+                    </div>
 
                   </div>
-                  {/* end right col */}
                 </div>
+                {/* end info col */}
               </div>
               {/* end main grid */}
 
               {/* ── Full-width: Reviews ── */}
-              <ReviewSection productHandle={handle} productName={product.name} />
+              <div style={{ borderTop: `1px solid ${T.hairline}` }}>
+                <ReviewSection productHandle={handle} productName={product.name} />
+              </div>
 
-              {/* ── Full-width: You May Also Like (infinite carousel) ── */}
+              {/* ── Full-width: You May Also Like ── */}
               {onNavigate && clothingRecs.length > 0 && (() => {
                 const perPage = 3;
                 const n = clothingRecs.length;
@@ -879,147 +1018,132 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                 const goNext = () => { setRecsDir(1);  setRecsPage((p) => p + 1); };
                 const goPrev = () => { setRecsDir(-1); setRecsPage((p) => p - 1); };
                 return (
-                  <section style={{ borderTop: "1px solid rgba(30,24,20,0.08)", paddingTop: 64, paddingBottom: 88 }}>
+                  <section style={{ borderTop: `1px solid ${T.hairline}`, paddingTop: 72, paddingBottom: 96 }}>
                     {/* Heading */}
-                    <div className="text-center px-5 mb-10">
+                    <div className="text-center px-6 mb-12">
+                      <p style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.35em", textTransform: "uppercase", color: T.inkFaint, fontWeight: 500, marginBottom: 12 }}>
+                        Continue Shopping
+                      </p>
                       <h2 style={{
                         ...SERIF,
-                        fontSize: "clamp(2.2rem, 7vw, 4.5rem)",
+                        fontSize: "clamp(2rem, 6vw, 3.8rem)",
                         fontWeight: 300,
-                        color: "#1e1814",
+                        color: T.ink,
                         letterSpacing: "0.04em",
                         lineHeight: 1,
-                        margin: 0,
                       }}>
                         You May Also Like
                       </h2>
                     </div>
 
-                    {/* Carousel */}
-                    <div ref={recsRef} className="relative flex items-center" style={{ padding: "0 clamp(20px, 5vw, 64px)" }}>
+                    {/* Grid */}
+                    <div
+                      ref={recsRef}
+                      className="relative overflow-hidden px-6 md:px-12"
+                    >
+                      <AnimatePresence initial={false} mode="wait" custom={recsDir}>
+                        <motion.div
+                          key={recsPage}
+                          custom={recsDir}
+                          variants={{
+                            enter: (d: number) => ({ x: d > 0 ? 48 : -48, opacity: 0 }),
+                            center: { x: 0, opacity: 1 },
+                            exit: (d: number) => ({ x: d > 0 ? -48 : 48, opacity: 0 }),
+                          }}
+                          initial="enter"
+                          animate="center"
+                          exit="exit"
+                          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                          className="grid grid-cols-1 sm:grid-cols-3 gap-0"
+                          style={{ gridTemplateColumns: "repeat(3,1fr)" }}
+                        >
+                          {visibleRecs.map((rec) => (
+                            <button
+                              key={rec.handle}
+                              type="button"
+                              onClick={() => onNavigate(rec.handle)}
+                              className="text-left group transition-opacity hover:opacity-90"
+                              style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                            >
+                              <div className="overflow-hidden" style={{ aspectRatio: "3/4", backgroundColor: T.canvasWarm }}>
+                                <img
+                                  src={rec.image}
+                                  alt={`${rec.name} ${rec.color}`}
+                                  className="w-full h-full transition-transform duration-700 group-hover:scale-[1.03]"
+                                  style={{ objectFit: "cover", objectPosition: "center top" }}
+                                  loading="lazy"
+                                />
+                              </div>
+                              <div className="pt-4 pb-6 px-2">
+                                <p style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.26em", textTransform: "uppercase", color: T.ink, fontWeight: 600, marginBottom: 4 }}>
+                                  {rec.name}
+                                </p>
+                                <p style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.14em", color: T.inkMuted, marginBottom: 6 }}>
+                                  {rec.color}
+                                </p>
+                                <p style={{ ...SERIF, fontSize: "0.95rem", color: T.inkMuted, letterSpacing: "0.04em" }}>
+                                  {rec.price}
+                                </p>
+                              </div>
+                            </button>
+                          ))}
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>
 
-                      {/* ← Prev arrow */}
+                    {/* Nav arrows */}
+                    <div className="flex items-center justify-center gap-6 mt-8">
                       <button
                         type="button"
                         onClick={goPrev}
-                        aria-label="Previous"
-                        className="group flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-300 hover:scale-105 active:scale-95"
-                        style={{
-                          width: 48, height: 48,
-                          border: "1.5px solid rgba(30,24,20,0.22)",
-                          backgroundColor: "transparent",
-                          marginRight: "clamp(10px, 2vw, 24px)",
-                          zIndex: 10,
-                        }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#1e1814"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#1e1814"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(30,24,20,0.22)"; }}
+                        className="flex items-center justify-center transition-opacity hover:opacity-60"
+                        style={{ width: 44, height: 44, border: `1px solid ${T.hairlineStrong}`, background: "none", cursor: "pointer", color: T.ink }}
                       >
-                        <ChevronLeft size={16} strokeWidth={1.5} className="transition-colors duration-300 group-hover:stroke-white" style={{ color: "#1e1814" }} />
+                        <ChevronLeft size={16} strokeWidth={1.2} />
                       </button>
-
-                      {/* Cards */}
-                      <div className="flex-1 overflow-hidden">
-                        <AnimatePresence mode="wait" initial={false}>
-                          <motion.div
-                            key={recsPage}
-                            initial={{ x: recsDir * 48, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: recsDir * -48, opacity: 0 }}
-                            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: "repeat(3, 1fr)",
-                              gap: "clamp(10px, 2vw, 24px)",
-                            }}
-                          >
-                            {visibleRecs.map((rec, i) => (
-                              <button
-                                key={`${rec.handle}-${recsPage}-${i}`}
-                                type="button"
-                                onClick={() => onNavigate(rec.handle)}
-                                className="text-left group/card w-full"
-                              >
-                                <div
-                                  className="overflow-hidden mb-3 w-full"
-                                  style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.04)" }}
-                                >
-                                  <img
-                                    src={rec.image}
-                                    alt={rec.name}
-                                    className="w-full h-full transition-transform duration-700 group-hover/card:scale-[1.03]"
-                                    style={{ objectFit: "cover" }}
-                                    loading="lazy"
-                                  />
-                                </div>
-                                <div className="flex items-center gap-1.5 mb-1.5">
-                                  <span className="rounded-full flex-shrink-0" style={{ width: 7, height: 7, backgroundColor: rec.swatch, border: "1px solid rgba(30,24,20,0.14)" }} />
-                                  <span style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a7e74" }}>{rec.color}</span>
-                                </div>
-                                <p style={{ ...SERIF, fontSize: "clamp(0.88rem, 2.2vw, 1.05rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1.2 }}>{rec.name}</p>
-                                <p style={{ ...SANS, fontSize: 10, letterSpacing: "0.09em", color: "#7a6e64", marginTop: 3 }}>{rec.price}</p>
-                              </button>
-                            ))}
-                          </motion.div>
-                        </AnimatePresence>
-                      </div>
-
-                      {/* → Next arrow */}
                       <button
                         type="button"
                         onClick={goNext}
-                        aria-label="Next"
-                        className="group flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-300 hover:scale-105 active:scale-95"
-                        style={{
-                          width: 48, height: 48,
-                          border: "1.5px solid rgba(30,24,20,0.22)",
-                          backgroundColor: "transparent",
-                          marginLeft: "clamp(10px, 2vw, 24px)",
-                          zIndex: 10,
-                        }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#1e1814"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#1e1814"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(30,24,20,0.22)"; }}
+                        className="flex items-center justify-center transition-opacity hover:opacity-60"
+                        style={{ width: 44, height: 44, border: `1px solid ${T.hairlineStrong}`, background: "none", cursor: "pointer", color: T.ink }}
                       >
-                        <ChevronRight size={16} strokeWidth={1.5} className="transition-colors duration-300 group-hover:stroke-white" style={{ color: "#1e1814" }} />
+                        <ChevronRight size={16} strokeWidth={1.2} />
                       </button>
                     </div>
                   </section>
                 );
               })()}
-
-              {/* Spacer for mobile sticky bar */}
-              <div className="md:hidden" style={{ height: 80 }} />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* ══ MOBILE STICKY CTA BAR ══ */}
+      {/* ── Mobile sticky CTA bar ── */}
       <AnimatePresence>
         {showStickyBar && !loading && (
           <motion.div
-            key="sticky-bar"
-            initial={{ y: 76, opacity: 0 }}
+            initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 76, opacity: 0 }}
+            exit={{ y: 80, opacity: 0 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             className="md:hidden fixed bottom-0 inset-x-0 z-[60]"
             style={{
-              backgroundColor: "rgba(250,248,245,0.95)",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              borderTop: "1px solid rgba(30,24,20,0.09)",
+              backgroundColor: "rgba(250,248,245,0.96)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              borderTop: `1px solid ${T.hairline}`,
               padding: "10px 16px",
-              paddingBottom: "max(10px, env(safe-area-inset-bottom))",
+              paddingBottom: "max(12px, env(safe-area-inset-bottom))",
               display: "flex",
               alignItems: "center",
-              gap: 10,
+              gap: 12,
             }}
           >
             <div className="flex flex-col flex-1 min-w-0">
-              <p style={{ ...SERIF, fontSize: "clamp(0.84rem, 3.5vw, 0.98rem)", fontWeight: 300, color: "#1e1814", letterSpacing: "0.02em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {product.name.split(" — ")[0]}
+              <p style={{ ...SERIF, fontSize: "clamp(0.88rem, 3.5vw, 1rem)", fontWeight: 300, color: T.ink, letterSpacing: "0.02em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {productBaseName}
               </p>
-              <p style={{ ...SANS, fontSize: 11, letterSpacing: "0.08em", color: effectiveCompareAtPrice ? "#c83232" : "#5a4e44", marginTop: 1 }}>
+              <p style={{ ...SANS, fontSize: 9.5, letterSpacing: "0.12em", color: effectiveCompareAtPrice ? T.accent : T.inkMuted, marginTop: 2, fontWeight: 500 }}>
                 {effectivePrice}
               </p>
             </div>
@@ -1029,7 +1153,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                 type="button"
                 onClick={handleNotifyMe}
                 className="flex-shrink-0 active:scale-[0.96] transition-transform flex items-center gap-1.5"
-                style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.22em", textTransform: "uppercase", color: "#faf8f5", backgroundColor: "#1e1814", border: "1px solid #1e1814", padding: "12px 16px", fontWeight: 500, minHeight: 44 }}
+                style={{ ...SANS, fontSize: 8.5, letterSpacing: "0.24em", textTransform: "uppercase", color: "#faf8f5", backgroundColor: T.ink, border: "none", padding: "13px 18px", fontWeight: 600, minHeight: 46, cursor: "pointer" }}
               >
                 <Bell size={10} strokeWidth={1.8} />
                 Notify Me
@@ -1038,22 +1162,22 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="flex-shrink-0 active:scale-[0.96] transition-transform"
+                className="flex-shrink-0 active:scale-[0.96] transition-all duration-300"
                 style={{
                   ...SANS,
                   fontSize: 8.5,
-                  letterSpacing: "0.22em",
+                  letterSpacing: "0.24em",
                   textTransform: "uppercase",
-                  color: addedFeedback ? "#1e1814" : "#faf8f5",
-                  backgroundColor: addedFeedback ? "rgba(30,24,20,0.07)" : "#1e1814",
-                  border: "1px solid #1e1814",
-                  padding: "12px 18px",
-                  fontWeight: 500,
-                  transition: "all 0.28s ease",
-                  minHeight: 44,
+                  color: addedFeedback ? T.inkMuted : "#faf8f5",
+                  backgroundColor: addedFeedback ? T.surface : T.ink,
+                  border: `1px solid ${T.ink}`,
+                  padding: "13px 20px",
+                  fontWeight: 600,
+                  minHeight: 46,
+                  cursor: "pointer",
                 }}
               >
-                {addedFeedback ? "Added ✓" : "Add to Cart"}
+                {addedFeedback ? "Added ✓" : "Add to Bag"}
               </button>
             )}
           </motion.div>
