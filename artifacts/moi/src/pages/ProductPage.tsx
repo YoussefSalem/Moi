@@ -344,7 +344,16 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     const el = document.getElementById("product-scroll-container");
     if (el) el.scrollTop = 0;
   }, [handle]);
-  useEffect(() => { setGalleryIndex(0); setImgLoaded(false); }, [handle]);
+  useEffect(() => {
+    setGalleryIndex(0);
+    setImgLoaded(false);
+    mobileGalleryRawIdxRef.current = 1;
+    const track = mobileGalleryTrackRef.current;
+    if (track) {
+      track.style.transition = "none";
+      track.style.transform = "translateX(-100%)";
+    }
+  }, [handle]);
 
   // Meta Pixel + TikTok Pixel ViewContent — fires once per product page load
   useEffect(() => {
@@ -416,6 +425,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
 
   const dragStartXRef = useRef<number | null>(null);
   const dragLastXRef = useRef<number | null>(null);
+
+  // Mobile gallery slide carousel refs
+  const mobileGalleryTrackRef = useRef<HTMLDivElement>(null);
+  const mobileGalleryRawIdxRef = useRef(1); // position in extended array [last, ...all, first]
+  const mobileGalleryDragRef = useRef<{ x: number } | null>(null);
+  const mobileGalleryDidDragRef = useRef(false);
 
   const selectedVariant = product.variants?.find((v) => {
     const colorMatch = !pageColorName || v.selectedOptions.some(
@@ -868,58 +883,154 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
 
               {/* ══ MOBILE / TABLET stacked (< lg) ══ */}
               <div className="lg:hidden" style={{ paddingBottom: 96 }}>
-                {/* Full-bleed gallery */}
-                <div
-                  className="relative overflow-hidden"
-                  style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
-                  onPointerDown={(e) => { dragStartXRef.current = e.clientX; dragLastXRef.current = e.clientX; }}
-                  onPointerMove={(e) => { if (dragStartXRef.current !== null) dragLastXRef.current = e.clientX; }}
-                  onPointerUp={(e) => {
-                    const start = dragStartXRef.current;
-                    if (start === null) return;
-                    const delta = (dragLastXRef.current ?? e.clientX) - start;
-                    dragStartXRef.current = null; dragLastXRef.current = null;
-                    if (Math.abs(delta) > 40) { delta < 0 ? nextImg() : prevImg(); setImgLoaded(false); }
-                  }}
-                  onPointerLeave={() => { dragStartXRef.current = null; dragLastXRef.current = null; }}
-                  onClick={() => setLightboxOpen(true)}
-                >
-                  <div style={{ aspectRatio: "3/4", position: "relative" }}>
-                    <AnimatePresence initial={false} mode="wait">
-                      <motion.img
-                        key={mainImage}
-                        src={mainImage}
-                        alt={product.name}
-                        className="absolute inset-0 w-full h-full"
-                        style={{ objectFit: "cover", objectPosition: "top center" }}
-                        loading="eager"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: imgLoaded ? 1 : 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        onLoad={() => setImgLoaded(true)}
-                        onError={() => setImgLoaded(true)}
-                      />
-                    </AnimatePresence>
-                    {!imgLoaded && <ImageSkeleton variant="warm" />}
-                    {isOutOfStock && (
-                      <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center py-2 pointer-events-none" style={{ background: "rgba(30,24,20,0.52)", backdropFilter: "blur(2px)" }}>
-                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.6rem", letterSpacing: "0.22em", textTransform: "uppercase" as const, color: "rgba(250,248,245,0.92)", fontWeight: 500 }}>Sold Out</span>
-                      </div>
-                    )}
-                    {/* Gallery dots */}
-                    {galleryImages.length > 1 && (
-                      <div style={{ position: "absolute", bottom: 14, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6, zIndex: 10 }}>
-                        {galleryImages.map((_, i) => (
-                          <button key={i} type="button"
-                            onClick={(e) => { e.stopPropagation(); setGalleryIndex(i); setImgLoaded(false); }}
-                            style={{ width: i === galleryIndex ? 18 : 6, height: 6, borderRadius: 9999, border: "none", padding: 0, cursor: "pointer", backgroundColor: i === galleryIndex ? "#faf8f5" : "rgba(250,248,245,0.45)", transition: "width 0.22s, background-color 0.22s" }}
-                          />
+                {/* Full-bleed sliding gallery */}
+                {(() => {
+                  const N = galleryImages.length;
+                  const extended = N > 1
+                    ? [galleryImages[N - 1], ...galleryImages, galleryImages[0]]
+                    : galleryImages;
+
+                  const jumpToSlide = (targetGalleryIdx: number) => {
+                    const rawIdx = targetGalleryIdx + 1;
+                    mobileGalleryRawIdxRef.current = rawIdx;
+                    const track = mobileGalleryTrackRef.current;
+                    if (track) {
+                      track.style.transition = "transform 0.32s cubic-bezier(0.22,1,0.36,1)";
+                      track.style.transform = `translateX(-${rawIdx * 100}%)`;
+                    }
+                    setGalleryIndex(targetGalleryIdx);
+                  };
+
+                  const handleGalleryPointerDown = (e: React.PointerEvent) => {
+                    if (N <= 1) return;
+                    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                    mobileGalleryDragRef.current = { x: e.clientX };
+                    mobileGalleryDidDragRef.current = false;
+                    const track = mobileGalleryTrackRef.current;
+                    if (track) track.style.transition = "none";
+                  };
+
+                  const handleGalleryPointerMove = (e: React.PointerEvent) => {
+                    if (!mobileGalleryDragRef.current) return;
+                    const dx = e.clientX - mobileGalleryDragRef.current.x;
+                    if (!mobileGalleryDidDragRef.current && Math.abs(dx) < 12) return;
+                    mobileGalleryDidDragRef.current = true;
+                    e.preventDefault();
+                    const track = mobileGalleryTrackRef.current;
+                    if (track) {
+                      const pct = mobileGalleryRawIdxRef.current * 100;
+                      track.style.transform = `translateX(calc(-${pct}% + ${dx}px))`;
+                    }
+                  };
+
+                  const handleGalleryPointerUp = (e: React.PointerEvent) => {
+                    if (!mobileGalleryDragRef.current) return;
+                    const { x: startX } = mobileGalleryDragRef.current;
+                    mobileGalleryDragRef.current = null;
+                    const didDrag = mobileGalleryDidDragRef.current;
+                    mobileGalleryDidDragRef.current = false;
+                    const track = mobileGalleryTrackRef.current;
+                    if (!track) return;
+
+                    if (!didDrag) {
+                      setLightboxOpen(true);
+                      track.style.transition = "transform 0.32s cubic-bezier(0.22,1,0.36,1)";
+                      track.style.transform = `translateX(-${mobileGalleryRawIdxRef.current * 100}%)`;
+                      return;
+                    }
+
+                    const dx = e.clientX - startX;
+                    const dir = dx < -20 ? 1 : dx > 20 ? -1 : 0;
+                    let rawIdx = mobileGalleryRawIdxRef.current + dir;
+
+                    track.style.transition = "transform 0.32s cubic-bezier(0.22,1,0.36,1)";
+                    track.style.transform = `translateX(-${rawIdx * 100}%)`;
+                    mobileGalleryRawIdxRef.current = rawIdx;
+
+                    const suppressClick = (ev: MouseEvent) => {
+                      ev.stopPropagation(); ev.preventDefault();
+                      window.removeEventListener("click", suppressClick, true);
+                    };
+                    window.addEventListener("click", suppressClick, true);
+
+                    track.addEventListener("transitionend", function onEnd() {
+                      track.removeEventListener("transitionend", onEnd);
+                      if (rawIdx <= 0) {
+                        rawIdx = N;
+                        track.style.transition = "none";
+                        track.style.transform = `translateX(-${rawIdx * 100}%)`;
+                        mobileGalleryRawIdxRef.current = rawIdx;
+                      } else if (rawIdx >= N + 1) {
+                        rawIdx = 1;
+                        track.style.transition = "none";
+                        track.style.transform = `translateX(-${rawIdx * 100}%)`;
+                        mobileGalleryRawIdxRef.current = rawIdx;
+                      }
+                      setGalleryIndex((rawIdx - 1 + N) % N);
+                    });
+                  };
+
+                  const handleGalleryPointerCancel = () => {
+                    mobileGalleryDragRef.current = null;
+                    mobileGalleryDidDragRef.current = false;
+                    const track = mobileGalleryTrackRef.current;
+                    if (track) {
+                      track.style.transition = "transform 0.32s cubic-bezier(0.22,1,0.36,1)";
+                      track.style.transform = `translateX(-${mobileGalleryRawIdxRef.current * 100}%)`;
+                    }
+                  };
+
+                  return (
+                    <div
+                      className="relative overflow-hidden"
+                      style={{ backgroundColor: "rgba(30,24,20,0.04)", touchAction: N > 1 ? "pan-y" : "auto" }}
+                    >
+                      <div
+                        ref={mobileGalleryTrackRef}
+                        style={{
+                          display: "flex",
+                          willChange: "transform",
+                          transform: `translateX(-${N > 1 ? 100 : 0}%)`,
+                        }}
+                        onPointerDown={handleGalleryPointerDown}
+                        onPointerMove={handleGalleryPointerMove}
+                        onPointerUp={handleGalleryPointerUp}
+                        onPointerCancel={handleGalleryPointerCancel}
+                      >
+                        {extended.map((src, i) => (
+                          <div key={i} style={{ flex: "0 0 100%", aspectRatio: "3/4", position: "relative", overflow: "hidden" }}>
+                            <img
+                              src={src}
+                              alt={product.name}
+                              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block", userSelect: "none", pointerEvents: "none" }}
+                              loading="eager"
+                              draggable={false}
+                            />
+                          </div>
                         ))}
                       </div>
-                    )}
-                  </div>
-                </div>
+
+                      {isOutOfStock && (
+                        <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center py-2 pointer-events-none" style={{ background: "rgba(30,24,20,0.52)", backdropFilter: "blur(2px)" }}>
+                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "0.6rem", letterSpacing: "0.22em", textTransform: "uppercase" as const, color: "rgba(250,248,245,0.92)", fontWeight: 500 }}>Sold Out</span>
+                        </div>
+                      )}
+
+                      {N > 1 && (
+                        <div style={{ position: "absolute", bottom: 14, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6, zIndex: 10 }}>
+                          {galleryImages.map((_, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); jumpToSlide(i); }}
+                              style={{ width: i === galleryIndex ? 18 : 6, height: 6, borderRadius: 9999, border: "none", padding: 0, cursor: "pointer", backgroundColor: i === galleryIndex ? "#faf8f5" : "rgba(250,248,245,0.45)", transition: "width 0.22s, background-color 0.22s" }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Info block */}
                 <div style={{ padding: "28px 20px 0" }}>
