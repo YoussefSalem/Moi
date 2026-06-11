@@ -50,17 +50,6 @@ const POLICY_PAGES: PageType[] = ["privacy", "refund", "return", "delivery"];
 // Shopify variants; we never hardcode which colors a product supports.
 const KNOWN_PRODUCT_SLUGS = ["moi-wavvy", "moi-versa-top", "trio-bangles"];
 
-// Ordered product handles for the mobile infinite-swipe carousel.
-// Swiping left advances forward; swiping right goes backward; both wrap around.
-const CAROUSEL_HANDLES: readonly string[] = [
-  "moi-wavvy-light-blue",
-  "moi-wavvy-navy",
-  "moi-wavvy-mint",
-  "moi-versa-top-white",
-  "moi-versa-top-yellow",
-  "moi-versa-top-teal",
-];
-
 const SECTION_PATH_MAP: Record<string, string> = {
   "/versa-top": "moi-versa-top",
   "/wavvy-top": "moi-wavvy",
@@ -174,9 +163,6 @@ function AppContent() {
   // instead of the full slide-up, giving a content-replacement feel rather than a
   // full page navigation feel.
   const [isProductSwitch, setIsProductSwitch] = useState(false);
-  // Tracks the direction of the last product swipe for directional slide transitions.
-  const [productSwipeDir, setProductSwipeDir] = useState<"left" | "right" | null>(null);
-  const productSwipeTouchRef = useRef<{ startX: number; startY: number; lastX: number; locked: boolean } | null>(null);
 
   function handleColorCardAddToCart(handle: string, _image?: string) {
     // Use Shopify-fetched products (real variant GIDs) — all three products now in `products`.
@@ -747,7 +733,6 @@ function AppContent() {
           setSkipExitAnimation(false);
           setIsGoingBack(false);
           setIsProductSwitch(false);
-          setProductSwipeDir(null);
           // Clean up any leftover swipe-back class so the element is fresh next mount.
           const el = document.getElementById("product-scroll-container");
           if (el) el.classList.remove("swipe-back-exit");
@@ -757,65 +742,18 @@ function AppContent() {
           <motion.div
             id="product-scroll-container"
             key={isProductPage ? `product-${productHandle}` : page}
-            initial={
-              productSwipeDir === "left"  ? { x: "100%", opacity: 1 } :
-              productSwipeDir === "right" ? { x: "-100%", opacity: 1 } :
-              isProductSwitch ? { opacity: 0 } :
-              { opacity: 0, y: 18 }
-            }
-            animate={{ x: 0, opacity: 1, y: 0 }}
+            initial={isProductSwitch ? { opacity: 0 } : { opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={
               skipExitAnimation
                 ? { opacity: 0, transition: { duration: 0 } }
-                : productSwipeDir === "left"
-                  ? { x: "-100%", opacity: 1, transition: { duration: 0.3, ease: [0.2, 0, 0.38, 1] } }
-                  : productSwipeDir === "right"
-                    ? { x: "100%", opacity: 1, transition: { duration: 0.3, ease: [0.2, 0, 0.38, 1] } }
-                    : isGoingBack
-                      ? { opacity: 0, y: 14, transition: { duration: 0.28, ease: [0.25, 0.1, 0.25, 1] } }
-                      : isProductSwitch
-                        ? { opacity: 0, transition: { duration: 0.18 } }
-                        : { opacity: 0, y: -4, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] } }
+                : isGoingBack
+                  ? { opacity: 0, y: 14, transition: { duration: 0.28, ease: [0.25, 0.1, 0.25, 1] } }
+                  : isProductSwitch
+                    ? { opacity: 0, transition: { duration: 0.18 } }
+                    : { opacity: 0, y: -4, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] } }
             }
-            transition={{ duration: productSwipeDir ? 0.3 : isProductSwitch ? 0.26 : 0.35, ease: productSwipeDir ? [0.2, 0, 0.38, 1] : [0.25, 0.1, 0.25, 1] }}
-            onTouchStart={(e) => {
-              if (!isProductPage) return;
-              const t = e.touches[0];
-              if (!t || t.clientX < 20) return; // reserve iOS edge-swipe zone
-              productSwipeTouchRef.current = { startX: t.clientX, startY: t.clientY, lastX: t.clientX, locked: false };
-            }}
-            onTouchMove={(e) => {
-              const s = productSwipeTouchRef.current;
-              if (!s) return;
-              const t = e.touches[0];
-              if (!t) return;
-              const dx = t.clientX - s.startX;
-              const dy = t.clientY - s.startY;
-              s.lastX = t.clientX;
-              if (!s.locked) {
-                if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; // not yet committed
-                if (Math.abs(dy) > Math.abs(dx)) {
-                  productSwipeTouchRef.current = null; // vertical scroll — cancel
-                  return;
-                }
-                s.locked = true; // committed as horizontal
-              }
-            }}
-            onTouchEnd={() => {
-              const s = productSwipeTouchRef.current;
-              productSwipeTouchRef.current = null;
-              if (!s?.locked) return;
-              const dx = s.lastX - s.startX;
-              if (Math.abs(dx) < 55) return; // below threshold
-              const dir = dx < 0 ? "left" : "right";
-              const idx = CAROUSEL_HANDLES.indexOf(currentHandleRef.current);
-              if (idx < 0) return;
-              const n = CAROUSEL_HANDLES.length;
-              const next = dir === "left" ? (idx + 1) % n : (idx - 1 + n) % n;
-              setProductSwipeDir(dir);
-              navigateToProduct(CAROUSEL_HANDLES[next]);
-            }}
-            onTouchCancel={() => { productSwipeTouchRef.current = null; }}
+            transition={{ duration: isProductSwitch ? 0.26 : 0.35, ease: [0.25, 0.1, 0.25, 1] }}
             style={{
               willChange: "opacity, transform",
               backgroundColor: "#faf8f5",
@@ -823,7 +761,6 @@ function AppContent() {
               inset: 0,
               zIndex: 51,
               overflowY: "auto",
-              touchAction: isProductPage ? "pan-y" : "auto",
             }}
           >
             {page === "order-confirmation" ? (
