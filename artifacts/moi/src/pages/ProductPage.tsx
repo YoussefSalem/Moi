@@ -46,32 +46,6 @@ function StarRating({ rating, size = 12 }: { rating: number; size?: number }) {
   );
 }
 
-const PRODUCT_REVIEWS = [
-  {
-    author: "Layla M.",
-    date: "May 2025",
-    rating: 5,
-    title: "The most beautiful top I own",
-    body: "The fabric is incredibly soft and the silhouette is perfect. I've worn it three different ways this week. Worth every pound.",
-    verified: true,
-  },
-  {
-    author: "Sara A.",
-    date: "April 2025",
-    rating: 5,
-    title: "Effortless luxury",
-    body: "I ordered the Light Blue and it's stunning in person. The asymmetric drape is subtle and elegant. Ships fast, packaged beautifully.",
-    verified: true,
-  },
-  {
-    author: "Nour K.",
-    date: "March 2025",
-    rating: 4,
-    title: "Gorgeous, runs slightly large",
-    body: "Absolutely love the quality and drape. I'd recommend sizing down if you prefer a more fitted look. Still keeping mine — the oversized feel is chic.",
-    verified: true,
-  },
-];
 
 interface RecItem {
   handle: string;
@@ -179,26 +153,28 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [liveReviews, setLiveReviews] = useState<null | Array<{ id: number; author: string; title: string; body: string; rating: number; date: string; verified: boolean }>>(null);
+  const [liveReviews, setLiveReviews] = useState<Array<{ id: number; author: string; title: string; body: string; rating: number; date: string; verified: boolean }> | null>(null);
+  const [reviewsLoaded, setReviewsLoaded] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [waHover, setWaHover] = useState(false);
   const [applePayAvailable, setApplePayAvailable] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia("(max-width: 767px)").matches);
   const recs = useMemo(() => ALL_RECS.filter((r) => r.handle !== handle), [handle]);
   const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
   const addingRef = useRef(false);
 
-  // Media query helper for mobile
-  const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
-
-  // Load approved reviews from API; fall back to PRODUCT_REVIEWS if none returned
+  // Load approved reviews from API for this product
   useEffect(() => {
+    setLiveReviews(null);
+    setReviewsLoaded(false);
     fetch(`/api/reviews/public?handle=${encodeURIComponent(handle)}`)
       .then(async (r) => {
-        if (!r.ok) return;
+        if (!r.ok) { setReviewsLoaded(true); return; }
         const data = await r.json() as { reviews: Array<{ id: number; author: string; title: string; body: string; rating: number; date: string; verified: boolean }> };
-        if (data.reviews.length > 0) setLiveReviews(data.reviews);
+        setLiveReviews(data.reviews);
+        setReviewsLoaded(true);
       })
-      .catch(() => { /* silently fall back to static reviews */ });
+      .catch(() => { setReviewsLoaded(true); });
   }, [handle]);
 
 
@@ -1186,7 +1162,7 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                 <div style={{ maxWidth: 1280, margin: "0 auto", padding: "72px 28px 88px" }}>
                   {/* Header */}
                   {(() => {
-                    const displayReviews = liveReviews ?? PRODUCT_REVIEWS;
+                    const displayReviews = liveReviews ?? [];
                     const reviewCount = displayReviews.length;
                     const reviewAvg = reviewCount > 0
                       ? Math.round(displayReviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount * 10) / 10
@@ -1200,11 +1176,13 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                           <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", fontWeight: 400, letterSpacing: "0.04em", color: "#1e1814", marginBottom: 14 }}>
                             What Our Customers Say
                           </h2>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <StarRating rating={reviewAvg} size={14} />
-                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, fontWeight: 300, color: "#1e1814" }}>{reviewAvg.toFixed(1)}</span>
-                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#7a6e64", fontWeight: 300 }}>· {reviewCount} {reviewCount === 1 ? "review" : "reviews"}</span>
-                          </div>
+                          {reviewsLoaded && reviewCount > 0 && (
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <StarRating rating={reviewAvg} size={14} />
+                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, fontWeight: 300, color: "#1e1814" }}>{reviewAvg.toFixed(1)}</span>
+                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: "#7a6e64", fontWeight: 300 }}>· {reviewCount} {reviewCount === 1 ? "review" : "reviews"}</span>
+                            </div>
+                          )}
                         </div>
                         <button
                           type="button"
@@ -1241,33 +1219,44 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                   })()}
 
                   {/* Review cards */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-                    {(liveReviews ?? PRODUCT_REVIEWS).map((r, i) => (
-                      <div key={i} style={{ backgroundColor: "#faf8f5", padding: "28px 28px 32px", border: "1px solid rgba(30,24,20,0.10)" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                          <StarRating rating={r.rating} size={12} />
-                          {r.verified && (
-                            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, color: "#2d6a4f", fontWeight: 600, letterSpacing: "0.08em" }}>✓ Verified</span>
-                          )}
-                        </div>
-                        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 17, fontWeight: 400, color: "#1e1814", marginBottom: 10, lineHeight: 1.3, letterSpacing: "0.02em" }}>
-                          {r.title}
-                        </p>
-                        <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 13, lineHeight: 1.7, color: "#7a6e64", marginBottom: 20, fontWeight: 300 }}>
-                          {r.body}
-                        </p>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ width: 28, height: 28, backgroundColor: "#eee8e2", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 14, fontWeight: 600, color: "#7a6e64", flexShrink: 0 }}>
-                            {r.author[0]}
+                  {reviewsLoaded && (liveReviews ?? []).length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "48px 0 24px" }}>
+                      <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.1rem, 2.5vw, 1.5rem)", fontWeight: 400, color: "#1e1814", marginBottom: 12, letterSpacing: "0.03em" }}>
+                        Be the first to share your thoughts
+                      </p>
+                      <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 12, fontWeight: 300, color: "#7a6e64", lineHeight: 1.7, maxWidth: 360, margin: "0 auto 28px" }}>
+                        Your review helps other shoppers discover what makes this piece special.
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+                      {(liveReviews ?? []).map((r, i) => (
+                        <div key={i} style={{ backgroundColor: "#faf8f5", padding: "28px 28px 32px", border: "1px solid rgba(30,24,20,0.10)" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                            <StarRating rating={r.rating} size={12} />
+                            {r.verified && (
+                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, color: "#2d6a4f", fontWeight: 600, letterSpacing: "0.08em" }}>✓ Verified</span>
+                            )}
                           </div>
-                          <div>
-                            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, fontWeight: 600, color: "#1e1814", letterSpacing: "0.06em" }}>{r.author}</p>
-                            <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#a9a09a", fontWeight: 300, marginTop: 2 }}>{r.date}</p>
+                          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 17, fontWeight: 400, color: "#1e1814", marginBottom: 10, lineHeight: 1.3, letterSpacing: "0.02em" }}>
+                            {r.title}
+                          </p>
+                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 13, lineHeight: 1.7, color: "#7a6e64", marginBottom: 20, fontWeight: 300 }}>
+                            {r.body}
+                          </p>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ width: 28, height: 28, backgroundColor: "#eee8e2", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 14, fontWeight: 600, color: "#7a6e64", flexShrink: 0 }}>
+                              {r.author[0]}
+                            </div>
+                            <div>
+                              <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, fontWeight: 600, color: "#1e1814", letterSpacing: "0.06em" }}>{r.author}</p>
+                              <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#a9a09a", fontWeight: 300, marginTop: 2 }}>{r.date}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
