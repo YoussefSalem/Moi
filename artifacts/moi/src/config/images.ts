@@ -27,8 +27,6 @@ import BANGLES_MAIN from "@/assets/images/bangles-main.jpg";
 import BANGLES_ALT_1 from "@/assets/images/bangles-alt-1.jpg";
 import BANGLES_ALT_2 from "@/assets/images/bangles-alt-2.jpg";
 import BANGLES_ALT_3 from "@/assets/images/bangles-alt-3.jpg";
-import BANGLES_ALT_4 from "@/assets/images/bangles-alt-4.jpg";
-import VERSA_TOP_CARD from "@/assets/images/moi-versa-top-beige-card.webp";
 
 const WHITE_GALLERY    = [WHITE_MAIN, WHITE_ALT_ONE, WHITE_ALT_TWO];
 const CASHMERE_GALLERY = [CASHMERE_MAIN, CASHMERE_ALT_1, CASHMERE_ALT_2, CASHMERE_ALT_3];
@@ -126,7 +124,7 @@ export const IMAGES = {
    */
   product2: {
     slug: "moi-versa-top",
-    productShot: VERSA_TOP_CARD,
+    productShot: WHITE_MAIN,
     filmstrip: [] as string[],
     look: {
       model:   WAVVY_LOOK_3,
@@ -136,18 +134,18 @@ export const IMAGES = {
       extra:   WAVVY_LOOK_2,
     },
     colorImages: {
-      White:    VERSA_TOP_CARD,
-      Cashmere: VERSA_TOP_CARD,
-      Beige:    VERSA_TOP_CARD,
-      Yellow:   VERSA_TOP_CARD,
-      Teal:     VERSA_TOP_CARD,
+      White:    WHITE_MAIN,
+      Cashmere: CASHMERE_MAIN,
+      Beige:    BEIGE_MAIN,
+      Yellow:   YELLOW_MAIN,
+      Teal:     TEAL_MAIN,
     },
     colorGalleries: {
-      White:    [VERSA_TOP_CARD],
-      Cashmere: [VERSA_TOP_CARD],
-      Beige:    [VERSA_TOP_CARD],
-      Yellow:   [VERSA_TOP_CARD],
-      Teal:     [VERSA_TOP_CARD],
+      White:    WHITE_GALLERY,
+      Cashmere: CASHMERE_GALLERY,
+      Beige:    BEIGE_GALLERY,
+      Yellow:   YELLOW_GALLERY,
+      Teal:     TEAL_GALLERY,
     },
     colorSwatches: {
       white:    "#f5f0e8",
@@ -189,12 +187,12 @@ export const IMAGES = {
     },
     colorImages: {
       Ivory:     BANGLES_MAIN,
-      Beige:     BANGLES_ALT_4,
+      Beige:     BANGLES_MAIN,
       "One Size": BANGLES_MAIN,
     },
     colorGalleries: {
       Ivory: [BANGLES_MAIN, BANGLES_ALT_1, BANGLES_ALT_2, BANGLES_ALT_3],
-      Beige: [BANGLES_ALT_4, BANGLES_ALT_3, BANGLES_ALT_2, BANGLES_ALT_1, BANGLES_MAIN],
+      Beige: [BANGLES_MAIN, BANGLES_ALT_1, BANGLES_ALT_2, BANGLES_ALT_3],
     },
     colorSwatches: {
       ivory: "#e3d4cb",
