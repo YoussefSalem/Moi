@@ -216,21 +216,37 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     if (isMobile) return;
     const el = recsRef.current;
     if (!el) return;
+    const DRAG_THRESHOLD = 5; // px — below this it's a click, not a drag
+    let didDrag = false;
     const onDown = (e: MouseEvent) => {
       recsDraggingRef.current = true;
+      didDrag = false;
       recsDragStartXRef.current = e.pageX - el.offsetLeft;
       recsDragScrollLeftRef.current = el.scrollLeft;
       el.style.cursor = "grabbing";
     };
     const onMove = (e: MouseEvent) => {
       if (!recsDraggingRef.current) return;
-      e.preventDefault();
       const x = e.pageX - el.offsetLeft;
-      el.scrollLeft = recsDragScrollLeftRef.current - (x - recsDragStartXRef.current) * 1.5;
+      const dx = x - recsDragStartXRef.current;
+      if (!didDrag && Math.abs(dx) < DRAG_THRESHOLD) return; // not a drag yet
+      didDrag = true;
+      e.preventDefault();
+      el.scrollLeft = recsDragScrollLeftRef.current - dx * 1.5;
     };
     const onUp = () => {
       recsDraggingRef.current = false;
       el.style.cursor = "grab";
+      // Suppress the upcoming click only if the user actually dragged
+      if (didDrag) {
+        const suppressClick = (ev: MouseEvent) => {
+          ev.stopPropagation();
+          ev.preventDefault();
+          window.removeEventListener("click", suppressClick, true);
+        };
+        window.addEventListener("click", suppressClick, true);
+      }
+      didDrag = false;
     };
     el.addEventListener("mousedown", onDown);
     el.addEventListener("mousemove", onMove);
