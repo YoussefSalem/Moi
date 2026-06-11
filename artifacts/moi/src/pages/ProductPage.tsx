@@ -60,25 +60,43 @@ interface RecItem {
 function buildAllRecs(): RecItem[] {
   const allProducts = [IMAGES.product1, IMAGES.product2, IMAGES.product3] as const;
   const items: RecItem[] = [];
+
   for (const product of allProducts) {
     const colorImages = product.colorImages as Record<string, string> | undefined;
     const colorGalleries = product.colorGalleries as Record<string, readonly string[]> | undefined;
     const colorSwatches = product.colorSwatches as Record<string, string> | undefined;
-    if (!colorImages) continue;
-    for (const colorName of Object.keys(colorImages)) {
-      // Skip size-like entries (e.g. "One Size", "Default Title") that don't
-      // have a real color swatch — they are not color variants.
-      const swatch = colorSwatches?.[colorName.toLowerCase()] ?? colorSwatches?.[colorName] ?? "";
-      if (!swatch) continue;
-      const handle = `${product.slug}-${slugify(colorName)}`;
+
+    if (product.slug === "moi-wavvy" && colorImages) {
+      // Wavvy: show one card per color so Sand gets its own entry
+      for (const colorName of Object.keys(colorImages)) {
+        const swatch = colorSwatches?.[colorName.toLowerCase()] ?? colorSwatches?.[colorName] ?? "";
+        if (!swatch) continue;
+        items.push({
+          handle: `${product.slug}-${slugify(colorName)}`,
+          name: product.name,
+          color: colorName,
+          price: product.price,
+          swatch,
+          image: () => colorImages[colorName] ?? product.productShot,
+          gallery: () => colorGalleries?.[colorName] ?? [colorImages[colorName] ?? product.productShot],
+        });
+      }
+    } else {
+      // Other products: one card, default shot
+      const firstColorName = colorImages ? Object.keys(colorImages)[0] : undefined;
+      const swatch = firstColorName
+        ? (colorSwatches?.[firstColorName.toLowerCase()] ?? colorSwatches?.[firstColorName] ?? "")
+        : "";
       items.push({
-        handle,
+        handle: product.slug,
         name: product.name,
-        color: colorName,
+        color: firstColorName ?? "",
         price: product.price,
         swatch,
-        image: () => colorImages[colorName] ?? product.productShot,
-        gallery: () => colorGalleries?.[colorName] ?? [colorImages[colorName] ?? product.productShot],
+        image: () => product.productShot,
+        gallery: () =>
+          (firstColorName ? colorGalleries?.[firstColorName] : undefined) ??
+          [product.productShot],
       });
     }
   }
@@ -161,14 +179,12 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const [isMobile, setIsMobile] = useState(() => window.matchMedia("(max-width: 767px)").matches);
   const recs = useMemo(() => {
     const currentSlug = fallback.slug;
-    const withoutSelf = ALL_RECS.filter((r) => r.handle !== handle);
-    const crossProduct = withoutSelf.filter(
-      (r) => !r.handle.startsWith(currentSlug + "-") && r.handle !== currentSlug,
-    );
-    const sameProductOtherColors = withoutSelf.filter(
-      (r) => r.handle.startsWith(currentSlug + "-") || r.handle === currentSlug,
-    );
-    return [...crossProduct, ...sameProductOtherColors];
+    return ALL_RECS.filter((r) => {
+      if (r.handle === handle) return false;
+      if (r.handle === currentSlug) return false;
+      if (r.handle.startsWith(currentSlug + "-")) return false;
+      return true;
+    });
   }, [handle, fallback.slug]);
   const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
   const addingRef = useRef(false);
