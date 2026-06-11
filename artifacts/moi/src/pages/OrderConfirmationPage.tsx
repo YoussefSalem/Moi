@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ShoppingBag, MessageCircle } from "lucide-react";
-import { LoadingScreen } from "@/components/LoadingScreen";
 
 interface CartItem {
   id?: string;
@@ -142,89 +141,78 @@ function GoldShimmer() {
   return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 200 }} />;
 }
 
-export function OrderConfirmationPage({ data: propData, onContinueShopping }: OrderConfirmationPageProps) {
-  const [data, setData] = useState<OrderConfirmationData | null>(propData ?? null);
-  const [shopifyOrderNumber, setShopifyOrderNumber] = useState<number | string | null>(null);
-  const [imagesReady, setImagesReady] = useState(false);
-  const syncCalledRef = useRef(false);
-
-  useEffect(() => {
-    if (propData) {
-      setData(propData);
-      if (propData.orderNumber) setShopifyOrderNumber(propData.orderNumber);
-      return;
-    }
-
-    function saveAndSet(d: OrderConfirmationData) {
-      setData(d);
-      if (d.orderNumber) setShopifyOrderNumber(d.orderNumber);
-      try { sessionStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(d)); } catch { /* ignore */ }
-    }
-
+function readSessionData(propData?: OrderConfirmationData): OrderConfirmationData | null {
+  if (propData) return propData;
+  try {
     const raw = sessionStorage.getItem(SESSION_KEY);
     if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as Partial<OrderConfirmationData>;
-        saveAndSet(normalizeConfirmation(parsed));
-        sessionStorage.removeItem(SESSION_KEY);
-      } catch {
-        onContinueShopping();
-        return;
-      }
-    } else {
-      const itemsRaw = sessionStorage.getItem("moi_paymob_items");
-      const breakdownRaw = sessionStorage.getItem("moi_paymob_breakdown");
-      const methodRaw = sessionStorage.getItem("moi_paymob_payment_method") ?? "card";
-      const urlParams = new URLSearchParams(window.location.search);
-      const intentIdFromUrl = urlParams.get("intentId") ?? undefined;
-
-      if (itemsRaw || breakdownRaw) {
-        try {
-          const parsedItems = itemsRaw ? (JSON.parse(itemsRaw) as CartItem[]) : [];
-          const parsedBreakdown = breakdownRaw ? (JSON.parse(breakdownRaw) as BreakdownSnapshot) : { subtotal: 0, savings: 0, shippingCost: 0, freeShipping: false };
-          saveAndSet({ items: parsedItems, breakdown: parsedBreakdown, paymentMethod: methodRaw, intentId: intentIdFromUrl });
-        } catch {
-          onContinueShopping();
-          return;
-        }
-      } else {
-        // No primary data — check if we have an active session (e.g. after a refresh)
-        const activeRaw = sessionStorage.getItem(ACTIVE_SESSION_KEY);
-        if (activeRaw) {
-          try {
-            const parsed = JSON.parse(activeRaw) as Partial<OrderConfirmationData>;
-            const d = normalizeConfirmation(parsed);
-            setData(d);
-            if (d.orderNumber) setShopifyOrderNumber(d.orderNumber);
-          } catch {
-            onContinueShopping();
-            return;
-          }
-        } else {
-          // No session data at all — direct URL access; redirect to home
-          onContinueShopping();
-          return;
-        }
-      }
+      const parsed = JSON.parse(raw) as Partial<OrderConfirmationData>;
+      const d = normalizeConfirmation(parsed);
+      sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(d));
+      return d;
     }
+    const itemsRaw = sessionStorage.getItem("moi_paymob_items");
+    const breakdownRaw = sessionStorage.getItem("moi_paymob_breakdown");
+    if (itemsRaw || breakdownRaw) {
+      const methodRaw = sessionStorage.getItem("moi_paymob_payment_method") ?? "card";
+      const intentIdFromUrl = new URLSearchParams(window.location.search).get("intentId") ?? undefined;
+      const parsedItems = itemsRaw ? (JSON.parse(itemsRaw) as CartItem[]) : [];
+      const parsedBreakdown = breakdownRaw
+        ? (JSON.parse(breakdownRaw) as BreakdownSnapshot)
+        : { subtotal: 0, savings: 0, shippingCost: 0, freeShipping: false };
+      const d = normalizeConfirmation({ items: parsedItems, breakdown: parsedBreakdown, paymentMethod: methodRaw, intentId: intentIdFromUrl });
+      sessionStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(d));
+      return d;
+    }
+    const activeRaw = sessionStorage.getItem(ACTIVE_SESSION_KEY);
+    if (activeRaw) {
+      return normalizeConfirmation(JSON.parse(activeRaw) as Partial<OrderConfirmationData>);
+    }
+  } catch { /* ignore */ }
+  return null;
+}
 
+export function OrderConfirmationPage({ data: propData, onContinueShopping }: OrderConfirmationPageProps) {
+  const [data, setData] = useState<OrderConfirmationData | null>(() => readSessionData(propData));
+  const [shopifyOrderNumber, setShopifyOrderNumber] = useState<number | string | null>(
+    () => propData?.orderNumber ?? null
+  );
+  const syncCalledRef = useRef(false);
+  const redirectedRef = useRef(false);
+
+  // Sync orderNumber from data on first render
+  useEffect(() => {
+    if (data?.orderNumber && !shopifyOrderNumber) {
+      setShopifyOrderNumber(data.orderNumber);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // If no session data found, redirect to home on next tick
+  useEffect(() => {
+    if (!data && !redirectedRef.current) {
+      redirectedRef.current = true;
+      onContinueShopping();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // If propData changes (rare), sync it in
+  useEffect(() => {
+    if (!propData) return;
+    setData(propData);
+    if (propData.orderNumber) setShopifyOrderNumber(propData.orderNumber);
+  }, [propData]);
+
+  // Clean up legacy sessionStorage keys
+  useEffect(() => {
     ["moi_paymob_items", "moi_paymob_order_total", "moi_paymob_breakdown",
      "moi_paymob_intent_id", "moi_checkout_form", "moi_paymob_result",
      "moi_paymob_payment_method"].forEach((k) => {
       try { sessionStorage.removeItem(k); } catch { /* ignore */ }
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propData]);
-
-  // Preload thumbnail images
-  useEffect(() => {
-    if (!data) return;
-    const srcs = data.items.map((i) => i.image).filter(Boolean) as string[];
-    if (srcs.length === 0) { setImagesReady(true); return; }
-    let remaining = srcs.length;
-    const done = () => { remaining--; if (remaining <= 0) setImagesReady(true); };
-    srcs.forEach((src) => { const img = new Image(); img.onload = done; img.onerror = done; img.src = src; });
-  }, [data]);
+  }, []);
 
   const intentId = data?.intentId ?? new URLSearchParams(window.location.search).get("intentId") ?? null;
   const txnId = new URLSearchParams(window.location.search).get("txnId") ?? undefined;
@@ -278,9 +266,7 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
     return () => { cancelled = true; };
   }, [intentId, shopifyOrderNumber]);
 
-  const pageReady = data !== null && imagesReady;
-
-  if (!data) return <LoadingScreen ready={false} />;
+  if (!data) return null;
 
   const { items, breakdown, paymentMethod } = data;
   const orderNum = shopifyOrderNumber ?? data.orderNumber;
@@ -306,7 +292,6 @@ export function OrderConfirmationPage({ data: propData, onContinueShopping }: Or
 
   return (
     <div style={{ minHeight: "100dvh", backgroundColor: "#faf8f5", overflowX: "hidden", overflowY: "auto", display: "flex", flexDirection: "column", position: "relative" }}>
-      <LoadingScreen ready={pageReady} />
       <GoldShimmer />
 
 

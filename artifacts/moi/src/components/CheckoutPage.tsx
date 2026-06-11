@@ -341,7 +341,7 @@ export function CheckoutPage() {
     const qs = intentId ? `?intentId=${encodeURIComponent(intentId)}` : "";
     window.history.pushState(null, "", `/order-confirmed${qs}`);
     window.dispatchEvent(new PopStateEvent("popstate"));
-    setTimeout(() => closeCheckout(), 80);
+    closeCheckout();
   }, [closeCheckout]);
 
   // Direct Apple Pay fast-path: native ApplePaySession with Paymob merchant validation.
@@ -1105,11 +1105,9 @@ export function CheckoutPage() {
       // Reset submission state before closing so the next order can be placed.
       submittingRef.current = false;
       setStep("form");
-      // Navigate first so the confirmation page is rendered underneath,
-      // then close the checkout — customer sees it revealed rather than a blank flash.
       window.history.pushState(null, "", "/order-confirmed");
       window.dispatchEvent(new PopStateEvent("popstate"));
-      setTimeout(() => closeCheckout(), 80);
+      closeCheckout();
     } catch {
       setStep("form");
       setSubmitError("Network error. Please check your connection and try again.");
@@ -1777,7 +1775,7 @@ export function CheckoutPage() {
                 }
                 window.history.pushState(null, "", "/order-confirmed");
                 window.dispatchEvent(new PopStateEvent("popstate"));
-                setTimeout(() => closeCheckout(), 80);
+                closeCheckout();
               }}
               fmt={fmt}
             />
