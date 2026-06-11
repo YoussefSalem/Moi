@@ -196,7 +196,6 @@ export const IMAGES = {
     },
     colorSwatches: {
       ivory: "#e3d4cb",
-      beige: "#e3d4cb",
     },
     name: "Trio Bangles",
     shopifyTitle: "Trio Bangles.",
