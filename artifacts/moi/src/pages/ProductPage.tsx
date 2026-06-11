@@ -72,12 +72,12 @@ const PRODUCT_REVIEWS = [
 ];
 
 const ALL_RECS = [
-  { handle: "moi-versa-top-white",  name: "MOI VERSA TOP", color: "White",      price: "1,399 EGP", swatch: "#f5f0e8", image: () => IMAGES.product2.colorImages.White  as string },
-  { handle: "moi-versa-top-yellow", name: "MOI VERSA TOP", color: "Yellow",     price: "1,399 EGP", swatch: "#e8d080", image: () => IMAGES.product2.colorImages.Yellow as string },
-  { handle: "moi-versa-top-teal",   name: "MOI VERSA TOP", color: "Teal",       price: "1,399 EGP", swatch: "#4a8a8a", image: () => IMAGES.product2.colorImages.Teal   as string },
-  { handle: "moi-wavvy-light-blue", name: "MOI WAVVY",     color: "Light Blue", price: "899 EGP",   swatch: "#a8c8d8", image: () => IMAGES.product1.colorImages["Light Blue"] as string },
-  { handle: "moi-wavvy-navy",       name: "MOI WAVVY",     color: "Navy",       price: "899 EGP",   swatch: "#3a5a7a", image: () => IMAGES.product1.colorImages.Navy   as string },
-  { handle: "moi-wavvy-mint",       name: "MOI WAVVY",     color: "Mint",       price: "899 EGP",   swatch: "#98c8a8", image: () => IMAGES.product1.colorImages.Mint   as string },
+  { handle: "moi-versa-top-white",  name: "MOI VERSA TOP", color: "White",      price: "1,399 EGP", swatch: "#f5f0e8", image: () => IMAGES.product2.colorImages.White  as string, gallery: () => IMAGES.product2.colorGalleries.White    as readonly string[] },
+  { handle: "moi-versa-top-yellow", name: "MOI VERSA TOP", color: "Yellow",     price: "1,399 EGP", swatch: "#e8d080", image: () => IMAGES.product2.colorImages.Yellow as string, gallery: () => IMAGES.product2.colorGalleries.Yellow   as readonly string[] },
+  { handle: "moi-versa-top-teal",   name: "MOI VERSA TOP", color: "Teal",       price: "1,399 EGP", swatch: "#4a8a8a", image: () => IMAGES.product2.colorImages.Teal   as string, gallery: () => IMAGES.product2.colorGalleries.Teal     as readonly string[] },
+  { handle: "moi-wavvy-light-blue", name: "MOI WAVVY",     color: "Light Blue", price: "899 EGP",   swatch: "#a8c8d8", image: () => IMAGES.product1.colorImages["Light Blue"] as string, gallery: () => IMAGES.product1.colorGalleries["Light Blue"] as readonly string[] },
+  { handle: "moi-wavvy-navy",       name: "MOI WAVVY",     color: "Navy",       price: "899 EGP",   swatch: "#3a5a7a", image: () => IMAGES.product1.colorImages.Navy   as string, gallery: () => IMAGES.product1.colorGalleries.Navy     as readonly string[] },
+  { handle: "moi-wavvy-mint",       name: "MOI WAVVY",     color: "Mint",       price: "899 EGP",   swatch: "#98c8a8", image: () => IMAGES.product1.colorImages.Mint   as string, gallery: () => IMAGES.product1.colorGalleries.Mint     as readonly string[] },
 ];
 
 function slugify(str: string): string {
@@ -153,7 +153,9 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
   const recsDragStartXRef = useRef(0);
   const recsDragScrollLeftRef = useRef(0);
   const recsRafRef = useRef(0);
+  const recsMobileXRef = useRef(0);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+  const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
   const addingRef = useRef(false);
 
   // Sync isMobile with viewport
@@ -165,23 +167,48 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Mobile: infinite seamless auto-scroll via requestAnimationFrame
+  // Mobile: infinite seamless auto-scroll + touch-to-pan support
   useEffect(() => {
     if (!isMobile) return;
     const track = recsTrackRef.current;
     if (!track) return;
-    let x = 0;
+    let paused = false;
+    let touchStartClientX = 0;
+    let touchStartX = 0;
     const speed = 0.7;
     function tick() {
       if (!track) return;
-      const halfWidth = track.scrollWidth / 2;
-      x -= speed;
-      if (Math.abs(x) >= halfWidth) x = 0;
-      track.style.transform = `translateX(${x}px)`;
+      if (!paused) {
+        const halfWidth = track.scrollWidth / 2;
+        recsMobileXRef.current -= speed;
+        if (Math.abs(recsMobileXRef.current) >= halfWidth) recsMobileXRef.current = 0;
+        track.style.transform = `translateX(${recsMobileXRef.current}px)`;
+      }
       recsRafRef.current = requestAnimationFrame(tick);
     }
+    const onTouchStart = (e: TouchEvent) => {
+      paused = true;
+      touchStartClientX = e.touches[0].clientX;
+      touchStartX = recsMobileXRef.current;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const dx = e.touches[0].clientX - touchStartClientX;
+      recsMobileXRef.current = touchStartX + dx;
+      track.style.transform = `translateX(${recsMobileXRef.current}px)`;
+    };
+    const onTouchEnd = () => { paused = false; };
+    track.addEventListener("touchstart", onTouchStart, { passive: true });
+    track.addEventListener("touchmove", onTouchMove, { passive: true });
+    track.addEventListener("touchend", onTouchEnd, { passive: true });
+    track.addEventListener("touchcancel", onTouchEnd, { passive: true });
     recsRafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(recsRafRef.current);
+    return () => {
+      cancelAnimationFrame(recsRafRef.current);
+      track.removeEventListener("touchstart", onTouchStart);
+      track.removeEventListener("touchmove", onTouchMove);
+      track.removeEventListener("touchend", onTouchEnd);
+      track.removeEventListener("touchcancel", onTouchEnd);
+    };
   }, [isMobile]);
 
   // Desktop: grab-to-drag scroll
@@ -1000,12 +1027,16 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                   {(() => {
                     const recs = ALL_RECS.filter((r) => r.handle !== handle).slice(0, 4);
                     const cardStyle: React.CSSProperties = { flex: "0 0 auto", width: "clamp(180px, 38vw, 280px)", background: "none", border: "none", padding: 0, textAlign: "left", userSelect: "none" };
-                    const renderCard = (rec: typeof recs[0], key: string, clickable: boolean) => (
+                    const openGallery = (rec: typeof recs[0]) => {
+                      const imgs = rec.gallery();
+                      setCarouselLb({ open: true, images: imgs, idx: 0 });
+                    };
+                    const renderCard = (rec: typeof recs[0], key: string) => (
                       <button
                         key={key}
                         type="button"
-                        onClick={clickable ? () => onNavigate(rec.handle) : undefined}
-                        style={{ ...cardStyle, cursor: clickable ? "inherit" : "default" }}
+                        onClick={() => openGallery(rec)}
+                        style={{ ...cardStyle, cursor: "pointer" }}
                         draggable={false}
                       >
                         <div style={{ aspectRatio: "3/4", overflow: "hidden", marginBottom: 12, backgroundColor: "rgba(30,24,20,0.04)" }}>
@@ -1040,16 +1071,16 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                         </div>
 
                         {isMobile ? (
-                          /* Mobile: seamless infinite auto-scroll — items doubled, translateX driven by rAF */
-                          <div style={{ overflow: "hidden", touchAction: "none" }}>
+                          /* Mobile: seamless infinite auto-scroll — items doubled, translateX driven by rAF, touch-to-pan enabled */
+                          <div style={{ overflow: "hidden" }}>
                             <div ref={recsTrackRef} style={{ display: "flex", gap: 16, width: "max-content", willChange: "transform" }}>
-                              {[...recs, ...recs].map((rec, i) => renderCard(rec, `${rec.handle}-${i}`, false))}
+                              {[...recs, ...recs].map((rec, i) => renderCard(rec, `${rec.handle}-${i}`))}
                             </div>
                           </div>
                         ) : (
                           /* Desktop: grab-to-drag + arrow buttons */
                           <div ref={recsRef} style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 16, paddingRight: 28, scrollbarWidth: "none" as const, cursor: "grab" }}>
-                            {recs.map((rec) => renderCard(rec, rec.handle, true))}
+                            {recs.map((rec) => renderCard(rec, rec.handle))}
                           </div>
                         )}
                       </div>
@@ -1128,6 +1159,14 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
         initialIndex={galleryIndex}
         open={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
+      />
+
+      {/* Carousel quick-view gallery */}
+      <CinematicLightbox
+        images={carouselLb.images}
+        initialIndex={carouselLb.idx}
+        open={carouselLb.open}
+        onClose={() => setCarouselLb((s) => ({ ...s, open: false }))}
       />
     </>
   );
