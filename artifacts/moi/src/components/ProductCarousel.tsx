@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 
 export interface CarouselItem {
   handle: string;
@@ -100,77 +100,91 @@ export function ProductCarousel({
     setTimeout(() => { if (settlingRef.current) cleanup(); }, SNAP_MS + 80);
   }
 
+  // Window-level pointer move/up listeners — attached on pointerdown, removed on pointerup/cancel.
+  // Avoids setPointerCapture (which suppresses native click events on child buttons).
+  useEffect(() => {
+    function onWindowMove(e: PointerEvent) {
+      if (ptrIdRef.current !== e.pointerId) return;
+      const dx = e.clientX - startXRef.current;
+      const dy = e.clientY - startYRef.current;
+
+      if (lockRef.current === null) {
+        if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+          lockRef.current = Math.abs(dx) > Math.abs(dy) * 1.2 ? "h" : "v";
+        }
+        return;
+      }
+      if (lockRef.current === "v") return;
+      if (Math.abs(dx) > 5) didDragRef.current = true;
+      e.preventDefault();
+      applyTransform(dx, false);
+    }
+
+    function onWindowUp(e: PointerEvent) {
+      if (ptrIdRef.current !== e.pointerId) return;
+      const wasH = lockRef.current === "h";
+      ptrIdRef.current = null;
+      lockRef.current = null;
+
+      if (!wasH) {
+        // Not a horizontal drag — snap back to current position (no-op if not moved),
+        // and let the native click event on the button handle navigation.
+        applyTransform(0, true);
+        const track = trackRef.current;
+        if (track) {
+          const done = () => { track.removeEventListener("transitionend", done); settlingRef.current = false; };
+          track.addEventListener("transitionend", done, { once: true });
+          setTimeout(() => { if (settlingRef.current) done(); }, SNAP_MS + 80);
+        }
+        return;
+      }
+
+      const dx = e.clientX - startXRef.current;
+      const dt = Math.max(e.timeStamp - startTRef.current, 1);
+
+      if (Math.abs(dx) > 40 || Math.abs(dx) / dt > 0.35) {
+        landOn(rawIdxRef.current + (dx < 0 ? 1 : -1));
+      } else {
+        settlingRef.current = true;
+        applyTransform(0, true);
+        const track = trackRef.current;
+        if (track) {
+          const done = () => {
+            track.removeEventListener("transitionend", done);
+            settlingRef.current = false;
+          };
+          track.addEventListener("transitionend", done, { once: true });
+          setTimeout(() => { if (settlingRef.current) done(); }, SNAP_MS + 80);
+        }
+      }
+    }
+
+    function onWindowCancel(e: PointerEvent) {
+      if (ptrIdRef.current !== e.pointerId) return;
+      ptrIdRef.current = null;
+      lockRef.current = null;
+      applyTransform(0, false);
+    }
+
+    window.addEventListener("pointermove", onWindowMove, { passive: false });
+    window.addEventListener("pointerup", onWindowUp);
+    window.addEventListener("pointercancel", onWindowCancel);
+    return () => {
+      window.removeEventListener("pointermove", onWindowMove);
+      window.removeEventListener("pointerup", onWindowUp);
+      window.removeEventListener("pointercancel", onWindowCancel);
+    };
+  }, [N]);
+
   function onPointerDown(e: React.PointerEvent) {
     if (settlingRef.current || ptrIdRef.current !== null) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     ptrIdRef.current = e.pointerId;
     startXRef.current = e.clientX;
     startYRef.current = e.clientY;
     startTRef.current = e.timeStamp;
     lockRef.current = null;
     didDragRef.current = false;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }
-
-  function onPointerMove(e: React.PointerEvent) {
-    if (ptrIdRef.current !== e.pointerId) return;
-    const dx = e.clientX - startXRef.current;
-    const dy = e.clientY - startYRef.current;
-
-    if (lockRef.current === null) {
-      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
-        lockRef.current = Math.abs(dx) > Math.abs(dy) * 1.2 ? "h" : "v";
-      }
-      return;
-    }
-    if (lockRef.current === "v") return;
-    if (Math.abs(dx) > 5) didDragRef.current = true;
-    e.preventDefault();
-    applyTransform(dx, false);
-  }
-
-  function onPointerUp(e: React.PointerEvent) {
-    if (ptrIdRef.current !== e.pointerId) return;
-    ptrIdRef.current = null;
-
-    const wasH = lockRef.current === "h";
-    const wasDrag = didDragRef.current;
-    lockRef.current = null;
-
-    // Clean tap (no meaningful movement) — fire navigation directly here
-    // because setPointerCapture suppresses the native click on child buttons.
-    if (!wasH && !wasDrag) {
-      const btn = (e.target as HTMLElement).closest("[data-handle]") as HTMLElement | null;
-      if (btn?.dataset.handle) onItemClick(btn.dataset.handle);
-      return;
-    }
-
-    if (!wasH) return; // vertical scroll — no snap needed
-
-    const dx = e.clientX - startXRef.current;
-    const dt = Math.max(e.timeStamp - startTRef.current, 1);
-
-    if (Math.abs(dx) > 40 || Math.abs(dx) / dt > 0.35) {
-      landOn(rawIdxRef.current + (dx < 0 ? 1 : -1));
-    } else {
-      settlingRef.current = true;
-      applyTransform(0, true);
-      const track = trackRef.current;
-      if (track) {
-        const done = () => {
-          track.removeEventListener("transitionend", done);
-          settlingRef.current = false;
-        };
-        track.addEventListener("transitionend", done, { once: true });
-        setTimeout(() => { if (settlingRef.current) done(); }, SNAP_MS + 80);
-      }
-    }
-  }
-
-  function onPointerCancel(e: React.PointerEvent) {
-    if (ptrIdRef.current !== e.pointerId) return;
-    ptrIdRef.current = null;
-    lockRef.current = null;
-    applyTransform(0, false);
   }
 
   if (N === 0) return null;
@@ -229,10 +243,7 @@ export function ProductCarousel({
           {/* Desktop arrow buttons */}
           {N > 1 && (
             <div
-              style={{
-                display: "flex",
-                gap: 8,
-              }}
+              style={{ display: "flex", gap: 8 }}
               className="hidden md:flex"
             >
               <button
@@ -252,16 +263,7 @@ export function ProductCarousel({
                   borderRadius: 2,
                 }}
               >
-                <svg
-                  width={18}
-                  height={18}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
+                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
               </button>
@@ -282,16 +284,7 @@ export function ProductCarousel({
                   borderRadius: 2,
                 }}
               >
-                <svg
-                  width={18}
-                  height={18}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
+                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 18l6-6-6-6" />
                 </svg>
               </button>
@@ -303,9 +296,6 @@ export function ProductCarousel({
         <div
           style={{ overflow: "hidden", touchAction: "pan-y", cursor: N > 1 ? "grab" : "default" }}
           onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerCancel}
         >
           <div
             ref={trackRef}
@@ -319,7 +309,9 @@ export function ProductCarousel({
               <button
                 key={`${item.handle}-${i}`}
                 type="button"
-                data-handle={item.handle}
+                onClick={() => {
+                  if (!didDragRef.current) onItemClick(item.handle);
+                }}
                 draggable={false}
                 style={{
                   flex: `0 0 ${CARD_W}`,
@@ -358,14 +350,7 @@ export function ProductCarousel({
                 </div>
 
                 {item.color && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      marginBottom: 5,
-                    }}
-                  >
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
                     {item.swatch && (
                       <span
                         style={{
