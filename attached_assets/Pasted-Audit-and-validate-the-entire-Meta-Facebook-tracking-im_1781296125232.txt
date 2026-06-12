@@ -1,0 +1,85 @@
+Audit and validate the entire Meta (Facebook) tracking implementation across the website.
+
+I am seeing incorrect ROAS, missing Result Value, inconsistent purchase attribution, and days where Meta appears to receive no conversion data at all. Perform a complete technical investigation and do not make assumptions.
+
+Objectives
+
+1. Verify that the Meta Pixel is installed exactly once on every page.
+2. Verify that all standard ecommerce events are firing correctly:
+    * PageView
+    * ViewContent
+    * AddToCart
+    * InitiateCheckout
+    * AddPaymentInfo (if applicable)
+    * Purchase
+3. Verify that Purchase events contain:
+    * value
+    * currency
+    * eventID
+    * content_ids
+    * contents
+    * num_items
+    * correct product data
+4. Verify that event values match the actual order totals being paid by customers.
+5. Check for duplicate events causing inflated or corrupted ROAS.
+6. Check for missing events causing under-reporting.
+7. Verify deduplication between browser Pixel events and Conversions API (if CAPI is enabled).
+8. Verify that Purchase events fire only after a successful payment and never before payment confirmation.
+9. Verify that Purchase events are not blocked by:
+    * page redirects
+    * Shopify checkout redirects
+    * thank-you page issues
+    * ad blockers
+    * SPA routing/navigation issues
+10. Verify attribution parameters are preserved:
+    * fbclid
+    * fbp
+    * fbc
+    * UTM parameters
+11. Verify Advanced Matching is configured correctly.
+12. Check for consent/banner logic accidentally preventing tracking.
+13. Verify all custom code, GTM containers, Shopify integrations, and third-party apps are not conflicting with Meta tracking.
+14. Identify any days or scenarios where Meta would receive zero purchase data despite successful orders.
+
+Required Deliverables
+
+Generate a complete audit report including:
+
+* Every Meta Pixel detected
+* Pixel IDs found
+* Events found
+* Missing events
+* Duplicate events
+* Invalid parameters
+* Incorrect values
+* Deduplication issues
+* Attribution issues
+* SPA/navigation issues
+* Shopify integration issues
+* Conversions API issues
+
+Validation Requirements
+
+Simulate the full customer journey:
+
+* Landing page
+* Product page
+* Add to cart
+* Checkout
+* Payment
+* Thank-you page
+
+Record exactly which Meta events fire at each step and their payloads.
+
+Fix Requirements
+
+If issues are found:
+
+* Fix them directly in code.
+* Follow Meta’s latest best practices.
+* Maintain compatibility with Shopify product syncing and existing business logic.
+* Do not modify product data, catalog structure, pricing logic, checkout flow, or UI unless required for tracking accuracy.
+
+Success Criteria
+
+At completion, Meta Events Manager should receive consistent, deduplicated, accurate Purchase events with correct values and currencies, allowing ROAS, Purchase Value, and Result Value reporting to be trusted and match actual sales.
