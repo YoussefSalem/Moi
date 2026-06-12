@@ -20,9 +20,9 @@ const GAP = 20;
 const CARD_W = "clamp(160px, 44vw, 260px)";
 const SNAP_MS = 380;
 const SNAP_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
-// Friction: vel *= FRICTION^dt (dt in ms). 0.990^600 ≈ 0.002 — smooth coast ~600ms.
-const FRICTION = 0.990;
-const STOP_VEL = 0.02; // px/ms — below this just stop
+// Friction: vel *= FRICTION^dt (dt in ms). 0.994 gives ~1.2s coast at typical swipe velocity.
+const FRICTION = 0.994;
+const STOP_VEL = 0.012; // px/ms — below this just stop
 
 // ─── Image with shimmer skeleton ────────────────────────────────────────────
 function CardImage({ src, alt }: { src: string; alt: string }) {
