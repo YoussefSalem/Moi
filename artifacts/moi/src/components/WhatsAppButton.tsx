@@ -157,8 +157,13 @@ export function WhatsAppButton() {
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  padding: 10,
-                  margin: -6,
+                  padding: 0,
+                  width: 44,
+                  height: 44,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
                   color: "rgba(255,255,255,0.5)",
                 }}
                 aria-label="Close chat"
