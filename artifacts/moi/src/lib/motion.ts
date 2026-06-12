@@ -47,6 +47,9 @@ export const transitions = {
   modalOverlay:  { duration: dur.standard, ease: ease.enter },                                    // backdrop fade (0.25s)
   modal:         { type: "tween" as const, duration: dur.comfortable, ease: ease.reveal },        // panel entry (0.32s)
   reveal:        { duration: 0.35, ease: ease.reveal },                                            // page content reveal
+  departure:     { duration: 0.35, ease: ease.exit },                                              // full-screen overlay fade-in before navigation
+  springEntry:   { type: "spring" as const, stiffness: 420, damping: 38, mass: 0.9 },            // springy overlay entry (checkout drawer)
+  spinner:       { repeat: Infinity, duration: 1.2, ease: "linear" as const },                   // infinite spinner rotation
   // Stagger list items: pass i = index
   listItem: (i: number) => ({ duration: dur.standard, delay: 0.08 + i * 0.06 }),
 } as const;

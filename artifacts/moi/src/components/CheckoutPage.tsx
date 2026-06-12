@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { ENABLE_CARD_PAYMENTS, ENABLE_WALLET_PAYMENTS, ENABLE_APPLE_PAY } from "@/config/features";
 import { ShopifyApplePayButton } from "./ShopifyApplePayButton";
 import { motion, AnimatePresence } from "framer-motion";
+import { transitions } from "@/lib/motion";
 import { ArrowLeft, Check, ChevronDown, Upload, X, CreditCard, Tag, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { SHOPIFY_CONFIGURED, cartBuyerIdentityUpdate } from "@/lib/shopify";
@@ -857,7 +858,7 @@ export function CheckoutPage() {
           key="paymob-departure"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.35, ease: "easeIn" }}
+          transition={transitions.departure}
           style={{
             position: "fixed",
             inset: 0,
@@ -929,7 +930,7 @@ export function CheckoutPage() {
           initial={{ opacity: 0, y: 32 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 32 }}
-          transition={{ type: "spring", stiffness: 420, damping: 38, mass: 0.9 }}
+          transition={transitions.springEntry}
           className="fixed inset-0 z-[120] overflow-y-auto"
           style={{ backgroundColor: "#efe6da", overscrollBehavior: "contain" }}
         >
@@ -962,7 +963,7 @@ export function CheckoutPage() {
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 px-6 text-center">
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+                transition={transitions.spinner}
                 style={{ width: 28, height: 28, border: "1.5px solid rgba(30,24,20,0.32)", borderTopColor: "#1e1814", borderRadius: "50%" }}
               />
               <p style={{ fontSize: "14px", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(30,24,20,0.72)", fontFamily: "'Montserrat', sans-serif" }}>

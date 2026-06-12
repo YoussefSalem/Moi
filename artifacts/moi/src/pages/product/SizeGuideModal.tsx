@@ -21,27 +21,34 @@ export function SizeGuideModal({ open, onClose }: SizeGuideModalProps) {
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div
-          key="size-guide-overlay"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={transitions.modalOverlay}
-          onClick={onClose}
-          style={{ position: "fixed", inset: 0, zIndex: 9999, backgroundColor: "rgba(30,24,20,0.55)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
-        >
+        <>
+          {/* Backdrop — aria-hidden so AT ignores it */}
           <motion.div
-            ref={panelRef}
+            key="size-guide-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={transitions.modalOverlay}
+            onClick={onClose}
+            aria-hidden="true"
+            style={{ position: "fixed", inset: 0, zIndex: 9999, backgroundColor: "rgba(30,24,20,0.55)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+          />
+          {/* Centering shell — pointer-events-none; panel inside re-enables them */}
+          <motion.div
             key="size-guide-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Size guide"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={transitions.quick}
-            onClick={(e) => e.stopPropagation()}
+            style={{ position: "fixed", inset: 0, zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", pointerEvents: "none" }}
+          >
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Size guide"
             style={{
+              pointerEvents: "auto",
               background: "#faf8f5",
               width: "100%",
               maxWidth: 520,
@@ -57,7 +64,7 @@ export function SizeGuideModal({ open, onClose }: SizeGuideModalProps) {
                   <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, color: "#7a6e64", marginBottom: 6 }}>MOI Versa Top</p>
                   <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "1.55rem", fontWeight: 400, letterSpacing: "0.04em", color: "#1e1814", lineHeight: 1 }}>Size Guide</h2>
                 </div>
-                <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#7a6e74", lineHeight: 1, padding: 8, fontSize: 20, flexShrink: 0 }} aria-label="Close size guide">✕</button>
+                <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#7a6e74", lineHeight: 1, width: 44, height: 44, fontSize: 20, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }} aria-label="Close size guide">✕</button>
               </div>
             </div>
 
@@ -108,8 +115,9 @@ export function SizeGuideModal({ open, onClose }: SizeGuideModalProps) {
                 </ul>
               </div>
             </div>
+          </div>
           </motion.div>
-        </motion.div>
+        </>
       )}
     </AnimatePresence>
   , document.body);

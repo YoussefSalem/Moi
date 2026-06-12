@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { transitions } from "@/lib/motion";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import type { ProductConfig } from "@/config/images";
@@ -182,7 +183,7 @@ export function LookView({ product, onClose }: LookViewProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
+            transition={transitions.overlay}
             className="fixed inset-0 z-[80]"
             style={{ backgroundColor: "#faf8f5", willChange: "opacity" }}
           >
