@@ -2216,6 +2216,7 @@ export function CheckoutPage() {
                   <div style={{ marginTop: "32px" }}>
                     <button
                       type="submit"
+                      disabled={navigatingToPaymob}
                       style={{
                         width: "100%",
                         padding: "18px",
@@ -2227,10 +2228,12 @@ export function CheckoutPage() {
                         fontFamily: "'Montserrat', sans-serif",
                         fontWeight: 700,
                         border: "none",
-                        cursor: "pointer",
+                        cursor: navigatingToPaymob ? "not-allowed" : "pointer",
+                        opacity: navigatingToPaymob ? 0.6 : 1,
+                        transition: "opacity 0.15s",
                       }}
                     >
-                      Place Order
+                      {navigatingToPaymob ? "Processing…" : "Place Order"}
                     </button>
                     <p style={{ fontSize: "10px", color: "rgba(30,24,20,0.42)", fontFamily: "'Montserrat', sans-serif", textAlign: "center", marginTop: "10px", letterSpacing: "0.12em" }}>
                       By placing your order you agree to our{" "}

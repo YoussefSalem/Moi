@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { Router, type IRouter } from "express";
+import rateLimit from "express-rate-limit";
 import { sendEmail } from "../lib/email";
 import { db } from "@workspace/db";
 import { customerOtpCodes, customerProfiles } from "@workspace/db";
@@ -7,6 +8,27 @@ import { eq, and, gt, desc } from "drizzle-orm";
 import { getShopifyAdminToken } from "../lib/integrations";
 
 const router: IRouter = Router();
+
+// IP-based rate limiters — a second layer on top of the per-email DB check.
+// Prevents an attacker from cycling through many email addresses to brute-force
+// OTP codes from a single IP address.
+const sendOtpIpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many requests from this IP. Please try again later." },
+  skip: () => process.env.NODE_ENV !== "production",
+});
+
+const verifyOtpIpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many requests from this IP. Please try again later." },
+  skip: () => process.env.NODE_ENV !== "production",
+});
 
 // Fail fast if SESSION_SECRET is missing in production — a missing secret
 // allows an attacker to forge valid customer session tokens.
@@ -146,7 +168,7 @@ async function findOrCreateShopifyCustomer(email: string): Promise<ShopifyAdminC
   return null;
 }
 
-router.post("/auth/customer/send-otp", async (req, res) => {
+router.post("/auth/customer/send-otp", sendOtpIpLimiter, async (req, res) => {
   const { email } = req.body as { email?: unknown };
   if (typeof email !== "string" || !email.includes("@")) {
     res.status(400).json({ error: "A valid email address is required." });
@@ -187,7 +209,7 @@ router.post("/auth/customer/send-otp", async (req, res) => {
   }
 });
 
-router.post("/auth/customer/verify-otp", async (req, res) => {
+router.post("/auth/customer/verify-otp", verifyOtpIpLimiter, async (req, res) => {
   const { email, code } = req.body as { email?: unknown; code?: unknown };
   if (
     typeof email !== "string" || !email.includes("@") ||

@@ -8,6 +8,7 @@ import CASHMERE_ALT_3 from "@/assets/images/cashmere-alt-3.jpg";
 import BEIGE_MAIN    from "@/assets/images/beige.jpg";
 import BEIGE_ALT_1   from "@/assets/images/beige-alt-1.jpg";
 import BEIGE_ALT_2   from "@/assets/images/beige-alt-2.jpg";
+import BEIGE_ALT_3   from "@/assets/images/beige-alt-3.jpg";
 import YELLOW_MAIN   from "@/assets/images/yellow.jpg";
 import YELLOW_ALT_1  from "@/assets/images/yellow-alt-1.jpg";
 import YELLOW_ALT_2  from "@/assets/images/yellow-alt-2.jpg";
@@ -30,7 +31,7 @@ import BANGLES_ALT_3 from "@/assets/images/bangles-alt-3.jpg";
 
 const WHITE_GALLERY    = [WHITE_MAIN, WHITE_ALT_ONE, WHITE_ALT_TWO];
 const CASHMERE_GALLERY = [CASHMERE_MAIN, CASHMERE_ALT_1, CASHMERE_ALT_2, CASHMERE_ALT_3];
-const BEIGE_GALLERY    = [BEIGE_MAIN, BEIGE_ALT_1, BEIGE_ALT_2];
+const BEIGE_GALLERY    = [BEIGE_MAIN, BEIGE_ALT_1, BEIGE_ALT_2, BEIGE_ALT_3];
 const YELLOW_GALLERY   = [YELLOW_MAIN, YELLOW_ALT_1, YELLOW_ALT_2];
 const TEAL_GALLERY     = [TEAL_MAIN, TEAL_ALT_1, TEAL_ALT_2, TEAL_ALT_3];
 

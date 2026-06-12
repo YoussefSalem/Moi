@@ -2,6 +2,7 @@ import { memo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
 import { QuickPreview } from "@/components/QuickPreview";
+import { useCart } from "@/context/CartContext";
 
 interface ColorCardProps {
   productName: string;
@@ -38,6 +39,7 @@ export const ColorCard = memo(function ColorCard({
   index = 0,
   className,
 }: ColorCardProps) {
+  const { isAddingToCart } = useCart();
   const [hovered, setHovered] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [hoverImgLoaded, setHoverImgLoaded] = useState(false);
@@ -509,6 +511,7 @@ export const ColorCard = memo(function ColorCard({
           ) : (
             <button
               type="button"
+              disabled={isAddingToCart && !!onAddToCart}
               onClick={(e) => {
                 e.stopPropagation();
                 if (onAddToCart) {
@@ -528,8 +531,12 @@ export const ColorCard = memo(function ColorCard({
                 borderColor: "#1e1814",
                 backgroundColor: "#1e1814",
                 borderRadius: 6,
+                opacity: (isAddingToCart && !!onAddToCart) ? 0.65 : 1,
+                cursor: (isAddingToCart && !!onAddToCart) ? "not-allowed" : "pointer",
+                transition: "opacity 0.15s",
               }}
               onMouseEnter={(e) => {
+                if (isAddingToCart && onAddToCart) return;
                 (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#2d231c";
                 (e.currentTarget as HTMLButtonElement).style.borderColor = "#2d231c";
               }}
@@ -538,7 +545,7 @@ export const ColorCard = memo(function ColorCard({
                 (e.currentTarget as HTMLButtonElement).style.borderColor = "#1e1814";
               }}
             >
-              {onAddToCart ? "Order Now" : "View Details"}
+              {(isAddingToCart && !!onAddToCart) ? "Adding…" : (onAddToCart ? "Order Now" : "View Details")}
             </button>
           )}
         </div>
