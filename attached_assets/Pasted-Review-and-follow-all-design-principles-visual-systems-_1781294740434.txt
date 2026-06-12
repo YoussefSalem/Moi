@@ -1,0 +1,75 @@
+Review and follow all design principles, visual systems, spacing rules, typography guidelines, and interaction patterns defined in Awesome DESIGN.md.
+
+Objective
+
+Redesign only the landing page layout and visual presentation. Do not modify any existing application logic, functionality, APIs, components, business logic, routing, state management, or backend code. The redesign should be strictly limited to UI/UX, layout, animations, spacing, typography, imagery, and storytelling presentation.
+
+Creative Direction
+
+The experience should feel comparable to a modern Apple iPhone launch page:
+
+Premium, minimalist, luxury aesthetic
+Large, bold typography
+Cinematic storytelling through scrolling
+Strong visual hierarchy
+Generous whitespace
+Smooth, high-performance animations
+Elegant transitions between sections
+Product-first presentation
+Emotion-driven narrative before conversion
+User Journey
+
+Structure the landing page as a story:
+
+Hero Section
+Full-screen immersive hero
+Powerful headline
+Minimal supporting copy
+Premium visual focus
+Subtle parallax and fade animations
+Product Reveal
+Introduce the product gradually
+Scroll-triggered reveals
+Large visuals and concise messaging
+Key Benefits
+Showcase major advantages one at a time
+Use Apple-style feature storytelling
+Each section should feel like a dedicated chapter
+Deep Dive Sections
+Alternate layouts with visual and textual emphasis
+Motion-driven explanations
+Sticky scroll storytelling where appropriate
+Social Proof / Trust
+Elegant presentation of testimonials, metrics, or credibility indicators
+Avoid clutter
+Conversion Section
+Present the offer only after the story has been established
+Clear and compelling CTA
+Premium and confident design language
+Animation Requirements
+Smooth scroll-linked animations
+Fade-in and slide-in reveals
+Subtle parallax effects
+Sticky storytelling sections
+Image scaling and transformation on scroll
+Premium micro-interactions
+60fps performance-focused implementation
+No excessive or distracting motion
+Design Requirements
+Apple-inspired visual quality (not a direct copy)
+Clean grid system
+Consistent spacing rhythm
+Refined typography hierarchy
+High-end product marketing aesthetic
+Modern glass, depth, and lighting effects where appropriate
+Mobile-first responsiveness
+Pixel-perfect execution
+Constraints
+Do not change functionality.
+Do not change business logic.
+Do not modify backend code.
+Do not alter existing features.
+Redesign layout, visuals, content presentation, and animations only.
+Preserve all current content and functionality while dramatically improving the storytelling and premium feel.
+
+The final result should feel like a flagship product launch experience that guides users through a narrative journey before presenting the conversion action.
