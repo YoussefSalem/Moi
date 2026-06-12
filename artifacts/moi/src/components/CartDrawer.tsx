@@ -285,7 +285,7 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                   if (hi) trackCartAbandonment("cart_drawer_closed");
                   closeCart();
                 }}
-                className="flex-shrink-0 w-10 h-10 flex items-center justify-center -mr-2 transition-opacity hover:opacity-50 active:opacity-40"
+                className="flex-shrink-0 w-11 h-11 flex items-center justify-center -mr-2 transition-opacity hover:opacity-50 active:opacity-40"
                 aria-label="Close cart"
                 style={{ touchAction: "manipulation" }}
               >
@@ -467,7 +467,7 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                                 <button
                                   type="button"
                                   onClick={() => removeItem(itemId)}
-                                  className="flex-shrink-0 w-10 h-10 flex items-center justify-center -mt-1 -mr-1 active:scale-75 transition-transform"
+                                  className="flex-shrink-0 w-11 h-11 flex items-center justify-center -mt-1 -mr-1 active:scale-75 transition-transform"
                                   style={{ touchAction: "manipulation" }}
                                   aria-label="Remove item"
                                 >
