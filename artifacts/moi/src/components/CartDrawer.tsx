@@ -32,13 +32,12 @@ function DiscountBanner() {
 
   return (
     <div
-      className="mx-4 mb-3 rounded flex items-center gap-3 px-3 py-2.5"
+      className="mb-3 rounded flex items-center gap-3 px-3 py-2.5"
       style={{
         backgroundColor: "rgba(250,248,245,0.95)",
         border: "1px solid rgba(30,24,20,0.08)",
       }}
     >
-      {/* Compact text */}
       <p
         className="flex-1 min-w-0"
         style={{
@@ -54,8 +53,6 @@ function DiscountBanner() {
         </span>
         10% off — use <span style={{ fontWeight: 700 }}>{CODE}</span>
       </p>
-
-      {/* Copy button */}
       <button
         type="button"
         onClick={handleCopy}
@@ -73,9 +70,6 @@ function DiscountBanner() {
   );
 }
 
-// Quantity stepper extracted into its own component so useCallback handlers
-// hold stable references and React never passes stale closures to touch events.
-// touch-action: manipulation removes the 300ms Mobile Safari tap delay on the buttons.
 interface QuantityControlProps {
   itemId: string;
   quantity: number;
@@ -94,25 +88,25 @@ function QuantityControl({ itemId, quantity, updateQuantity }: QuantityControlPr
   return (
     <div
       className="flex items-center"
-      style={{ border: "1px solid rgba(30,24,20,0.12)" }}
+      style={{ border: "1px solid rgba(30,24,20,0.14)", borderRadius: 2 }}
     >
       <button
         onClick={handleDecrease}
-        className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-50"
+        className="w-11 h-11 flex items-center justify-center transition-opacity active:opacity-40"
         style={{ touchAction: "manipulation" }}
         aria-label="Decrease"
       >
         <Minus size={13} strokeWidth={1.5} style={{ color: "#1e1814" }} />
       </button>
       <span
-        className="w-9 h-11 flex items-center justify-center text-[12px] font-semibold"
-        style={{ color: "#17120f" }}
+        className="w-10 h-11 flex items-center justify-center text-[13px] font-semibold"
+        style={{ color: "#17120f", borderLeft: "1px solid rgba(30,24,20,0.10)", borderRight: "1px solid rgba(30,24,20,0.10)" }}
       >
         {quantity}
       </span>
       <button
         onClick={handleIncrease}
-        className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-50"
+        className="w-11 h-11 flex items-center justify-center transition-opacity active:opacity-40"
         style={{ touchAction: "manipulation" }}
         aria-label="Increase"
       >
@@ -124,6 +118,10 @@ function QuantityControl({ itemId, quantity, updateQuantity }: QuantityControlPr
 
 interface CartDrawerProps {
   onNavigateToSection?: (sectionId: string) => void;
+}
+
+function fmtDelivery(d: Date) {
+  return `${d.getDate()} ${d.toLocaleDateString("en-GB", { month: "long" })}`;
 }
 
 export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
@@ -158,8 +156,6 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
 
   const hasItems = (isShopify && (shopifyCart?.lines.nodes.length ?? 0) > 0) || localItems.length > 0;
 
-  // Keep the list mounted for 250ms after the last item is removed so the
-  // exit animation can finish before the empty state takes over.
   const [visuallyHasItems, setVisuallyHasItems] = useState(hasItems);
   useEffect(() => {
     if (hasItems) {
@@ -170,8 +166,6 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
     return () => clearTimeout(t);
   }, [hasItems]);
 
-  // Lock body scroll when cart is open.
-  // Compensates for scrollbar width so there's no layout jump when the scrollbar disappears.
   useEffect(() => {
     if (!cartOpen) return;
     const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
@@ -185,7 +179,6 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
     };
   }, [cartOpen]);
 
-  // Swipe-right-to-close touch tracking
   const swipeTouchStartX = useRef(0);
   const swipeTouchStartY = useRef(0);
 
@@ -197,16 +190,18 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     const dx = e.changedTouches[0].clientX - swipeTouchStartX.current;
     const dy = Math.abs(e.changedTouches[0].clientY - swipeTouchStartY.current);
-    // Trigger close only on a clear rightward swipe (>70px horizontal, not a vertical scroll)
-    if (dx > 70 && dy < dx * 0.6) {
-      closeCart();
-    }
+    if (dx > 70 && dy < dx * 0.6) closeCart();
   }, [closeCart]);
+
+  // Precompute delivery range
+  const deliveryStart = new Date(); deliveryStart.setDate(deliveryStart.getDate() + 2);
+  const deliveryEnd = new Date();   deliveryEnd.setDate(deliveryEnd.getDate() + 4);
 
   return (
     <AnimatePresence>
       {cartOpen && (
         <>
+          {/* Backdrop */}
           <motion.div
             key="cart-overlay"
             initial={{ opacity: 0 }}
@@ -216,92 +211,96 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
             className="fixed inset-0 z-[90] bg-black/40"
             onClick={closeCart}
           />
+
+          {/* Drawer */}
           <motion.aside
             key="cart-drawer"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "tween", duration: 0.32, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="fixed top-0 right-0 bottom-0 z-[100] w-full max-w-[420px] flex flex-col"
+            className="fixed top-0 right-0 bottom-0 z-[100] w-full max-w-[440px] flex flex-col"
             style={{ backgroundColor: "#faf8f5", willChange: "transform" }}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
-            {/* Header */}
+
+            {/* ── Header ─────────────────────────────── */}
             <div
-              className="flex items-center justify-between px-7 py-6"
+              className="flex items-center justify-between gap-3 px-6 py-5 flex-shrink-0"
               style={{ borderBottom: "1px solid rgba(30,24,20,0.08)" }}
             >
-              <div className="flex items-center gap-3">
-                <ShoppingBag size={17} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+              {/* Left: bag icon + title + delivery */}
+              <div className="flex items-center gap-0 min-w-0 flex-1">
+                <ShoppingBag size={16} strokeWidth={1.5} style={{ color: "#1e1814", flexShrink: 0 }} />
                 <span
-                  className="text-[11px] tracking-[0.28em] uppercase font-semibold"
-                  style={{ color: "#17120f" }}
+                  className="ml-2.5 shrink-0 text-[10px] tracking-[0.3em] uppercase font-semibold"
+                  style={{ color: "#17120f", fontFamily: "'Montserrat', sans-serif" }}
                 >
                   Your Bag
                 </span>
+                {hasItems && (
+                  <>
+                    <span
+                      style={{
+                        color: "rgba(30,24,20,0.22)",
+                        fontSize: 15,
+                        margin: "0 10px",
+                        fontWeight: 300,
+                        flexShrink: 0,
+                      }}
+                    >
+                      |
+                    </span>
+                    <span
+                      className="truncate text-[10px] tracking-[0.04em]"
+                      style={{ color: "rgba(30,24,20,0.52)", fontFamily: "'Montserrat', sans-serif" }}
+                    >
+                      Order now &amp; get it {fmtDelivery(deliveryStart)} – {fmtDelivery(deliveryEnd)}
+                    </span>
+                  </>
+                )}
               </div>
+
+              {/* Close */}
               <button
                 onClick={() => {
-                  const hasItems = (isShopify && shopifyCart ? shopifyCart.lines.nodes.length > 0 : localItems.length > 0);
-                  if (hasItems) trackCartAbandonment("cart_drawer_closed");
+                  const hi = (isShopify && shopifyCart ? shopifyCart.lines.nodes.length > 0 : localItems.length > 0);
+                  if (hi) trackCartAbandonment("cart_drawer_closed");
                   closeCart();
                 }}
-                className="transition-opacity hover:opacity-50"
+                className="flex-shrink-0 w-10 h-10 flex items-center justify-center -mr-2 transition-opacity hover:opacity-50 active:opacity-40"
                 aria-label="Close cart"
+                style={{ touchAction: "manipulation" }}
               >
-                <X size={19} strokeWidth={1.5} style={{ color: "#1e1814" }} />
+                <X size={18} strokeWidth={1.5} style={{ color: "#1e1814" }} />
               </button>
             </div>
 
-            {/* Delivery estimate — placed under header for visibility */}
-            {hasItems && (
-              <div className="px-7 pt-5 pb-1">
-                <div
-                  className="text-[14px] tracking-[0.12em] font-medium"
-                  style={{ color: "rgba(30,24,20,0.65)", fontFamily: "'Montserrat', sans-serif" }}
-                >
-                  {(() => {
-                    const now = new Date();
-                    const start = new Date(now);
-                    start.setDate(now.getDate() + 2);
-                    const end = new Date(now);
-                    end.setDate(now.getDate() + 4);
-                    const fmt = (d: Date) => `${d.getDate()} ${d.toLocaleDateString("en-GB", { month: "long" })}`;
-                    return (
-                      <>
-                        <p>Order now</p>
-                        <p>and get it between {fmt(start)} – {fmt(end)}</p>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-
-            {/* Items */}
-            <div className="flex-1 overflow-y-auto px-7 py-6" style={{ overscrollBehavior: "contain" }}>
+            {/* ── Scrollable items ────────────────────── */}
+            <div
+              className="flex-1 overflow-y-auto"
+              style={{ overscrollBehavior: "contain", padding: "0 24px" }}
+            >
               {!visuallyHasItems ? (
-                <div className="flex flex-col items-center justify-center h-full gap-5 text-center">
-                  <ShoppingBag size={36} strokeWidth={1} style={{ color: "rgba(30,24,20,0.2)" }} />
+                /* Empty state */
+                <div className="flex flex-col items-center justify-center h-full gap-6 text-center py-16">
+                  <ShoppingBag size={40} strokeWidth={1} style={{ color: "rgba(30,24,20,0.18)" }} />
                   <p
-                    className="text-[11px] tracking-[0.25em] uppercase font-light"
-                    style={{ color: "rgba(30,24,20,0.4)" }}
+                    className="text-[11px] tracking-[0.28em] uppercase font-light"
+                    style={{ color: "rgba(30,24,20,0.38)" }}
                   >
                     Your bag is empty
                   </p>
                   {!customer && (
                     <p
-                      className="text-[12px] tracking-[0.08em]"
-                      style={{ color: "rgba(30,24,20,0.55)", fontFamily: "'Montserrat', sans-serif" }}
+                      className="text-[12px] leading-relaxed tracking-[0.06em]"
+                      style={{ color: "rgba(30,24,20,0.5)", fontFamily: "'Montserrat', sans-serif" }}
                     >
                       Have an account?{" "}
                       <button
                         type="button"
-                        onClick={() => {
-                          closeCart();
-                          openAuth();
-                        }}
+                        onClick={() => { closeCart(); openAuth(); }}
                         className="underline underline-offset-4 transition-opacity hover:opacity-70"
                         style={{ color: "#1e1814", fontWeight: 500 }}
                       >
@@ -312,262 +311,344 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                   )}
                   <button
                     onClick={closeCart}
-                    className="mt-2 text-[10px] tracking-[0.28em] uppercase font-medium px-8 py-3 transition-opacity hover:opacity-60"
-                    style={{ color: "#1e1814", border: "1px solid rgba(30,24,20,0.18)" }}
+                    className="mt-1 text-[10px] tracking-[0.3em] uppercase font-medium px-9 py-3.5 transition-opacity hover:opacity-60 active:opacity-40"
+                    style={{ color: "#1e1814", border: "1px solid rgba(30,24,20,0.18)", touchAction: "manipulation" }}
                   >
                     Continue Shopping
                   </button>
                 </div>
               ) : (
-                <ul>
+                /* Items list */
+                <ul style={{ paddingTop: 8 }}>
                   <AnimatePresence mode="popLayout" initial={false}>
-                  {(() => {
-                    // Build a unified list keyed by variantId so the same item
-                    // keeps the same React key whether it is local-only (pending)
-                    // or confirmed by Shopify. This prevents any exit/enter
-                    // animation when the sync completes — the card just updates
-                    // in place with zero layout shift.
-                    // The ORDER is always the user's localItems order (the order
-                    // they added items), never Shopify's order. Shopify may return
-                    // lines in newest-first order, but the user expects the order
-                    // they added items to stay stable.
-                    const items = [] as {
-                      key: string;
-                      line?: ShopifyCartLine;
-                      local?: LocalCartItem;
-                    }[];
-                    const seen = new Set<string>();
-                    // 1. Walk localItems in user add-order — this is the single
-                    //    source of truth for ordering. For each local item, find
-                    //    the matching Shopify line if it has already synced.
-                    for (const local of localItems) {
-                      const line = shopifyCart?.lines.nodes.find(
-                        (l) => l.merchandise.id === local.variantId,
-                      );
-                      // Use the local item's full id (which includes color + size)
-                      // as the React key so the same variantId with different colors
-                      // renders as separate cart items.
-                      const reactKey = local.id;
-                      if (line) {
-                        items.push({ key: reactKey, line });
-                      } else {
-                        items.push({ key: reactKey, local });
+                    {(() => {
+                      const items = [] as {
+                        key: string;
+                        line?: ShopifyCartLine;
+                        local?: LocalCartItem;
+                      }[];
+                      const seen = new Set<string>();
+                      for (const local of localItems) {
+                        const line = shopifyCart?.lines.nodes.find(
+                          (l) => l.merchandise.id === local.variantId,
+                        );
+                        const reactKey = local.id;
+                        if (line) {
+                          items.push({ key: reactKey, line });
+                        } else {
+                          items.push({ key: reactKey, local });
+                        }
+                        seen.add(local.variantId);
                       }
-                      seen.add(local.variantId);
-                    }
-                    // 2. Defensive: any Shopify-only items not in localItems
-                    //    (should not happen with current architecture) appended at
-                    //    the end so they don't reorder existing items.
-                    for (const line of (shopifyCart?.lines.nodes ?? [])) {
-                      const vid = line.merchandise.id;
-                      if (!seen.has(vid)) {
-                        items.push({ key: vid, line });
-                        seen.add(vid);
+                      for (const line of (shopifyCart?.lines.nodes ?? [])) {
+                        const vid = line.merchandise.id;
+                        if (!seen.has(vid)) {
+                          items.push({ key: vid, line });
+                          seen.add(vid);
+                        }
                       }
-                    }
-                    return items.map(({ key, line, local }) => (
-                      <motion.li
-                        key={key}
-                        layout
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, height: 0, paddingBottom: 0, marginBottom: 0, borderBottomWidth: 0, transition: { duration: 0.28, ease: "easeIn" } }}
-                        transition={{ layout: { duration: 0.35, ease: "easeInOut" } }}
-                        className="flex gap-4 overflow-hidden"
-                        style={{ borderBottomWidth: "1px", borderBottomStyle: "solid", borderBottomColor: "rgba(30,24,20,0.06)", paddingBottom: "1.5rem", marginBottom: "1.5rem" }}
-                      >
-                        {line ? (() => {
-                          const lineImg = resolveLineImage(line, localItems);
-                          return (
+
+                      return items.map(({ key, line, local }) => {
+                        const img = line ? resolveLineImage(line, localItems) : local?.image;
+                        const title = line?.merchandise.product.title ?? local?.title ?? "";
+                        const variant = line
+                          ? (line.merchandise.title !== "Default Title" ? line.merchandise.title : "")
+                          : local?.size ? local.size : "";
+                        const qty = line?.quantity ?? local?.quantity ?? 1;
+                        const itemId = line?.id ?? local?.id ?? "";
+                        const compareAt = line?.merchandise.compareAtPrice ?? null;
+                        const compareAtLocal = local?.compareAtPrice ?? null;
+                        const hasDiscount = !!(compareAt ?? compareAtLocal);
+
+                        return (
+                          <motion.li
+                            key={key}
+                            layout
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{
+                              opacity: 0,
+                              height: 0,
+                              paddingBottom: 0,
+                              marginBottom: 0,
+                              borderBottomWidth: 0,
+                              transition: { duration: 0.28, ease: "easeIn" },
+                            }}
+                            transition={{ layout: { duration: 0.35, ease: "easeInOut" } }}
+                            style={{
+                              display: "flex",
+                              gap: 16,
+                              overflow: "hidden",
+                              borderBottom: "1px solid rgba(30,24,20,0.07)",
+                              paddingTop: 20,
+                              paddingBottom: 20,
+                            }}
+                          >
+                            {/* Product image — taller, more prominent */}
                             <div
-                              className="w-20 h-24 flex-shrink-0 overflow-hidden"
-                              style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
+                              style={{
+                                width: 88,
+                                height: 112,
+                                flexShrink: 0,
+                                overflow: "hidden",
+                                backgroundColor: "rgba(30,24,20,0.04)",
+                                borderRadius: 2,
+                              }}
                             >
-                              {lineImg && (
+                              {img && (
                                 <img
-                                  src={lineImg}
-                                  alt={line.merchandise.product.title}
-                                  className="w-full h-full object-cover"
+                                  src={img}
+                                  alt={title}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                                 />
                               )}
                             </div>
-                          );
-                        })() : (
-                          <div
-                            className="w-20 h-24 flex-shrink-0 overflow-hidden"
-                            style={{ backgroundColor: "rgba(30,24,20,0.04)" }}
-                          >
-                            {local?.image && (
-                              <img
-                                src={local.image}
-                                alt={local.title}
-                                className="w-full h-full object-cover"
-                              />
-                            )}
-                          </div>
-                        )}
-                        <div className="flex-1 flex flex-col gap-2 min-w-0">
-                          <div className="flex justify-between items-start gap-2">
-                            <div>
-                              <button
-                                type="button"
-                                onClick={() => handleProductClick(line?.merchandise.product.title ?? local?.title ?? "")}
-                                className="text-left transition-opacity hover:opacity-60"
-                                style={{ touchAction: "manipulation" }}
-                              >
-                                <p
-                                  className="text-[12px] tracking-wide font-semibold leading-tight underline underline-offset-2"
-                                  style={{ color: "#17120f" }}
-                                >
-                                  {line?.merchandise.product.title ?? local?.title}
-                                </p>
-                              </button>
-                              <p
-                                className="text-[10px] tracking-[0.15em] uppercase mt-1 font-light"
-                                style={{ color: "rgba(23,18,15,0.72)" }}
-                              >
-                                {line
-                                  ? (line.merchandise.title !== "Default Title" ? line.merchandise.title : "")
-                                  : local?.size
-                                    ? `Size: ${local.size}`
-                                    : ""}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeItem(line?.id ?? local?.id ?? "")}
-                              className="flex-shrink-0 w-11 h-11 flex items-center justify-center mt-0.5 active:scale-75 transition-transform"
-                              style={{ touchAction: "manipulation" }}
-                              aria-label="Remove"
-                            >
-                              <X size={14} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.4)" }} />
-                            </button>
-                          </div>
-                          <div className="flex items-center justify-between mt-auto">
-                            <QuantityControl
-                              itemId={line?.id ?? local?.id ?? ""}
-                              quantity={line?.quantity ?? local?.quantity ?? 1}
-                              updateQuantity={updateQuantity}
-                            />
-                            <div className="flex flex-col items-end" style={{ gap: 2 }}>
-                              {line?.merchandise.compareAtPrice ? (
-                                <span
-                                  className="text-[11px] font-medium"
-                                  style={{ color: "#8a7e74", textDecoration: "line-through", textDecorationThickness: 1, textDecorationColor: "#c83232" }}
-                                >
-                                  {formatMoney(
-                                    String(parseFloat(line.merchandise.compareAtPrice.amount) * line.quantity),
-                                    line.merchandise.compareAtPrice.currencyCode,
+
+                            {/* Info column */}
+                            <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, gap: 6 }}>
+
+                              {/* Top row: title + remove */}
+                              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleProductClick(title)}
+                                    className="text-left transition-opacity hover:opacity-60"
+                                    style={{ touchAction: "manipulation" }}
+                                  >
+                                    <p
+                                      style={{
+                                        fontFamily: "'Montserrat', sans-serif",
+                                        fontSize: 11,
+                                        fontWeight: 600,
+                                        letterSpacing: "0.06em",
+                                        color: "#17120f",
+                                        lineHeight: 1.4,
+                                        textDecoration: "underline",
+                                        textUnderlineOffset: 3,
+                                        textDecorationThickness: 1,
+                                      }}
+                                    >
+                                      {title}
+                                    </p>
+                                  </button>
+                                  {variant && (
+                                    <p
+                                      style={{
+                                        fontFamily: "'Montserrat', sans-serif",
+                                        fontSize: 10,
+                                        letterSpacing: "0.16em",
+                                        textTransform: "uppercase",
+                                        color: "rgba(30,24,20,0.5)",
+                                        marginTop: 4,
+                                        fontWeight: 400,
+                                      }}
+                                    >
+                                      {variant}
+                                    </p>
                                   )}
-                                </span>
-                              ) : local?.compareAtPrice ? (
-                                <span
-                                  className="text-[11px] font-medium"
-                                  style={{ color: "#8a7e74", textDecoration: "line-through", textDecorationThickness: 1, textDecorationColor: "#c83232" }}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeItem(itemId)}
+                                  className="flex-shrink-0 w-10 h-10 flex items-center justify-center -mt-1 -mr-1 active:scale-75 transition-transform"
+                                  style={{ touchAction: "manipulation" }}
+                                  aria-label="Remove item"
                                 >
-                                  {local.compareAtPrice}
-                                </span>
-                              ) : null}
-                              <p
-                                className="text-[12px] font-semibold tracking-wide"
-                                style={{ color: (line?.merchandise.compareAtPrice ?? local?.compareAtPrice) ? "#c83232" : "#17120f" }}
-                              >
-                                {line ? formatShopifyLinePrice(line) : local?.price ?? ""}
-                              </p>
+                                  <X size={13} strokeWidth={1.5} style={{ color: "rgba(30,24,20,0.35)" }} />
+                                </button>
+                              </div>
+
+                              {/* Bottom row: qty stepper + price */}
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
+                                <QuantityControl
+                                  itemId={itemId}
+                                  quantity={qty}
+                                  updateQuantity={updateQuantity}
+                                />
+                                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+                                  {compareAt ? (
+                                    <span
+                                      style={{
+                                        fontFamily: "'Montserrat', sans-serif",
+                                        fontSize: 11,
+                                        color: "#8a7e74",
+                                        textDecoration: "line-through",
+                                        textDecorationThickness: 1,
+                                        textDecorationColor: "#c83232",
+                                      }}
+                                    >
+                                      {formatMoney(
+                                        String(parseFloat(compareAt.amount) * qty),
+                                        compareAt.currencyCode,
+                                      )}
+                                    </span>
+                                  ) : compareAtLocal ? (
+                                    <span
+                                      style={{
+                                        fontFamily: "'Montserrat', sans-serif",
+                                        fontSize: 11,
+                                        color: "#8a7e74",
+                                        textDecoration: "line-through",
+                                        textDecorationThickness: 1,
+                                        textDecorationColor: "#c83232",
+                                      }}
+                                    >
+                                      {compareAtLocal}
+                                    </span>
+                                  ) : null}
+                                  <p
+                                    style={{
+                                      fontFamily: "'Montserrat', sans-serif",
+                                      fontSize: 13,
+                                      fontWeight: 600,
+                                      letterSpacing: "0.04em",
+                                      color: hasDiscount ? "#c83232" : "#17120f",
+                                    }}
+                                  >
+                                    {line ? formatShopifyLinePrice(line) : local?.price ?? ""}
+                                  </p>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      </motion.li>
-                    ));
-                  })()}
+                          </motion.li>
+                        );
+                      });
+                    })()}
                   </AnimatePresence>
                 </ul>
               )}
             </div>
 
-            {/* Footer */}
+            {/* ── Footer ─────────────────────────────── */}
             {hasItems && (
               <div
-                className="px-7 pt-6 flex flex-col gap-5"
+                className="flex-shrink-0 flex flex-col"
                 style={{
                   borderTop: "1px solid rgba(30,24,20,0.08)",
-                  paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))",
+                  padding: "20px 24px",
+                  paddingBottom: "calc(20px + env(safe-area-inset-bottom))",
+                  gap: 14,
+                  backgroundColor: "#faf8f5",
                 }}
               >
-                <div className="flex justify-between items-baseline">
+                {/* Total row */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                   <span
-                    className="text-[10px] tracking-[0.3em] uppercase font-medium"
-                    style={{ color: "#17120f" }}
+                    style={{
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: 10,
+                      letterSpacing: "0.3em",
+                      textTransform: "uppercase",
+                      color: "rgba(30,24,20,0.55)",
+                      fontWeight: 500,
+                    }}
                   >
                     Total
                   </span>
                   <span
-                    className="text-base font-semibold tracking-wide"
-                    style={{ color: "#17120f" }}
+                    style={{
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontSize: 22,
+                      fontWeight: 500,
+                      letterSpacing: "0.04em",
+                      color: "#17120f",
+                    }}
                   >
                     {cartRawTotal}
                   </span>
                 </div>
-                {/* Shipping info */}
+
+                {/* Free shipping nudge */}
                 <div
-                  className="text-center py-3.5 px-4 mx-4 mb-2 rounded"
-                  style={{ backgroundColor: "rgba(248,252,245,0.9)", border: "1px solid rgba(160,190,150,0.22)" }}
+                  style={{
+                    textAlign: "center",
+                    padding: "11px 16px",
+                    backgroundColor: "rgba(248,252,245,0.9)",
+                    border: "1px solid rgba(160,190,150,0.22)",
+                    borderRadius: 2,
+                  }}
                 >
                   <p
-                    className="text-[16px] tracking-[0.25em] uppercase font-semibold text-center leading-tight"
-                    style={{ color: "#6b8f5e" }}
+                    style={{
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: 10,
+                      letterSpacing: "0.22em",
+                      textTransform: "uppercase",
+                      fontWeight: 600,
+                      color: "#6b8f5e",
+                    }}
                   >
                     Free shipping on orders over 2,000 EGP
                   </p>
                 </div>
-                {/* Conversion Banner — FIRST50 (disabled — uncomment to re-enable) */}
+
+                {/* Discount banner — uncomment to re-enable */}
                 {/* <DiscountBanner /> */}
-                {ENABLE_APPLE_PAY && typeof window !== "undefined" && "ApplePaySession" in window && (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() && shopifyCart && shopifyCart.lines.nodes.length > 0 && (
-                  <>
-                    <p style={{
-                      fontSize: "10px",
-                      letterSpacing: "0.3em",
-                      textTransform: "uppercase",
-                      color: "rgba(30,24,20,0.38)",
-                      fontFamily: "'Montserrat', sans-serif",
-                      fontWeight: 400,
-                      textAlign: "center",
-                      marginBottom: "12px",
-                    }}>
-                      Express Checkout
-                    </p>
-                    <ShopifyApplePayButton
-                      lines={shopifyCart.lines.nodes.map((l) => ({
-                        variantId: l.merchandise.id,
-                        quantity: l.quantity,
-                      }))}
-                      totalEGP={
-                        shopifyCart.cost?.totalAmount?.amount
-                          ? parseFloat(shopifyCart.cost.totalAmount.amount)
-                          : shopifyCart.lines.nodes.reduce((s, l) => {
-                              const p = parseFloat(l.merchandise.price.amount ?? "0");
-                              return s + p * l.quantity;
-                            }, 0)
-                      }
-                      disabled={loading}
-                      onSuccess={(orderNumber, total) => {
-                        toast.success(
-                          `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
-                          { duration: 5000 },
-                        );
-                      }}
-                      onError={(msg) => {
-                        toast.error(msg, { duration: 4000 });
-                      }}
-                      onMoreOptions={() => openCheckout()}
-                    />
-                    <div className="flex items-center gap-3" style={{ marginTop: "16px" }}>
-                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
-                      <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, letterSpacing: "0.2em", color: "rgba(30,24,20,0.4)", textTransform: "uppercase" }}>or</span>
-                      <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.10)" }} />
-                    </div>
-                  </>
-                )}
+
+                {/* Apple Pay (Express) */}
+                {ENABLE_APPLE_PAY &&
+                  typeof window !== "undefined" &&
+                  "ApplePaySession" in window &&
+                  (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() &&
+                  shopifyCart &&
+                  shopifyCart.lines.nodes.length > 0 && (
+                    <>
+                      <p
+                        style={{
+                          fontFamily: "'Montserrat', sans-serif",
+                          fontSize: 9,
+                          letterSpacing: "0.28em",
+                          textTransform: "uppercase",
+                          color: "rgba(30,24,20,0.35)",
+                          textAlign: "center",
+                          fontWeight: 400,
+                        }}
+                      >
+                        Express Checkout
+                      </p>
+                      <ShopifyApplePayButton
+                        lines={shopifyCart.lines.nodes.map((l) => ({
+                          variantId: l.merchandise.id,
+                          quantity: l.quantity,
+                        }))}
+                        totalEGP={
+                          shopifyCart.cost?.totalAmount?.amount
+                            ? parseFloat(shopifyCart.cost.totalAmount.amount)
+                            : shopifyCart.lines.nodes.reduce((s, l) => {
+                                const p = parseFloat(l.merchandise.price.amount ?? "0");
+                                return s + p * l.quantity;
+                              }, 0)
+                        }
+                        disabled={loading}
+                        onSuccess={(orderNumber, total) => {
+                          toast.success(
+                            `Order ${orderNumber ?? "confirmed"} placed!${total ? ` Total: ${total}` : ""}`,
+                            { duration: 5000 },
+                          );
+                        }}
+                        onError={(msg) => toast.error(msg, { duration: 4000 })}
+                        onMoreOptions={() => openCheckout()}
+                      />
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.09)" }} />
+                        <span
+                          style={{
+                            fontFamily: "'Montserrat', sans-serif",
+                            fontSize: 9,
+                            letterSpacing: "0.22em",
+                            color: "rgba(30,24,20,0.38)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          or
+                        </span>
+                        <div style={{ flex: 1, height: 1, backgroundColor: "rgba(30,24,20,0.09)" }} />
+                      </div>
+                    </>
+                  )}
+
+                {/* Checkout CTA */}
                 <button
                   type="button"
                   onClick={() => {
@@ -582,7 +663,9 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                             return s + (Number.isFinite(p) ? p * l.quantity : 0);
                           }, 0)
                       : localItems.reduce((s, i) => s + (i.priceAmount ?? 0) * i.quantity, 0);
-                    const numItems = isShopify && shopifyCart ? shopifyCart.lines.nodes.length : localItems.length;
+                    const numItems = isShopify && shopifyCart
+                      ? shopifyCart.lines.nodes.length
+                      : localItems.length;
                     trackInitiateCheckout({
                       content_ids: ids,
                       currency: "EGP",
@@ -605,8 +688,24 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                     openCheckout();
                   }}
                   disabled={loading}
-                  className="block w-full text-center py-4 text-[11px] tracking-[0.32em] uppercase font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
-                  style={{ backgroundColor: "#1e1814" }}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "center",
+                    padding: "17px 16px",
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: 11,
+                    letterSpacing: "0.32em",
+                    textTransform: "uppercase",
+                    fontWeight: 500,
+                    color: "#faf8f5",
+                    backgroundColor: "#1e1814",
+                    border: "none",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.5 : 1,
+                    transition: "opacity 0.18s",
+                    touchAction: "manipulation",
+                  }}
                 >
                   {loading ? "…" : "Checkout"}
                 </button>
