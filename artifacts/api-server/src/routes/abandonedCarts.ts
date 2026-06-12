@@ -11,7 +11,7 @@ const router = Router();
 
 const isDev = process.env.NODE_ENV === "development";
 const RECOVERY_DELAY_MS = isDev ? 10 * 1000 : 45 * 60 * 1000; // 10s dev / 45min prod
-const RECOVERY_INTERVAL_MS = isDev ? 5 * 1000 : 30 * 60 * 1000; // 5s dev / 30min prod
+const RECOVERY_INTERVAL_MS = isDev ? 5 * 1000 : 5 * 60 * 1000; // 5s dev / 5min prod
 
 function generateRecoveryToken(): string {
   return crypto.randomBytes(16).toString("hex");
