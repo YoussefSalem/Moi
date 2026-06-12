@@ -71,6 +71,7 @@ export default defineConfig({
           if (id.includes("node_modules/react-dom") || id.includes("node_modules/react/")) return "react-vendor";
           if (id.includes("node_modules/@shopify") || id.includes("node_modules/graphql")) return "shopify";
           if (id.includes("node_modules/sonner") || id.includes("node_modules/lucide-react")) return "ui-lib";
+          if (id.includes("node_modules/fast-average-color")) return "fast-average-color";
           if (id.includes("node_modules/")) return "vendor";
         },
       },
