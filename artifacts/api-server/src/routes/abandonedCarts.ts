@@ -220,7 +220,7 @@ async function sendRecoveryEmails(): Promise<void> {
       .where(and(eq(abandonedCarts.status, "email_sent"), isNull(abandonedCarts.email2SentAt)));
 
     for (const row of forEmail2) {
-      if (ageMs(row.createdAt) < DELAY_2_MS) continue;
+      if (ageMs(row.emailSentAt ?? row.createdAt) < DELAY_2_MS) continue;
       if (!Array.isArray(row.lineItems) || row.lineItems.length === 0) continue;
 
       const recoveryUrl = `${siteUrl}/?recover-cart=${row.recoveryToken}`;
@@ -256,7 +256,7 @@ async function sendRecoveryEmails(): Promise<void> {
       ));
 
     for (const row of forEmail3) {
-      if (ageMs(row.createdAt) < DELAY_3_MS) continue;
+      if (ageMs(row.emailSentAt ?? row.createdAt) < DELAY_3_MS) continue;
       if (!Array.isArray(row.lineItems) || row.lineItems.length === 0) continue;
 
       const recoveryUrl = `${siteUrl}/?recover-cart=${row.recoveryToken}`;
