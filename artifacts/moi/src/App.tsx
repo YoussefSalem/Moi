@@ -836,7 +836,8 @@ function App() {
         {typeof window !== "undefined" && window.location.href.includes("debug_analytics") && <AnalyticsDebug />}
         <Toaster
           position="bottom-center"
-          toastOptions={{ style: { background: "transparent", border: "none", boxShadow: "none", padding: 0 } }}
+          unstyled
+          toastOptions={{ style: { background: "transparent", border: "none", boxShadow: "none", padding: 0, margin: 0 } }}
         />
       </CartProvider>
     </CustomerProvider>
