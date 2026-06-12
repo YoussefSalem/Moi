@@ -9,15 +9,17 @@ export const SHIPPING_EGP = 50;
 // regardless of whether the web-app deployment is up to date.
 const BASE_IMG = `${typeof window !== "undefined" ? window.location.origin : "https://buy-moi.com"}/api/images`;
 export const PUBLIC_COLOR_IMAGES: Record<string, string> = {
-  beige:        `${BASE_IMG}/beige.jpg`,
-  white:        `${BASE_IMG}/white.jpg`,
-  cashmere:     `${BASE_IMG}/cashmere.jpg`,
-  yellow:       `${BASE_IMG}/yellow.jpg`,
-  teal:         `${BASE_IMG}/teal.jpg`,
+  // Moi Versa Top colors
+  white:        `${BASE_IMG}/versa-white-main.jpg`,
+  cashmere:     `${BASE_IMG}/versa-cashmere-main.jpg`,
+  beige:        `${BASE_IMG}/versa-beige-main.jpg`,
+  yellow:       `${BASE_IMG}/versa-yellow-main.jpg`,
+  teal:         `${BASE_IMG}/versa-teal-main.jpg`,
+  // Moi Wavvy colors
+  "light blue": `${BASE_IMG}/light-blue-main.jpg`,
   navy:         `${BASE_IMG}/navi.jpg`,
   mint:         `${BASE_IMG}/mint.jpg`,
-  "light blue": `${BASE_IMG}/light-blue-main.webp`,
-  sand:         `${BASE_IMG}/sand.webp`,
+  sand:         `${BASE_IMG}/sand-main.jpg`,
 };
 
 /** Convert any internal image URL to a public URL that works in emails. */
