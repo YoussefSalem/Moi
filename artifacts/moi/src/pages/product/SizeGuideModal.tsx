@@ -1,4 +1,7 @@
+import { useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { transitions } from "@/lib/motion";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface SizeGuideModalProps {
@@ -7,6 +10,14 @@ interface SizeGuideModalProps {
 }
 
 export function SizeGuideModal({ open, onClose }: SizeGuideModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, open);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && open) onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   return createPortal(
     <AnimatePresence>
       {open && (
@@ -15,16 +26,20 @@ export function SizeGuideModal({ open, onClose }: SizeGuideModalProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={transitions.modalOverlay}
           onClick={onClose}
           style={{ position: "fixed", inset: 0, zIndex: 9999, backgroundColor: "rgba(30,24,20,0.55)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
         >
           <motion.div
+            ref={panelRef}
             key="size-guide-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Size guide"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            transition={transitions.quick}
             onClick={(e) => e.stopPropagation()}
             style={{
               background: "#faf8f5",

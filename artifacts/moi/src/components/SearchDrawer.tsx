@@ -1,4 +1,7 @@
+import { useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { transitions } from "@/lib/motion";
 import { X, Search } from "lucide-react";
 import type { ProductConfig } from "@/config/images";
 
@@ -22,6 +25,14 @@ interface SearchDrawerProps {
 }
 
 export function SearchDrawer({ open, items, query, onQueryChange, onClose, onSelect }: SearchDrawerProps) {
+  const drawerRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(drawerRef, open);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && open) onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   const safeItems = items ?? [];
   const normalizedQuery = query.trim().toLowerCase();
   const results = normalizedQuery
@@ -47,18 +58,19 @@ export function SearchDrawer({ open, items, query, onQueryChange, onClose, onSel
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={transitions.modalOverlay}
             className="fixed inset-0 z-[120] bg-black/35 backdrop-blur-sm"
             onClick={onClose}
+            aria-hidden="true"
           />
           <motion.div
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
-            transition={{ type: "tween", duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            transition={transitions.modal}
             className="fixed inset-0 z-[130] flex items-center justify-center p-6"
           >
-            <div className="w-full max-w-2xl overflow-hidden" style={{ backgroundColor: "#faf8f5" }}>
+            <div ref={drawerRef} role="dialog" aria-modal="true" aria-label="Search products" className="w-full max-w-2xl overflow-hidden" style={{ backgroundColor: "#faf8f5" }}>
               <div className="flex items-center justify-between px-6 py-5 border-b border-stone-200">
                 <div className="flex items-center gap-3">
                   <Search size={16} strokeWidth={1.6} style={{ color: "#1e1814" }} />
@@ -66,7 +78,7 @@ export function SearchDrawer({ open, items, query, onQueryChange, onClose, onSel
                     Search Products
                   </span>
                 </div>
-                <button onClick={onClose} aria-label="Close search" className="hover:opacity-60 transition-opacity">
+                <button onClick={onClose} aria-label="Close search" className="w-11 h-11 flex items-center justify-center hover:opacity-60 transition-opacity -mr-2">
                   <X size={18} strokeWidth={1.6} style={{ color: "#1e1814" }} />
                 </button>
               </div>

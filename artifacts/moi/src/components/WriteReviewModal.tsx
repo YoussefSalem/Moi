@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback, DragEvent, ChangeEvent } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { transitions } from "@/lib/motion";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, Check } from "lucide-react";
@@ -330,6 +332,9 @@ export function WriteReviewModal({ open, onClose, productHandle }: WriteReviewMo
     onClose();
   };
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, open);
+
   // Escape key
   useEffect(() => {
     if (!open) return;
@@ -427,8 +432,9 @@ export function WriteReviewModal({ open, onClose, productHandle }: WriteReviewMo
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={transitions.modalOverlay}
             onClick={requestClose}
+            aria-hidden="true"
             style={{
               position: "fixed",
               inset: 0,
@@ -453,11 +459,15 @@ export function WriteReviewModal({ open, onClose, productHandle }: WriteReviewMo
             }}
           >
           <motion.div
+            ref={panelRef}
             key="review-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Write a review"
             initial={{ opacity: 0, y: 24, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.97 }}
-            transition={{ type: "tween", duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+            transition={transitions.modal}
             style={{
               backgroundColor: "#faf8f5",
               overflowY: "auto",
@@ -553,7 +563,7 @@ export function WriteReviewModal({ open, onClose, productHandle }: WriteReviewMo
                 type="button"
                 aria-label="Close"
                 onClick={requestClose}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.7, transition: "opacity 0.15s" }}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.7, transition: "opacity 0.15s", flexShrink: 0 }}
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.4")}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
               >

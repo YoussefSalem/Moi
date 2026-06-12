@@ -9,6 +9,7 @@ export const ease = {
   spring: [0.16, 1, 0.3, 1] as [number, number, number, number],
   drawer: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
   menu:   [0.76, 0, 0.24, 1] as [number, number, number, number],
+  reveal: [0.22, 1, 0.36, 1] as [number, number, number, number],  // energetic reveal — modals + page entries
 } as const;
 
 export const dur = {
@@ -42,6 +43,10 @@ export const transitions = {
   // Cart drawer list item animations
   listExit:      { duration: 0.28, ease: ease.exit },     // item removal
   listLayout:    { layout: { duration: dur.comfortable, ease: ease.enter } },  // relayout on remove
+  // Modal / dialog overlays
+  modalOverlay:  { duration: dur.standard, ease: ease.enter },                                    // backdrop fade (0.25s)
+  modal:         { type: "tween" as const, duration: dur.comfortable, ease: ease.reveal },        // panel entry (0.32s)
+  reveal:        { duration: 0.35, ease: ease.reveal },                                            // page content reveal
   // Stagger list items: pass i = index
   listItem: (i: number) => ({ duration: dur.standard, delay: 0.08 + i * 0.06 }),
 } as const;

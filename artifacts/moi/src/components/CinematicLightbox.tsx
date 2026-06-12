@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
@@ -17,6 +18,8 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
   const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, open);
 
   const zoomScaleRef = useRef(zoomScale);
   const panRef = useRef(pan);
@@ -196,6 +199,10 @@ export function CinematicLightbox({ images, initialIndex, open, onClose }: Cinem
    */
   const lightbox = (
     <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Image gallery"
       style={{
         position: "fixed",
         inset: 0,

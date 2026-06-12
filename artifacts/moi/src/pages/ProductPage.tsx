@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
+import { transitions } from "@/lib/motion";
 import { ArrowLeft } from "lucide-react";
 import { ProductCarousel, type CarouselItem } from "@/components/ProductCarousel";
 import { CinematicLightbox } from "@/components/CinematicLightbox";
@@ -42,11 +43,11 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
 
         <AnimatePresence mode="wait">
           {s.loading ? (
-            <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+            <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={transitions.quick}>
               <ProductSkeleton />
             </motion.div>
           ) : (
-            <motion.div key="content" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>
+            <motion.div key="content" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={transitions.reveal}>
 
               <ProductDesktopLayout
                 product={s.product}

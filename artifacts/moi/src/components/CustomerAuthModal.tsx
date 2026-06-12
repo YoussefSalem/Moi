@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { transitions } from "@/lib/motion";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowLeft, Mail } from "lucide-react";
 import { useCustomer } from "@/context/CustomerContext";
@@ -14,6 +16,14 @@ export function CustomerAuthModal() {
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const codeInputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(modalRef, authOpen);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && authOpen) handleClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authOpen]);
 
   const reset = () => {
     setStep("email");
@@ -95,19 +105,24 @@ export function CustomerAuthModal() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={transitions.modalOverlay}
             className="fixed inset-0 z-[90] bg-black/30 backdrop-blur-sm"
             onClick={handleClose}
+            aria-hidden="true"
           />
           <motion.div
             key="auth-modal"
             initial={{ opacity: 0, y: 24, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.97 }}
-            transition={{ type: "tween", duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+            transition={transitions.modal}
             className="fixed inset-0 z-[100] flex items-center justify-center p-6 pointer-events-none"
           >
             <div
+              ref={modalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Sign in"
               className="relative w-full max-w-sm pointer-events-auto flex flex-col"
               style={{ backgroundColor: "#faf8f5" }}
             >
@@ -133,7 +148,7 @@ export function CustomerAuthModal() {
                     {customer ? "My Account" : step === "email" ? "Sign In" : "Enter Code"}
                   </span>
                 </div>
-                <button onClick={handleClose} className="transition-opacity hover:opacity-50" aria-label="Close">
+                <button onClick={handleClose} className="w-11 h-11 flex items-center justify-center -mr-3 transition-opacity hover:opacity-50" aria-label="Close">
                   <X size={18} strokeWidth={1.5} style={{ color: "#1e1814" }} />
                 </button>
               </div>

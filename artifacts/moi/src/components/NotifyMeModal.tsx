@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { transitions } from "@/lib/motion";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Bell } from "lucide-react";
 
@@ -14,6 +16,14 @@ export function NotifyMeModal({ open, productTitle, variantTitle, onClose, onSub
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(modalRef, open);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && open) handleClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleClose = () => {
     setEmail("");
@@ -48,19 +58,24 @@ export function NotifyMeModal({ open, productTitle, variantTitle, onClose, onSub
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={transitions.modalOverlay}
             className="fixed inset-0 z-[110] bg-black/30 backdrop-blur-sm"
             onClick={handleClose}
+            aria-hidden="true"
           />
           <motion.div
             key="notify-modal"
             initial={{ opacity: 0, y: 20, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.97 }}
-            transition={{ type: "tween", duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            transition={transitions.modal}
             className="fixed inset-0 z-[120] flex items-center justify-center p-6 pointer-events-none"
           >
             <div
+              ref={modalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Notify me when back in stock"
               className="relative w-full max-w-sm pointer-events-auto"
               style={{ backgroundColor: "#faf8f5" }}
             >
@@ -79,7 +94,7 @@ export function NotifyMeModal({ open, productTitle, variantTitle, onClose, onSub
                 </div>
                 <button
                   onClick={handleClose}
-                  className="transition-opacity hover:opacity-50"
+                  className="w-11 h-11 flex items-center justify-center -mr-3 transition-opacity hover:opacity-50"
                   aria-label="Close"
                 >
                   <X size={17} strokeWidth={1.5} style={{ color: "#1e1814" }} />
