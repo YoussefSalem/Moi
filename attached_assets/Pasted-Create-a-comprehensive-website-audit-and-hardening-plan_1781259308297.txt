@@ -1,0 +1,74 @@
+Create a comprehensive website audit and hardening plan focused exclusively on code quality, functionality, performance, reliability, and user experience.
+
+Scope:
+
+* Do NOT modify Shopify product linking, product data, collections, inventory, checkout integrations, or product page content.
+* Do NOT change business logic related to products.
+* Focus only on frontend, backend, infrastructure, UX, performance, stability, and code quality.
+
+Phase 1 — Full Website Audit
+
+* Review every page, component, modal, drawer, form, carousel, navigation item, and customer flow.
+* Identify broken links, missing routes, dead-end pages, console errors, warnings, and failed API calls.
+* Verify all buttons, CTAs, filters, search functions, and interactive elements work correctly.
+* Test on desktop, tablet, and mobile devices.
+* Test Chrome, Safari, Firefox, and Edge compatibility.
+* Verify accessibility standards and keyboard navigation.
+
+Phase 2 — Logic & Edge Case Testing
+
+* Test every user journey from landing page to checkout handoff.
+* Verify empty states, loading states, error states, and success states.
+* Test duplicate clicks, rapid interactions, network interruptions, refreshes, and browser back/forward navigation.
+* Validate form submissions and error handling.
+* Ensure no race conditions, state synchronization issues, or broken user flows exist.
+
+Phase 3 — Performance Optimization
+
+* Eliminate unnecessary re-renders.
+* Optimize image loading, lazy loading, caching, and bundle size.
+* Improve Core Web Vitals.
+* Reduce layout shifts and visual instability.
+* Ensure smooth 60 FPS animations and interactions.
+* Optimize mobile performance for slower networks and devices.
+
+Phase 4 — Luxury UX Refinement
+
+* Review spacing, alignment, typography hierarchy, visual rhythm, and consistency.
+* Ensure all transitions, drawers, modals, galleries, and carousels feel premium and intentional.
+* Remove visual clutter and inconsistent behaviors.
+* Verify touch interactions feel native on mobile.
+* Ensure desktop interactions feel polished and responsive.
+
+Phase 5 — Reliability & Stability
+
+* Add comprehensive error boundaries.
+* Implement graceful fallback states.
+* Improve API failure handling.
+* Prevent UI crashes from malformed or missing data.
+* Ensure application recovery without page reloads whenever possible.
+
+Phase 6 — Code Quality
+
+* Remove dead code and unused dependencies.
+* Refactor duplicated logic.
+* Standardize component architecture.
+* Improve maintainability and scalability.
+* Ensure clean TypeScript typing and strict validation where applicable.
+* Document critical systems and shared components.
+
+Phase 7 — Quality Assurance
+
+* Create a full regression testing checklist.
+* Test all existing functionality after every change.
+* Verify no feature regressions are introduced.
+* Confirm all pages remain visually and functionally consistent.
+
+Success Criteria
+
+* Zero console errors or warnings in production.
+* No broken links, dead ends, or failed user journeys.
+* No visible layout issues across supported devices.
+* Consistent premium luxury experience across the entire website.
+* Performance equal to or exceeding leading modern luxury ecommerce brands.
+* Functionality, reliability, and polish exceeding a standard Shopify storefront while preserving all existing Shopify product integrations unchanged.
