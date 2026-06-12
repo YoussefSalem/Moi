@@ -1,3 +1,6 @@
+export type PaymentMethod = "cod" | "instapay" | "card" | "wallet" | "apple-pay";
+export type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm";
+
 export interface OrderResult {
   orderNumber: string | number;
   total: string;

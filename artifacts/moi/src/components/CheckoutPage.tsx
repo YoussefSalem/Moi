@@ -18,16 +18,12 @@ import { resolveLineImage } from "@/lib/productImages";
 import { PUBLIC_COLOR_IMAGES, SHIPPING_EGP, resolveEmailImage, buildOrderAttribution } from "./checkout/checkoutUtils";
 import { triggerApplePayHandler } from "@/lib/applePayHandler";
 
-import type { OrderResult, OrderBreakdown } from "./checkout/types";
+import type { OrderResult, OrderBreakdown, PaymentMethod, Step } from "./checkout/types";
+import { useCheckoutSubmit } from "./checkout/useCheckoutSubmit";
 import { CODConfirmation } from "./checkout/CODConfirmation";
 import { CardConfirmation } from "./checkout/CardConfirmation";
 import { InstapayConfirmation } from "./checkout/InstapayConfirmation";
 
-// Public image URLs for emails (Vite-hashed /assets/ paths only work in the browser)
-// Images served via the API server (/api/images/) so they are always available
-// regardless of whether the web-app deployment is up to date.
-// window.location.origin auto-selects the right domain on dev vs production.
-type PaymentMethod = "cod" | "instapay" | "card" | "wallet" | "apple-pay";
 /* Card, Wallet + Apple Pay are gated by feature flags in @/config/features */
 const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = [
   "cod",
@@ -36,7 +32,6 @@ const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = [
   ...(ENABLE_WALLET_PAYMENTS ? ["wallet" as PaymentMethod] : []),
   ...(ENABLE_APPLE_PAY ? ["apple-pay" as PaymentMethod] : []),
 ];
-type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm";
 type InstapaySubStep = "instructions" | "upload" | "review";
 export function CheckoutPage() {
   const {
@@ -367,373 +362,15 @@ export function CheckoutPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [clearCart, closeCheckout, markAbandonedCartRecovered]);
 
-  const handleSubmit = useCallback(async () => {
-    if (submittingRef.current) return;
-    submittingRef.current = true;
-
-    const hasShopifyItems = isShopify && !!shopifyCart && shopifyCart.lines.nodes.length > 0;
-    const hasLocalItems = localItems.length > 0;
-    if (!hasShopifyItems && !hasLocalItems) {
-      setSubmitError("Your cart appears to be empty. Please add items before checking out.");
-      submittingRef.current = false;
-      return;
-    }
-
-    // `activeCart` / `activeIsShopify` are the authoritative cart values for this
-    // submission. Normally equal to the React state snapshot, but if the user
-    // submits before the background Shopify sync finishes we wait silently for up
-    // to 10 s and proceed automatically — no retry required.
-    let activeCart = shopifyCart;
-    let activeIsShopify = isShopify;
-
-    if (SHOPIFY_CONFIGURED && !hasShopifyItems) {
-      setStep("loading");
-      try {
-        const synced = await Promise.race<import("@/lib/shopify").ShopifyCart | null>([
-          waitForSync(),
-          new Promise<null>((_, reject) => setTimeout(() => reject(new Error("timeout")), 10_000)),
-        ]);
-        if (!synced || synced.lines.nodes.length === 0) {
-          setSubmitError("Your cart is still syncing. Please wait a moment and try again.");
-          setStep("form");
-          submittingRef.current = false;
-          return;
-        }
-        activeCart = synced;
-        activeIsShopify = true;
-      } catch {
-        setSubmitError("Something went wrong. Please try again.");
-        setStep("form");
-        submittingRef.current = false;
-        return;
-      }
-    }
-
-    if (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim() || !form.address.trim() || !form.city.trim() || !form.governorate.trim()) {
-      setSubmitError("Please fill in all fields.");
-      submittingRef.current = false;
-      return;
-    }
-    const phoneDigits = form.phone.replace(/\D/g, "");
-    const isValidPhone =
-      (phoneDigits.length === 11 && phoneDigits.startsWith("01")) ||
-      (phoneDigits.length === 12 && phoneDigits.startsWith("201"));
-    if (!isValidPhone) {
-      setSubmitError("Please enter a valid Egyptian phone number (e.g. 01200520083 or +20 1200520083).");
-      submittingRef.current = false;
-      return;
-    }
-
-    setSubmitError("");
-    setStep("loading");
-
-    const orderLines = activeIsShopify && activeCart
-      ? activeCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
-      : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
-
-    const customerPayload = {
-      firstName: form.firstName.trim(),
-      lastName: form.lastName.trim(),
-      email: form.email.trim() || undefined,
-      phone: form.phone.trim(),
-      address: form.address.trim(),
-      governorate: form.governorate.trim(),
-      postalCode: form.postalCode.trim() || undefined,
-      city: form.city.trim(),
-    };
-
-    // Card / Wallet payment: call paymob-init → redirect directly to Paymob Unified Checkout
-    if (paymentMethod === "card" || paymentMethod === "wallet") {
-      if (paymentMethod === "card" && !ENABLE_CARD_PAYMENTS) {
-        submittingRef.current = false;
-        setSubmitError("Card payments are temporarily unavailable. Please choose another payment method.");
-        setStep("form");
-        return;
-      }
-      if (paymentMethod === "wallet" && !ENABLE_WALLET_PAYMENTS) {
-        submittingRef.current = false;
-        setSubmitError("Mobile wallet payments are temporarily unavailable. Please choose another payment method.");
-        setStep("form");
-        return;
-      }
-      try {
-        try { sessionStorage.setItem("moi_checkout_form", JSON.stringify(form)); } catch { /* ignore */ }
-        const res = await fetch("/api/orders/paymob-init", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lines: orderLines,
-            customer: customerPayload,
-            cartId: activeCart?.id ?? null,
-            discountCode: promoApplied?.code ?? null,
-            attribution: buildOrderAttribution(),
-            checkoutToken: shopifyCheckoutToken ?? null,
-            paymentType: paymentMethod,
-          }),
-        });
-
-        const data = await res.json() as {
-          iframeUrl?: string;
-          intentId?: string;
-          total?: string;
-          error?: string;
-        };
-
-        if (!res.ok || !data.iframeUrl) {
-          setStep("form");
-          setSubmitError(data.error ?? "Payment gateway unavailable. Please try again.");
-          submittingRef.current = false;
-          return;
-        }
-
-        const resolvedTotal = data.total ?? fmt(totalAmount);
-        // Snapshot the breakdown NOW while cart values are live.
-        // By the time the card-confirm step renders the cart has been cleared,
-        // so breakdownSnapshot is the only reliable source for subtotal/shipping.
-        setBreakdownSnapshot({ subtotal: subtotalAmount, savings, shippingCost, freeShipping });
-        // Snapshot items NOW while cart is still populated.
-        // By the time onSuccess fires (after 5-second overlay countdown) React
-        // may have re-created handleIframeSuccess with stale closure data,
-        // so we capture items here where cart state is guaranteed fresh.
-        const cartItemsSnapshot = activeIsShopify && activeCart
-          ? activeCart.lines.nodes.map((l) => ({
-              id: l.id,
-              title: l.merchandise.product.title,
-              variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
-              quantity: l.quantity,
-              image: resolveLineImage(l, localItems),
-              price: formatShopifyLinePrice(l),
-            }))
-          : localItems.map((i) => ({
-              id: i.id,
-              title: i.title,
-              variantTitle: null,
-              quantity: i.quantity,
-              image: i.image ?? null,
-              price: i.price,
-            }));
-        setOrderResult({
-          orderNumber: "",
-          total: resolvedTotal,
-          intentId: data.intentId,
-          items: cartItemsSnapshot.length > 0 ? cartItemsSnapshot : undefined,
-        });
-        // Persist in sessionStorage so state survives a 3DS full-page redirect
-        if (data.intentId) {
-          sessionStorage.setItem("moi_paymob_intent_id", data.intentId);
-          sessionStorage.setItem("moi_paymob_order_total", resolvedTotal);
-          sessionStorage.setItem("moi_paymob_payment_method", paymentMethod);
-          // Save breakdown + items so the confirmation screen has correct values after redirect
-          sessionStorage.setItem("moi_paymob_breakdown", JSON.stringify({ subtotal: subtotalAmount, savings, shippingCost, freeShipping }));
-          if (cartItemsSnapshot.length > 0) {
-            sessionStorage.setItem("moi_paymob_items", JSON.stringify(cartItemsSnapshot));
-          }
-        }
-        paymobTrackedRef.current = false;
-        setNavigatingToPaymob(true);
-        setTimeout(() => { window.location.href = data.iframeUrl!; }, 420);
-      } catch {
-        setStep("form");
-        setSubmitError("Network error. Please check your connection and try again.");
-      }
-      submittingRef.current = false;
-      return;
-    }
-
-    // Apple Pay is handled by the native "Buy with Apple Pay" button above — never redirect to Shopify.
-    if (paymentMethod === "apple-pay") {
-      if (!ENABLE_APPLE_PAY) {
-        submittingRef.current = false;
-        setSubmitError("Apple Pay is temporarily unavailable. Please choose another payment method.");
-        setStep("form");
-        return;
-      }
-      submittingRef.current = false;
-      setSubmitError("Please tap the Apple Pay button above to complete your purchase.");
-      setStep("form");
-      return;
-    }
-
-    // InstaPay: validate cart + get account info — order is created only at proof upload
-    if (paymentMethod === "instapay") {
-      try {
-        // Capture cart items snapshot so the confirmation screen shows thumbnails
-        const cartItemsSnapshot = activeIsShopify && activeCart
-          ? activeCart.lines.nodes.map((l) => ({
-              id: l.id,
-              title: l.merchandise.product.title,
-              variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
-              quantity: l.quantity,
-              image: resolveLineImage(l, localItems),
-              price: formatShopifyLinePrice(l),
-            }))
-          : localItems.map((i) => ({
-              id: i.id,
-              title: i.title,
-              variantTitle: null,
-              quantity: i.quantity,
-              image: i.image ?? null,
-              price: i.price,
-            }));
-        const res = await fetch("/api/orders/instapay-init", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lines: orderLines,
-            customer: customerPayload,
-            cartId: activeCart?.id ?? null,
-            discountCode: promoApplied?.code ?? null,
-            attribution: buildOrderAttribution(),
-            checkoutToken: shopifyCheckoutToken ?? null,
-          }),
-        });
-
-        const data = await res.json() as {
-          success?: boolean;
-          instapayAccount?: string;
-          instapayNumber?: string;
-          draftOrderId?: number;
-          shopifyOrderId?: number;
-          shopifyOrderNumber?: number;
-          total?: string;
-          error?: string;
-        };
-
-        if (!res.ok || !data.success) {
-          setStep("form");
-          setSubmitError(data.error ?? "Something went wrong. Please try again.");
-          submittingRef.current = false;
-          return;
-        }
-
-        const orderResultPayload: OrderResult = {
-          orderNumber: data.shopifyOrderNumber ?? data.shopifyOrderId ?? "",
-          total: data.total ?? fmt(totalAmount),
-          draftOrderId: data.draftOrderId,
-          shopifyOrderId: data.shopifyOrderId,
-          shopifyOrderNumber: data.shopifyOrderNumber,
-          instapayAccount: data.instapayAccount,
-          instapayNumber: data.instapayNumber,
-          customerName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
-          customerPhone: form.phone.trim(),
-          items: cartItemsSnapshot.length > 0 ? cartItemsSnapshot : undefined,
-        };
-        setBreakdownSnapshot({ subtotal: subtotalAmount, savings, shippingCost, freeShipping });
-        setOrderResult(orderResultPayload);
-        // Persist instapay state so it survives tab switches on mobile
-        sessionStorage.setItem("moi_instapay_order_result", JSON.stringify(orderResultPayload));
-        setStep("instapay-confirm");
-        markAbandonedCartRecovered();
-      } catch {
-        setStep("form");
-        setSubmitError("Network error. Please check your connection and try again.");
-      }
-      submittingRef.current = false;
-      return;
-    }
-
-    // COD: call orders/create
-    try {
-      const res = await fetch("/api/orders/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lines: orderLines,
-          customer: customerPayload,
-          paymentMethod: "cod",
-          cartId: activeCart?.id ?? null,
-          discountCode: promoApplied?.code ?? null,
-          attribution: buildOrderAttribution(),
-          checkoutToken: shopifyCheckoutToken ?? null,
-        }),
-      });
-
-      const data = await res.json() as {
-        success?: boolean;
-        orderNumber?: number | string;
-        shopifyOrderId?: number;
-        total?: string;
-        error?: string;
-      };
-
-      if (!res.ok || !data.success) {
-        setStep("form");
-        setSubmitError(data.error ?? "Something went wrong. Please try again.");
-        submittingRef.current = false;
-        return;
-      }
-
-      const codItemsSnapshot = activeIsShopify && activeCart
-        ? activeCart.lines.nodes.map((l) => ({
-            id: l.id,
-            title: l.merchandise.product.title,
-            variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
-            quantity: l.quantity,
-            image: resolveLineImage(l, localItems),
-            price: formatShopifyLinePrice(l),
-          }))
-        : localItems.map((i) => ({
-            id: i.id,
-            title: i.title,
-            variantTitle: null as string | null,
-            quantity: i.quantity,
-            image: i.image ?? null,
-            price: i.price,
-          }));
-      const codBreakdown = { subtotal: subtotalAmount, savings, shippingCost, freeShipping };
-      try {
-        sessionStorage.setItem("moi_order_confirmation", JSON.stringify({
-          items: codItemsSnapshot,
-          breakdown: codBreakdown,
-          paymentMethod: "cod",
-          orderNumber: data.orderNumber ?? "",
-        }));
-      } catch { /* ignore */ }
-
-      clearCart();
-      const purchaseValue = data.total ? parseEGP(data.total) || (Number.isFinite(totalAmount) ? totalAmount : 0) : (Number.isFinite(totalAmount) ? totalAmount : 0);
-      const purchaseItems = orderLines.reduce((s, l) => s + l.quantity, 0);
-      if (!codTrackedRef.current) {
-        codTrackedRef.current = true;
-        import("@/lib/analytics").then(({ trackPurchaseWithTime: trackInternalPurchase }) => {
-          trackInternalPurchase(String(data.orderNumber ?? data.shopifyOrderId ?? ""), purchaseValue, "cod");
-        });
-        trackTikTokPurchase({
-          content_id: orderLines[0]?.variantId,
-          currency: "EGP",
-          value: purchaseValue,
-          quantity: purchaseItems,
-          order_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
-        });
-        trackShopifyPurchase({
-          orderId: String(data.shopifyOrderId ?? data.orderNumber ?? ""),
-          orderNumber: data.orderNumber,
-          totalPrice: purchaseValue,
-          currencyCode: "EGP",
-          lineItems: orderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
-        });
-        if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
-          (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "purchase", {
-            transaction_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
-            value: purchaseValue,
-            currency: "EGP",
-            items: orderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })),
-          });
-        }
-      }
-      markAbandonedCartRecovered();
-      // Reset submission state before closing so the next order can be placed.
-      submittingRef.current = false;
-      setStep("form");
-      window.history.pushState(null, "", "/order-confirmed");
-      window.dispatchEvent(new PopStateEvent("popstate"));
-      closeCheckout();
-    } catch {
-      setStep("form");
-      setSubmitError("Network error. Please check your connection and try again.");
-      submittingRef.current = false;
-    }
-  }, [form, paymentMethod, isShopify, shopifyCart, localItems, promoApplied, totalAmount, fmt, clearCart, shopifyCheckoutToken, markAbandonedCartRecovered, waitForSync]);
+  const handleSubmit = useCheckoutSubmit({
+    isShopify, shopifyCart, localItems,
+    form, paymentMethod, promoApplied, shopifyCheckoutToken,
+    totalAmount, subtotalAmount, savings, shippingCost, freeShipping,
+    fmt, clearCart, waitForSync, markAbandonedCartRecovered, formatShopifyLinePrice,
+    navigateToOrderConfirmed, closeCheckout,
+    setSubmitError, setStep, setBreakdownSnapshot, setOrderResult, setNavigatingToPaymob,
+    submittingRef, paymobTrackedRef, instapayTrackedRef, codTrackedRef,
+  });
 
   const handleDone = useCallback(() => {
     clearCart();
@@ -1425,6 +1062,7 @@ export function CheckoutPage() {
                 shippingCost={shippingCost}
                 totalAmount={totalAmount}
                 fmt={fmt}
+                formatShopifyLinePrice={formatShopifyLinePrice}
                 promoInput={promoInput}
                 setPromoInput={setPromoInput}
                 setPromoError={setPromoError}

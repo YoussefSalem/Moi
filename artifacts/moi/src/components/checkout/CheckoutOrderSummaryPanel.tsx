@@ -4,6 +4,7 @@ import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 import type { ShopifyCartLine } from "@/lib/shopify";
 import type { LocalCartItem } from "@/context/CartContext";
 import { resolveLineImage } from "@/lib/productImages";
+// price-formatting helper used throughout CheckoutPage.
 
 const SHIPPING_EGP_DISPLAY = 75;
 
@@ -35,6 +36,7 @@ interface CheckoutOrderSummaryPanelProps {
   shippingCost: number;
   totalAmount: number;
   fmt: (amount: number) => string;
+  formatShopifyLinePrice: (line: ShopifyCartLine) => string;
   promoInput: string;
   setPromoInput: (v: string) => void;
   setPromoError: (e: string) => void;
@@ -47,7 +49,7 @@ interface CheckoutOrderSummaryPanelProps {
 export function CheckoutOrderSummaryPanel({
   lines, localLines, localItems,
   promoApplied, savings, subtotalAmount, discountedSubtotal,
-  freeShipping, shippingCost, totalAmount, fmt,
+  freeShipping, shippingCost, totalAmount, fmt, formatShopifyLinePrice,
   promoInput, setPromoInput, setPromoError, handleApplyPromo, handleRemovePromo,
   promoLoading, promoError,
 }: CheckoutOrderSummaryPanelProps) {
@@ -101,7 +103,7 @@ export function CheckoutOrderSummaryPanel({
                         Qty {line.quantity}
                       </span>
                       <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "15px", fontWeight: 700, color: "#1e1814" }}>
-                        {fmt(parseFloat(line.merchandise.price.amount) * line.quantity)}
+                        {formatShopifyLinePrice(line)}
                       </span>
                     </div>
                   </div>

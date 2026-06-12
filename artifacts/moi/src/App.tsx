@@ -20,6 +20,7 @@ import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
 import { ErrorBoundary, InlineErrorFallback } from "@/components/ErrorBoundary";
+import { parsePath, deriveColors, FALLBACK_PRODUCTS, type PageType } from "@/lib/appRouting";
 
 
 // Heavy components — loaded only when needed
@@ -44,72 +45,6 @@ const NotFoundPage = lazy(() => import("@/components/NotFoundPage").then(m => ({
 const IS_ADMIN = window.location.pathname.startsWith("/admin");
 const IS_APPLE_PAY_IFRAME = window.location.pathname === "/buy/apple-pay";
 
-type PageType = "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery" | "product" | "notfound" | "checkout" | "order-confirmation" | "payment-failed";
-const POLICY_PAGES: PageType[] = ["privacy", "refund", "return", "delivery"];
-
-// Known product slugs — used only for URL routing. Colors are derived live from
-// Shopify variants; we never hardcode which colors a product supports.
-const KNOWN_PRODUCT_SLUGS = ["moi-wavvy", "moi-versa-top", "trio-bangles"];
-
-const SECTION_PATH_MAP: Record<string, string> = {
-  "/versa-top": "moi-versa-top",
-  "/wavvy-top": "moi-wavvy",
-};
-
-function parsePath(): { page: PageType; productHandle: string; section?: string } {
-  if (typeof window === "undefined") return { page: "home", productHandle: "" };
-  const pathname = window.location.pathname;
-  if (pathname.startsWith("/products/")) {
-    const handle = pathname.slice("/products/".length);
-    const matchedSlug = KNOWN_PRODUCT_SLUGS.find(
-      (p) => handle === p || handle.startsWith(p + "-"),
-    );
-    if (!matchedSlug) return { page: "notfound", productHandle: handle };
-    return { page: "product", productHandle: handle };
-  }
-  if (pathname === "/payment/success" || pathname === "/order-confirmed") {
-    // Guard against direct URL access: only allow if a valid order session exists
-    const hasActive = sessionStorage.getItem("moi_order_confirmed_active") !== null;
-    const hasPrimary =
-      sessionStorage.getItem("moi_order_confirmation") !== null ||
-      sessionStorage.getItem("moi_paymob_items") !== null;
-    if (!hasActive && !hasPrimary) {
-      window.history.replaceState(null, "", "/");
-      return { page: "home", productHandle: "" };
-    }
-    return { page: "order-confirmation", productHandle: "" };
-  }
-  if (pathname === "/payment/failed") return { page: "payment-failed", productHandle: "" };
-  if (pathname === "/checkout") return { page: "checkout", productHandle: "" };
-  if (pathname === "/accessories") return { page: "accessories", productHandle: "" };
-  if (pathname === "/ambassador") return { page: "ambassador", productHandle: "" };
-  const sectionId = SECTION_PATH_MAP[pathname];
-  if (sectionId) return { page: "home", productHandle: "", section: sectionId };
-  const slug = pathname.slice(1) as PageType;
-  if (POLICY_PAGES.includes(slug)) return { page: slug, productHandle: "" };
-  return { page: "home", productHandle: "" };
-}
-
-const FALLBACK_PRODUCTS: ProductConfig[] = [IMAGES.product1, IMAGES.product2, IMAGES.product3 as ProductConfig];
-
-/** Derive the list of color names for a product from Shopify variants, falling
- *  back to the local colorImages keys. This ensures the homepage always reflects
- *  exactly what Shopify has — no hardcoded color lists. */
-function deriveColors(product: ProductConfig): { name: string }[] {
-  if (product.variants && product.variants.length > 0) {
-    const seen = new Set<string>();
-    const result: { name: string }[] = [];
-    for (const v of product.variants) {
-      const colorOpt = v.selectedOptions.find((o) => o.name.toLowerCase() === "color");
-      if (colorOpt && !seen.has(colorOpt.value)) {
-        seen.add(colorOpt.value);
-        result.push({ name: colorOpt.value });
-      }
-    }
-    if (result.length > 0) return result;
-  }
-  return Object.keys((product.colorImages ?? {}) as Record<string, string>).map((name) => ({ name }));
-}
 
 function AppContent() {
   const [lookProduct, setLookProduct] = useState<ProductConfig | null>(null);

@@ -172,11 +172,6 @@ export function triggerApplePayHandler({
   };
 
   session.onpaymentauthorized = async ({ payment }) => {
-    void fetch("/api/apple-pay/ping", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stage: "onpaymentauthorized" }),
-    });
     try {
       const sc = payment.shippingContact;
       const res = await fetch("/api/apple-pay/authorize", {
@@ -240,7 +235,7 @@ export function triggerApplePayHandler({
       }
     } catch (apErr) {
       session.completePayment({ status: AP.STATUS_FAILURE });
-      setSubmitError(`Debug: ${apErr instanceof Error ? apErr.message : String(apErr)}`);
+      setSubmitError("Apple Pay payment could not be completed. Please try another payment method.");
       setPaymentMethod("cod");
     }
   };
