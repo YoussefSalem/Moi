@@ -504,7 +504,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
   // Mobile gallery slide carousel refs
   const mobileGalleryTrackRef = useRef<HTMLDivElement>(null);
   const mobileGalleryRawIdxRef = useRef(1); // position in extended array [last, ...all, first]
-  const mobileGalleryDragRef = useRef<{ x: number } | null>(null);
+  const mobileGalleryDragRef = useRef<{ x: number; y: number } | null>(null);
   const mobileGalleryDidDragRef = useRef(false);
 
   const selectedVariant = (() => {
@@ -1090,8 +1090,10 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
 
                   const handleGalleryPointerDown = (e: React.PointerEvent) => {
                     if (N <= 1) return;
-                    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                    mobileGalleryDragRef.current = { x: e.clientX };
+                    // Do NOT setPointerCapture here — capturing immediately overrides
+                    // touchAction:'pan-y' and intercepts vertical scroll gestures.
+                    // We defer capture until pointermove confirms horizontal intent.
+                    mobileGalleryDragRef.current = { x: e.clientX, y: e.clientY };
                     mobileGalleryDidDragRef.current = false;
                     const track = mobileGalleryTrackRef.current;
                     if (track) track.style.transition = "none";
@@ -1100,8 +1102,23 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                   const handleGalleryPointerMove = (e: React.PointerEvent) => {
                     if (!mobileGalleryDragRef.current) return;
                     const dx = e.clientX - mobileGalleryDragRef.current.x;
-                    if (!mobileGalleryDidDragRef.current && Math.abs(dx) < 12) return;
-                    mobileGalleryDidDragRef.current = true;
+                    const dy = e.clientY - mobileGalleryDragRef.current.y;
+
+                    if (!mobileGalleryDidDragRef.current) {
+                      // Wait for enough movement to determine gesture direction
+                      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+                      if (Math.abs(dy) >= Math.abs(dx)) {
+                        // Primarily vertical — cancel swipe and let the page scroll
+                        mobileGalleryDragRef.current = null;
+                        const track = mobileGalleryTrackRef.current;
+                        if (track) track.style.transform = `translateX(-${mobileGalleryRawIdxRef.current * 100}%)`;
+                        return;
+                      }
+                      // Primarily horizontal — now capture and lock to swipe
+                      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                      mobileGalleryDidDragRef.current = true;
+                    }
+
                     e.preventDefault();
                     const track = mobileGalleryTrackRef.current;
                     if (track) {
