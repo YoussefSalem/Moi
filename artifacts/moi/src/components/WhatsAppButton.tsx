@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send } from "lucide-react";
 import { trackChatInteraction } from "@/lib/analytics";
+import { transitions } from "@/lib/motion";
 
 const WHATSAPP_NUMBER = "201200520083";
 const WHATSAPP_MESSAGE = "Hi, I have a question about this product";
@@ -73,7 +74,7 @@ export function WhatsAppButton() {
             initial={{ opacity: 0, y: 10, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.9 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            transition={transitions.fade}
             style={{
               position: "absolute",
               bottom: 64,

@@ -312,12 +312,14 @@ export function LookView({ product, onClose }: LookViewProps) {
                             touchAction: "pan-x",
                           }}
                         >
-                          {availableImages.map((src) => {
+                          {availableImages.map((src, imgIdx) => {
                             const active = src === (activeImage ?? product.look.model);
                             return (
                               <button
                                 key={src}
                                 type="button"
+                                aria-label={`View look image ${imgIdx + 1}`}
+                                aria-pressed={active}
                                 onClick={() => {
                                   if (src === displaySrc) return;
                                   setActiveImage(src);
@@ -357,6 +359,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                               <button
                                 key={src}
                                 type="button"
+                                aria-label={`Open image ${idx + 1} in gallery`}
                                 onClick={() => { setLbIndex(idx); setLbOpen(true); }}
                                 className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 active:opacity-60 transition-opacity duration-150"
                                 style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
@@ -368,6 +371,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                         </div>
                         <button
                           type="button"
+                          aria-label="Open gallery"
                           className="relative block w-full active:opacity-90 transition-opacity duration-100"
                           style={{ height: "70vh", background: "none", border: "none", padding: 0, cursor: "pointer", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
                           onClick={() => {
@@ -399,6 +403,7 @@ export function LookView({ product, onClose }: LookViewProps) {
                               <button
                                 key={src}
                                 type="button"
+                                aria-label={`Open image ${idx + 1} in gallery`}
                                 onClick={() => { setLbIndex(idx); setLbOpen(true); }}
                                 className="overflow-hidden rounded-sm border border-stone-200 hover:opacity-75 active:opacity-60 transition-opacity duration-150"
                                 style={{ aspectRatio: "1 / 1", background: "none", padding: 0, cursor: "pointer", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}

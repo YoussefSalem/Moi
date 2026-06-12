@@ -5,6 +5,7 @@ import { Search, ShoppingBag, User, X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useCustomer } from "@/context/CustomerContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { transitions } from "@/lib/motion";
 
 interface HeaderProps {
   onNavigate?: (page: "home" | "accessories" | "ambassador", hash?: string) => void;
@@ -39,6 +40,12 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: men
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && menuOpen) setMenuOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   const inAppBrowser = useMemo(() => isInAppBrowser(), []);
 
@@ -193,21 +200,25 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: men
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={transitions.overlay}
               className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
               onClick={() => setMenuOpen(false)}
+              aria-hidden="true"
             />
             <motion.nav
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ type: "tween", duration: 0.4, ease: [0.76, 0, 0.24, 1] }}
+              transition={transitions.menu}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Site navigation"
               className="fixed top-0 left-0 bottom-0 z-[70] w-full max-w-xs flex flex-col"
               style={{ backgroundColor: "#faf8f5" }}
             >
               <div className="flex items-center justify-between px-8 py-6 border-b border-stone-200">
                 <span className="font-serif text-xl tracking-[0.3em]" style={{ color: "#1e1814" }}>MOI</span>
-                <button onClick={() => setMenuOpen(false)} className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-50 -mr-2">
+                <button onClick={() => setMenuOpen(false)} className="w-11 h-11 flex items-center justify-center transition-opacity hover:opacity-50 -mr-2" aria-label="Close menu">
                   <X size={20} strokeWidth={1.5} />
                 </button>
               </div>
@@ -219,7 +230,7 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: men
                       key={link.label}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 + i * 0.07 }}
+                      transition={transitions.listItem(i)}
                     >
                       <a
                         href={link.href}

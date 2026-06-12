@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { transitions } from "@/lib/motion";
 import { X, Minus, Plus, ShoppingBag, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
@@ -179,6 +180,12 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
     };
   }, [cartOpen]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && cartOpen) closeCart(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [cartOpen, closeCart]);
+
   const swipeTouchStartX = useRef(0);
   const swipeTouchStartY = useRef(0);
 
@@ -207,9 +214,10 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
+            transition={transitions.overlay}
             className="fixed inset-0 z-[90] bg-black/40"
             onClick={closeCart}
+            aria-hidden="true"
           />
 
           {/* Drawer */}
@@ -218,7 +226,10 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{ type: "tween", duration: 0.32, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={transitions.drawer}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Shopping cart"
             className="fixed top-0 right-0 bottom-0 z-[100] w-full max-w-[440px] flex flex-col"
             style={{ backgroundColor: "#faf8f5", willChange: "transform" }}
             onTouchStart={handleTouchStart}

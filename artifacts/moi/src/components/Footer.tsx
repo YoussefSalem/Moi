@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Instagram } from "lucide-react";
 import { NewsletterSection } from "@/components/NewsletterSection";
+import { transitions } from "@/lib/motion";
 
 interface FooterProps {
   onNavigate?: (page: "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery", hash?: string) => void;
@@ -48,7 +49,7 @@ export function Footer({ onNavigate }: FooterProps) {
                 key={link.label}
                 type="button"
                 onClick={() => onNavigate?.(link.page, link.hash)}
-                className="text-[10px] tracking-[0.25em] uppercase text-white/45 hover:text-white/80 transition-colors duration-300"
+                className="min-h-[44px] px-2 text-[10px] tracking-[0.25em] uppercase text-white/45 hover:text-white/80 transition-colors duration-300"
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               >
                 {link.label}
@@ -102,6 +103,9 @@ export function Footer({ onNavigate }: FooterProps) {
                   <div key={item.title} className="border-b border-white/10 last:border-b-0">
                     <button
                       type="button"
+                      id={`footer-acc-btn-${key}`}
+                      aria-expanded={isOpen}
+                      aria-controls={`footer-acc-panel-${key}`}
                       onClick={() => setOpenSection(isOpen ? null : key)}
                       className="w-full flex items-center justify-between py-5 text-left hover:opacity-75 transition-opacity duration-200"
                     >
@@ -109,17 +113,20 @@ export function Footer({ onNavigate }: FooterProps) {
                         <p className="text-[10px] tracking-[0.28em] uppercase text-white/40">{item.title}</p>
                         <p className="mt-2 text-sm md:text-base text-white/70">{item.description}</p>
                       </div>
-                      <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.28 }}>
+                      <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={transitions.accordion}>
                         <ChevronDown size={18} strokeWidth={1.5} className="text-white/45" />
                       </motion.span>
                     </button>
                     <AnimatePresence initial={false}>
                       {isOpen && (
                         <motion.div
+                          id={`footer-acc-panel-${key}`}
+                          role="region"
+                          aria-labelledby={`footer-acc-btn-${key}`}
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.35, ease: [0.76, 0, 0.24, 1] }}
+                          transition={transitions.accordion}
                           className="overflow-hidden"
                         >
                           <div className="pb-6 text-sm leading-7 text-white/60 max-w-2xl">
@@ -149,7 +156,7 @@ export function Footer({ onNavigate }: FooterProps) {
                   key={link.page}
                   href={`/${link.page}`}
                   onClick={(e) => { e.preventDefault(); onNavigate?.(link.page); }}
-                  className="text-[9px] tracking-[0.25em] uppercase text-white/35 hover:text-white/70 transition-colors duration-300"
+                  className="inline-flex items-center min-h-[44px] px-1 text-[9px] tracking-[0.25em] uppercase text-white/35 hover:text-white/70 transition-colors duration-300"
                   style={{ fontFamily: "'Montserrat', sans-serif" }}
                 >
                   {link.label}

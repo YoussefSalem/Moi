@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { showAddedToBagToast } from "@/lib/cartToast";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
 import { parseEGP } from "@/lib/price";
@@ -777,13 +777,15 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <CustomerProvider>
-        <CartProvider>
-          <AppContent />
-          {typeof window !== "undefined" && window.location.href.includes("debug_analytics") && <AnalyticsDebug />}
-          <AddedToBagToast />
-        </CartProvider>
-      </CustomerProvider>
+      <MotionConfig reducedMotion="user">
+        <CustomerProvider>
+          <CartProvider>
+            <AppContent />
+            {typeof window !== "undefined" && window.location.href.includes("debug_analytics") && <AnalyticsDebug />}
+            <AddedToBagToast />
+          </CartProvider>
+        </CustomerProvider>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }
