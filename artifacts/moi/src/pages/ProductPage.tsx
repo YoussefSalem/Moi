@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Bell } from "lucide-react";
 import { ProductCarousel, type CarouselItem } from "@/components/ProductCarousel";
@@ -1731,6 +1732,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
       />
 
       {/* Size Guide Modal */}
+      {createPortal(
       <AnimatePresence>
         {sizeGuideOpen && (
           <motion.div
@@ -1740,7 +1742,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={() => setSizeGuideOpen(false)}
-            style={{ position: "fixed", inset: 0, zIndex: 200, backgroundColor: "rgba(30,24,20,0.55)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
+            style={{ position: "fixed", inset: 0, zIndex: 9999, backgroundColor: "rgba(30,24,20,0.55)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
           >
             <motion.div
               key="size-guide-panel"
@@ -1826,6 +1828,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
           </motion.div>
         )}
       </AnimatePresence>
+      , document.body)}
     </>
   );
 }
