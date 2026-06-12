@@ -1301,7 +1301,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
 
                       {/* Label */}
                       <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.36em", textTransform: "uppercase", color: "#a09890", margin: "0 0 18px" }}>
-                        Customer Reviews
+                        From Sister to Sister
                       </p>
 
                       {/* Score / heading */}
@@ -1323,7 +1323,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                         </div>
                       ) : (
                         <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.8rem, 6vw, 2.6rem)", fontWeight: 400, letterSpacing: "0.03em", color: "#1e1814", margin: "0 0 10px", lineHeight: 1.15 }}>
-                          Be the First to Review
+                          Be the first to share your thoughts 🤍
                         </h2>
                       )}
 
@@ -1429,7 +1429,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                             ))}
                           </div>
                           <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.05rem, 3.5vw, 1.25rem)", fontStyle: "italic", fontWeight: 400, color: "#9a8e84", margin: 0, lineHeight: 1.65, maxWidth: 320 }}>
-                            No reviews yet — be the first to share your experience with this piece.
+                            Your words matter — share how this piece made you feel.
                           </p>
                         </div>
                       )}
