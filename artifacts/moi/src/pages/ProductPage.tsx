@@ -1116,14 +1116,6 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                         </div>
                       </div>
                     )}
-                    {displaySizes.length <= 1 && (sizeOption !== null || !!(product.variants?.length)) && (
-                      <div style={{ marginBottom: 24 }}>
-                        <button type="button" disabled style={{ padding: "11px 24px", fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase" as const, fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "#1e1814", border: "1px solid #1e1814", backgroundColor: "rgba(30,24,20,0.04)", borderRadius: 0 }}>
-                          One Size
-                        </button>
-                      </div>
-                    )}
-
                     {/* CTAs */}
                     {isOutOfStock ? (
                       <motion.button type="button" onClick={handleNotifyMe} whileTap={{ scale: 0.98 }}
@@ -1407,13 +1399,6 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                           );
                         })}
                       </div>
-                    </div>
-                  )}
-                  {displaySizes.length <= 1 && (sizeOption !== null || !!(product.variants?.length)) && (
-                    <div style={{ marginBottom: 24 }}>
-                      <button type="button" disabled style={{ padding: "11px 24px", fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase" as const, fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "#1e1814", border: "1px solid #1e1814", backgroundColor: "rgba(30,24,20,0.04)", borderRadius: 0 }}>
-                        One Size
-                      </button>
                     </div>
                   )}
 
