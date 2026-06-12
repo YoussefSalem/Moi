@@ -484,6 +484,122 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
     track.style.transform = `translateX(-${rawIdx * 100}%)`;
   }, [galleryImages.length, handle, loading]);
 
+  // Native touch swipe handler for the mobile gallery.
+  // Pointer events + setPointerCapture are unreliable on iOS when any child has
+  // non-passive touch listeners (iOS ignores touchAction in that case).
+  // This useEffect attaches touchmove with { passive: false } so we can call
+  // preventDefault() ONLY for horizontal swipes, letting vertical scrolls pass through.
+  useEffect(() => {
+    const track = mobileGalleryTrackRef.current;
+    const N = galleryImages.length;
+    if (!track || N <= 1) return;
+
+    let startX = 0;
+    let startY = 0;
+    let dirLocked: "h" | "v" | null = null;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      dirLocked = null;
+      mobileGalleryDragRef.current = { x: startX, y: startY };
+      mobileGalleryDidDragRef.current = false;
+      track.style.transition = "none";
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1 || !mobileGalleryDragRef.current) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+
+      if (!dirLocked) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        dirLocked = Math.abs(dx) >= Math.abs(dy) ? "h" : "v";
+      }
+
+      if (dirLocked === "v") {
+        // Vertical scroll intent — cancel swipe and let browser scroll
+        mobileGalleryDragRef.current = null;
+        mobileGalleryDidDragRef.current = false;
+        track.style.transform = `translateX(-${mobileGalleryRawIdxRef.current * 100}%)`;
+        return;
+      }
+
+      // Horizontal swipe — block scroll
+      e.preventDefault();
+      mobileGalleryDidDragRef.current = true;
+      const pct = mobileGalleryRawIdxRef.current * 100;
+      track.style.transform = `translateX(calc(-${pct}% + ${dx}px))`;
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!mobileGalleryDragRef.current) return;
+      const { x: sx } = mobileGalleryDragRef.current;
+      mobileGalleryDragRef.current = null;
+      const didDrag = mobileGalleryDidDragRef.current;
+      mobileGalleryDidDragRef.current = false;
+
+      if (!didDrag) {
+        setLightboxOpen(true);
+        track.style.transition = "transform 0.32s cubic-bezier(0.22,1,0.36,1)";
+        track.style.transform = `translateX(-${mobileGalleryRawIdxRef.current * 100}%)`;
+        return;
+      }
+
+      const endX = e.changedTouches[0]?.clientX ?? sx;
+      const dx = endX - sx;
+      const dir = dx < -20 ? 1 : dx > 20 ? -1 : 0;
+      let rawIdx = mobileGalleryRawIdxRef.current + dir;
+
+      track.style.transition = "transform 0.32s cubic-bezier(0.22,1,0.36,1)";
+      track.style.transform = `translateX(-${rawIdx * 100}%)`;
+      mobileGalleryRawIdxRef.current = rawIdx;
+
+      const suppressClick = (ev: MouseEvent) => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        window.removeEventListener("click", suppressClick, true);
+      };
+      window.addEventListener("click", suppressClick, true);
+
+      track.addEventListener("transitionend", function onEnd() {
+        track.removeEventListener("transitionend", onEnd);
+        if (rawIdx <= 0) {
+          rawIdx = N;
+          track.style.transition = "none";
+          track.style.transform = `translateX(-${rawIdx * 100}%)`;
+          mobileGalleryRawIdxRef.current = rawIdx;
+        } else if (rawIdx >= N + 1) {
+          rawIdx = 1;
+          track.style.transition = "none";
+          track.style.transform = `translateX(-${rawIdx * 100}%)`;
+          mobileGalleryRawIdxRef.current = rawIdx;
+        }
+        setGalleryIndex((rawIdx - 1 + N) % N);
+      });
+    };
+
+    const onTouchCancel = () => {
+      mobileGalleryDragRef.current = null;
+      mobileGalleryDidDragRef.current = false;
+      dirLocked = null;
+      track.style.transition = "transform 0.32s cubic-bezier(0.22,1,0.36,1)";
+      track.style.transform = `translateX(-${mobileGalleryRawIdxRef.current * 100}%)`;
+    };
+
+    track.addEventListener("touchstart", onTouchStart, { passive: true });
+    track.addEventListener("touchmove", onTouchMove, { passive: false });
+    track.addEventListener("touchend", onTouchEnd, { passive: true });
+    track.addEventListener("touchcancel", onTouchCancel, { passive: true });
+    return () => {
+      track.removeEventListener("touchstart", onTouchStart);
+      track.removeEventListener("touchmove", onTouchMove);
+      track.removeEventListener("touchend", onTouchEnd);
+      track.removeEventListener("touchcancel", onTouchCancel);
+    };
+  }, [galleryImages.length, handle, loading, setGalleryIndex, setLightboxOpen]);
+
   // Preload all gallery images so thumbnails and swipes are instant, no spinners
   useEffect(() => {
     galleryImages.forEach((src) => {
@@ -1088,11 +1204,12 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                     setGalleryIndex(targetGalleryIdx);
                   };
 
+                  // Pointer handlers below are MOUSE-ONLY (desktop drag).
+                  // Touch is handled by the native touch useEffect above the JSX.
                   const handleGalleryPointerDown = (e: React.PointerEvent) => {
+                    if (e.pointerType === "touch") return;
                     if (N <= 1) return;
-                    // Do NOT setPointerCapture here — capturing immediately overrides
-                    // touchAction:'pan-y' and intercepts vertical scroll gestures.
-                    // We defer capture until pointermove confirms horizontal intent.
+                    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
                     mobileGalleryDragRef.current = { x: e.clientX, y: e.clientY };
                     mobileGalleryDidDragRef.current = false;
                     const track = mobileGalleryTrackRef.current;
@@ -1100,25 +1217,11 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                   };
 
                   const handleGalleryPointerMove = (e: React.PointerEvent) => {
+                    if (e.pointerType === "touch") return;
                     if (!mobileGalleryDragRef.current) return;
                     const dx = e.clientX - mobileGalleryDragRef.current.x;
-                    const dy = e.clientY - mobileGalleryDragRef.current.y;
-
-                    if (!mobileGalleryDidDragRef.current) {
-                      // Wait for enough movement to determine gesture direction
-                      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-                      if (Math.abs(dy) >= Math.abs(dx)) {
-                        // Primarily vertical — cancel swipe and let the page scroll
-                        mobileGalleryDragRef.current = null;
-                        const track = mobileGalleryTrackRef.current;
-                        if (track) track.style.transform = `translateX(-${mobileGalleryRawIdxRef.current * 100}%)`;
-                        return;
-                      }
-                      // Primarily horizontal — now capture and lock to swipe
-                      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                      mobileGalleryDidDragRef.current = true;
-                    }
-
+                    if (!mobileGalleryDidDragRef.current && Math.abs(dx) < 8) return;
+                    mobileGalleryDidDragRef.current = true;
                     e.preventDefault();
                     const track = mobileGalleryTrackRef.current;
                     if (track) {
@@ -1128,6 +1231,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                   };
 
                   const handleGalleryPointerUp = (e: React.PointerEvent) => {
+                    if (e.pointerType === "touch") return;
                     if (!mobileGalleryDragRef.current) return;
                     const { x: startX } = mobileGalleryDragRef.current;
                     mobileGalleryDragRef.current = null;
