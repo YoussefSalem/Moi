@@ -28,87 +28,10 @@ import { ProductDesktopLayout } from "./product/ProductDesktopLayout";
 import { ProductMobileSection } from "./product/ProductMobileSection";
 import { ImageSkeleton } from "@/components/ImageSkeleton";
 
-// ── Star rating SVG component ─────────────────────────────────────────────────
-interface RecItem {
-  handle: string;
-  name: string;
-  color: string;
-  price: string;
-  swatch: string;
-  image: () => string;
-  gallery: () => readonly string[];
-}
-
-function buildAllRecs(): RecItem[] {
-  const allProducts = [IMAGES.product1, IMAGES.product2] as const;
-  const items: RecItem[] = [];
-  for (const product of allProducts) {
-    const colorImages = product.colorImages as Record<string, string> | undefined;
-    const colorGalleries = product.colorGalleries as Record<string, readonly string[]> | undefined;
-    const colorSwatches = product.colorSwatches as Record<string, string> | undefined;
-    if (!colorImages) continue;
-    for (const colorName of Object.keys(colorImages)) {
-      const swatch = colorSwatches?.[colorName.toLowerCase()] ?? colorSwatches?.[colorName] ?? "";
-      if (!swatch) continue;
-      const handle = `${product.slug}-${slugify(colorName)}`;
-      items.push({
-        handle,
-        name: product.name,
-        color: colorName,
-        price: product.price,
-        swatch,
-        image: () => colorImages[colorName] ?? product.productShot,
-        gallery: () => colorGalleries?.[colorName] ?? [colorImages[colorName] ?? product.productShot],
-      });
-    }
-  }
-  return items;
-}
+import { buildAllRecs, deriveFallbackFromHandle } from "./product/productPageUtils";
+import { useMobileGallerySwipe } from "@/hooks/useMobileGallerySwipe";
 
 const ALL_RECS = buildAllRecs();
-
-function slugify(str: string): string {
-  return str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-}
-
-function deriveFallbackFromHandle(handle: string): ProductConfig {
-  const allProducts = [IMAGES.product1, IMAGES.product2, IMAGES.product3];
-  const matched = allProducts.find(
-    (p) => handle.startsWith(p.slug + "-") || handle === p.slug,
-  );
-  if (!matched) return IMAGES.product1;
-
-  const colorSlug = handle.startsWith(matched.slug + "-")
-    ? handle.slice(matched.slug.length + 1)
-    : "";
-
-  const colorNames = Object.keys(matched.colorImages ?? {});
-  const colorName =
-    colorNames.find((c) => slugify(c) === colorSlug) ??
-    colorNames[0] ??
-    "White";
-
-  const colorImagesMap = (matched.colorImages ?? {}) as unknown as Record<string, string>;
-  const colorGalleriesMap = (matched.colorGalleries ?? {}) as unknown as Record<string, string[]>;
-  const mainImage: string = colorImagesMap[colorName] ?? matched.productShot;
-  const gallery: string[] = (colorGalleriesMap[colorName] as string[] | undefined) ?? [mainImage];
-
-  const allVariants = (matched as unknown as { variants?: Array<{ id: string; availableForSale: boolean; selectedOptions: Array<{ name: string; value: string }>; price?: string; compareAtPrice?: string }> }).variants;
-  const filteredVariants = allVariants?.filter((v) =>
-    v.selectedOptions.some(
-      (o) => o.name.toLowerCase() === "color" && slugify(o.value) === colorSlug,
-    ),
-  );
-  const resolvedVariants = filteredVariants?.length ? filteredVariants : allVariants;
-
-  return {
-    ...(matched as unknown as ProductConfig),
-    name: colorSlug ? `${matched.name} — ${colorName}` : matched.name,
-    productShot: mainImage,
-    filmstrip: gallery,
-    variants: resolvedVariants,
-  } as ProductConfig;
-}
 
 interface ProductPageProps {
   handle: string;
@@ -324,121 +247,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
     track.style.transform = `translateX(-${rawIdx * 100}%)`;
   }, [galleryImages.length, handle, loading]);
 
-  // Native touch swipe handler for the mobile gallery.
-  // Pointer events + setPointerCapture are unreliable on iOS when any child has
-  // non-passive touch listeners (iOS ignores touchAction in that case).
-  // This useEffect attaches touchmove with { passive: false } so we can call
-  // preventDefault() ONLY for horizontal swipes, letting vertical scrolls pass through.
-  useEffect(() => {
-    const track = mobileGalleryTrackRef.current;
-    const N = galleryImages.length;
-    if (!track || N <= 1) return;
 
-    let startX = 0;
-    let startY = 0;
-    let dirLocked: "h" | "v" | null = null;
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-      dirLocked = null;
-      mobileGalleryDragRef.current = { x: startX, y: startY };
-      mobileGalleryDidDragRef.current = false;
-      track.style.transition = "none";
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length !== 1 || !mobileGalleryDragRef.current) return;
-      const dx = e.touches[0].clientX - startX;
-      const dy = e.touches[0].clientY - startY;
-
-      if (!dirLocked) {
-        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-        dirLocked = Math.abs(dx) >= Math.abs(dy) ? "h" : "v";
-      }
-
-      if (dirLocked === "v") {
-        // Vertical scroll intent — cancel swipe and let browser scroll
-        mobileGalleryDragRef.current = null;
-        mobileGalleryDidDragRef.current = false;
-        track.style.transform = `translateX(-${mobileGalleryRawIdxRef.current * 100}%)`;
-        return;
-      }
-
-      // Horizontal swipe — block scroll
-      e.preventDefault();
-      mobileGalleryDidDragRef.current = true;
-      const pct = mobileGalleryRawIdxRef.current * 100;
-      track.style.transform = `translateX(calc(-${pct}% + ${dx}px))`;
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      if (!mobileGalleryDragRef.current) return;
-      const { x: sx } = mobileGalleryDragRef.current;
-      mobileGalleryDragRef.current = null;
-      const didDrag = mobileGalleryDidDragRef.current;
-      mobileGalleryDidDragRef.current = false;
-
-      if (!didDrag) {
-        setLightboxOpen(true);
-        track.style.transition = "transform 0.32s cubic-bezier(0.22,1,0.36,1)";
-        track.style.transform = `translateX(-${mobileGalleryRawIdxRef.current * 100}%)`;
-        return;
-      }
-
-      const endX = e.changedTouches[0]?.clientX ?? sx;
-      const dx = endX - sx;
-      const dir = dx < -20 ? 1 : dx > 20 ? -1 : 0;
-      let rawIdx = mobileGalleryRawIdxRef.current + dir;
-
-      track.style.transition = "transform 0.32s cubic-bezier(0.22,1,0.36,1)";
-      track.style.transform = `translateX(-${rawIdx * 100}%)`;
-      mobileGalleryRawIdxRef.current = rawIdx;
-
-      const suppressClick = (ev: MouseEvent) => {
-        ev.stopPropagation();
-        ev.preventDefault();
-        window.removeEventListener("click", suppressClick, true);
-      };
-      window.addEventListener("click", suppressClick, true);
-
-      track.addEventListener("transitionend", function onEnd() {
-        track.removeEventListener("transitionend", onEnd);
-        if (rawIdx <= 0) {
-          rawIdx = N;
-          track.style.transition = "none";
-          track.style.transform = `translateX(-${rawIdx * 100}%)`;
-          mobileGalleryRawIdxRef.current = rawIdx;
-        } else if (rawIdx >= N + 1) {
-          rawIdx = 1;
-          track.style.transition = "none";
-          track.style.transform = `translateX(-${rawIdx * 100}%)`;
-          mobileGalleryRawIdxRef.current = rawIdx;
-        }
-        setGalleryIndex((rawIdx - 1 + N) % N);
-      });
-    };
-
-    const onTouchCancel = () => {
-      mobileGalleryDragRef.current = null;
-      mobileGalleryDidDragRef.current = false;
-      dirLocked = null;
-      track.style.transition = "transform 0.32s cubic-bezier(0.22,1,0.36,1)";
-      track.style.transform = `translateX(-${mobileGalleryRawIdxRef.current * 100}%)`;
-    };
-
-    track.addEventListener("touchstart", onTouchStart, { passive: true });
-    track.addEventListener("touchmove", onTouchMove, { passive: false });
-    track.addEventListener("touchend", onTouchEnd, { passive: true });
-    track.addEventListener("touchcancel", onTouchCancel, { passive: true });
-    return () => {
-      track.removeEventListener("touchstart", onTouchStart);
-      track.removeEventListener("touchmove", onTouchMove);
-      track.removeEventListener("touchend", onTouchEnd);
-      track.removeEventListener("touchcancel", onTouchCancel);
-    };
-  }, [galleryImages.length, handle, loading, trackMounted, setGalleryIndex, setLightboxOpen]);
 
   // Preload all gallery images so thumbnails and swipes are instant, no spinners
   useEffect(() => {
@@ -460,6 +269,19 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
   const mobileGalleryRawIdxRef = useRef(1); // position in extended array [last, ...all, first]
   const mobileGalleryDragRef = useRef<{ x: number; y: number } | null>(null);
   const mobileGalleryDidDragRef = useRef(false);
+
+  useMobileGallerySwipe({
+    galleryImages,
+    handle,
+    loading,
+    trackMounted,
+    mobileGalleryTrackRef,
+    mobileGalleryRawIdxRef,
+    mobileGalleryDragRef,
+    mobileGalleryDidDragRef,
+    setGalleryIndex,
+    setLightboxOpen,
+  });
 
   // Callback ref: sets the transform immediately when the track element mounts.
   // The useLayoutEffect alone is insufficient because AnimatePresence mode="wait"

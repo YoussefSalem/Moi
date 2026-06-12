@@ -14,7 +14,9 @@ import { trackCheckoutStep, trackCheckoutStepTime } from "@/lib/analytics";
 import type { ShopifyCartLine } from "@/lib/shopify";
 import { CheckoutOrderSummaryPanel } from "./checkout/CheckoutOrderSummaryPanel";
 import { CheckoutDeliveryFormPanel } from "./checkout/CheckoutDeliveryFormPanel";
-import { resolveLineImage, normalizeTitle } from "@/lib/productImages";
+import { resolveLineImage } from "@/lib/productImages";
+import { PUBLIC_COLOR_IMAGES, SHIPPING_EGP, resolveEmailImage, buildOrderAttribution } from "./checkout/checkoutUtils";
+import { triggerApplePayHandler } from "@/lib/applePayHandler";
 
 import type { OrderResult, OrderBreakdown } from "./checkout/types";
 import { CODConfirmation } from "./checkout/CODConfirmation";
@@ -25,55 +27,6 @@ import { InstapayConfirmation } from "./checkout/InstapayConfirmation";
 // Images served via the API server (/api/images/) so they are always available
 // regardless of whether the web-app deployment is up to date.
 // window.location.origin auto-selects the right domain on dev vs production.
-const BASE_IMG = `${typeof window !== "undefined" ? window.location.origin : "https://buy-moi.com"}/api/images`;
-const PUBLIC_COLOR_IMAGES: Record<string, string> = {
-  beige:        `${BASE_IMG}/beige.jpg`,
-  white:        `${BASE_IMG}/white.jpg`,
-  cashmere:     `${BASE_IMG}/cashmere.jpg`,
-  yellow:       `${BASE_IMG}/yellow.jpg`,
-  teal:         `${BASE_IMG}/teal.jpg`,
-  navy:         `${BASE_IMG}/navi.jpg`,
-  mint:         `${BASE_IMG}/mint.jpg`,
-  "light blue": `${BASE_IMG}/light-blue-main.webp`,
-  sand:         `${BASE_IMG}/sand-main.jpg`,
-};
-
-/** Convert any internal image URL to a public URL that works in emails. */
-function resolveEmailImage(line: ShopifyCartLine, localItems?: { variantId: string; color?: string; image?: string | null }[]): string | null {
-  const variantId = line.merchandise.id;
-  const localMatch = localItems?.find((li) => li.variantId === variantId);
-
-  const rawTitle = line.merchandise.product.title ?? "";
-  const normTitle = normalizeTitle(rawTitle);
-
-  const SIZE_OPTION_NAMES = new Set(["size", "titre", "taille", "tamanho", "gr\u00f6\u00dfe"]);
-
-  const colorCandidates: string[] = [];
-  if (localMatch?.color) colorCandidates.push(localMatch.color.toLowerCase());
-  for (const opt of (line.merchandise.selectedOptions ?? [])) {
-    if (!SIZE_OPTION_NAMES.has(opt.name.toLowerCase())) {
-      colorCandidates.push(opt.value.toLowerCase());
-    }
-  }
-
-  // 1. Color swatch always takes priority — this is what the customer selected
-  for (const color of colorCandidates) {
-    const publicHit = PUBLIC_COLOR_IMAGES[color];
-    if (publicHit) return publicHit;
-  }
-
-  // 2. Shopify CDN image (only real CDN URLs, not placeholders)
-  const shopifyUrl = line.merchandise.image?.url ?? line.merchandise.product.featuredImage?.url ?? "";
-  if (shopifyUrl && shopifyUrl.includes("cdn.shopify.com")) {
-    return shopifyUrl;
-  }
-
-  // 3. Last resort: localStorage image (must be a public HTTP URL)
-  if (localMatch?.image && localMatch.image.startsWith("http")) return localMatch.image;
-
-  return null;
-}
-
 type PaymentMethod = "cod" | "instapay" | "card" | "wallet" | "apple-pay";
 /* Card, Wallet + Apple Pay are gated by feature flags in @/config/features */
 const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = [
@@ -85,45 +38,6 @@ const AVAILABLE_PAYMENT_METHODS: PaymentMethod[] = [
 ];
 type Step = "form" | "loading" | "cod-confirm" | "instapay-confirm" | "card-checkout" | "card-confirm";
 type InstapaySubStep = "instructions" | "upload" | "review";
-
-
-const SHIPPING_EGP = 75;
-
-/** Build marketing attribution payload from sessionStorage for order creation */
-function buildOrderAttribution() {
-  const attr = getAttribution();
-  const utm = attr.utm || {};
-  // Determine source_name for Shopify channel attribution
-  let sourceName: string | undefined;
-  if (utm.source === "facebook" || utm.source === "fb" || attr.fbclid) sourceName = "facebook";
-  else if (utm.source === "instagram" || utm.source === "ig") sourceName = "instagram";
-  else if (utm.source === "google" || attr.gclid) sourceName = "google";
-  else if (utm.source === "tiktok" || attr.ttclid) sourceName = "tiktok";
-  else if (utm.source) sourceName = utm.source;
-
-  // Derive referring_site from the source — document.referrer is unreliable for
-  // ad traffic (Meta/Google redirect chains strip it, iOS privacy hides it).
-  const REF_MAP: Record<string, string> = {
-    facebook: "https://www.facebook.com/",
-    instagram: "https://www.instagram.com/",
-    google: "https://www.google.com/",
-    tiktok: "https://www.tiktok.com/",
-  };
-  // Prefer the explicit referring site if the browser still has it, otherwise
-  // derive from source name so Shopify always has a value to report against.
-  const referringSite = document.referrer || (sourceName ? REF_MAP[sourceName] : undefined);
-
-  return {
-    ...(sourceName ? { sourceName } : {}),
-    ...(attr.firstLandingUrl ? { landingSite: attr.firstLandingUrl } : {}),
-    ...(referringSite ? { referringSite } : {}),
-    ...(Object.keys(utm).length > 0 ? { utm } : {}),
-    ...(attr.fbclid ? { fbclid: attr.fbclid } : {}),
-    ...(attr.gclid ? { gclid: attr.gclid } : {}),
-    ...(attr.ttclid ? { ttclid: attr.ttclid } : {}),
-  };
-}
-
 export function CheckoutPage() {
   const {
     shopifyCart,
@@ -241,214 +155,25 @@ export function CheckoutPage() {
 
   // Direct Apple Pay fast-path: native ApplePaySession with Paymob merchant validation.
   // This function is intentionally synchronous — ApplePaySession.begin() MUST be
-  // called in the same call-stack as the user gesture (tap/click).
-  // All async work (validate-merchant, authorize) happens inside the session callbacks.
+  // called synchronously from a user gesture; any async work before it causes Safari to
+  // reject the call.
   const triggerApplePayDirectInit = useCallback(() => {
-    if (submittingRef.current) return;
-    const AP = (window as unknown as {
-      ApplePaySession?: {
-        new(v: number, r: object): {
-          onvalidatemerchant: ((e: { validationURL: string }) => void) | null;
-          onpaymentauthorized: ((e: {
-            payment: {
-              token: { paymentData: unknown };
-              shippingContact?: {
-                givenName?: string; familyName?: string; emailAddress?: string;
-                phoneNumber?: string; addressLines?: string[]; locality?: string;
-                administrativeArea?: string;
-              };
-            };
-          }) => void) | null;
-          onshippingcontactselected: ((e: { shippingContact: unknown }) => void) | null;
-          onshippingmethodselected: ((e: { shippingMethod: unknown }) => void) | null;
-          oncancel: (() => void) | null;
-          completeMerchantValidation(s: unknown): void;
-          completeShippingContactSelection(u: unknown): void;
-          completeShippingMethodSelection(u: unknown): void;
-          completePayment(r: { status: number }): void;
-          abort(): void;
-          begin(): void;
-        };
-        canMakePayments(): boolean;
-        STATUS_SUCCESS: number;
-        STATUS_FAILURE: number;
-      };
-    }).ApplePaySession;
-    if (!AP) return;
-
-    const orderLines = isShopify && shopifyCart
-      ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
-      : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
-    if (orderLines.length === 0) return;
-
-    const subTotal = isShopify && shopifyCart
-      ? shopifyCart.lines.nodes.reduce((s, l) => s + parseFloat(l.merchandise.price.amount) * l.quantity, 0)
-      : localItems.reduce((s, i) => s + i.priceAmount * i.quantity, 0);
-    const cartDiscounted = isShopify && shopifyCart
-      ? parseFloat(shopifyCart.cost.totalAmount.amount)
-      : subTotal;
-    const savingsAmt = Math.max(0, subTotal - cartDiscounted);
-    const discSubtotal = subTotal - savingsAmt;
-    const isFreeShipping = discSubtotal >= 2000;
-    const shippingAmt = isFreeShipping ? 0 : SHIPPING_EGP;
-    const totalEGP = discSubtotal + shippingAmt;
-    const totalCents = Math.round(totalEGP * 100);
-
-    // version 4 required for lineItems; type on lineItems requires v14+ so omit it
-    const session = new AP(4, {
-      countryCode: "EG",
-      currencyCode: "EGP",
-      supportedNetworks: ["visa", "masterCard"],
-      merchantCapabilities: ["supports3DS"],
-      requiredShippingContactFields: ["name", "email", "phone", "postalAddress"],
-      shippingMethods: [
-        {
-          label: "Standard",
-          detail: "Delivery in 2–4 business days",
-          amount: shippingAmt.toFixed(2),
-          identifier: "standard",
-        },
-      ],
-      lineItems: shippingAmt > 0
-        ? [{ label: "Shipping", amount: shippingAmt.toFixed(2) }]
-        : [],
-      total: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
+    triggerApplePayHandler({
+      submittingRef,
+      applePayIntentIdRef,
+      isShopify,
+      shopifyCart,
+      localItems,
+      promoApplied,
+      clearCart,
+      resolveLineImage,
+      formatShopifyLinePrice,
+      setPaymentMethod,
+      setSubmitError,
+      closeCheckout,
     });
-
-    applePayIntentIdRef.current = null;
-    setPaymentMethod("apple-pay");
-    setSubmitError("");
-
-    session.onvalidatemerchant = async ({ validationURL }) => {
-      try {
-        const res = await fetch("/api/apple-pay/validate-merchant", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            validationURL,
-            lines: orderLines,
-            totalAmountCents: totalCents,
-            discountCode: promoApplied?.code ?? null,
-          }),
-        });
-        const data = await res.json() as { merchantSession?: unknown; intentId?: string; error?: string };
-        if (!res.ok || !data.merchantSession) throw new Error(data.error ?? "Merchant validation failed");
-        applePayIntentIdRef.current = data.intentId ?? null;
-        session.completeMerchantValidation(data.merchantSession);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Apple Pay is unavailable. Please try another payment method.";
-        session.abort();
-        setSubmitError(msg);
-        setPaymentMethod("cod");
-      }
-    };
-
-    // Required by Apple Pay JS when requiredShippingContactFields or shippingMethods
-    // are specified — must call completeShippingContactSelection / completeShippingMethodSelection
-    // or the session stalls and onpaymentauthorized never fires.
-    session.onshippingcontactselected = () => {
-      session.completeShippingContactSelection({
-        newTotal: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
-        newLineItems: shippingAmt > 0 ? [{ label: "Shipping", amount: shippingAmt.toFixed(2) }] : [],
-        newShippingMethods: [
-          {
-            label: "Standard",
-            detail: "Delivery in 2–4 business days",
-            amount: shippingAmt.toFixed(2),
-            identifier: "standard",
-          },
-        ],
-      });
-    };
-
-    session.onshippingmethodselected = () => {
-      session.completeShippingMethodSelection({
-        newTotal: { label: "Moi", amount: (totalCents / 100).toFixed(2) },
-        newLineItems: shippingAmt > 0 ? [{ label: "Shipping", amount: shippingAmt.toFixed(2) }] : [],
-      });
-    };
-
-    session.onpaymentauthorized = async ({ payment }) => {
-      // Diagnostic: fire-and-forget ping to confirm callback fired + network works
-      void fetch("/api/apple-pay/ping", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stage: "onpaymentauthorized" }),
-      });
-      try {
-        const sc = payment.shippingContact;
-        const res = await fetch("/api/apple-pay/authorize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            paymentData: JSON.stringify(payment.token.paymentData),
-            intentId: applePayIntentIdRef.current,
-            shippingContact: sc ? {
-              firstName: sc.givenName,
-              lastName: sc.familyName,
-              email: sc.emailAddress,
-              phone: sc.phoneNumber,
-              address: sc.addressLines?.[0],
-              city: sc.locality,
-              governorate: sc.administrativeArea,
-            } : undefined,
-          }),
-        });
-        const data = await res.json() as {
-          success?: boolean;
-          error?: string;
-          shopifyOrderNumber?: number | null;
-        };
-        if (data.success) {
-          session.completePayment({ status: AP.STATUS_SUCCESS });
-          const cartItemsSnapshot = isShopify && shopifyCart
-            ? shopifyCart.lines.nodes.map((l) => ({
-                id: l.id,
-                title: l.merchandise.product.title,
-                variantTitle: l.merchandise.title === "Default Title" ? null : l.merchandise.title,
-                quantity: l.quantity,
-                image: resolveLineImage(l, localItems),
-                price: formatShopifyLinePrice(l),
-              }))
-            : localItems.map((i) => ({
-                id: i.id,
-                title: i.title,
-                variantTitle: null,
-                quantity: i.quantity,
-                image: i.image ?? null,
-                price: i.price,
-              }));
-          const apBreakdown = { subtotal: subTotal, savings: savingsAmt, shippingCost: shippingAmt, freeShipping: isFreeShipping };
-          try {
-            sessionStorage.setItem("moi_order_confirmation", JSON.stringify({
-              items: cartItemsSnapshot,
-              breakdown: apBreakdown,
-              paymentMethod: "apple-pay",
-              orderNumber: data.shopifyOrderNumber ?? "",
-            }));
-          } catch { /* ignore */ }
-          clearCart();
-          window.history.pushState(null, "", "/order-confirmed");
-          window.dispatchEvent(new PopStateEvent("popstate"));
-          setTimeout(() => closeCheckout(), 80);
-        } else {
-          session.completePayment({ status: AP.STATUS_FAILURE });
-          setSubmitError(data.error ?? "Payment was declined. Please try another card.");
-          setPaymentMethod("cod");
-        }
-      } catch (apErr) {
-        session.completePayment({ status: AP.STATUS_FAILURE });
-        setSubmitError(`Debug: ${apErr instanceof Error ? apErr.message : String(apErr)}`);
-        setPaymentMethod("cod");
-      }
-    };
-
-    session.oncancel = () => {
-      setPaymentMethod("cod");
-    };
-
-    session.begin();
   }, [isShopify, shopifyCart, localItems, promoApplied, clearCart, formatShopifyLinePrice]);
+
 
   useEffect(() => {
     if (!checkoutOpen && prefilledEmail) return;
