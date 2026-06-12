@@ -410,12 +410,8 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
   useEffect(() => {
     setGalleryIndex(0);
     setImgLoaded(false);
-    mobileGalleryRawIdxRef.current = 1;
-    const track = mobileGalleryTrackRef.current;
-    if (track) {
-      track.style.transition = "none";
-      track.style.transform = "translateX(-100%)";
-    }
+    // Do NOT touch the DOM here — useLayoutEffect below owns track positioning.
+    // Resetting to 1 unconditionally was wrong for N=1 (1 slide → index 1 = blank).
   }, [handle]);
 
   // Meta Pixel + TikTok Pixel ViewContent — fires once per product page load
@@ -475,6 +471,9 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
 
   // Set the mobile gallery track's initial position imperatively so React's
   // reconciler never overwrites it on re-renders (memory: moi-product-carousel).
+  // Deps include `handle` (product navigation) and `loading` (skeleton → content
+  // transition) so this fires whenever the track is newly mounted or the product
+  // changes — not just when galleryImages.length changes.
   useLayoutEffect(() => {
     const track = mobileGalleryTrackRef.current;
     if (!track) return;
@@ -483,7 +482,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
     mobileGalleryRawIdxRef.current = rawIdx;
     track.style.transition = "none";
     track.style.transform = `translateX(-${rawIdx * 100}%)`;
-  }, [galleryImages.length]);
+  }, [galleryImages.length, handle, loading]);
 
   // Preload all gallery images so thumbnails and swipes are instant, no spinners
   useEffect(() => {
