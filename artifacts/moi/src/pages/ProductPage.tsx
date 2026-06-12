@@ -1323,7 +1323,8 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                         </div>
                       ) : (
                         <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.8rem, 6vw, 2.6rem)", fontWeight: 400, letterSpacing: "0.03em", color: "#1e1814", margin: "0 0 10px", lineHeight: 1.15 }}>
-                          Be the first to share your thoughts 🤍
+                          Be the first to share your thoughts{" "}
+                          <svg viewBox="0 0 24 24" style={{ display: "inline-block", width: "0.75em", height: "0.75em", verticalAlign: "middle", marginLeft: "0.15em" }} fill="none" stroke="#c9a0a0" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21C12 21 3 14.5 3 8.5a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-9 12.5-9 12.5z"/></svg>
                         </h2>
                       )}
 
