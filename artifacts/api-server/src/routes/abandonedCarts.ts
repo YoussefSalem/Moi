@@ -164,12 +164,17 @@ function ageMs(createdAt: Date): number {
 }
 
 function repairLineItems(items: unknown, siteUrl: string): LineItem[] {
-  return (items as LineItem[]).map((item) => ({
-    ...item,
-    imageUrl: item.imageUrl
-      ? item.imageUrl.replace(/^https?:\/\/[^/]+\/images\//, `${siteUrl}/api/images/`)
-      : item.imageUrl,
-  }));
+  return (items as LineItem[]).map((item) => {
+    if (!item.imageUrl) return item;
+    // Skip Shopify CDN URLs — they are always correct as-is
+    if (item.imageUrl.includes("cdn.shopify.com")) return item;
+    const fixed = item.imageUrl
+      // Fix legacy /images/ paths (old deployments)
+      .replace(/^https?:\/\/[^/]+\/images\//, `${siteUrl}/api/images/`)
+      // Fix /api/images/ paths captured with a stale origin (e.g. dev preview URL)
+      .replace(/^https?:\/\/[^/]+\/api\/images\//, `${siteUrl}/api/images/`);
+    return { ...item, imageUrl: fixed };
+  });
 }
 
 async function sendRecoveryEmails(): Promise<void> {
