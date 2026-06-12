@@ -410,7 +410,7 @@ export function CheckoutPage() {
               title: l.merchandise.product.title,
               variant: colorName ? `Color: ${colorName}` : (l.merchandise.title === "Default Title" ? undefined : l.merchandise.title),
               quantity: l.quantity,
-              price: `${Math.floor(parseFloat(l.merchandise.price.amount)).toLocaleString("de-DE")} EGP`,
+              price: `${Math.floor(parseFloat(l.merchandise.price.amount)).toLocaleString("en-US")} EGP`,
               imageUrl: resolveEmailImage(l, localItems) ?? undefined,
               variantId: l.merchandise.id,
             };

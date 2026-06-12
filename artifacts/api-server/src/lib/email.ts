@@ -760,6 +760,14 @@ export function buildInstapayRejectedEmail(params: {
 // Abandoned Cart Recovery Email
 // ---------------------------------------------------------------------------
 
+/** Normalise any price string to English comma format, e.g. "1.099 EGP" → "1,099 EGP" */
+function normalizeEmailPrice(price: string): string {
+  const raw = price.replace(/\s*EGP\s*/i, "").replace(/[.,\s]/g, "").trim();
+  const num = parseInt(raw, 10);
+  if (isNaN(num)) return price;
+  return num.toLocaleString("en-US") + " EGP";
+}
+
 export function buildAbandonedCartEmail(params: {
   customerEmail: string;
   lineItems: Array<{
@@ -811,7 +819,7 @@ export function buildAbandonedCartEmail(params: {
           <td style="vertical-align:top;">
             <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;line-height:1.4;font-weight:700;">${item.title}</p>${variant}
             <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#9a8e82;">Qty: ${item.quantity}</p>
-            <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;font-weight:700;">${item.price.replace(/\s*EGP\s*/i, "").trim()}&nbsp;EGP</p>
+            <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1a1714;font-weight:700;">${normalizeEmailPrice(item.price)}</p>
           </td>
         </tr>
       </table>
@@ -954,7 +962,7 @@ export function buildAbandonedCartEmail(params: {
 
   const itemsText = lineItems.map((i) => {
     const v = i.variant && i.variant !== "Default Title" ? ` \u2014 ${i.variant}` : "";
-    return `  ${i.title}${v} x ${i.quantity}  (${i.price} EGP)`;
+    return `  ${i.title}${v} x ${i.quantity}  (${normalizeEmailPrice(i.price)})`;
   }).join("\n");
 
   const text = `${headline}\n\n${subheadline}\n\nYOUR CART:\n${itemsText}\n\n${ctaText}:\n${recoveryUrl}\n\nQuestions? Contact us at hello@buy-moi.com\nInstagram: https://www.instagram.com/shopmoi/\nTikTok: https://www.tiktok.com/@shopmoi_\n\nXoXo, Moi.\uD83D\uDC8B\n\nbuy-moi.com`;
