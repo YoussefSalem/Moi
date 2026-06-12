@@ -413,6 +413,8 @@ function AppContent() {
   const product1 = products.find(p => p.slug === "moi-wavvy") ?? IMAGES.product1;
   const product2 = products.find(p => p.slug === "moi-versa-top") ?? IMAGES.product2;
   const product3 = products.find(p => p.slug === "trio-bangles") ?? IMAGES.product3 as ProductConfig;
+  const product1Colors = useMemo(() => deriveColors(product1), [product1]);
+  const product2Colors = useMemo(() => deriveColors(product2), [product2]);
 
   // Preload all landing-page product images into the browser cache while the MOI
   // loader is showing, so nothing pops in on scroll. The images keep loading="lazy",
@@ -654,7 +656,7 @@ function AppContent() {
               product={product1}
               sectionTitle="MOI WAVVY"
               sectionSubtitle="The ultimate throw-and-go. Light, breathable, and made for drifting."
-              colors={deriveColors(product1)}
+              colors={product1Colors}
               onNavigate={navigateToProduct}
               onAddToCart={handleColorCardAddToCart}
             />
@@ -667,7 +669,7 @@ function AppContent() {
             product={product2}
             sectionTitle="MOI VERSA TOP"
             sectionSubtitle="Effortlessly versatile. A silhouette that moves with you, in every shade of summer."
-            colors={deriveColors(product2)}
+            colors={product2Colors}
             onNavigate={navigateToProduct}
             onAddToCart={handleColorCardAddToCart}
             dark

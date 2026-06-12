@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { ColorCard } from "@/components/ColorCard";
 import { type ProductConfig } from "@/config/images";
@@ -22,7 +23,7 @@ interface ProductColorSectionProps {
   description?: string;
 }
 
-export function ProductColorSection({
+export const ProductColorSection = memo(function ProductColorSection({
   product,
   sectionTitle,
   sectionSubtitle,
@@ -140,4 +141,4 @@ export function ProductColorSection({
       </div>
     </section>
   );
-}
+});
