@@ -1,0 +1,102 @@
+Update the existing abandoned cart automation without redesigning, restructuring, or refactoring the current system.
+
+Important constraints:
+
+* Preserve the existing architecture, database schema, APIs, event flow, and business logic.
+* Make the smallest possible code changes required.
+* Do not optimize, reorganize, or rewrite unrelated parts of the codebase.
+* Do not introduce new services, queues, workers, cron jobs, or dependencies unless absolutely necessary.
+* Reuse existing email-sending functionality and scheduling mechanisms wherever possible.
+* Keep the implementation lightweight and maintainable.
+
+Current behavior:
+
+* One abandoned cart email is sent 45 minutes after cart abandonment.
+
+Desired behavior:
+
+1. First email: 45 minutes after cart abandonment (keep existing behavior and existing design/template).
+2. Second email: 24 hours after cart abandonment.
+3. Third email: 72 hours after cart abandonment.
+
+Requirements:
+
+* Prevent duplicate sends of the same email stage.
+* If an order is completed at any point, stop all future abandoned cart emails for that cart/customer.
+* Maintain all existing email templates, styling, branding, and tracking unless modifications are required for the new email content.
+* Follow existing coding patterns and conventions already present in the project.
+* Before making changes, inspect how abandoned carts are currently detected and how delayed emails are scheduled, then extend that implementation rather than replacing it.
+
+Email Content Requirements:
+
+Email #2 (24 Hours After Abandonment)
+Purpose: Remind the customer and reinforce confidence in the purchase without offering a discount.
+
+Subject:
+Still thinking it over?
+
+Preview Text:
+Your items are still waiting in your cart.
+
+Content:
+
+* Use the same design and layout as the existing abandoned cart email.
+* Display the products left in the cart using the existing cart rendering logic.
+* Friendly reminder that the cart is still available.
+* Reinforce trust and convenience.
+* Include a prominent "Complete Your Order" button linking to the existing cart recovery URL.
+
+Suggested copy:
+
+Headline:
+Your cart is still waiting
+
+Body:
+You recently left a few items in your cart and we wanted to make sure you didn't miss them.
+
+If you're still interested, you can return to your cart and complete your order in just a few clicks.
+
+CTA Button:
+Complete Your Order
+
+Email #3 (72 Hours After Abandonment)
+Purpose: Final reminder with a sense of urgency, but no discount.
+
+Subject:
+Last reminder: your cart may not be available for much longer
+
+Preview Text:
+Take one last look before your cart expires.
+
+Content:
+
+* Use the same design and layout as the existing abandoned cart email.
+* Display the products left in the cart using the existing cart rendering logic.
+* Create light urgency without using fake scarcity.
+* Include a prominent "Complete Your Order" button linking to the existing cart recovery URL.
+
+Suggested copy:
+
+Headline:
+Final reminder
+
+Body:
+This is our last reminder about the items you left in your cart.
+
+If you're still interested, now is a great time to complete your order before your cart session expires or product availability changes.
+
+CTA Button:
+Return To Your Cart
+
+Implementation Notes:
+
+* Reuse the existing abandoned cart email template and styling.
+* Only swap the subject line, preview text, headline, body copy, and CTA text for each email stage.
+* Do not create an entirely new email design.
+* Keep the implementation as simple as possible and reuse existing components.
+
+Deliverables:
+
+* Implement the minimal code changes necessary.
+* Explain what files were modified and why.
+* Do not make unrelated improvements or refactors.
