@@ -18,6 +18,7 @@ import { trackTikTokViewContent } from "@/lib/tiktokPixel";
 import { ENABLE_APPLE_PAY } from "@/config/features";
 import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
 import { WriteReviewModal } from "@/components/WriteReviewModal";
+import { Footer } from "@/components/Footer";
 
 // ── Star rating SVG component ─────────────────────────────────────────────────
 interface RecItem {
@@ -265,9 +266,10 @@ interface ProductPageProps {
   handle: string;
   onBack: () => void;
   onNavigate?: (handle: string) => void;
+  onPageNavigate?: (page: "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery", hash?: string) => void;
 }
 
-export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
+export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: ProductPageProps) {
   const fallback = deriveFallbackFromHandle(handle);
   const { product, loading } = useShopifyProductByHandle(handle, fallback);
   // When Shopify returns all variants for the base product (e.g. all MOI WAVVY colors),
@@ -1454,6 +1456,9 @@ export function ProductPage({ handle, onBack, onNavigate }: ProductPageProps) {
                   />
                 );
               })()}
+
+              {/* ══ FOOTER ══ */}
+              <Footer onNavigate={onPageNavigate} />
 
             </motion.div>
           )}

@@ -741,6 +741,7 @@ function AppContent() {
                 handle={productHandle}
                 onBack={() => navigateTo("home", undefined, true)}
                 onNavigate={navigateToProduct}
+                onPageNavigate={(p, hash) => navigateTo(p as PageType, hash)}
               />
             ) : page === "accessories" ? (
               <div>
