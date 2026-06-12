@@ -216,15 +216,15 @@ export function ShopifyApplePayButton({
     session.begin();
   }, [busy, disabled, variantId, quantity, priceEGP, cartLines, totalEGP, discountCode, onSuccess, onCancel, onError]);
 
-  if (!available || disabled) return null;
+  if (!available) return null;
 
   return (
-    <div className={className} style={{ width: "100%", ...style }}>
+    <div className={className} style={{ width: "100%", opacity: disabled ? 0.45 : 1, transition: "opacity 0.18s", ...style }}>
       <button
         type="button"
         className="apple-pay-btn"
         onClick={handlePay}
-        disabled={busy}
+        disabled={busy || disabled}
         aria-label="Buy with Apple Pay"
       />
 
