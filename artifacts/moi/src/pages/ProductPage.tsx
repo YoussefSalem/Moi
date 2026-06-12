@@ -1740,20 +1740,20 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={() => setSizeGuideOpen(false)}
-            style={{ position: "fixed", inset: 0, zIndex: 200, backgroundColor: "rgba(30,24,20,0.45)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+            style={{ position: "fixed", inset: 0, zIndex: 200, backgroundColor: "rgba(30,24,20,0.55)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
           >
             <motion.div
               key="size-guide-panel"
-              initial={{ y: 40, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 40, opacity: 0 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: "#faf8f5",
                 width: "100%",
-                maxWidth: 560,
-                borderRadius: "12px 12px 0 0",
+                maxWidth: 520,
+                borderRadius: "12px",
                 maxHeight: "85dvh",
                 display: "flex",
                 flexDirection: "column",
@@ -1771,7 +1771,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
               </div>
 
               {/* Scrollable body */}
-              <div style={{ overflowY: "auto", flex: 1, padding: "20px 24px", paddingBottom: "calc(32px + env(safe-area-inset-bottom))", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
+              <div style={{ overflowY: "auto", flex: 1, padding: "20px 24px 32px", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
 
                 {/* Measurement note */}
                 <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#8a7e74", fontWeight: 300, letterSpacing: "0.03em", marginBottom: 20, lineHeight: 1.6 }}>
