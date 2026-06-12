@@ -431,17 +431,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const prevLocal = localItemsRef.current;
 
     if (SHOPIFY_CONFIGURED && shopifyCartRef.current) {
+      // Find the line being removed so we know its quantity for totalQuantity correction
+      const removedLine = shopifyCartRef.current.lines.nodes.find((l) => l.id === idOrLineId);
+      const removedQty = removedLine?.quantity ?? 1;
       // Build an optimistic cart with the line removed
       const optimistic = {
         ...shopifyCartRef.current,
         lines: {
           nodes: shopifyCartRef.current.lines.nodes.filter((l) => l.id !== idOrLineId),
         },
-        totalQuantity: Math.max(0, (shopifyCartRef.current.totalQuantity ?? 1) - 1),
+        totalQuantity: Math.max(0, (shopifyCartRef.current.totalQuantity ?? removedQty) - removedQty),
       } as typeof shopifyCartRef.current;
       setCart(optimistic);
       // Also sync local items for the removed variantId
-      const removedLine = prevCart?.lines.nodes.find((l) => l.id === idOrLineId);
       if (removedLine) {
         setLocalItems((prev) => {
           const filtered = prev.filter((i) => i.variantId !== removedLine.merchandise.id);

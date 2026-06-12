@@ -535,7 +535,7 @@ export function CheckoutPage() {
           clearCart();
           window.history.pushState(null, "", "/order-confirmed");
           window.dispatchEvent(new PopStateEvent("popstate"));
-          setTimeout(() => closeCheckout(), 80);
+          closeCheckout();
         } else {
           session.completePayment({ status: AP.STATUS_FAILURE });
           setSubmitError(data.error ?? "Payment was declined. Please try another card.");
@@ -543,7 +543,7 @@ export function CheckoutPage() {
         }
       } catch (apErr) {
         session.completePayment({ status: AP.STATUS_FAILURE });
-        setSubmitError(`Debug: ${apErr instanceof Error ? apErr.message : String(apErr)}`);
+        setSubmitError(apErr instanceof Error ? apErr.message : "Apple Pay could not complete. Please try another payment method.");
         setPaymentMethod("cod");
       }
     };
@@ -668,7 +668,7 @@ export function CheckoutPage() {
         price: item.price,
       })));
 
-  function fmt(amount: number) {
+  const fmt = useCallback((amount: number) => {
     try {
       return new Intl.NumberFormat("en-EG", {
         style: "currency", currency: currencyCode, minimumFractionDigits: 0, maximumFractionDigits: 0,
@@ -676,7 +676,7 @@ export function CheckoutPage() {
     } catch {
       return `${amount.toFixed(0)} EGP`;
     }
-  }
+  }, [currencyCode]);
 
 
   const handleApplyPromo = useCallback(async () => {
