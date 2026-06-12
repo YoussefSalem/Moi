@@ -287,6 +287,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [trackMounted, setTrackMounted] = useState(false);
   const [waHover, setWaHover] = useState(false);
   const [applePayAvailable, setApplePayAvailable] = useState(false);
   const recs = useMemo(() => ALL_RECS.filter((r) => r.handle !== handle), [handle]);
@@ -598,7 +599,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
       track.removeEventListener("touchend", onTouchEnd);
       track.removeEventListener("touchcancel", onTouchCancel);
     };
-  }, [galleryImages.length, handle, loading, setGalleryIndex, setLightboxOpen]);
+  }, [galleryImages.length, handle, loading, trackMounted, setGalleryIndex, setLightboxOpen]);
 
   // Preload all gallery images so thumbnails and swipes are instant, no spinners
   useEffect(() => {
@@ -630,12 +631,16 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
   // fires synchronously on mount regardless of AnimatePresence timing.
   const setMobileGalleryTrackRef = useCallback((el: HTMLDivElement | null) => {
     mobileGalleryTrackRef.current = el;
-    if (!el) return;
+    if (!el) {
+      setTrackMounted(false);
+      return;
+    }
     const N = galleryImages.length;
     const rawIdx = N > 1 ? 1 : 0;
     mobileGalleryRawIdxRef.current = rawIdx;
     el.style.transition = "none";
     el.style.transform = `translateX(-${rawIdx * 100}%)`;
+    setTrackMounted(true);
   }, [galleryImages.length]);
 
   const selectedVariant = (() => {
