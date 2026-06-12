@@ -2,6 +2,18 @@ import { useEffect, useState } from "react";
 import { getProducts, formatMoney, SHOPIFY_CONFIGURED, type ShopifyProduct } from "@/lib/shopify";
 import { type ProductConfig, type VariantOption } from "@/config/images";
 
+// Returns true only for real product photos hosted in Shopify's /products/ path.
+// Variant images from the Files section (/files/) are colour swatches or uploads
+// that should not replace local product shots.
+function isProductPhoto(url: string): boolean {
+  try {
+    const path = new URL(url).pathname;
+    return path.includes("/products/");
+  } catch {
+    return false;
+  }
+}
+
 export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductConfig): ProductConfig {
   const { minVariantPrice } = shopify.priceRange;
   const priceFormatted = formatMoney(minVariantPrice.amount, minVariantPrice.currencyCode);
@@ -25,6 +37,7 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
   const shopifyMainByColor: Record<string, string> = {};
   for (const v of shopify.variants.nodes) {
     if (!v.image?.url) continue;
+    if (!isProductPhoto(v.image.url)) continue;
     const colorOpt = v.selectedOptions.find(
       (o) => o.name.toLowerCase() === "color",
     );
@@ -105,25 +118,22 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
     return result;
   })();
 
-  // Build colorImages: prefer Shopify's per-variant image (set in Shopify admin per
-  // color) over the local fallback. This ensures the correct product photo is shown
-  // for each color even when local assets visually resemble another colorway.
+  // Build colorImages: prefer Shopify's per-variant image over the local fallback,
+  // but only when the Shopify image is an actual product photo (hosted under
+  // /products/ on the CDN). Swatch/file-section uploads (/files/) are skipped so
+  // they don't replace the local product shots.
   const colorImages = (() => {
     const localMap = (fallback.colorImages ?? {}) as Record<string, string>;
     const merged: Record<string, string> = { ...localMap };
 
     for (const v of shopify.variants.nodes) {
       if (!v.image?.url) continue;
+      if (!isProductPhoto(v.image.url)) continue;
       const colorOpt = v.selectedOptions.find(
         (o) => o.name.toLowerCase() === "color",
       );
       if (!colorOpt) continue;
-      const colorName = colorOpt.value; // exact Shopify casing e.g. "Navy"
-      // Only set from Shopify if not already populated (first variant wins per color)
-      if (!merged[colorName]) {
-        merged[colorName] = v.image.url;
-      }
-      // Also overwrite if the Shopify image differs from local (Shopify is source of truth)
+      const colorName = colorOpt.value;
       merged[colorName] = v.image.url;
     }
     return merged;
@@ -136,10 +146,12 @@ export function mapProductToConfig(shopify: ShopifyProduct, fallback: ProductCon
   const colorGalleries = (() => {
     const localGalleries = (fallback.colorGalleries ?? {}) as Record<string, string[]>;
 
-    // Collect the first distinct Shopify CDN image per color
+    // Collect the first distinct Shopify product photo per color.
+    // Skip swatch/file-section images that are not real product shots.
     const shopifyMainByColor: Record<string, string> = {};
     for (const v of shopify.variants.nodes) {
       if (!v.image?.url) continue;
+      if (!isProductPhoto(v.image.url)) continue;
       const colorOpt = v.selectedOptions.find(
         (o) => o.name.toLowerCase() === "color",
       );

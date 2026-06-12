@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 export function AddedToBagToast() {
   const [visible, setVisible] = useState(false);
   const [detail, setDetail] = useState("");
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     const handler = (e: Event) => {
