@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
+import { transitions, dur } from "@/lib/motion";
 import { showAddedToBagToast } from "@/lib/cartToast";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
 import { parseEGP } from "@/lib/price";
@@ -644,12 +645,12 @@ function AppContent() {
             animate={{ opacity: 1, y: 0 }}
             exit={
               skipExitAnimation
-                ? { opacity: 0, transition: { duration: 0 } }
+                ? { opacity: 0, transition: { duration: dur.instant } }
                 : isGoingBack
-                  ? { opacity: 0, y: 14, transition: { duration: 0.28, ease: [0.25, 0.1, 0.25, 1] } }
-                  : { opacity: 0, y: -4, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] } }
+                  ? { opacity: 0, y: 14, transition: transitions.pageExit }
+                  : { opacity: 0, y: -4, transition: transitions.page }
             }
-            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={transitions.page}
             style={{
               willChange: "opacity, transform",
               backgroundColor: "#faf8f5",

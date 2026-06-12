@@ -23,7 +23,7 @@ All Framer Motion `transition` props in Moi components must use tokens from `@/l
 - Wraps Tab/Shift+Tab within the container's focusable elements
 - Restores previous focus on deactivation
 
-Applied to: Header menu nav (`navRef`) and CartDrawer aside (`drawerRef`). LookView/CinematicLightbox already have Escape handling.
+Apply to every overlay component (drawers, modals, lightboxes) — any element that renders above the main page content and intercepts user interaction requires this treatment.
 
 ## ARIA for overlay drawers
 Overlay drawers/modals use:

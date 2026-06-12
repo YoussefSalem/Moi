@@ -135,7 +135,7 @@ export function CustomerAuthModal() {
                   {step === "code" && !customer && (
                     <button
                       onClick={() => { setStep("email"); setCode(""); setError(null); }}
-                      className="transition-opacity hover:opacity-50 mr-1"
+                      className="w-11 h-11 flex items-center justify-center -ml-3 transition-opacity hover:opacity-50"
                       aria-label="Back"
                     >
                       <ArrowLeft size={16} strokeWidth={1.5} style={{ color: "#1e1814" }} />
