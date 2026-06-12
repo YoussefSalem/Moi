@@ -106,7 +106,7 @@
     <script>
       (function() {
         var isProd = location.hostname === 'buy-moi.com' || location.hostname === 'www.buy-moi.com';
-        var gaId = 'G-MEASUREMENT_ID';
+        var gaId = '%VITE_GA4_ID%';
         var isPlaceholder = !gaId || gaId.indexOf('MEASUREMENT') !== -1;
         if (!isProd || isPlaceholder) return;
         var s = document.createElement('script');

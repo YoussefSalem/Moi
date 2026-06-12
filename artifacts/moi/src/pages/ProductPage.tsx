@@ -1,5 +1,4 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
-import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Bell } from "lucide-react";
 import { ProductCarousel, type CarouselItem } from "@/components/ProductCarousel";
@@ -12,7 +11,6 @@ import { useCustomer } from "@/context/CustomerContext";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { NotifyMeModal } from "@/components/NotifyMeModal";
 import { CinematicLightbox } from "@/components/CinematicLightbox";
-import { ImageSkeleton } from "@/components/ImageSkeleton";
 import { trackAddToCart } from "@/lib/analytics";
 import { trackViewContent } from "@/lib/metaPixel";
 import { trackTikTokViewContent } from "@/lib/tiktokPixel";
@@ -21,6 +19,12 @@ import { ENABLE_APPLE_PAY } from "@/config/features";
 import { ShopifyApplePayButton } from "@/components/ShopifyApplePayButton";
 import { WriteReviewModal } from "@/components/WriteReviewModal";
 import { Footer } from "@/components/Footer";
+import { ZoomableImage } from "./product/ZoomableImage";
+import { ProductSkeleton } from "./product/ProductSkeleton";
+import { ProductReviews, type ReviewItem } from "./product/ProductReviews";
+import { SizeGuideModal } from "./product/SizeGuideModal";
+import { ProductTrustBadges } from "./product/ProductTrustBadges";
+import { ImageSkeleton } from "@/components/ImageSkeleton";
 
 // ── Star rating SVG component ─────────────────────────────────────────────────
 interface RecItem {
@@ -104,166 +108,6 @@ function deriveFallbackFromHandle(handle: string): ProductConfig {
   } as ProductConfig;
 }
 
-function ZoomableImage({ src, alt, resetKey, onPinchStart }: {
-  src: string;
-  alt: string;
-  resetKey: number;
-  onPinchStart?: () => void;
-}) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const scaleRef = useRef(1);
-  const txRef = useRef(0);
-  const tyRef = useRef(0);
-  const pinchRef = useRef<{ dist: number; startScale: number } | null>(null);
-  const panRef = useRef<{ x: number; y: number; startTx: number; startTy: number } | null>(null);
-  const lastTapRef = useRef(0);
-  const isPinchingRef = useRef(false);
-  // Keep a stable ref to the latest onPinchStart callback
-  const onPinchStartRef = useRef(onPinchStart);
-  onPinchStartRef.current = onPinchStart;
-
-  const applyTransform = useCallback((animated = false) => {
-    const el = wrapRef.current;
-    if (!el) return;
-    el.style.transition = animated ? "transform 0.22s ease-out" : "none";
-    el.style.transform = `scale(${scaleRef.current}) translate(${txRef.current}px, ${tyRef.current}px)`;
-  }, []);
-
-  const clampTranslate = useCallback((s: number, x: number, y: number) => {
-    if (s <= 1) return { x: 0, y: 0 };
-    const parent = wrapRef.current?.parentElement;
-    if (!parent) return { x, y };
-    const rect = parent.getBoundingClientRect();
-    const maxX = (rect.width * (s - 1)) / (2 * s);
-    const maxY = (rect.height * (s - 1)) / (2 * s);
-    return { x: Math.max(-maxX, Math.min(maxX, x)), y: Math.max(-maxY, Math.min(maxY, y)) };
-  }, []);
-
-  useEffect(() => {
-    scaleRef.current = 1;
-    txRef.current = 0;
-    tyRef.current = 0;
-    isPinchingRef.current = false;
-    applyTransform(true);
-  }, [resetKey, applyTransform]);
-
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-
-    const getDistance = (a: Touch, b: Touch) =>
-      Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        e.stopPropagation();
-        isPinchingRef.current = true;
-        onPinchStartRef.current?.();
-        pinchRef.current = { dist: getDistance(e.touches[0], e.touches[1]), startScale: scaleRef.current };
-        panRef.current = null;
-      } else if (e.touches.length === 1) {
-        const now = Date.now();
-        const dt = now - lastTapRef.current;
-        lastTapRef.current = now;
-        if (dt < 300 && dt > 0) {
-          e.preventDefault();
-          e.stopPropagation();
-          lastTapRef.current = 0;
-          if (scaleRef.current > 1.1) {
-            scaleRef.current = 1; txRef.current = 0; tyRef.current = 0;
-            isPinchingRef.current = false;
-          } else {
-            scaleRef.current = 2;
-            const c = clampTranslate(2, txRef.current, tyRef.current);
-            txRef.current = c.x; tyRef.current = c.y;
-          }
-          applyTransform(true);
-          return;
-        }
-        if (scaleRef.current > 1) {
-          e.preventDefault();
-          e.stopPropagation();
-          panRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, startTx: txRef.current, startTy: tyRef.current };
-        }
-      }
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 2 && pinchRef.current) {
-        e.preventDefault();
-        e.stopPropagation();
-        const newDist = getDistance(e.touches[0], e.touches[1]);
-        let s = pinchRef.current.startScale * (newDist / pinchRef.current.dist);
-        s = Math.max(1, Math.min(4, s));
-        scaleRef.current = s;
-        const c = clampTranslate(s, txRef.current, tyRef.current);
-        txRef.current = c.x; tyRef.current = c.y;
-        applyTransform();
-      } else if (e.touches.length === 1 && panRef.current) {
-        e.preventDefault();
-        e.stopPropagation();
-        const dx = (e.touches[0].clientX - panRef.current.x) / scaleRef.current;
-        const dy = (e.touches[0].clientY - panRef.current.y) / scaleRef.current;
-        const c = clampTranslate(scaleRef.current, panRef.current.startTx + dx, panRef.current.startTy + dy);
-        txRef.current = c.x; tyRef.current = c.y;
-        applyTransform();
-      }
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length < 2) {
-        pinchRef.current = null;
-        if (e.touches.length === 0) isPinchingRef.current = false;
-      }
-      if (e.touches.length === 0) panRef.current = null;
-      if (scaleRef.current < 1.15) {
-        scaleRef.current = 1; txRef.current = 0; tyRef.current = 0;
-        isPinchingRef.current = false;
-        applyTransform(true);
-      }
-    };
-
-    el.addEventListener("touchstart", onTouchStart, { passive: false });
-    el.addEventListener("touchmove", onTouchMove, { passive: false });
-    el.addEventListener("touchend", onTouchEnd, { passive: false });
-    return () => {
-      el.removeEventListener("touchstart", onTouchStart);
-      el.removeEventListener("touchmove", onTouchMove);
-      el.removeEventListener("touchend", onTouchEnd);
-    };
-  }, [applyTransform, clampTranslate]);
-
-  // Belt-and-suspenders: stop pointer events from reaching the gallery swipe
-  // handler when we own the gesture (zoomed or mid-pinch). This catches browsers
-  // where pointerdown fires before touchstart, preventing preventDefault from
-  // cancelling already-dispatched pointer events.
-  const stopIfActive = useCallback((e: React.PointerEvent) => {
-    if (scaleRef.current > 1 || isPinchingRef.current) {
-      e.stopPropagation();
-    }
-  }, []);
-
-  return (
-    <div
-      ref={wrapRef}
-      onPointerDown={stopIfActive}
-      onPointerMove={stopIfActive}
-      onPointerUp={stopIfActive}
-      onPointerCancel={stopIfActive}
-      style={{ width: "100%", height: "100%", transformOrigin: "center center", willChange: "transform" }}
-    >
-      <img
-        src={src}
-        alt={alt}
-        style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block", userSelect: "none", pointerEvents: "none" }}
-        loading="eager"
-        draggable={false}
-      />
-    </div>
-  );
-}
-
 interface ProductPageProps {
   handle: string;
   onBack: () => void;
@@ -296,14 +140,6 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
   const addingRef = useRef(false);
 
   // ── Reviews ──────────────────────────────────────────────────────────────────
-  interface ReviewItem {
-    id: number;
-    author: string;
-    title: string;
-    body: string;
-    rating: number;
-    date: string;
-  }
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [reviewsLoaded, setReviewsLoaded] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -812,123 +648,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              {/* ── DESKTOP skeleton (lg+): 3-col to match real layout ── */}
-              <div className="hidden lg:block" style={{ maxWidth: 1280, margin: "0 auto", padding: "120px 28px 96px" }}>
-                {/* Breadcrumb */}
-                <div className="relative overflow-hidden rounded mb-10" style={{ height: 12, width: 160, backgroundColor: "rgba(30,24,20,0.05)" }}>
-                  <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                </div>
-                {/* 3-col grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "0.85fr 1.35fr 0.85fr", gap: "0 48px", alignItems: "start" }}>
-                  {/* Col 1: Story */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingTop: 4 }}>
-                    <div className="relative overflow-hidden rounded" style={{ height: 10, width: 80, backgroundColor: "rgba(30,24,20,0.05)" }}>
-                      <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                    </div>
-                    <div className="relative overflow-hidden rounded" style={{ height: 44, width: "80%", backgroundColor: "rgba(30,24,20,0.05)" }}>
-                      <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                    </div>
-                    <div className="relative overflow-hidden rounded" style={{ height: 36, width: "55%", backgroundColor: "rgba(30,24,20,0.04)" }}>
-                      <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                    </div>
-                    <div style={{ height: 1, backgroundColor: "rgba(30,24,20,0.07)", margin: "4px 0" }} />
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="relative overflow-hidden rounded" style={{ height: 12, width: i === 4 ? "65%" : "100%", backgroundColor: "rgba(30,24,20,0.04)" }}>
-                        <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                      </div>
-                    ))}
-                  </div>
-                  {/* Col 2: Image */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div className="relative overflow-hidden" style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.05)", boxShadow: "0 16px 56px rgba(30,24,20,0.08)" }}>
-                      <ImageSkeleton variant="warm" />
-                    </div>
-                    <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="relative overflow-hidden" style={{ width: 58, height: 76, backgroundColor: "rgba(30,24,20,0.05)" }}>
-                          <ImageSkeleton variant="warm" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  {/* Col 3: Purchase */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16, paddingTop: 4 }}>
-                    <div className="relative overflow-hidden rounded" style={{ height: 34, width: "60%", backgroundColor: "rgba(30,24,20,0.05)" }}>
-                      <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                    </div>
-                    <div style={{ height: 1, backgroundColor: "rgba(30,24,20,0.07)" }} />
-                    <div className="relative overflow-hidden rounded" style={{ height: 10, width: 64, backgroundColor: "rgba(30,24,20,0.04)" }}>
-                      <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: "rgba(30,24,20,0.07)" }} />
-                      ))}
-                    </div>
-                    <div className="relative overflow-hidden rounded" style={{ height: 10, width: 48, backgroundColor: "rgba(30,24,20,0.04)" }}>
-                      <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="relative overflow-hidden rounded" style={{ height: 32, flex: 1, backgroundColor: "rgba(30,24,20,0.05)" }}>
-                          <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                        </div>
-                      ))}
-                    </div>
-                    <div className="relative overflow-hidden rounded" style={{ height: 46, backgroundColor: "rgba(30,24,20,0.07)" }}>
-                      <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                    </div>
-                    <div className="relative overflow-hidden rounded" style={{ height: 46, backgroundColor: "rgba(30,24,20,0.04)" }}>
-                      <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── MOBILE skeleton (<lg): gallery → info stack ── */}
-              <div className="lg:hidden">
-                {/* Full-bleed image */}
-                <div className="relative overflow-hidden w-full" style={{ aspectRatio: "3/4", backgroundColor: "rgba(30,24,20,0.05)" }}>
-                  <ImageSkeleton variant="warm" />
-                </div>
-                {/* Dot indicators */}
-                <div style={{ display: "flex", gap: 5, justifyContent: "center", padding: "10px 0 4px" }}>
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} style={{ height: 5, borderRadius: 3, backgroundColor: `rgba(30,24,20,${i === 1 ? 0.2 : 0.07})`, width: i === 1 ? 18 : 5 }} />
-                  ))}
-                </div>
-                {/* Info */}
-                <div style={{ padding: "16px 20px 40px", display: "flex", flexDirection: "column", gap: 14 }}>
-                  <div className="relative overflow-hidden rounded" style={{ height: 36, width: "75%", backgroundColor: "rgba(30,24,20,0.05)" }}>
-                    <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                  </div>
-                  <div className="relative overflow-hidden rounded" style={{ height: 22, width: "35%", backgroundColor: "rgba(30,24,20,0.04)" }}>
-                    <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                  </div>
-                  <div style={{ height: 1, backgroundColor: "rgba(30,24,20,0.07)" }} />
-                  <div className="relative overflow-hidden rounded" style={{ height: 10, width: 60, backgroundColor: "rgba(30,24,20,0.04)" }}>
-                    <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: "rgba(30,24,20,0.07)" }} />
-                    ))}
-                  </div>
-                  <div className="relative overflow-hidden rounded" style={{ height: 10, width: 44, backgroundColor: "rgba(30,24,20,0.04)" }}>
-                    <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                  </div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="relative overflow-hidden rounded" style={{ height: 38, flex: 1, backgroundColor: "rgba(30,24,20,0.05)" }}>
-                        <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="relative overflow-hidden rounded" style={{ height: 48, backgroundColor: "rgba(30,24,20,0.07)" }}>
-                    <div className="absolute inset-0" style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)", animation: "moi-shimmer 1.6s ease-in-out infinite" }} />
-                  </div>
-                </div>
-              </div>
+              <ProductSkeleton />
             </motion.div>
           ) : (
             <motion.div
@@ -1190,19 +910,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                           <svg width={15} height={15} viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.526 5.856L.057 23.215a.75.75 0 00.928.908l5.444-1.466A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.714 9.714 0 01-4.95-1.355l-.355-.211-3.676.99.997-3.584-.232-.37A9.715 9.715 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg>
                           Order via WhatsApp
                         </a>
-                        {/* Trust badges */}
-                        <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, padding: "12px 14px", border: "1px solid rgba(30,24,20,0.10)", borderRadius: 4 }}>
-                          {[
-                            { icon: <svg width={16} height={16} viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="7" rx="1" stroke="#6b6258" strokeWidth="1.3"/><path d="M4 6V5a4 4 0 018 0v1" stroke="#6b6258" strokeWidth="1.3" strokeLinecap="round"/><circle cx="5" cy="12" r="1.5" fill="#6b6258"/><circle cx="11" cy="12" r="1.5" fill="#6b6258"/></svg>, text: "2–4 day delivery in Egypt" },
-                            { icon: <svg width={16} height={16} viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="9" rx="1" stroke="#6b6258" strokeWidth="1.3"/><path d="M5 6V4.5A3 3 0 018 1.5v0A3 3 0 0111 4.5V6" stroke="#6b6258" strokeWidth="1.3" strokeLinecap="round"/><line x1="8" y1="9" x2="8" y2="12" stroke="#6b6258" strokeWidth="1.3" strokeLinecap="round"/><line x1="6.5" y1="10.5" x2="9.5" y2="10.5" stroke="#6b6258" strokeWidth="1.3" strokeLinecap="round"/></svg>, text: "Cash on delivery available" },
-                            { icon: <svg width={16} height={16} viewBox="0 0 16 16" fill="none"><path d="M8 1.5L2 4v4c0 3.5 2.5 6 6 7 3.5-1 6-3.5 6-7V4L8 1.5z" stroke="#6b6258" strokeWidth="1.3" strokeLinejoin="round"/><path d="M5.5 8l1.5 1.5L10.5 6" stroke="#6b6258" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>, text: "Secure checkout" },
-                          ].map(({ icon, text }) => (
-                            <div key={text} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              {icon}
-                              <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 12.5, color: "#6b6258", fontWeight: 400, letterSpacing: "0.03em" }}>{text}</span>
-                            </div>
-                          ))}
-                        </div>
+                        <ProductTrustBadges />
                       </div>
                     )}
 
@@ -1493,185 +1201,13 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                       <svg width={15} height={15} viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.526 5.856L.057 23.215a.75.75 0 00.928.908l5.444-1.466A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.714 9.714 0 01-4.95-1.355l-.355-.211-3.676.99.997-3.584-.232-.37A9.715 9.715 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg>
                       Order via WhatsApp
                     </a>
-                    {/* Trust badges */}
-                    <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, padding: "12px 14px", border: "1px solid rgba(30,24,20,0.10)", borderRadius: 4 }}>
-                      {[
-                        {
-                          icon: <svg width={16} height={16} viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="7" rx="1" stroke="#6b6258" strokeWidth="1.3"/><path d="M4 6V5a4 4 0 018 0v1" stroke="#6b6258" strokeWidth="1.3" strokeLinecap="round"/><circle cx="5" cy="12" r="1.5" fill="#6b6258"/><circle cx="11" cy="12" r="1.5" fill="#6b6258"/></svg>,
-                          text: "2–4 day delivery in Egypt",
-                        },
-                        {
-                          icon: <svg width={16} height={16} viewBox="0 0 16 16" fill="none"><rect x="1" y="6" width="14" height="9" rx="1" stroke="#6b6258" strokeWidth="1.3"/><path d="M5 6V4.5A3 3 0 018 1.5v0A3 3 0 0111 4.5V6" stroke="#6b6258" strokeWidth="1.3" strokeLinecap="round"/><line x1="8" y1="9" x2="8" y2="12" stroke="#6b6258" strokeWidth="1.3" strokeLinecap="round"/><line x1="6.5" y1="10.5" x2="9.5" y2="10.5" stroke="#6b6258" strokeWidth="1.3" strokeLinecap="round"/></svg>,
-                          text: "Cash on delivery available",
-                        },
-                        {
-                          icon: <svg width={16} height={16} viewBox="0 0 16 16" fill="none"><path d="M8 1.5L2 4v4c0 3.5 2.5 6 6 7 3.5-1 6-3.5 6-7V4L8 1.5z" stroke="#6b6258" strokeWidth="1.3" strokeLinejoin="round"/><path d="M5.5 8l1.5 1.5L10.5 6" stroke="#6b6258" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-                          text: "Secure checkout",
-                        },
-                      ].map(({ icon, text }) => (
-                        <div key={text} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          {icon}
-                          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 12.5, color: "#6b6258", fontWeight: 400, letterSpacing: "0.03em" }}>{text}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <ProductTrustBadges />
                   </div>
                 )}
               </div>{/* end mobile */}
 
               {/* ══ REVIEWS ══ */}
-              {reviewsLoaded && (() => {
-                const avg = reviews.length > 0
-                  ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
-                  : 0;
-                const avgRounded = Math.round(avg);
-                return (
-                  <div style={{
-                    background: "linear-gradient(158deg, #f2ece2 0%, #e8dfd2 55%, #ede6d8 100%)",
-                    padding: "clamp(48px, 10vw, 80px) clamp(20px, 5vw, 40px)",
-                  }}>
-                    {/* ── Centred inner shell ── */}
-                    <div style={{ maxWidth: 600, margin: "0 auto", textAlign: "center" }}>
-
-                      {/* Label */}
-                      <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.36em", textTransform: "uppercase", color: "#a09890", margin: "0 0 18px" }}>
-                        From Sister to Sister
-                      </p>
-
-                      {/* Score / heading */}
-                      {reviews.length > 0 ? (
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: 28 }}>
-                          <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(4rem, 12vw, 6rem)", fontWeight: 300, color: "#1e1814", lineHeight: 1, letterSpacing: "-0.02em" }}>
-                            {avg % 1 === 0 ? avg.toFixed(0) : avg.toFixed(1)}
-                          </span>
-                          <div style={{ display: "flex", gap: 4 }}>
-                            {[1,2,3,4,5].map((s) => (
-                              <svg key={s} width={17} height={17} viewBox="0 0 12 12">
-                                <path d="M6 1l1.2 2.9L10.5 4l-2.25 2.2.53 3.15L6 7.85l-2.78 1.5.53-3.15L1.5 4l3.3-.1z" fill={s <= avgRounded ? "#1e1814" : "rgba(30,24,20,0.18)"} />
-                              </svg>
-                            ))}
-                          </div>
-                          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 400, color: "#9a8e84", letterSpacing: "0.08em", margin: 0 }}>
-                            Based on {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
-                          </p>
-                        </div>
-                      ) : (
-                        <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.8rem, 6vw, 2.6rem)", fontWeight: 400, letterSpacing: "0.03em", color: "#1e1814", margin: "0 0 10px", lineHeight: 1.15 }}>
-                          Be the first to share your thoughts{" "}
-                          <svg viewBox="0 0 24 24" style={{ display: "inline-block", width: "0.75em", height: "0.75em", verticalAlign: "middle", marginLeft: "0.15em" }} fill="none" stroke="#c9a0a0" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21C12 21 3 14.5 3 8.5a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-9 12.5-9 12.5z"/></svg>
-                        </h2>
-                      )}
-
-                      {/* CTA button — always centred */}
-                      <button
-                        type="button"
-                        onClick={() => setReviewModalOpen(true)}
-                        style={{
-                          fontFamily: "'Montserrat', sans-serif",
-                          fontSize: 9,
-                          fontWeight: 700,
-                          letterSpacing: "0.28em",
-                          textTransform: "uppercase",
-                          color: "#faf8f5",
-                          backgroundColor: "#1e1814",
-                          border: "none",
-                          padding: "14px 32px",
-                          minHeight: 46,
-                          cursor: "pointer",
-                          transition: "opacity 0.2s",
-                          marginTop: reviews.length > 0 ? 0 : 20,
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.76"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-                      >
-                        Write a Review
-                      </button>
-
-                      {/* ── Review list ── */}
-                      {reviews.length > 0 && (
-                        <div style={{ marginTop: 48 }}>
-                          {reviews.map((review, idx) => (
-                            <div
-                              key={review.id}
-                              style={{
-                                background: "rgba(255,255,255,0.52)",
-                                backdropFilter: "blur(6px)",
-                                WebkitBackdropFilter: "blur(6px)",
-                                borderRadius: 3,
-                                padding: "clamp(24px, 5vw, 36px)",
-                                marginBottom: idx < reviews.length - 1 ? 16 : 0,
-                                position: "relative",
-                                overflow: "hidden",
-                              }}
-                            >
-                              {/* Decorative bg quote */}
-                              <span aria-hidden="true" style={{
-                                position: "absolute",
-                                top: -8,
-                                left: 12,
-                                fontFamily: "'Cormorant Garamond', Georgia, serif",
-                                fontSize: "7rem",
-                                fontWeight: 300,
-                                lineHeight: 1,
-                                color: "rgba(30,24,20,0.05)",
-                                pointerEvents: "none",
-                                userSelect: "none",
-                              }}>"</span>
-
-                              {/* Stars */}
-                              <div style={{ display: "flex", justifyContent: "center", gap: 3, marginBottom: 14 }}>
-                                {[1,2,3,4,5].map((s) => (
-                                  <svg key={s} width={14} height={14} viewBox="0 0 12 12">
-                                    <path d="M6 1l1.2 2.9L10.5 4l-2.25 2.2.53 3.15L6 7.85l-2.78 1.5.53-3.15L1.5 4l3.3-.1z" fill={s <= review.rating ? "#1e1814" : "rgba(30,24,20,0.16)"} />
-                                  </svg>
-                                ))}
-                              </div>
-
-                              {/* Title */}
-                              {review.title && (
-                                <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.1rem, 3.5vw, 1.3rem)", fontWeight: 600, letterSpacing: "0.02em", color: "#1e1814", margin: "0 0 10px", lineHeight: 1.25 }}>
-                                  {review.title}
-                                </p>
-                              )}
-
-                              {/* Body */}
-                              <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1rem, 3vw, 1.15rem)", fontStyle: "italic", fontWeight: 400, color: "#4a4038", lineHeight: 1.85, margin: "0 0 18px", letterSpacing: "0.01em" }}>
-                                {review.body}
-                              </p>
-
-                              {/* Author + date */}
-                              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                                <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: "#7a6e64", margin: 0 }}>
-                                  — {review.author}
-                                </p>
-                                <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 9, fontWeight: 400, letterSpacing: "0.10em", color: "#b5aea8", margin: 0 }}>
-                                  {review.date}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Empty state */}
-                      {reviews.length === 0 && (
-                        <div style={{ marginTop: 44, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-                          <div style={{ display: "flex", gap: 5 }}>
-                            {[1,2,3,4,5].map((s) => (
-                              <svg key={s} width={20} height={20} viewBox="0 0 12 12">
-                                <path d="M6 1l1.2 2.9L10.5 4l-2.25 2.2.53 3.15L6 7.85l-2.78 1.5.53-3.15L1.5 4l3.3-.1z" fill="rgba(30,24,20,0.14)" />
-                              </svg>
-                            ))}
-                          </div>
-                          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(1.05rem, 3.5vw, 1.25rem)", fontStyle: "italic", fontWeight: 400, color: "#9a8e84", margin: 0, lineHeight: 1.65, maxWidth: 320 }}>
-                            Your words matter — share how this piece made you feel.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
+              <ProductReviews reviews={reviews} reviewsLoaded={reviewsLoaded} onWriteReview={() => setReviewModalOpen(true)} />
 
               {/* ══ YOU MAY ALSO LIKE ══ */}
               {onNavigate && recs.length > 0 && (() => {
@@ -1731,104 +1267,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
         onClose={() => setCarouselLb((s) => ({ ...s, open: false }))}
       />
 
-      {/* Size Guide Modal */}
-      {createPortal(
-      <AnimatePresence>
-        {sizeGuideOpen && (
-          <motion.div
-            key="size-guide-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={() => setSizeGuideOpen(false)}
-            style={{ position: "fixed", inset: 0, zIndex: 9999, backgroundColor: "rgba(30,24,20,0.55)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
-          >
-            <motion.div
-              key="size-guide-panel"
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: "#faf8f5",
-                width: "100%",
-                maxWidth: 520,
-                borderRadius: "12px",
-                maxHeight: "85dvh",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              {/* Sticky header — never scrolls */}
-              <div style={{ padding: "28px 24px 20px", flexShrink: 0, borderBottom: "1px solid rgba(30,24,20,0.08)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" as const, color: "#7a6e64", marginBottom: 6 }}>MOI Versa Top</p>
-                    <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "1.55rem", fontWeight: 400, letterSpacing: "0.04em", color: "#1e1814", lineHeight: 1 }}>Size Guide</h2>
-                  </div>
-                  <button type="button" onClick={() => setSizeGuideOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#7a6e74", lineHeight: 1, padding: 8, fontSize: 20, flexShrink: 0 }} aria-label="Close size guide">✕</button>
-                </div>
-              </div>
-
-              {/* Scrollable body */}
-              <div style={{ overflowY: "auto", flex: 1, padding: "20px 24px 32px", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
-
-                {/* Measurement note */}
-                <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 11, color: "#8a7e74", fontWeight: 300, letterSpacing: "0.03em", marginBottom: 20, lineHeight: 1.6 }}>
-                  All measurements in centimetres. Measure yourself and compare to the size that fits best.
-                </p>
-
-                {/* Table — horizontally scrollable on narrow screens */}
-                <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", margin: "0 -4px" } as React.CSSProperties}>
-                  <table style={{ minWidth: 320, width: "100%", borderCollapse: "collapse" as const, fontFamily: "'Montserrat', sans-serif" }}>
-                    <thead>
-                      <tr style={{ borderBottom: "1.5px solid rgba(30,24,20,0.14)" }}>
-                        {["Size", "Chest", "Waist", "Hip", "Length"].map((h) => (
-                          <th key={h} style={{ padding: "8px 10px", textAlign: "left" as const, fontSize: 9, fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase" as const, color: "#7a6e64", whiteSpace: "nowrap" }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { size: "S / M", chest: "82–94", waist: "66–78", hip: "90–102", length: "58" },
-                        { size: "L / XL", chest: "98–110", waist: "82–94", hip: "106–118", length: "60" },
-                      ].map((row, i) => (
-                        <tr key={row.size} style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", backgroundColor: i % 2 === 0 ? "transparent" : "rgba(30,24,20,0.025)" }}>
-                          <td style={{ padding: "13px 10px", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", color: "#1e1814", whiteSpace: "nowrap" }}>{row.size}</td>
-                          <td style={{ padding: "13px 10px", fontSize: 12, fontWeight: 300, color: "#4a4038", whiteSpace: "nowrap" }}>{row.chest}</td>
-                          <td style={{ padding: "13px 10px", fontSize: 12, fontWeight: 300, color: "#4a4038", whiteSpace: "nowrap" }}>{row.waist}</td>
-                          <td style={{ padding: "13px 10px", fontSize: 12, fontWeight: 300, color: "#4a4038", whiteSpace: "nowrap" }}>{row.hip}</td>
-                          <td style={{ padding: "13px 10px", fontSize: 12, fontWeight: 300, color: "#4a4038", whiteSpace: "nowrap" }}>{row.length}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* How to measure tip */}
-                <div style={{ marginTop: 24, padding: "14px 16px", border: "1px solid rgba(30,24,20,0.10)", borderRadius: 6 }}>
-                  <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase" as const, color: "#7a6e64", marginBottom: 8 }}>How to measure</p>
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column" as const, gap: 6 }}>
-                    {[
-                      { label: "Chest", desc: "Measure around the fullest part of your bust, keeping the tape parallel to the floor." },
-                      { label: "Waist", desc: "Measure around your natural waistline, the narrowest part of your torso." },
-                      { label: "Hip", desc: "Measure around the fullest part of your hips, about 20 cm below your waist." },
-                    ].map(({ label, desc }) => (
-                      <li key={label} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 600, color: "#8a7e74", minWidth: 40, paddingTop: 1 }}>{label}</span>
-                        <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 10, fontWeight: 300, color: "#8a7e74", lineHeight: 1.6 }}>{desc}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      , document.body)}
+      <SizeGuideModal open={sizeGuideOpen} onClose={() => setSizeGuideOpen(false)} />
     </>
   );
 }

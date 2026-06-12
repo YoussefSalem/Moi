@@ -6,7 +6,7 @@
  * Set ANALYTICS_ENABLED = true to re-enable. All tracking code remains intact.
  */
 
-const ANALYTICS_ENABLED = false;
+const ANALYTICS_ENABLED = import.meta.env.VITE_ANALYTICS_ENABLED === "true";
 
 const API_BASE = import.meta.env.BASE_URL ?? "/";
 
