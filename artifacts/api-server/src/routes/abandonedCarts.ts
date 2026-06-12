@@ -2,7 +2,7 @@ import { Router } from "express";
 import crypto from "crypto";
 import { db } from "@workspace/db";
 import { abandonedCarts } from "@workspace/db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, isNull, isNotNull } from "drizzle-orm";
 import { sendEmail, buildAbandonedCartEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 import { getSiteUrl } from "../lib/siteUrl";
@@ -10,8 +10,10 @@ import { getSiteUrl } from "../lib/siteUrl";
 const router = Router();
 
 const isDev = process.env.NODE_ENV === "development";
-const RECOVERY_DELAY_MS = isDev ? 10 * 1000 : 45 * 60 * 1000; // 10s dev / 45min prod
-const RECOVERY_INTERVAL_MS = isDev ? 5 * 1000 : 5 * 60 * 1000; // 5s dev / 5min prod
+const RECOVERY_DELAY_MS  = isDev ? 10 * 1000 :  45 * 60 * 1000; // 10s  dev / 45min prod
+const DELAY_2_MS         = isDev ? 20 * 1000 :  24 * 60 * 60 * 1000; // 20s  dev / 24h   prod
+const DELAY_3_MS         = isDev ? 30 * 1000 :  72 * 60 * 60 * 1000; // 30s  dev / 72h   prod
+const RECOVERY_INTERVAL_MS = isDev ? 5 * 1000 : 5 * 60 * 1000; // 5s  dev / 5min prod
 
 function generateRecoveryToken(): string {
   return crypto.randomBytes(16).toString("hex");
@@ -149,20 +151,39 @@ router.post("/abandoned-carts/:id/recovered", async (req, res) => {
 // Background scheduler: sends recovery emails
 // ---------------------------------------------------------------------------
 
-function isSendTime(createdAt: Date): boolean {
-  return Date.now() - createdAt.getTime() >= RECOVERY_DELAY_MS;
+type LineItem = {
+  title: string;
+  variant?: string;
+  quantity: number;
+  price: string;
+  imageUrl?: string;
+};
+
+function ageMs(createdAt: Date): number {
+  return Date.now() - createdAt.getTime();
+}
+
+function repairLineItems(items: unknown, siteUrl: string): LineItem[] {
+  return (items as LineItem[]).map((item) => ({
+    ...item,
+    imageUrl: item.imageUrl
+      ? item.imageUrl.replace(/^https?:\/\/[^/]+\/images\//, `${siteUrl}/api/images/`)
+      : item.imageUrl,
+  }));
 }
 
 async function sendRecoveryEmails(): Promise<void> {
   try {
-    const rows = await db.select().from(abandonedCarts)
+    const siteUrl = getSiteUrl();
+
+    // ── Email 1: 45 min after abandonment (status = "started") ───────────
+    const started = await db.select().from(abandonedCarts)
       .where(eq(abandonedCarts.status, "started"));
 
-    for (const row of rows) {
-      if (!isSendTime(row.createdAt)) continue;
+    for (const row of started) {
+      if (ageMs(row.createdAt) < RECOVERY_DELAY_MS) continue;
       if (!Array.isArray(row.lineItems) || row.lineItems.length === 0) continue;
 
-      // Skip rows with invalid email addresses and mark them so they aren't retried
       if (!row.email || !row.email.includes("@")) {
         await db.update(abandonedCarts)
           .set({ status: "failed", updatedAt: new Date() })
@@ -171,55 +192,99 @@ async function sendRecoveryEmails(): Promise<void> {
         continue;
       }
 
-      const siteUrl = getSiteUrl();
       const recoveryUrl = `${siteUrl}/?recover-cart=${row.recoveryToken}`;
-
-      // Repair any legacy image URLs that pointed to the web-app deployment
-      // (/images/) — those may not exist on older deployments. The API server
-      // always serves the canonical set at /api/images/.
-      const repairedItems = (row.lineItems as Array<{
-        title: string;
-        variant?: string;
-        quantity: number;
-        price: string;
-        imageUrl?: string;
-      }>).map((item) => ({
-        ...item,
-        imageUrl: item.imageUrl
-          ? item.imageUrl.replace(
-              /^https?:\/\/[^/]+\/images\//,
-              `${siteUrl}/api/images/`,
-            )
-          : item.imageUrl,
-      }));
-
       const { html, text } = buildAbandonedCartEmail({
         customerEmail: row.email,
-        lineItems: repairedItems,
+        lineItems: repairLineItems(row.lineItems, siteUrl),
         totalAmount: row.totalAmount,
         recoveryUrl,
         siteUrl,
       });
 
       try {
-        await sendEmail({
-          to: row.email,
-          subject: "You left something behind.",
-          html,
-          text,
-        });
-
+        await sendEmail({ to: row.email, subject: "You left something behind.", html, text });
         await db.update(abandonedCarts)
           .set({ status: "email_sent", emailSentAt: new Date(), updatedAt: new Date() })
           .where(eq(abandonedCarts.id, row.id));
-
-        logger.info({ id: row.id, email: row.email }, "abandoned-cart: recovery email sent");
+        logger.info({ id: row.id, email: row.email }, "abandoned-cart: email 1 sent");
       } catch (err) {
-        logger.warn({ err, id: row.id }, "abandoned-cart: failed to send recovery email");
-        // Mark as failed so the scheduler doesn't retry indefinitely
+        logger.warn({ err, id: row.id }, "abandoned-cart: failed to send email 1");
         await db.update(abandonedCarts)
           .set({ status: "failed", updatedAt: new Date() })
           .where(eq(abandonedCarts.id, row.id));
+      }
+    }
+
+    // ── Email 2: 24 h after abandonment (email_sent, email2SentAt IS NULL) ──
+    const forEmail2 = await db.select().from(abandonedCarts)
+      .where(and(eq(abandonedCarts.status, "email_sent"), isNull(abandonedCarts.email2SentAt)));
+
+    for (const row of forEmail2) {
+      if (ageMs(row.createdAt) < DELAY_2_MS) continue;
+      if (!Array.isArray(row.lineItems) || row.lineItems.length === 0) continue;
+
+      const recoveryUrl = `${siteUrl}/?recover-cart=${row.recoveryToken}`;
+      const { html, text } = buildAbandonedCartEmail({
+        customerEmail: row.email,
+        lineItems: repairLineItems(row.lineItems, siteUrl),
+        totalAmount: row.totalAmount,
+        recoveryUrl,
+        siteUrl,
+        headline: "Your cart is still waiting",
+        subheadline: "You recently left a few items in your cart and we wanted to make sure you didn\u2019t miss them.\n\nIf you\u2019re still interested, you can return to your cart and complete your order in just a few clicks.",
+        ctaText: "Complete Your Order",
+        previewText: "Your items are still waiting in your cart.",
+      });
+
+      try {
+        await sendEmail({ to: row.email, subject: "Still thinking it over?", html, text });
+        await db.update(abandonedCarts)
+          .set({ email2SentAt: new Date(), updatedAt: new Date() })
+          .where(eq(abandonedCarts.id, row.id));
+        logger.info({ id: row.id, email: row.email }, "abandoned-cart: email 2 sent");
+      } catch (err) {
+        logger.warn({ err, id: row.id }, "abandoned-cart: failed to send email 2");
+      }
+    }
+
+    // ── Email 3: 72 h after abandonment (email_sent, email2 sent, email3 IS NULL) ──
+    const forEmail3 = await db.select().from(abandonedCarts)
+      .where(and(
+        eq(abandonedCarts.status, "email_sent"),
+        isNotNull(abandonedCarts.email2SentAt),
+        isNull(abandonedCarts.email3SentAt),
+      ));
+
+    for (const row of forEmail3) {
+      if (ageMs(row.createdAt) < DELAY_3_MS) continue;
+      if (!Array.isArray(row.lineItems) || row.lineItems.length === 0) continue;
+
+      const recoveryUrl = `${siteUrl}/?recover-cart=${row.recoveryToken}`;
+      const { html, text } = buildAbandonedCartEmail({
+        customerEmail: row.email,
+        lineItems: repairLineItems(row.lineItems, siteUrl),
+        totalAmount: row.totalAmount,
+        recoveryUrl,
+        siteUrl,
+        headline: "Final reminder",
+        subheadline: "This is our last reminder about the items you left in your cart.\n\nIf you\u2019re still interested, now is a great time to complete your order before your cart session expires or product availability changes.",
+        ctaText: "Return To Your Cart",
+        previewText: "Take one last look before your cart expires.",
+      });
+
+      try {
+        await sendEmail({
+          to: row.email,
+          subject: "Last reminder: your cart may not be available for much longer",
+          html,
+          text,
+        });
+        await db.update(abandonedCarts)
+          .set({ email3SentAt: new Date(), updatedAt: new Date() })
+          .where(eq(abandonedCarts.id, row.id));
+        logger.info({ id: row.id, email: row.email }, "abandoned-cart: email 3 sent");
+      } catch (err) {
+        logger.warn({ err, id: row.id }, "abandoned-cart: failed to send email 3");
       }
     }
   } catch (err) {

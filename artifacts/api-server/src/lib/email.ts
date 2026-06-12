@@ -772,8 +772,21 @@ export function buildAbandonedCartEmail(params: {
   totalAmount: string;
   recoveryUrl: string;
   siteUrl?: string;
+  headline?: string;
+  subheadline?: string;
+  ctaText?: string;
+  previewText?: string;
 }): { html: string; text: string } {
-  const { lineItems, totalAmount, recoveryUrl, siteUrl = "https://buy-moi.com" } = params;
+  const {
+    lineItems,
+    totalAmount,
+    recoveryUrl,
+    siteUrl = "https://buy-moi.com",
+    headline = "Our MOI pieces are waiting for you.",
+    subheadline = "Complete your wardrobe before they sell out.",
+    ctaText = "Complete My Order",
+    previewText,
+  } = params;
 
   // Build each product row \u2014 mobile-first, using only real product images from the cart
   const itemRows = lineItems.map((item, i) => {
@@ -832,10 +845,8 @@ export function buildAbandonedCartEmail(params: {
 <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
 </head>
 <body style="margin:0;padding:0;background-color:#f4f0eb;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;">
-<!-- Hidden preheader (blank so phone notification shows only the subject) -->
-<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
-  &nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;
-</div>
+<!-- Hidden preheader -->
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${previewText ? previewText + " " : ""}&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;</div>
 
 <!-- Wrapper -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f0eb;">
@@ -866,8 +877,8 @@ export function buildAbandonedCartEmail(params: {
 
         <!-- Hero copy -->
         <tr><td class="card" style="padding:32px 24px 0;">
-          <h1 class="hero-title" style="margin:0 0 10px;font-family:Georgia,'Times New Roman',Times,serif;font-size:26px;font-weight:400;color:#1a1714;line-height:1.25;letter-spacing:-0.01em;">Our MOI pieces are waiting for you.</h1>
-          <p class="hero-sub" style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#5c504a;">Complete your wardrobe before they sell out.</p>
+          <h1 class="hero-title" style="margin:0 0 10px;font-family:Georgia,'Times New Roman',Times,serif;font-size:26px;font-weight:400;color:#1a1714;line-height:1.25;letter-spacing:-0.01em;">${headline}</h1>
+          <p class="hero-sub" style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#5c504a;">${subheadline}</p>
         </td></tr>
 
         <!-- Divider -->
@@ -891,7 +902,7 @@ export function buildAbandonedCartEmail(params: {
                   <tr>
                     <td>
                       <a href="${recoveryUrl}" class="cta-btn" style="display:inline-block;padding:22px 80px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#ffffff;text-decoration:none;white-space:nowrap;">
-                        Complete My Order
+                        ${ctaText}
                       </a>
                     </td>
                   </tr>
@@ -946,7 +957,7 @@ export function buildAbandonedCartEmail(params: {
     return `  ${i.title}${v} x ${i.quantity}  (${i.price} EGP)`;
   }).join("\n");
 
-  const text = `Our MOI pieces are waiting for you.\n\nComplete your wardrobe before they sell out.\n\nYOUR CART:\n${itemsText}\n\nComplete My Order:\n${recoveryUrl}\n\nQuestions? Contact us at hello@buy-moi.com\nInstagram: https://www.instagram.com/shopmoi/\nTikTok: https://www.tiktok.com/@shopmoi_\n\nXoXo, Moi.\uD83D\uDC8B\n\nbuy-moi.com`;
+  const text = `${headline}\n\n${subheadline}\n\nYOUR CART:\n${itemsText}\n\n${ctaText}:\n${recoveryUrl}\n\nQuestions? Contact us at hello@buy-moi.com\nInstagram: https://www.instagram.com/shopmoi/\nTikTok: https://www.tiktok.com/@shopmoi_\n\nXoXo, Moi.\uD83D\uDC8B\n\nbuy-moi.com`;
 
   return { html, text };
 }

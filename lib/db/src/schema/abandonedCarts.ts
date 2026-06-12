@@ -14,6 +14,8 @@ export const abandonedCarts = pgTable("abandoned_carts", {
   /** Unique token for the recovery link (e.g. ?recover-cart=abc123) */
   recoveryToken: text("recovery_token").notNull().unique(),
   emailSentAt: timestamp("email_sent_at"),
+  email2SentAt: timestamp("email2_sent_at"),
+  email3SentAt: timestamp("email3_sent_at"),
   clickedAt: timestamp("clicked_at"),
   recoveredAt: timestamp("recovered_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
