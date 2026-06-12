@@ -8,6 +8,14 @@
  *
  * Both carry the same deterministic `event_id` so Meta deduplicates them as
  * a single event, eliminating the cs_est double-fire in Events Manager.
+ *
+ * Gating: tracking fires ONLY on the production storefront hostnames
+ * (buy-moi.com / www.buy-moi.com), mirroring the pixel init in index.html.
+ * This keeps the browser pixel and CAPI in lockstep and prevents events from
+ * leaking out of dev / preview / *.replit.app environments. The CAPI relay is
+ * intentionally NOT gated on the presence of `fbq` so it still fires when the
+ * browser pixel script is blocked (ad blockers / iOS), which is the whole point
+ * of having a server-side channel.
  */
 
 import { getAttribution } from "./adAttribution";
@@ -29,11 +37,36 @@ const ECOMMERCE_EVENTS = new Set([
   "CompleteRegistration",
 ]);
 
+/**
+ * Tracking is only active on the live storefront. Mirrors the hostname gate in
+ * index.html so the browser pixel and CAPI never disagree about whether an event
+ * should be sent.
+ */
+function isMetaTrackingEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  const h = window.location.hostname;
+  return h === "buy-moi.com" || h === "www.buy-moi.com";
+}
+
+/** Read a browser cookie by name. */
+function readCookie(name: string): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const m = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]+)"));
+  return m ? decodeURIComponent(m[1]) : undefined;
+}
+
 export interface CapiUserData {
   email?: string;
   phone?: string;
   first_name?: string;
   last_name?: string;
+}
+
+/** A single line item, in Meta's `contents` shape. */
+export interface CapiContent {
+  id: string;
+  quantity: number;
+  item_price?: number;
 }
 
 /**
@@ -47,6 +80,7 @@ function sendCapiEvent(
   eventId: string,
   params: Record<string, string | number | boolean>,
   userData?: CapiUserData,
+  contents?: CapiContent[],
 ): void {
   if (typeof window === "undefined") return;
   if (!ECOMMERCE_EVENTS.has(eventName)) return;
@@ -64,6 +98,7 @@ function sendCapiEvent(
     currency: params.currency ?? "EGP",
   };
   if (contentIds?.length) body.content_ids = contentIds;
+  if (contents?.length) body.contents = contents;
   if (params.value) body.value = params.value;
   if (params.num_items) body.num_items = params.num_items;
   if (params.fbc) body.fbc = params.fbc;
@@ -88,10 +123,11 @@ export function trackEvent(
   eventName: string,
   params?: Record<string, string | number | boolean | undefined>,
   userData?: CapiUserData,
+  contents?: CapiContent[],
 ): void {
-  if (typeof window === "undefined") return;
-  const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq;
-  if (!fbq) return;
+  // Single gate for BOTH browser pixel and CAPI — keeps them in lockstep and
+  // prevents events leaking from non-production hostnames.
+  if (!isMetaTrackingEnabled()) return;
 
   const cleaned: Record<string, string | number | boolean> = {};
   for (const [key, value] of Object.entries(params ?? {})) {
@@ -127,10 +163,15 @@ export function trackEvent(
     }
   }
 
-  // Attach Meta attribution cookies for ad platform cross-device matching
+  // Attach Meta attribution cookies for ad platform cross-device matching.
+  // Prefer the LIVE _fbc / _fbp cookies (set by fbq, refreshed each visit) and
+  // fall back to the session-captured attribution snapshot. Live cookies give
+  // Meta the strongest match signal for CAPI.
   const attr = getAttribution();
-  if (attr.fbc) cleaned.fbc = attr.fbc;
-  if (attr.fbp) cleaned.fbp = attr.fbp;
+  const fbc = readCookie("_fbc") ?? attr.fbc;
+  const fbp = readCookie("_fbp") ?? attr.fbp;
+  if (fbc) cleaned.fbc = fbc;
+  if (fbp) cleaned.fbp = fbp;
 
   // Deduplication key: deterministic event_id so Meta can deduplicate duplicate fires.
   // IMPORTANT: eventID must go in the 4th argument {eventID: ...}, NOT inside the params
@@ -149,11 +190,22 @@ export function trackEvent(
     eventId = `${eventName}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   }
 
-  // 1. Browser pixel
-  fbq("track", eventName, Object.keys(cleaned).length > 0 ? cleaned : {}, { eventID: eventId });
+  // 1. Browser pixel — only if fbq is present (may be blocked by ad blockers).
+  //    content_ids is sent as a proper array (Meta's expected shape) so it
+  //    matches what the CAPI relay sends server-side.
+  const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq;
+  if (fbq) {
+    const fbqPayload: Record<string, unknown> = { ...cleaned };
+    if (contentIds) {
+      fbqPayload.content_ids = contentIds.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+    if (contents?.length) fbqPayload.contents = contents;
+    fbq("track", eventName, fbqPayload, { eventID: eventId });
+  }
 
-  // 2. Server-side CAPI (same event_id → Meta deduplicates)
-  sendCapiEvent(eventName, eventId, cleaned, userData);
+  // 2. Server-side CAPI (same event_id → Meta deduplicates). Fires even when the
+  //    browser pixel is blocked, so ad-blocked / iOS conversions are recovered.
+  sendCapiEvent(eventName, eventId, cleaned, userData, contents);
 }
 
 /** E-commerce helpers */
@@ -209,10 +261,12 @@ export function trackInitiateCheckout(params: {
 
 export function trackPurchase(params: {
   content_ids?: string[];
+  contents?: CapiContent[];
   currency?: string;
   value?: number;
   num_items?: number;
   order_id?: string;
+  user?: CapiUserData;
 }): void {
   trackEvent("Purchase", {
     content_type: "product",
@@ -221,5 +275,5 @@ export function trackPurchase(params: {
     value: params.value,
     num_items: params.num_items ?? 1,
     order_id: params.order_id,
-  });
+  }, params.user, params.contents);
 }

@@ -46,6 +46,7 @@ router.post("/capi/event", async (req, res) => {
     event_id,
     event_source_url,
     content_ids,
+    contents,
     content_type,
     value,
     currency,
@@ -62,6 +63,7 @@ router.post("/capi/event", async (req, res) => {
     event_id?: string;
     event_source_url?: string;
     content_ids?: string[];
+    contents?: Array<{ id?: string; quantity?: number; item_price?: number }>;
     content_type?: string;
     value?: number;
     currency?: string;
@@ -108,6 +110,18 @@ router.post("/capi/event", async (req, res) => {
   };
   if (Array.isArray(content_ids) && content_ids.length > 0) {
     customData.content_ids = content_ids;
+  }
+  if (Array.isArray(contents) && contents.length > 0) {
+    const normalised = contents
+      .filter((c) => c && typeof c.id === "string" && c.id)
+      .map((c) => ({
+        id: c.id as string,
+        quantity: typeof c.quantity === "number" && c.quantity > 0 ? c.quantity : 1,
+        ...(typeof c.item_price === "number" && Number.isFinite(c.item_price) && c.item_price > 0
+          ? { item_price: Math.round(c.item_price * 100) / 100 }
+          : {}),
+      }));
+    if (normalised.length > 0) customData.contents = normalised;
   }
   if (content_type) customData.content_type = content_type;
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {

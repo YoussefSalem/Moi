@@ -1,8 +1,52 @@
 import { normalizeTitle } from "@/lib/productImages";
 import { getAttribution } from "@/lib/adAttribution";
-import type { ShopifyCartLine } from "@/lib/shopify";
+import type { ShopifyCart, ShopifyCartLine } from "@/lib/shopify";
+import type { CapiContent } from "@/lib/metaPixel";
 
 export const SHIPPING_EGP = 50;
+
+export interface MetaLineData {
+  contentIds: string[];
+  contents: CapiContent[];
+  numItems: number;
+}
+
+/**
+ * Build Meta Pixel / CAPI line data (content_ids, contents with item_price, and
+ * total quantity) from whichever cart source is active. Used by every Purchase
+ * fire so the Meta payload matches the actual order. Best-effort: returns empty
+ * arrays when no cart is available (the Purchase still carries value + order_id).
+ */
+export function buildMetaLineData(
+  isShopify: boolean,
+  shopifyCart: ShopifyCart | null,
+  localItems: { variantId: string; quantity: number; priceAmount?: number }[],
+): MetaLineData {
+  if (isShopify && shopifyCart && shopifyCart.lines.nodes.length > 0) {
+    const nodes = shopifyCart.lines.nodes;
+    return {
+      contentIds: nodes.map((l) => l.merchandise.id),
+      contents: nodes.map((l) => {
+        const price = parseFloat(l.merchandise.price.amount);
+        return {
+          id: l.merchandise.id,
+          quantity: l.quantity,
+          ...(Number.isFinite(price) && price > 0 ? { item_price: price } : {}),
+        };
+      }),
+      numItems: nodes.reduce((s, l) => s + l.quantity, 0),
+    };
+  }
+  return {
+    contentIds: localItems.map((i) => i.variantId),
+    contents: localItems.map((i) => ({
+      id: i.variantId,
+      quantity: i.quantity,
+      ...(typeof i.priceAmount === "number" && i.priceAmount > 0 ? { item_price: i.priceAmount } : {}),
+    })),
+    numItems: localItems.reduce((s, i) => s + i.quantity, 0),
+  };
+}
 
 // Public image URLs for emails (Vite-hashed /assets/ paths only work in the browser)
 // Images served via the API server (/api/images/) so they are always available

@@ -17,3 +17,4 @@
 - [Moi recs carousel static config](moi-carousel-static-config.md) — recs carousel builds from static IMAGES config, not Shopify; blank cards = broken local colorImages assets, not the Shopify pipeline.
 - [Moi CartContext performance pattern](moi-cartcontext-perf.md) — useMemo the context value; extract inline callbacks (openCart/closeCart/closeCheckout) as useCallback; ColorCard uses memo(function ColorCard(...)); handleColorCardAddToCart uses useCallback with [products, cart.addToCart] deps.
 - [Moi motion token system](moi-motion-tokens.md) — all Framer transitions must use tokens from motion.ts; MotionConfig reducedMotion="user" wraps App; useFocusTrap hook for drawers; role="dialog" aria-modal on panels.
+- [Moi Meta Pixel + CAPI tracking](moi-meta-tracking.md) — Purchase event_id=hashId('purchase_'+order_id); order_id must be stable across paths or ROAS double-counts; hostname gate not fbq; card-redirect omits content_ids; PII freshness traps.
