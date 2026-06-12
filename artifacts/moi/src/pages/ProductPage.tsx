@@ -623,6 +623,21 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
   const mobileGalleryDragRef = useRef<{ x: number; y: number } | null>(null);
   const mobileGalleryDidDragRef = useRef(false);
 
+  // Callback ref: sets the transform immediately when the track element mounts.
+  // The useLayoutEffect alone is insufficient because AnimatePresence mode="wait"
+  // means the content div enters AFTER the skeleton exits — so when loading flips
+  // to false the track isn't in the DOM yet and the ref is null. The callback ref
+  // fires synchronously on mount regardless of AnimatePresence timing.
+  const setMobileGalleryTrackRef = useCallback((el: HTMLDivElement | null) => {
+    mobileGalleryTrackRef.current = el;
+    if (!el) return;
+    const N = galleryImages.length;
+    const rawIdx = N > 1 ? 1 : 0;
+    mobileGalleryRawIdxRef.current = rawIdx;
+    el.style.transition = "none";
+    el.style.transform = `translateX(-${rawIdx * 100}%)`;
+  }, [galleryImages.length]);
+
   const selectedVariant = (() => {
     const variants = product.variants;
     if (!variants?.length) return undefined;
@@ -1295,7 +1310,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                       style={{ backgroundColor: "rgba(30,24,20,0.04)", touchAction: N > 1 ? "pan-y" : "auto" }}
                     >
                       <div
-                        ref={mobileGalleryTrackRef}
+                        ref={setMobileGalleryTrackRef}
                         style={{
                           display: "flex",
                           willChange: "transform",
