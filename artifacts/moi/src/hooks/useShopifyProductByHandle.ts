@@ -41,5 +41,17 @@ export function useShopifyProductByHandle(
     return () => { cancelled = true; };
   }, [handle, fallbackSlug]);
 
-  return { product, loading };
+  // Guard against stale state when navigating between different base products.
+  // product.slug stays in sync with fallbackSlug once the async effect fires,
+  // but between the synchronous re-render (new handle prop) and the async effect
+  // execution the stored product may still belong to the previous product.
+  // Return the fallback immediately in that window so the UI never flashes the
+  // old product's content — this is the root cause of the "wrong page" bug when
+  // clicking a rec card and of the "adds as wrong product" cart bug.
+  const stale = product.slug !== fallbackSlug;
+
+  return {
+    product: stale ? fallback : product,
+    loading: stale || loading,
+  };
 }

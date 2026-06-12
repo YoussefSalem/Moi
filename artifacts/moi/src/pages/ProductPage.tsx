@@ -698,7 +698,12 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
       ? product.name.split(" — ")[0]
       : product.name;
     void addToCart({
-      variantId: selectedVariant?.id ?? product.variantId ?? "",
+      // When a specific color is required (pageColorName set), never fall back
+      // to product.variantId (which may be a different color's first variant).
+      // Use "" which will surface an error at checkout rather than silently
+      // adding the wrong color. In practice this path is unreachable after the
+      // stale-guard fix in useShopifyProductByHandle.
+      variantId: selectedVariant?.id ?? (pageColorName ? "" : (product.variantId ?? "")),
       title: baseProductName,
       price: effectivePrice,
       priceAmount: parseEGP(String(effectivePrice)),
@@ -727,7 +732,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
       ? product.name.split(" — ")[0]
       : product.name;
     buyNow({
-      variantId: selectedVariant?.id ?? product.variantId ?? "",
+      variantId: selectedVariant?.id ?? (pageColorName ? "" : (product.variantId ?? "")),
       title: buyNowTitle,
       price: effectivePrice,
       priceAmount: parseEGP(String(effectivePrice)),
@@ -1111,7 +1116,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                         </div>
                       </div>
                     )}
-                    {displaySizes.length <= 1 && sizeOption && (
+                    {displaySizes.length <= 1 && (sizeOption !== null || !!(product.variants?.length)) && (
                       <div style={{ marginBottom: 24 }}>
                         <button type="button" disabled style={{ padding: "11px 24px", fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase" as const, fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "#1e1814", border: "1px solid #1e1814", backgroundColor: "rgba(30,24,20,0.04)", borderRadius: 0 }}>
                           One Size
@@ -1404,7 +1409,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                       </div>
                     </div>
                   )}
-                  {displaySizes.length <= 1 && sizeOption && (
+                  {displaySizes.length <= 1 && (sizeOption !== null || !!(product.variants?.length)) && (
                     <div style={{ marginBottom: 24 }}>
                       <button type="button" disabled style={{ padding: "11px 24px", fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase" as const, fontFamily: "'Montserrat', sans-serif", fontWeight: 500, color: "#1e1814", border: "1px solid #1e1814", backgroundColor: "rgba(30,24,20,0.04)", borderRadius: 0 }}>
                         One Size
