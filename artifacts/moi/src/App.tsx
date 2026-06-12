@@ -8,7 +8,7 @@ import { captureAttribution } from "@/lib/adAttribution";
 import { initAnalytics } from "@/lib/analytics";
 import { AnalyticsDebug } from "@/components/AnalyticsDebug";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { Toaster } from "sonner";
+import { AddedToBagToast } from "@/components/AddedToBagToast";
 import { Header } from "@/components/Header";
 import { HeroVideo } from "@/components/HeroVideo";
 import { ProductColorSection } from "@/components/ProductColorSection";
@@ -834,11 +834,7 @@ function App() {
       <CartProvider>
         <AppContent />
         {typeof window !== "undefined" && window.location.href.includes("debug_analytics") && <AnalyticsDebug />}
-        <Toaster
-          position="bottom-center"
-          unstyled
-          toastOptions={{ style: { background: "transparent", border: "none", boxShadow: "none", padding: 0, margin: 0 } }}
-        />
+        <AddedToBagToast />
       </CartProvider>
     </CustomerProvider>
   );
