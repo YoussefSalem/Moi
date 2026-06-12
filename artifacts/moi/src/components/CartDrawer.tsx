@@ -591,8 +591,7 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                   typeof window !== "undefined" &&
                   "ApplePaySession" in window &&
                   (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession?.canMakePayments?.() &&
-                  shopifyCart &&
-                  shopifyCart.lines.nodes.length > 0 && (
+                  (shopifyCart ? shopifyCart.lines.nodes.length > 0 : localItems.length > 0) && (
                     <>
                       <p
                         style={{
@@ -608,17 +607,26 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                         Express Checkout
                       </p>
                       <ShopifyApplePayButton
-                        lines={shopifyCart.lines.nodes.map((l) => ({
-                          variantId: l.merchandise.id,
-                          quantity: l.quantity,
-                        }))}
+                        lines={
+                          shopifyCart
+                            ? shopifyCart.lines.nodes.map((l) => ({
+                                variantId: l.merchandise.id,
+                                quantity: l.quantity,
+                              }))
+                            : localItems.map((i) => ({
+                                variantId: i.variantId,
+                                quantity: Number(i.quantity),
+                              }))
+                        }
                         totalEGP={
-                          shopifyCart.cost?.totalAmount?.amount
+                          shopifyCart?.cost?.totalAmount?.amount
                             ? parseFloat(shopifyCart.cost.totalAmount.amount)
-                            : shopifyCart.lines.nodes.reduce((s, l) => {
-                                const p = parseFloat(l.merchandise.price.amount ?? "0");
-                                return s + p * l.quantity;
-                              }, 0)
+                            : shopifyCart
+                              ? shopifyCart.lines.nodes.reduce((s, l) => {
+                                  const p = parseFloat(l.merchandise.price.amount ?? "0");
+                                  return s + p * l.quantity;
+                                }, 0)
+                              : parseFloat(cartRawTotal)
                         }
                         disabled={loading}
                         onSuccess={(orderNumber, total) => {
