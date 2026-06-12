@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { transitions } from "@/lib/motion";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { X, Minus, Plus, ShoppingBag, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
@@ -186,6 +187,9 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
     return () => window.removeEventListener("keydown", onKey);
   }, [cartOpen, closeCart]);
 
+  const drawerRef = useRef<HTMLElement>(null);
+  useFocusTrap(drawerRef, cartOpen);
+
   const swipeTouchStartX = useRef(0);
   const swipeTouchStartY = useRef(0);
 
@@ -222,6 +226,7 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
 
           {/* Drawer */}
           <motion.aside
+            ref={drawerRef}
             key="cart-drawer"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -383,9 +388,9 @@ export function CartDrawer({ onNavigateToSection }: CartDrawerProps = {}) {
                               paddingBottom: 0,
                               marginBottom: 0,
                               borderBottomWidth: 0,
-                              transition: { duration: 0.28, ease: "easeIn" },
+                              transition: transitions.listExit,
                             }}
-                            transition={{ layout: { duration: 0.35, ease: "easeInOut" } }}
+                            transition={transitions.listLayout}
                             style={{
                               display: "flex",
                               gap: 16,

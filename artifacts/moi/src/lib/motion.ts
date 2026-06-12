@@ -36,6 +36,12 @@ export const transitions = {
   quick:         { duration: dur.fast, ease: ease.enter },
   badge:         { duration: 0.35, ease: ease.enter },
   lookReveal:    { duration: dur.gentle, ease: ease.spring },
+  // Header cart icon animations
+  pulse:         { duration: 0.45, ease: ease.exit },     // add-to-cart ring expansion
+  iconBounce:    { duration: 0.35, ease: ease.exit },     // bag icon bounce on add
+  // Cart drawer list item animations
+  listExit:      { duration: 0.28, ease: ease.exit },     // item removal
+  listLayout:    { layout: { duration: dur.comfortable, ease: ease.enter } },  // relayout on remove
   // Stagger list items: pass i = index
   listItem: (i: number) => ({ duration: dur.standard, delay: 0.08 + i * 0.06 }),
 } as const;

@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { flushSync } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ShoppingBag, User, X } from "lucide-react";
@@ -34,6 +35,7 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: men
   };
   const { itemCount, openCart, isAddingToCart } = useCart();
   const { customer, openAuth, openAccount, signOut } = useCustomer();
+  const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -46,6 +48,8 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: men
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [menuOpen]);
+
+  useFocusTrap(navRef, menuOpen);
 
   const inAppBrowser = useMemo(() => isInAppBrowser(), []);
 
@@ -157,7 +161,7 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: men
                     initial={{ scale: 0.5, opacity: 0.7 }}
                     animate={{ scale: 2.2, opacity: 0 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.45, ease: "easeOut" }}
+                    transition={transitions.pulse}
                     className="absolute inset-0 rounded-full pointer-events-none"
                     style={{ border: `1.5px solid ${iconColor}` }}
                   />
@@ -165,7 +169,7 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: men
               </AnimatePresence>
               <motion.span
                 animate={isAddingToCart ? { scale: [1, 1.25, 1], y: [0, -3, 0] } : { scale: 1, y: 0 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
+                transition={transitions.iconBounce}
                 style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
               >
                 <ShoppingBag size={18} strokeWidth={1.5} style={{ color: iconColor }} />
@@ -206,6 +210,7 @@ export function Header({ onNavigate, onSearch, dark, page, zIndex, menuOpen: men
               aria-hidden="true"
             />
             <motion.nav
+              ref={navRef}
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
