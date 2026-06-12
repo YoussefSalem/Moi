@@ -2,7 +2,7 @@ import { normalizeTitle } from "@/lib/productImages";
 import { getAttribution } from "@/lib/adAttribution";
 import type { ShopifyCartLine } from "@/lib/shopify";
 
-export const SHIPPING_EGP = 75;
+export const SHIPPING_EGP = 50;
 
 // Public image URLs for emails (Vite-hashed /assets/ paths only work in the browser)
 // Images served via the API server (/api/images/) so they are always available

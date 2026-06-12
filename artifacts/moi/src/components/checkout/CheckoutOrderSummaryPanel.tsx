@@ -6,7 +6,7 @@ import type { LocalCartItem } from "@/context/CartContext";
 import { resolveLineImage } from "@/lib/productImages";
 // price-formatting helper used throughout CheckoutPage.
 
-const SHIPPING_EGP_DISPLAY = 75;
+const SHIPPING_EGP_DISPLAY = 50;
 
 const promoInputStyle: React.CSSProperties = {
   width: "100%",
