@@ -3,6 +3,7 @@ import { trackShopifyProductView } from "@/lib/shopifyAnalytics";
 import { parseEGP } from "@/lib/price";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { toast } from "sonner";
+import { showAddedToBagToast } from "@/lib/cartToast";
 import { Bell, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ProductConfig, VariantOption } from "@/config/images";
 import { useCart } from "@/context/CartContext";
@@ -322,10 +323,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
       size: selectedSize,
       color: selectedColor,
     });
-    toast.success(`${product.name} added to bag`, {
-      description: `${selectedColor} · ${selectedSize}`,
-      duration: 2500,
-    });
+    showAddedToBagToast(selectedColor, selectedSize);
     setTimeout(() => {
       addingRef.current = false;
       setAddedFeedback(false);

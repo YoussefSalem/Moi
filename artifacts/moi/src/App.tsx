@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { showAddedToBagToast } from "@/lib/cartToast";
 import { trackShopifyPageView } from "@/lib/shopifyAnalytics";
 import { parseEGP } from "@/lib/price";
 import { captureAttribution } from "@/lib/adAttribution";
@@ -205,10 +205,7 @@ function AppContent() {
       size: sizeValue,
       color: colorName,
     });
-    toast.success(`${product.name} added to bag`, {
-      description: [colorName, sizeValue].filter(Boolean).join(" · "),
-      duration: 2500,
-    });
+    showAddedToBagToast(colorName, sizeValue);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products, cart.addToCart]);
 
@@ -838,19 +835,8 @@ function App() {
         <AppContent />
         {typeof window !== "undefined" && window.location.href.includes("debug_analytics") && <AnalyticsDebug />}
         <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              fontFamily: "'Montserrat', sans-serif",
-              fontSize: "11px",
-              letterSpacing: "0.12em",
-              background: "#1e1814",
-              color: "#ffffff",
-              border: "none",
-            },
-            className: "text-white",
-            descriptionClassName: "text-white",
-          }}
+          position="bottom-center"
+          toastOptions={{ style: { background: "transparent", border: "none", boxShadow: "none", padding: 0 } }}
         />
       </CartProvider>
     </CustomerProvider>

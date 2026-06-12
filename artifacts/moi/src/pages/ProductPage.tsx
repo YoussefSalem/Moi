@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Bell } from "lucide-react";
 import { ProductCarousel, type CarouselItem } from "@/components/ProductCarousel";
 import { toast } from "sonner";
+import { showAddedToBagToast } from "@/lib/cartToast";
 import { useShopifyProductByHandle } from "@/hooks/useShopifyProductByHandle";
 import { parseEGP } from "@/lib/price";
 import { useCart } from "@/context/CartContext";
@@ -560,7 +561,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
       size: selectedSize || "One Size",
       color: pageColorName || product.name,
     });
-    toast.success(`${product.name} added to bag`, { duration: 2500 });
+    showAddedToBagToast(pageColorName || undefined, selectedSize || undefined);
     setTimeout(() => {
       addingRef.current = false;
       setAddedFeedback(false);
