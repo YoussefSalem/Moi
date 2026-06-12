@@ -8,6 +8,7 @@ import CASHMERE_ALT_3 from "@/assets/images/cashmere-alt-3.jpg";
 import BEIGE_MAIN    from "@/assets/images/beige.jpg";
 import BEIGE_ALT_1   from "@/assets/images/beige-alt-1.jpg";
 import BEIGE_ALT_2   from "@/assets/images/beige-alt-2.jpg";
+import BEIGE_ALT_3   from "@/assets/images/beige-alt-3.jpg";
 import YELLOW_MAIN   from "@/assets/images/yellow.jpg";
 import YELLOW_ALT_1  from "@/assets/images/yellow-alt-1.jpg";
 import YELLOW_ALT_2  from "@/assets/images/yellow-alt-2.jpg";
