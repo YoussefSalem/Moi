@@ -25,13 +25,7 @@ export function resolveEmailImage(
   line: ShopifyCartLine,
   localItems?: { variantId: string; color?: string; image?: string | null }[],
 ): string | null {
-  // 1. Shopify CDN URL — always absolute, stable, and works in any email client
-  const shopifyUrl = line.merchandise.image?.url ?? line.merchandise.product.featuredImage?.url ?? "";
-  if (shopifyUrl && shopifyUrl.includes("cdn.shopify.com")) {
-    return shopifyUrl;
-  }
-
-  // 2. Static color map → /api/images/ URLs served by the API server
+  // 1. Static color map → /api/images/ URLs served by the API server (preferred)
   const variantId = line.merchandise.id;
   const localMatch = localItems?.find((li) => li.variantId === variantId);
 
@@ -46,6 +40,12 @@ export function resolveEmailImage(
   for (const color of colorCandidates) {
     const publicHit = PUBLIC_COLOR_IMAGES[color];
     if (publicHit) return publicHit;
+  }
+
+  // 2. Shopify CDN URL — fallback if no local image exists for this color
+  const shopifyUrl = line.merchandise.image?.url ?? line.merchandise.product.featuredImage?.url ?? "";
+  if (shopifyUrl && shopifyUrl.includes("cdn.shopify.com")) {
+    return shopifyUrl;
   }
 
   // 3. Local match image if it's an absolute URL
