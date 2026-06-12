@@ -473,6 +473,18 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
 
   useEffect(() => { setThumbLoaded(new Array(galleryImages.length).fill(false)); }, [galleryImages.length, handle]);
 
+  // Set the mobile gallery track's initial position imperatively so React's
+  // reconciler never overwrites it on re-renders (memory: moi-product-carousel).
+  useLayoutEffect(() => {
+    const track = mobileGalleryTrackRef.current;
+    if (!track) return;
+    const N = galleryImages.length;
+    const rawIdx = N > 1 ? 1 : 0;
+    mobileGalleryRawIdxRef.current = rawIdx;
+    track.style.transition = "none";
+    track.style.transform = `translateX(-${rawIdx * 100}%)`;
+  }, [galleryImages.length]);
+
   // Preload all gallery images so thumbnails and swipes are instant, no spinners
   useEffect(() => {
     galleryImages.forEach((src) => {
@@ -1167,7 +1179,6 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                         style={{
                           display: "flex",
                           willChange: "transform",
-                          transform: `translateX(-${N > 1 ? 100 : 0}%)`,
                         }}
                         onPointerDown={handleGalleryPointerDown}
                         onPointerMove={handleGalleryPointerMove}
