@@ -19,6 +19,7 @@ import { CustomerProvider } from "@/context/CustomerContext";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { IMAGES, type ProductConfig } from "@/config/images";
 import { useShopifyProducts } from "@/hooks/useShopifyProducts";
+import { ErrorBoundary, InlineErrorFallback } from "@/components/ErrorBoundary";
 
 
 // Heavy components — loaded only when needed
@@ -722,49 +723,53 @@ function AppContent() {
               overflowY: "auto",
             }}
           >
-            {page === "order-confirmation" ? (
-              <Suspense fallback={<div style={{ minHeight: "100vh", backgroundColor: "#faf8f5" }} />}>
-                <OrderConfirmationPage
-                  onContinueShopping={() => navigateTo("home")}
+            <ErrorBoundary>
+              {page === "order-confirmation" ? (
+                <Suspense fallback={<div style={{ minHeight: "100vh", backgroundColor: "#faf8f5" }} />}>
+                  <OrderConfirmationPage
+                    onContinueShopping={() => navigateTo("home")}
+                  />
+                </Suspense>
+              ) : page === "payment-failed" ? (
+                <Suspense fallback={<div style={{ minHeight: "100vh", background: "#faf8f5" }} />}>
+                  <PaymentFailedPage
+                    onTryAgain={() => { navigateTo("home"); cart.openCheckout(); }}
+                    onContinueShopping={() => navigateTo("home")}
+                  />
+                </Suspense>
+              ) : isProductPage ? (
+                <ProductPage
+                  handle={productHandle}
+                  onBack={() => navigateTo("home", undefined, true)}
+                  onNavigate={navigateToProduct}
+                  onPageNavigate={(p, hash) => navigateTo(p as PageType, hash)}
                 />
-              </Suspense>
-            ) : page === "payment-failed" ? (
-              <PaymentFailedPage
-                onTryAgain={() => { navigateTo("home"); cart.openCheckout(); }}
-                onContinueShopping={() => navigateTo("home")}
-              />
-            ) : isProductPage ? (
-              <ProductPage
-                handle={productHandle}
-                onBack={() => navigateTo("home", undefined, true)}
-                onNavigate={navigateToProduct}
-                onPageNavigate={(p, hash) => navigateTo(p as PageType, hash)}
-              />
-            ) : page === "accessories" ? (
-              <div>
-                <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
-                  <AccessoriesPage onLookView={setLookProduct} onNavigateToProduct={navigateToProduct} />
-                  <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
+              ) : page === "accessories" ? (
+                <div>
+                  <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
+                    <AccessoriesPage onLookView={setLookProduct} onNavigateToProduct={navigateToProduct} />
+                    <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
+                  </Suspense>
+                </div>
+              ) : page === "ambassador" ? (
+                <div>
+                  <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
+                    <AmbassadorPage />
+                    <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
+                  </Suspense>
+                </div>
+              ) : page === "notfound" ? (
+                <Suspense fallback={<div style={{ minHeight: "100vh", background: "#faf8f5" }} />}>
+                  <NotFoundPage onNavigateHome={() => navigateTo("home")} />
                 </Suspense>
-              </div>
-            ) : page === "ambassador" ? (
-              <div>
-                <Suspense fallback={<div style={{ minHeight: "60vh" }} />}>
-                  <AmbassadorPage />
-                  <Footer onNavigate={(p, hash) => navigateTo(p as PageType, hash)} />
+              ) : page === "checkout" ? (
+                <div style={{ minHeight: "100vh", background: "#efe6da" }} />
+              ) : (
+                <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
+                  <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home", undefined, true)} />
                 </Suspense>
-              </div>
-            ) : page === "notfound" ? (
-              <Suspense fallback={<div style={{ minHeight: "100vh", background: "#faf8f5" }} />}>
-                <NotFoundPage onNavigateHome={() => navigateTo("home")} />
-              </Suspense>
-            ) : page === "checkout" ? (
-              <div style={{ minHeight: "100vh", background: "#efe6da" }} />
-            ) : (
-              <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
-                <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home", undefined, true)} />
-              </Suspense>
-            )}
+              )}
+            </ErrorBoundary>
           </motion.div>
         )}
       </AnimatePresence>
@@ -779,38 +784,40 @@ function AppContent() {
 
       <WhatsAppButton />
 
-      <Suspense fallback={null}>
-        <CartDrawer
-          onNavigateToSection={(sectionId) => {
-            setScrollTarget(sectionId);
-            if (page !== "home") {
-              setPage("home");
-              setProductHandle("");
-              window.history.pushState(null, "", "/");
-            } else {
-              setTimeout(() => {
-                const el = document.getElementById(sectionId);
-                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-              }, 80);
-            }
-          }}
-        />
-        <CheckoutPage />
-        <CustomerAuthModal />
-        <AccountPage />
-        <SearchDrawer
-          open={searchOpen}
-          items={searchItems}
-          query={searchQuery}
-          onQueryChange={setSearchQuery}
-          onClose={() => setSearchOpen(false)}
-          onSelect={(item) => {
-            setSearchOpen(false);
-            setSearchQuery("");
-            navigateToProduct(item.handle);
-          }}
-        />
-      </Suspense>
+      <ErrorBoundary fallback={(reset) => <InlineErrorFallback reset={reset} />}>
+        <Suspense fallback={null}>
+          <CartDrawer
+            onNavigateToSection={(sectionId) => {
+              setScrollTarget(sectionId);
+              if (page !== "home") {
+                setPage("home");
+                setProductHandle("");
+                window.history.pushState(null, "", "/");
+              } else {
+                setTimeout(() => {
+                  const el = document.getElementById(sectionId);
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 80);
+              }
+            }}
+          />
+          <CheckoutPage />
+          <CustomerAuthModal />
+          <AccountPage />
+          <SearchDrawer
+            open={searchOpen}
+            items={searchItems}
+            query={searchQuery}
+            onQueryChange={setSearchQuery}
+            onClose={() => setSearchOpen(false)}
+            onSelect={(item) => {
+              setSearchOpen(false);
+              setSearchQuery("");
+              navigateToProduct(item.handle);
+            }}
+          />
+        </Suspense>
+      </ErrorBoundary>
     </div>
   );
 }
@@ -818,9 +825,11 @@ function AppContent() {
 function App() {
   if (IS_ADMIN) {
     return (
-      <Suspense fallback={<div style={{ minHeight: "100vh", background: "#faf8f5" }} />}>
-        <AdminPage />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<div style={{ minHeight: "100vh", background: "#faf8f5" }} />}>
+          <AdminPage />
+        </Suspense>
+      </ErrorBoundary>
     );
   }
 
@@ -830,13 +839,15 @@ function App() {
   }
 
   return (
-    <CustomerProvider>
-      <CartProvider>
-        <AppContent />
-        {typeof window !== "undefined" && window.location.href.includes("debug_analytics") && <AnalyticsDebug />}
-        <AddedToBagToast />
-      </CartProvider>
-    </CustomerProvider>
+    <ErrorBoundary>
+      <CustomerProvider>
+        <CartProvider>
+          <AppContent />
+          {typeof window !== "undefined" && window.location.href.includes("debug_analytics") && <AnalyticsDebug />}
+          <AddedToBagToast />
+        </CartProvider>
+      </CustomerProvider>
+    </ErrorBoundary>
   );
 }
 
