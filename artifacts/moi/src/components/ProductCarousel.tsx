@@ -19,11 +19,10 @@ interface ProductCarouselProps {
 const GAP = 20;
 const CARD_W = "clamp(160px, 44vw, 260px)";
 const SNAP_MS = 380;
-const SNAP_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"; // ease-out-quint — snappy stop
-// Exponential friction: vel *= FRICTION^dt (dt in ms). Frame-rate independent.
-// 0.992^400 ≈ 0.041 → naturally drops below snap threshold (~0.05) in ~400ms.
-const FRICTION = 0.992;
-const MIN_SNAP_VEL = 0.05; // px/ms — velocity below which we snap
+const SNAP_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+// Friction: vel *= FRICTION^dt (dt in ms). 0.990^600 ≈ 0.002 — smooth coast ~600ms.
+const FRICTION = 0.990;
+const STOP_VEL = 0.02; // px/ms — below this just stop
 
 // ─── Image with shimmer skeleton ────────────────────────────────────────────
 function CardImage({ src, alt }: { src: string; alt: string }) {
@@ -75,7 +74,6 @@ export function ProductCarousel({
   const N = items.length;
 
   // Three copies for seamless infinite looping.
-  // copy1: positions [0, N·step)   copy2 (home): [N·step, 2N·step)   copy3: [2N·step, 3N·step)
   const slides = useMemo(
     () => N > 1 ? [...items, ...items, ...items] : [...items],
     [items, N],
@@ -87,18 +85,18 @@ export function ProductCarousel({
   // rawPxRef: absolute px offset — track renders at translateX(-rawPxRef).
   // At rest, always kept within [N·step, 2N·step) via wrapMiddle().
   const rawPxRef = useRef(0);
-  const isSnappingRef = useRef(false);
+  const isArrowSnappingRef = useRef(false); // only true during arrow-button snaps
   const rafRef = useRef<number | null>(null);
 
   // Drag state
   const ptrIdRef = useRef<number | null>(null);
-  const startPxRef = useRef(0); // rawPxRef frozen at pointerdown (adjusted on wrap)
+  const startPxRef = useRef(0);
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const lockRef = useRef<"h" | "v" | null>(null);
   const didDragRef = useRef(false);
 
-  // Velocity buffer: last 80ms of pointer positions for accurate release velocity
+  // Velocity buffer: last 80ms of pointer positions
   const velBufRef = useRef<Array<{ x: number; t: number }>>([]);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -129,8 +127,7 @@ export function ProductCarousel({
     if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
   }
 
-  // Snap to nearest card. Handles cross-boundary snaps by teleporting first
-  // so the CSS transition only animates the short remaining distance.
+  // Snap to nearest card — used ONLY by arrow buttons.
   function snapNearest() {
     cancelRaf();
     const step = getStep();
@@ -140,55 +137,50 @@ export function ProductCarousel({
     const wrapped = wrapMiddle(snapped, step);
 
     if (wrapped !== snapped) {
-      // Cross-boundary: teleport rawPxRef by the same delta so the visual position
-      // doesn't change, then let the transition close the remaining gap.
       rawPxRef.current += wrapped - snapped;
       rawApply(rawPxRef.current, false);
-      // Force a style recalc so the browser separates the instant jump
-      // from the upcoming transition (otherwise they're batched into one frame).
       void trackRef.current?.offsetHeight;
     }
 
     rawPxRef.current = wrapped;
-    isSnappingRef.current = true;
+    isArrowSnappingRef.current = true;
     rawApply(rawPxRef.current, true);
 
     const track = trackRef.current;
     if (track) {
       const done = () => {
         track.removeEventListener("transitionend", done);
-        isSnappingRef.current = false;
+        isArrowSnappingRef.current = false;
       };
       track.addEventListener("transitionend", done, { once: true });
-      setTimeout(() => { isSnappingRef.current = false; }, SNAP_MS + 80);
+      setTimeout(() => { isArrowSnappingRef.current = false; }, SNAP_MS + 80);
     }
   }
 
-  // Inertia: exponential friction, then snap.
+  // Free inertia: exponential friction, stops wherever momentum dies.
   function startInertia(velPxMs: number) {
-    // velPxMs: px/ms, positive = forward (rawPx increasing = showing next cards)
     cancelRaf();
     const step = getStep();
-    if (step === 0) { snapNearest(); return; }
+    if (step === 0) return;
 
     let vel = velPxMs;
     let lastT: number | null = null;
 
     function tick(time: number) {
       if (lastT === null) { lastT = time; rafRef.current = requestAnimationFrame(tick); return; }
-      const dt = Math.min(time - lastT, 50); // cap for tab-wake
+      const dt = Math.min(time - lastT, 50);
       lastT = time;
 
-      vel *= Math.pow(FRICTION, dt); // frame-rate-independent friction
+      vel *= Math.pow(FRICTION, dt);
 
-      if (Math.abs(vel) < MIN_SNAP_VEL) {
-        snapNearest();
+      if (Math.abs(vel) < STOP_VEL) {
+        // Drift to a stop naturally — no snap
+        rafRef.current = null;
         return;
       }
 
       rawPxRef.current += vel * dt;
 
-      // Keep in middle-copy range for seamless looping
       if (N > 1) rawPxRef.current = wrapMiddle(rawPxRef.current, step);
 
       rawApply(rawPxRef.current, false);
@@ -198,9 +190,9 @@ export function ProductCarousel({
     rafRef.current = requestAnimationFrame(tick);
   }
 
-  // Arrow navigation
+  // Arrow navigation — intentionally snaps to a card boundary
   function goTo(delta: number) {
-    if (isSnappingRef.current) return;
+    if (isArrowSnappingRef.current) return;
     cancelRaf();
     const step = getStep();
     if (step === 0) return;
@@ -216,14 +208,14 @@ export function ProductCarousel({
     }
 
     rawPxRef.current = wrapped;
-    isSnappingRef.current = true;
+    isArrowSnappingRef.current = true;
     rawApply(rawPxRef.current, true);
 
     const track = trackRef.current;
     if (track) {
-      const done = () => { track.removeEventListener("transitionend", done); isSnappingRef.current = false; };
+      const done = () => { track.removeEventListener("transitionend", done); isArrowSnappingRef.current = false; };
       track.addEventListener("transitionend", done, { once: true });
-      setTimeout(() => { isSnappingRef.current = false; }, SNAP_MS + 80);
+      setTimeout(() => { isArrowSnappingRef.current = false; }, SNAP_MS + 80);
     }
   }
 
@@ -232,7 +224,7 @@ export function ProductCarousel({
   useLayoutEffect(() => {
     cardWRef.current = measure();
     const step = getStep();
-    rawPxRef.current = N > 1 ? N * step : 0; // start in middle copy
+    rawPxRef.current = N > 1 ? N * step : 0;
     rawApply(rawPxRef.current, false);
 
     let resizeRaf: number | null = null;
@@ -256,26 +248,22 @@ export function ProductCarousel({
   }, [N]);
 
   // Wheel / trackpad momentum scroll
-  const wheelVelRef = useRef(0); // accumulated velocity for inertia
+  const wheelVelRef = useRef(0);
   const wheelTimerRef = useRef<number | null>(null);
 
   function onWheel(e: React.WheelEvent) {
     if (N <= 1) return;
-    // Trackpads produce smooth deltaX; mice produce deltaY. Accept both.
     const delta = e.deltaX || e.deltaY;
     if (Math.abs(delta) < 1) return;
 
-    // If the scroll is clearly horizontal (or only deltaY exists), prevent page scroll.
-    // For trackpads with deltaX, prevent. For mice with deltaY on this container, prevent
-    // only if deltaY is small and deltaX is dominant (typical two-finger horizontal).
     const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY) * 0.5;
     if (isHorizontal) {
       e.preventDefault();
       e.stopPropagation();
     }
 
-    // Cancel any active snap / inertia so the wheel is responsive
-    if (isSnappingRef.current) {
+    // Interrupt arrow snap
+    if (isArrowSnappingRef.current) {
       const track = trackRef.current;
       if (track) {
         const transformStr = window.getComputedStyle(track).transform;
@@ -286,35 +274,27 @@ export function ProductCarousel({
           track.style.transform = `translateX(${matrix.m41}px)`;
         }
       }
-      isSnappingRef.current = false;
+      isArrowSnappingRef.current = false;
     }
     cancelRaf();
 
-    // Accumulate position
     const step = getStep();
     const newPx = rawPxRef.current + delta;
-    if (N > 1) {
-      rawPxRef.current = wrapMiddle(newPx, step);
-    } else {
-      rawPxRef.current = newPx;
-    }
+    rawPxRef.current = N > 1 ? wrapMiddle(newPx, step) : newPx;
     rawApply(rawPxRef.current, false);
 
-    // Accumulate velocity (px/frame) for inertia
     wheelVelRef.current += delta;
 
-    if (wheelTimerRef.current !== null) {
-      window.clearTimeout(wheelTimerRef.current);
-    }
+    if (wheelTimerRef.current !== null) window.clearTimeout(wheelTimerRef.current);
 
     wheelTimerRef.current = window.setTimeout(() => {
-      const vel = wheelVelRef.current / 16; // rough px/ms assuming 60fps
+      const vel = wheelVelRef.current / 16;
       wheelVelRef.current = 0;
-      if (Math.abs(vel) > MIN_SNAP_VEL * 3) {
+      // Hand off to free inertia — no snap
+      if (Math.abs(vel) > STOP_VEL * 3) {
         startInertia(vel);
-      } else {
-        snapNearest();
       }
+      // else just stop where it is
     }, 80);
   }
 
@@ -324,7 +304,7 @@ export function ProductCarousel({
     function onWindowMove(e: PointerEvent) {
       if (ptrIdRef.current !== e.pointerId) return;
 
-      const dx = e.clientX - startXRef.current; // +ve = finger moved right = show prev
+      const dx = e.clientX - startXRef.current;
 
       if (lockRef.current === null) {
         const dy = e.clientY - startYRef.current;
@@ -338,7 +318,6 @@ export function ProductCarousel({
       e.preventDefault();
       if (Math.abs(dx) > 3) didDragRef.current = true;
 
-      // Rolling velocity buffer: keep last 80ms
       const now = e.timeStamp;
       velBufRef.current.push({ x: e.clientX, t: now });
       const cutoff = now - 80;
@@ -346,13 +325,11 @@ export function ProductCarousel({
         velBufRef.current.shift();
       }
 
-      // Compute new position
-      const newPx = startPxRef.current - dx; // subtract dx: drag right → lower rawPx → prev cards
+      const newPx = startPxRef.current - dx;
       const step = getStep();
 
       if (N > 1) {
         const wrapped = wrapMiddle(newPx, step);
-        // If a wrap occurred, adjust startPxRef to keep subsequent frames continuous
         if (wrapped !== newPx) startPxRef.current += wrapped - newPx;
         rawPxRef.current = wrapped;
       } else {
@@ -369,24 +346,23 @@ export function ProductCarousel({
       const wasH = lockRef.current === "h";
       lockRef.current = null;
 
-      if (!wasH) return; // not a horizontal drag — native click fires normally
+      if (!wasH) return;
 
-      // Velocity from buffer
       const buf = velBufRef.current;
       let vel = 0;
       if (buf.length >= 2) {
         const first = buf[0];
         const last = buf[buf.length - 1];
         const dt = last.t - first.t;
-        if (dt > 5) vel = -(last.x - first.x) / dt; // px/ms, +ve = forward
+        if (dt > 5) vel = -(last.x - first.x) / dt;
       }
       velBufRef.current = [];
 
-      if (Math.abs(vel) > MIN_SNAP_VEL * 3) {
+      // Hand velocity to free inertia — let momentum coast naturally, no snap
+      if (Math.abs(vel) > STOP_VEL) {
         startInertia(vel);
-      } else {
-        snapNearest();
       }
+      // else just stop where it is
     }
 
     function onWindowCancel(e: PointerEvent) {
@@ -394,7 +370,7 @@ export function ProductCarousel({
       ptrIdRef.current = null;
       lockRef.current = null;
       velBufRef.current = [];
-      snapNearest();
+      // Stop in place — no snap
     }
 
     window.addEventListener("pointermove", onWindowMove, { passive: false });
@@ -417,9 +393,9 @@ export function ProductCarousel({
 
     cancelRaf();
 
-    // If a CSS transition is running, freeze the track at its current visual position.
+    // Freeze if an arrow snap is running
     const track = trackRef.current;
-    if (track && isSnappingRef.current) {
+    if (track && isArrowSnappingRef.current) {
       const transformStr = window.getComputedStyle(track).transform;
       if (transformStr && transformStr !== "none") {
         const matrix = new DOMMatrix(transformStr);
@@ -428,7 +404,7 @@ export function ProductCarousel({
         track.style.transform = `translateX(${matrix.m41}px)`;
       }
     }
-    isSnappingRef.current = false;
+    isArrowSnappingRef.current = false;
 
     ptrIdRef.current = e.pointerId;
     startPxRef.current = rawPxRef.current;
@@ -500,7 +476,6 @@ export function ProductCarousel({
               </h2>
             </div>
 
-            {/* Arrows — desktop only. No inline display on wrapper so Tailwind hidden/md:flex controls it. */}
             {N > 1 && (
               <div className="hidden md:flex" style={{ gap: 8 }}>
                 <button
