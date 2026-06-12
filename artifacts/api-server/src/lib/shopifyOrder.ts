@@ -275,6 +275,8 @@ export interface ShopifyLineItem {
   variant_title: string | null;
   quantity: number;
   price: string;
+  /** Shopify line item image URL (if available) */
+  imageUrl?: string | null;
 }
 
 export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{ orderId: number; orderNumber: number; total: string; lineItems: ShopifyLineItem[]; discountAmount?: number; discountCode?: string } | null> {
@@ -355,9 +357,26 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
     { headers: { "X-Shopify-Access-Token": adminToken } },
   );
   if (orderRes.ok) {
-    const orderData = await orderRes.json() as { order: { order_number: number; line_items: unknown[] } };
+    const orderData = await orderRes.json() as {
+      order: {
+        order_number: number;
+        line_items: Array<{
+          title?: string;
+          variant_title?: string | null;
+          quantity?: number;
+          price?: string;
+          image_url?: string | null;
+        }>;
+      };
+    };
     orderNumber = orderData.order.order_number ?? orderId;
-    lineItems = (orderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
+    lineItems = (orderData.order.line_items ?? []).map((li) => ({
+      title: li.title ?? "",
+      variant_title: li.variant_title ?? null,
+      quantity: li.quantity ?? 1,
+      price: li.price ?? "0",
+      imageUrl: li.image_url ?? null,
+    }));
   }
 
   // Completed order defaults to "pending" — mark it paid so Bosta doesn't treat as COD.
@@ -705,10 +724,25 @@ export async function createDraftOrder(params: {
   let fetchedLineItems: ShopifyLineItem[] = [];
   if (orderRes.ok) {
     const orderData = await orderRes.json() as {
-      order: { order_number: number; line_items: unknown[] };
+      order: {
+        order_number: number;
+        line_items: Array<{
+          title?: string;
+          variant_title?: string | null;
+          quantity?: number;
+          price?: string;
+          image_url?: string | null;
+        }>;
+      };
     };
     orderNumber = orderData.order.order_number ?? orderId;
-    fetchedLineItems = (orderData.order.line_items ?? []) as unknown as ShopifyLineItem[];
+    fetchedLineItems = (orderData.order.line_items ?? []).map((li) => ({
+      title: li.title ?? "",
+      variant_title: li.variant_title ?? null,
+      quantity: li.quantity ?? 1,
+      price: li.price ?? "0",
+      imageUrl: li.image_url ?? null,
+    }));
   }
 
   // Re-apply referrer fields because Shopify strips them during API completion

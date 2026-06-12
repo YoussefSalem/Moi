@@ -51,6 +51,7 @@ export interface EmailLineItem {
   variant_title?: string | null;
   quantity: number;
   price: string;
+  imageUrl?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -101,11 +102,17 @@ function buildEmail({
             ? `<br /><span style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#9a8e82;">${item.variant_title}</span>`
             : "";
         const border = i === 0 ? "" : "border-top:1px solid #ede9e3;";
+        const imageCell = item.imageUrl
+          ? `<td style="vertical-align:top;width:72px;padding-right:16px;">
+                <img src="${item.imageUrl}" alt="${item.title}" width="72" height="72" style="display:block;border:0;border-radius:4px;object-fit:cover;" />
+              </td>`
+          : "";
         return `
         <tr>
           <td style="padding:16px 0;${border}vertical-align:top;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
               <tr>
+                ${imageCell}
                 <td style="vertical-align:top;">
                   <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1714;line-height:1.5;font-weight:600;">${item.title}${variant}</p>
                   <p style="margin:5px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#9a8e82;letter-spacing:0.15em;text-transform:uppercase;">Qty&nbsp;${item.quantity}</p>
