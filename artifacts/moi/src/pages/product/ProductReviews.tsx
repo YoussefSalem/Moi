@@ -26,9 +26,9 @@ interface ProductReviewsProps extends ReviewsPaginationState {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// Card width = 76% of container → side peek = 50% - 73% + 38% = 15%
-const CARD_W_RATIO = 0.76;
-const STEP_RATIO   = 0.73;   // distance between card centers / container width
+// Card width = 88% of container → side peek ≈ 9% each side (≈35px on 390px)
+const CARD_W_RATIO = 0.88;
+const STEP_RATIO   = 0.85;   // distance between card centers / container width
 const SCALE_CENTER = 0.95;
 const SCALE_SIDE   = 0.85;
 const OPACITY_CENTER = 1;
@@ -308,16 +308,36 @@ function ReviewCarousel({
       }
       velSamples.current = [];
 
-      const STEP      = containerWRef.current * STEP_RATIO;
+      const CW        = containerWRef.current;
+      const STEP      = CW * STEP_RATIO;
       const THRESHOLD = STEP * 0.22;
       const ai        = activeIdxRef.current;
       const len       = reviewsRef.current.length;
+      const canLoop   = len > 1;
 
       let newIdx = ai;
-      if ((dx < -THRESHOLD || vel < -380) && ai < len - 1) newIdx = ai + 1;
-      else if ((dx > THRESHOLD || vel > 380) && ai > 0)    newIdx = ai - 1;
+      if (dx < -THRESHOLD || vel < -380) newIdx = ai + 1;
+      else if (dx > THRESHOLD || vel > 380) newIdx = ai - 1;
 
       if (newIdx !== ai) {
+        // ── Seamless infinite loop ───────────────────────────────────────────
+        // Teleport trackX by ±len·STEP so the spring starts from the correct
+        // visual position, then clamp/wrap newIdx into [0, len-1].
+        if (newIdx >= len) {
+          if (canLoop) {
+            trackX.set(trackX.get() + len * STEP);
+            newIdx = 0;
+          } else {
+            newIdx = len - 1;
+          }
+        } else if (newIdx < 0) {
+          if (canLoop) {
+            trackX.set(trackX.get() - len * STEP);
+            newIdx = len - 1;
+          } else {
+            newIdx = 0;
+          }
+        }
         setActiveIdx(newIdx);
       } else {
         // Spring back to rest position
@@ -341,11 +361,25 @@ function ReviewCarousel({
     });
   }, [restX, trackX]);
 
-  // ── Navigate ────────────────────────────────────────────────────────────────
+  // ── Navigate (infinite-loop aware) ─────────────────────────────────────────
 
   const goTo = useCallback((idx: number) => {
-    setActiveIdx(Math.max(0, Math.min(idx, reviewsRef.current.length - 1)));
-  }, []);
+    const len  = reviewsRef.current.length;
+    const CW   = containerWRef.current;
+    const STEP = CW * STEP_RATIO;
+
+    let targetIdx = idx;
+    if (idx >= len) {
+      // Forward wrap: teleport track left by len steps, spring to card 0
+      trackX.set(trackX.get() + len * STEP);
+      targetIdx = 0;
+    } else if (idx < 0) {
+      // Backward wrap: teleport track right by len steps, spring to card N-1
+      trackX.set(trackX.get() - len * STEP);
+      targetIdx = len - 1;
+    }
+    setActiveIdx(targetIdx);
+  }, [trackX]);
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -399,10 +433,10 @@ function ReviewCarousel({
                   backdropFilter: "blur(6px)",
                   WebkitBackdropFilter: "blur(6px)",
                   borderRadius: 3,
-                  padding: "clamp(28px, 5vw, 40px) clamp(20px, 4vw, 32px)",
+                  padding: "clamp(32px, 6vw, 52px) clamp(28px, 6vw, 52px)",
                   position: "relative",
                   overflow: "hidden",
-                  minHeight: 288,
+                  minHeight: 224,
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
@@ -537,24 +571,23 @@ function ReviewCarousel({
           marginTop: 24,
         }}
       >
-        {/* Prev arrow */}
+        {/* Prev arrow — always active (infinite loop) */}
         <button
           type="button"
           onClick={() => goTo(activeIdx - 1)}
-          disabled={activeIdx === 0}
           aria-label="Previous review"
           style={{
             background: "transparent",
             border: "none",
             padding: 4,
-            cursor: activeIdx === 0 ? "default" : "pointer",
-            opacity: activeIdx === 0 ? 0.2 : 0.55,
+            cursor: "pointer",
+            opacity: 0.55,
             transition: "opacity 0.2s",
             display: "flex",
             alignItems: "center",
           }}
-          onMouseEnter={(e) => { if (activeIdx > 0) e.currentTarget.style.opacity = "1"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = activeIdx === 0 ? "0.2" : "0.55"; }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.55"; }}
         >
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#1e1814" strokeWidth="1.5" strokeLinecap="round">
             <path d="M15 18l-6-6 6-6" />
@@ -585,24 +618,23 @@ function ReviewCarousel({
           {activeIdx + 1} / {reviews.length}{hasMore || loadingMore ? "+" : ""}
         </p>
 
-        {/* Next arrow */}
+        {/* Next arrow — always active (infinite loop) */}
         <button
           type="button"
           onClick={() => goTo(activeIdx + 1)}
-          disabled={activeIdx === reviews.length - 1 && !hasMore}
           aria-label="Next review"
           style={{
             background: "transparent",
             border: "none",
             padding: 4,
-            cursor: activeIdx >= reviews.length - 1 && !hasMore ? "default" : "pointer",
-            opacity: activeIdx >= reviews.length - 1 && !hasMore ? 0.2 : 0.55,
+            cursor: "pointer",
+            opacity: 0.55,
             transition: "opacity 0.2s",
             display: "flex",
             alignItems: "center",
           }}
-          onMouseEnter={(e) => { if (activeIdx < reviews.length - 1 || hasMore) e.currentTarget.style.opacity = "1"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = (activeIdx >= reviews.length - 1 && !hasMore) ? "0.2" : "0.55"; }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.55"; }}
         >
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#1e1814" strokeWidth="1.5" strokeLinecap="round">
             <path d="M9 18l6-6-6-6" />
@@ -663,34 +695,6 @@ function ReviewCarousel({
         </div>
       )}
 
-      {/* End of reviews */}
-      {!hasMore && !loadingMore && !error && reviews.length > 1 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 14,
-            paddingTop: 18,
-          }}
-        >
-          <div style={{ height: 1, width: 32, background: "rgba(30,24,20,0.13)" }} />
-          <p
-            style={{
-              fontFamily: "'Montserrat', sans-serif",
-              fontSize: 9,
-              fontWeight: 400,
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: "#c0b8b2",
-              margin: 0,
-            }}
-          >
-            All reviews shown
-          </p>
-          <div style={{ height: 1, width: 32, background: "rgba(30,24,20,0.13)" }} />
-        </div>
-      )}
     </div>
   );
 }
@@ -845,9 +849,9 @@ export function ProductReviews({
         </div>
       )}
 
-      {/* Carousel — full width (no horizontal padding here, carousel manages its own) */}
+      {/* Carousel — centered with a comfortable max-width; carousel manages its own padding */}
       {initialLoaded && reviews.length > 0 && (
-        <div style={{ marginTop: 48 }}>
+        <div style={{ marginTop: 48, maxWidth: 680, margin: "48px auto 0" }}>
           <ReviewCarousel
             reviews={reviews}
             batchBase={batchBase}
