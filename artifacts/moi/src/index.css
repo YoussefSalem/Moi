@@ -499,15 +499,14 @@ header[class*="fixed"] {
 .checkout-gradient-bg {
   background: linear-gradient(
     135deg,
-    #f4ede2 0%,
-    #efe6da 20%,
-    #e8ddd2 40%,
-    #f0e8dc 60%,
-    #ede3d6 80%,
-    #f4ede2 100%
+    #f7f0e6 0%,
+    #ede3d4 25%,
+    #e2d8c8 50%,
+    #eee4d6 75%,
+    #f7f0e6 100%
   );
-  background-size: 300% 300%;
-  animation: checkoutGradientFlow 20s ease-in-out infinite;
+  background-size: 400% 400%;
+  animation: checkoutGradientFlow 18s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
