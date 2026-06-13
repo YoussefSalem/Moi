@@ -171,17 +171,24 @@ router.get("/reviews/public", async (req, res): Promise<void> => {
   const limit = Math.min(Math.max(isNaN(limitRaw) ? DEFAULT_PAGE_SIZE : limitRaw, 1), MAX_PAGE_SIZE);
   const cursor = cursorRaw !== null && !isNaN(cursorRaw) ? cursorRaw : null;
 
-  // Variant filter shared between page query and stats query
+  // Variant filter shared between page query and stats query.
+  // NULL variantId = "applies to all variants" (backward compat).
+  // When a specific variantId is requested, include both that variant's
+  // reviews AND any NULL/empty reviews (product-level reviews).
   const variantFilter = variantId
     ? and(
-        eq(productReviews.variantId, variantId),
         eq(productReviews.productHandle, handle),
+        or(
+          eq(productReviews.variantId, variantId),
+          isNull(productReviews.variantId),
+          eq(productReviews.variantId, ""),
+        ),
       )
     : and(
         eq(productReviews.productHandle, handle),
         or(
-          eq(productReviews.variantId, ""),
           isNull(productReviews.variantId),
+          eq(productReviews.variantId, ""),
         ),
       );
 

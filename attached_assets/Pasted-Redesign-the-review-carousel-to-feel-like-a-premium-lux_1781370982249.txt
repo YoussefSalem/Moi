@@ -1,0 +1,31 @@
+Redesign the review carousel to feel like a premium luxury ecommerce experience, inspired by modern card-based interfaces.
+
+Requirements:
+
+* Display 3 review cards at all times:
+    * 1 primary review card in the center.
+    * 2 adjacent review cards on the left and right.
+* Only approximately 15% of each side card should be visible, acting as a visual cue that more reviews are available.
+* The visible portion of the side cards should not display review text or content. Only the card edge/background should be visible.
+* The center card should be the visual focus and appear slightly larger than the side cards.
+* Keep the scale difference subtle and elegant:
+    * Center card ≈ 95% scale.
+    * Side cards ≈ 85% scale.
+* As the user swipes, cards should smoothly transition between side and center positions.
+* The card approaching the center should gradually scale up.
+* The card leaving the center should smoothly scale down into a side position.
+* The scaling and positioning must be tied directly to swipe progress for a fluid, premium feel.
+* Review content should animate independently from the card movement:
+    * As a card moves into the center, its text content should smoothly fade and slide into view.
+    * As a card leaves the center, its text content should smoothly fade out.
+    * Side cards should not show visible review text.
+* Add smooth momentum, easing, and depth so the interaction feels natural and high-end.
+* Consider subtle opacity and depth differences between center and side cards to reinforce focus.
+* Avoid dramatic scaling, exaggerated motion, or flashy effects.
+* No layout shifts, jittering, flickering, snapping, scroll locking, or performance issues.
+* Maintain perfect touch responsiveness on mobile devices.
+* Support mouse dragging and touch gestures.
+* Maintain 60fps performance.
+* Preserve all existing review functionality and data.
+
+The final experience should feel like a luxury product showcase carousel: one prominent review in the center, subtle previews of neighboring reviews on each side, and beautifully animated content that appears only when a review becomes the active center card.
