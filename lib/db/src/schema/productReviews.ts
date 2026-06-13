@@ -8,7 +8,7 @@ export const productReviews = pgTable("product_reviews", {
   author: text("author"),
   email: text("email"),
   title: text("title"),
-  body: text("body").notNull(),
+  body: text("body"),
   rating: integer("rating").notNull(),
   /** pending | approved | rejected | spam */
   status: text("status").notNull().default("pending"),

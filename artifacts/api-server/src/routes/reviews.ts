@@ -28,7 +28,7 @@ router.post("/reviews", async (req, res): Promise<void> => {
   const author = typeof body_.author === "string" ? body_.author.trim() : "";
   const email = typeof body_.email === "string" ? body_.email.trim() : "";
 
-  if (!productHandle || isNaN(rating) || rating < 1 || rating > 5 || body.length < 50) {
+  if (!productHandle || isNaN(rating) || rating < 1 || rating > 5) {
     res.status(400).json({ error: "Invalid submission. Please check your input." });
     return;
   }
@@ -80,8 +80,8 @@ router.post("/reviews", async (req, res): Promise<void> => {
     }
   }
 
-  // Duplicate body in last 7 days → flag as spam (silent)
-  if (status === "pending") {
+  // Duplicate body in last 7 days → flag as spam (silent); skip for rating-only reviews
+  if (status === "pending" && body.trim().length > 0) {
     const [{ value: bodyCount }] = await db
       .select({ value: count() })
       .from(productReviews)
@@ -106,7 +106,7 @@ router.post("/reviews", async (req, res): Promise<void> => {
     productHandle,
     rating,
     title: title?.trim() || null,
-    body: body.trim(),
+    body: body.trim() || null,
     author: author?.trim() || null,
     email: email?.trim() || null,
     status,

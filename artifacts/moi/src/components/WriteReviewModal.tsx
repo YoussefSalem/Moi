@@ -348,8 +348,6 @@ export function WriteReviewModal({ open, onClose, productHandle }: WriteReviewMo
   const validate = (): FormErrors => {
     const errs: FormErrors = {};
     if (rating === 0) errs.rating = "Please select a star rating.";
-    if (body.trim().length === 0) errs.body = "Please write your review.";
-    else if (body.trim().length < 50) errs.body = `Please write at least 50 characters (${body.trim().length}/50).`;
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       errs.email = "Please enter a valid email address.";
     }
@@ -394,7 +392,7 @@ export function WriteReviewModal({ open, onClose, productHandle }: WriteReviewMo
           productHandle: productHandle ?? "unknown",
           rating,
           title: title.trim() || undefined,
-          body: body.trim(),
+          body: body.trim() || undefined,
           author: name.trim() || undefined,
           email: email.trim() || undefined,
         }),
@@ -666,10 +664,10 @@ export function WriteReviewModal({ open, onClose, productHandle }: WriteReviewMo
 
                     {/* Body */}
                     <div id="review-field-body">
-                      <label style={labelStyle} htmlFor="review-body">Your review *</label>
+                      <label style={labelStyle} htmlFor="review-body">Your review (optional)</label>
                       <textarea
                         id="review-body"
-                        placeholder="Share your experience with this piece… (min. 50 characters)"
+                        placeholder="Share your experience with this piece…"
                         value={body}
                         onChange={(e) => setBody(e.target.value)}
                         onBlur={() => handleBlur("body")}
