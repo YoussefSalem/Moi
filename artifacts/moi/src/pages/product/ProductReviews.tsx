@@ -26,9 +26,9 @@ interface ProductReviewsProps extends ReviewsPaginationState {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// Card width = 88% of container → side peek ≈ 9% each side (≈35px on 390px)
-const CARD_W_RATIO = 0.88;
-const STEP_RATIO   = 0.85;   // distance between card centers / container width
+// Card width = 92% of viewport → side peek ≈ 8% each side (≈32px on 390px)
+const CARD_W_RATIO = 0.92;
+const STEP_RATIO   = 0.88;   // distance between card centers / container width
 const SCALE_CENTER = 0.95;
 const SCALE_SIDE   = 0.85;
 const OPACITY_CENTER = 1;
@@ -429,14 +429,16 @@ function ReviewCarousel({
               {/* Glass card */}
               <div
                 style={{
-                  background: "rgba(255,255,255,0.52)",
-                  backdropFilter: "blur(6px)",
-                  WebkitBackdropFilter: "blur(6px)",
-                  borderRadius: 3,
-                  padding: "clamp(32px, 6vw, 52px) clamp(28px, 6vw, 52px)",
+                  background: "rgba(255,255,255,0.78)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  borderRadius: 4,
+                  border: "1px solid rgba(255,255,255,0.9)",
+                  boxShadow: "0 12px 40px rgba(30,24,20,0.08), 0 2px 8px rgba(30,24,20,0.05)",
+                  padding: "clamp(36px, 7vw, 56px) clamp(32px, 7vw, 56px)",
                   position: "relative",
                   overflow: "hidden",
-                  minHeight: 224,
+                  minHeight: 220,
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
@@ -849,9 +851,9 @@ export function ProductReviews({
         </div>
       )}
 
-      {/* Carousel — centered with a comfortable max-width; carousel manages its own padding */}
+      {/* Carousel — full viewport width so cards snap to true viewport center */}
       {initialLoaded && reviews.length > 0 && (
-        <div style={{ marginTop: 48, maxWidth: 680, margin: "48px auto 0" }}>
+        <div style={{ marginTop: 48 }}>
           <ReviewCarousel
             reviews={reviews}
             batchBase={batchBase}
