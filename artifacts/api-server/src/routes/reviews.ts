@@ -2,7 +2,7 @@ import { Router, type IRouter, type Request } from "express";
 import { db } from "@workspace/db";
 import { productReviews } from "@workspace/db/schema";
 import { eq, and, gte, count, avg, gt, or, isNull } from "drizzle-orm";
-import { sendEmail, buildNewReviewAdminEmail } from "../lib/email.js";
+import { sendEmail, buildNewReviewAdminEmail, buildReviewConfirmationEmail } from "../lib/email.js";
 import { logger } from "../lib/logger.js";
 import { getSiteUrl } from "../lib/siteUrl.js";
 
@@ -149,7 +149,7 @@ router.post("/reviews", async (req, res): Promise<void> => {
     const adminEmail = (process.env.ADMIN_EMAIL ?? process.env.RESEND_FROM_EMAIL ?? "hello@buy-moi.com").trim();
     const siteUrl = getSiteUrl();
     const adminUrl = `${siteUrl}/admin#reviews`;
-    const { html, text } = buildNewReviewAdminEmail({
+    const { html: adminHtml, text: adminText } = buildNewReviewAdminEmail({
       author: author || "",
       email: email || "",
       productHandle,
@@ -161,11 +161,30 @@ router.post("/reviews", async (req, res): Promise<void> => {
     void sendEmail({
       to: adminEmail,
       subject: `New ${rating}-star review on ${productHandle} — pending moderation`,
-      html,
-      text,
+      html: adminHtml,
+      text: adminText,
     })
       .then(() => logger.info({ adminEmail, productHandle }, "New review admin notification sent"))
       .catch((err) => logger.warn({ err, productHandle }, "New review admin notification failed"));
+
+    // Send confirmation email to reviewer if they provided an address
+    if (email) {
+      const { html: confirmHtml, text: confirmText } = buildReviewConfirmationEmail({
+        author: author || "",
+        productHandle,
+        rating,
+        title: title || "",
+        body,
+      });
+      void sendEmail({
+        to: email,
+        subject: "We received your review — Moi",
+        html: confirmHtml,
+        text: confirmText,
+      })
+        .then(() => logger.info({ email, productHandle }, "Review confirmation sent to reviewer"))
+        .catch((err) => logger.warn({ err, productHandle }, "Review confirmation email failed"));
+    }
   }
 
   // Always return success so spammers don't learn they're blocked

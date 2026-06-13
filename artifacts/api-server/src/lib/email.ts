@@ -1267,3 +1267,77 @@ export function buildNewReviewAdminEmail(params: {
 
   return { html, text };
 }
+
+// ---------------------------------------------------------------------------
+// Review Submission Confirmation (sent to the reviewer)
+// ---------------------------------------------------------------------------
+
+export function buildReviewConfirmationEmail(params: {
+  author: string;
+  productHandle: string;
+  rating: number;
+  title: string;
+  body: string;
+}): { html: string; text: string } {
+  const { author, productHandle, rating, title, body } = params;
+  const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
+  const siteUrl = getSiteUrl();
+  const firstName = author.split(" ")[0] || "there";
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>We received your review — Moi</title>
+</head>
+<body style="margin:0;padding:0;background:#e8e3dc;font-family:Arial,Helvetica,sans-serif;">
+<div style="display:none;overflow:hidden;max-height:0;">Thank you for your review — we'll publish it shortly.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e8e3dc;">
+<tr><td align="center" style="padding:40px 16px 48px;">
+  <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#fff;">
+    <tr><td style="background:#1a1714;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+    <tr><td style="padding:32px 40px 24px;border-bottom:1px solid #ede9e3;">
+      <p style="margin:0 0 4px;font-size:9px;letter-spacing:0.45em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Moi</p>
+      <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:400;color:#1a1714;">Thank you, ${firstName}.</h1>
+    </td></tr>
+    <tr><td style="padding:28px 40px 0;">
+      <p style="margin:0 0 24px;font-size:13px;color:#4a4035;line-height:1.75;">We've received your review and our team will look it over shortly. Once approved, it will appear on the product page.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #ede9e3;">
+        <tr><td style="background:#faf8f5;padding:20px 24px;">
+          <p style="margin:0 0 6px;font-size:9px;letter-spacing:0.35em;text-transform:uppercase;color:#9a8e82;font-weight:700;">Your Review</p>
+          <p style="margin:0 0 8px;font-size:15px;color:#c8a96e;letter-spacing:0.05em;">${stars}</p>
+          ${title ? `<p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#1a1714;font-family:Georgia,'Times New Roman',serif;">${title}</p>` : ""}
+          ${body ? `<p style="margin:0;font-size:13px;color:#4a4035;line-height:1.7;">${body.replace(/\n/g, "<br />")}</p>` : ""}
+        </td></tr>
+      </table>
+    </td></tr>
+    <tr><td style="padding:28px 40px 40px;">
+      <a href="${siteUrl}" style="display:inline-block;padding:12px 28px;background:#1a1714;font-size:10px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#fff;text-decoration:none;">Shop Moi</a>
+    </td></tr>
+    <tr><td style="padding:0 40px 32px;">
+      <p style="margin:0;font-size:11px;color:#b0a89e;line-height:1.6;">If you didn't submit a review, you can safely ignore this email.</p>
+    </td></tr>
+    <tr><td style="background:#1a1714;height:2px;font-size:0;line-height:0;">&nbsp;</td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+  const text = [
+    `Thank you, ${firstName}.`,
+    ``,
+    `We've received your review and our team will look it over shortly.`,
+    `Once approved, it will appear on the product page.`,
+    ``,
+    `Your Review`,
+    `Rating: ${rating}/5`,
+    title ? `Title: ${title}` : "",
+    body,
+    ``,
+    `Shop Moi: ${siteUrl}`,
+  ].filter((l) => l !== "").join("\n");
+
+  return { html, text };
+}
