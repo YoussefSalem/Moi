@@ -487,6 +487,36 @@ header[class*="fixed"] {
   pointer-events: none !important;
 }
 
+/* ── Checkout animated gradient background ──────────────────── */
+/* Tones stay within the brand's warm sandy palette — the shift is
+   slow enough (20 s) that it reads as ambient warmth, not movement */
+@keyframes checkoutGradientFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.checkout-gradient-bg {
+  background: linear-gradient(
+    135deg,
+    #f4ede2 0%,
+    #efe6da 20%,
+    #e8ddd2 40%,
+    #f0e8dc 60%,
+    #ede3d6 80%,
+    #f4ede2 100%
+  );
+  background-size: 300% 300%;
+  animation: checkoutGradientFlow 20s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkout-gradient-bg {
+    animation: none;
+    background: #efe6da;
+  }
+}
+
 /* ── Apple Pay button — single canonical source ──────────────── */
 .apple-pay-btn {
   -webkit-appearance: -apple-pay-button;
