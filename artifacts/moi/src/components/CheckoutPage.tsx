@@ -942,13 +942,18 @@ export function CheckoutPage() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 32 }}
           transition={transitions.springEntry}
-          className="fixed inset-0 z-[120] overflow-y-auto checkout-gradient-bg"
-          style={{ overscrollBehavior: "contain" }}
+          className="fixed inset-0 z-[120] overflow-y-auto"
+          style={{
+            overscrollBehavior: "contain",
+            background: "linear-gradient(135deg, #f7f0e6 0%, #ede3d4 25%, #e2d8c8 50%, #eee4d6 75%, #f7f0e6 100%)",
+            backgroundSize: "400% 400%",
+            animation: "checkoutGradientFlow 18s ease-in-out infinite",
+          }}
         >
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
-            style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}
+            style={{ backgroundColor: "rgba(247, 240, 230, 0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderBottom: "1px solid rgba(30,24,20,0.10)" }}
           >
             {step === "loading" ? (
               <div style={{ width: 80 }} />

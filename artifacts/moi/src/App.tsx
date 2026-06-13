@@ -705,7 +705,7 @@ function AppContent() {
                   <NotFoundPage onNavigateHome={() => navigateTo("home")} />
                 </Suspense>
               ) : page === "checkout" ? (
-                <div style={{ minHeight: "100vh", background: "#efe6da" }} />
+                <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f7f0e6 0%, #ede3d4 25%, #e2d8c8 50%, #eee4d6 75%, #f7f0e6 100%)", backgroundSize: "400% 400%", animation: "checkoutGradientFlow 18s ease-in-out infinite" }} />
               ) : (
                 <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
                   <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home", undefined, true)} />
