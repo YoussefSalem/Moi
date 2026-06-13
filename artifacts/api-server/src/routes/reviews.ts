@@ -11,6 +11,9 @@ const router: IRouter = Router();
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 50;
 
+// Known valid product handle slugs — rejects garbage / fake handles
+const VALID_HANDLE_RE = /^[a-z0-9][a-z0-9-]{1,98}[a-z0-9]$/;
+
 function getIp(req: Request): string {
   const forwarded = req.headers["x-forwarded-for"];
   if (typeof forwarded === "string") return forwarded.split(",")[0].trim();
@@ -32,10 +35,29 @@ router.post("/reviews", async (req, res): Promise<void> => {
   const author = typeof body_.author === "string" ? body_.author.trim() : "";
   const email = typeof body_.email === "string" ? body_.email.trim() : "";
 
-  if (!productHandle || isNaN(rating) || rating < 1 || rating > 5) {
+  // Basic field validation
+  if (
+    !productHandle ||
+    !VALID_HANDLE_RE.test(productHandle) ||
+    isNaN(rating) ||
+    !Number.isInteger(rating) ||
+    rating < 1 ||
+    rating > 5
+  ) {
     res.status(400).json({ error: "Invalid submission. Please check your input." });
     return;
   }
+
+  // Length limits
+  if (title.length > 200) {
+    res.status(400).json({ error: "Title must be 200 characters or fewer." });
+    return;
+  }
+  if (body.length > 2000) {
+    res.status(400).json({ error: "Review must be 2,000 characters or fewer." });
+    return;
+  }
+
   if (email && !isValidEmail(email)) {
     res.status(400).json({ error: "Invalid email address." });
     return;
@@ -67,7 +89,9 @@ router.post("/reviews", async (req, res): Promise<void> => {
   let status = "pending";
   let spamReason: string | undefined;
 
-  // Same email > 1 submission in 24h → flag as spam
+  // Same email > 5 submissions in 24h → flag as spam
+  // Threshold is 5 (not 2) so a buyer reviewing multiple purchases the same day
+  // doesn't get silently blocked.
   if (email) {
     const [{ value: emailCount }] = await db
       .select({ value: count() })
@@ -78,13 +102,15 @@ router.post("/reviews", async (req, res): Promise<void> => {
           gte(productReviews.submittedAt, since24h),
         ),
       );
-    if (emailCount >= 2) {
+    if (emailCount >= 5) {
       status = "spam";
       spamReason = "duplicate_email";
     }
   }
 
-  // Duplicate body in last 7 days → flag as spam (silent); skip for rating-only reviews
+  // Duplicate body in last 7 days → flag as spam (silent); skip for rating-only reviews.
+  // Only check against approved reviews — checking spam rows would prevent a user from
+  // resubmitting after an earlier review was incorrectly flagged.
   if (status === "pending" && body.trim().length > 0) {
     const [{ value: bodyCount }] = await db
       .select({ value: count() })
@@ -96,7 +122,6 @@ router.post("/reviews", async (req, res): Promise<void> => {
           or(
             eq(productReviews.status, "pending"),
             eq(productReviews.status, "approved"),
-            eq(productReviews.status, "spam"),
           ),
         ),
       );
@@ -155,7 +180,7 @@ router.post("/reviews", async (req, res): Promise<void> => {
 //
 // Returns: { reviews, nextCursor, total, avgRating }
 // — Variant-scoped with backward-compatible fallback for pre-migration
-//   reviews (variantId IS NULL + productHandle match).
+//   reviews (variantId IS NULL match).
 // — cursor-based pagination on `id ASC` for stable ordering with no duplicates.
 router.get("/reviews/public", async (req, res): Promise<void> => {
   const handle = typeof req.query.handle === "string" ? req.query.handle : null;
@@ -174,22 +199,18 @@ router.get("/reviews/public", async (req, res): Promise<void> => {
   // Variant filter shared between page query and stats query.
   // NULL variantId = "applies to all variants" (backward compat).
   // When a specific variantId is requested, include both that variant's
-  // reviews AND any NULL/empty reviews (product-level reviews).
+  // reviews AND any NULL reviews (product-level reviews).
   const variantFilter = variantId
     ? and(
         eq(productReviews.productHandle, handle),
         or(
           eq(productReviews.variantId, variantId),
           isNull(productReviews.variantId),
-          eq(productReviews.variantId, ""),
         ),
       )
     : and(
         eq(productReviews.productHandle, handle),
-        or(
-          isNull(productReviews.variantId),
-          eq(productReviews.variantId, ""),
-        ),
+        isNull(productReviews.variantId),
       );
 
   // Page condition — adds cursor constraint when paginating
@@ -219,7 +240,8 @@ router.get("/reviews/public", async (req, res): Promise<void> => {
   const nextCursor = hasMore ? rows[rows.length - 1].id : null;
 
   const totalCount = Number(statsRows[0]?.total ?? 0);
-  const avgRating = statsRows[0]?.avgRating ? parseFloat(statsRows[0].avgRating) : 0;
+  // parseFloat can return NaN for unexpected Postgres output; || 0 ensures a safe fallback
+  const avgRating = parseFloat(statsRows[0]?.avgRating ?? "0") || 0;
 
   res.status(200).json({
     reviews: rows.map((r) => ({

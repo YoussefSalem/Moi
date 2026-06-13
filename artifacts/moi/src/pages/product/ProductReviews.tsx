@@ -76,7 +76,7 @@ function LoadingSpinner({ size = 20 }: { size?: number }) {
 
 interface CarouselProps {
   reviews: ReviewItem[];
-  batchBase: number;
+  total: number;
   hasMore: boolean;
   loadingMore: boolean;
   error: string | null;
@@ -86,7 +86,7 @@ interface CarouselProps {
 
 function ReviewCarousel({
   reviews,
-  batchBase,
+  total,
   hasMore,
   loadingMore,
   error,
@@ -218,18 +218,6 @@ function ReviewCarousel({
   useLayoutEffect(() => {
     applyStylesFn(trackX.get());
   }, [reviews.length, applyStylesFn, trackX]);
-
-  // ── Reset to index 0 when variant switches ──────────────────────────────────
-
-  const prevBatchBaseRef = useRef(batchBase);
-  useEffect(() => {
-    if (batchBase === 0 && prevBatchBaseRef.current !== 0) {
-      setActiveIdx(0);
-      snapAnimRef.current?.stop();
-      trackX.set(restX(0));
-    }
-    prevBatchBaseRef.current = batchBase;
-  }, [batchBase, restX, trackX]);
 
   // ── Load more when near end of loaded reviews ───────────────────────────────
 
@@ -366,6 +354,7 @@ function ReviewCarousel({
 
   const goTo = useCallback((idx: number) => {
     const len  = reviewsRef.current.length;
+    if (len <= 1) return; // nothing meaningful to navigate with a single card
     const CW   = containerWRef.current;
     const CW76 = CW * CARD_W_RATIO;
 
@@ -387,7 +376,8 @@ function ReviewCarousel({
   if (reviews.length === 0) return null;
 
   const CARD_W_PX = containerW * CARD_W_RATIO;
-  const progress  = reviews.length > 0 ? (activeIdx + 1) / reviews.length : 0;
+  // Use server total so the bar never falsely reads 100% when more reviews exist
+  const progress  = total > 0 ? (activeIdx + 1) / total : 0;
 
   return (
     <div>
@@ -708,7 +698,6 @@ export function ProductReviews({
   reviews,
   total,
   avgRating,
-  batchBase,
   initialLoaded,
   loading,
   loadingMore,
@@ -857,7 +846,7 @@ export function ProductReviews({
         <div style={{ marginTop: 48 }}>
           <ReviewCarousel
             reviews={reviews}
-            batchBase={batchBase}
+            total={total}
             hasMore={hasMore}
             loadingMore={loadingMore}
             error={error}
