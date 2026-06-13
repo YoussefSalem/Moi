@@ -2,11 +2,11 @@ import { useCallback, useRef, useEffect } from "react";
 import { parseEGP } from "@/lib/price";
 import { trackTikTokPurchase } from "@/lib/tiktokPixel";
 import { trackShopifyPurchase } from "@/lib/shopifyAnalytics";
-import { trackPurchase as trackMetaPurchase } from "@/lib/metaPixel";
+
 import { SHOPIFY_CONFIGURED } from "@/lib/shopify";
 import { ENABLE_CARD_PAYMENTS, ENABLE_WALLET_PAYMENTS, ENABLE_APPLE_PAY } from "@/config/features";
 import { resolveLineImage } from "@/lib/productImages";
-import { buildOrderAttribution, buildMetaLineData } from "./checkoutUtils";
+import { buildOrderAttribution } from "./checkoutUtils";
 import type { ShopifyCart, ShopifyCartLine } from "@/lib/shopify";
 import type { LocalCartItem } from "@/context/CartContext";
 import type { OrderResult, PaymentMethod, Step } from "./types";
@@ -262,21 +262,6 @@ export function useCheckoutSubmit(deps: SubmitDeps): () => Promise<void> {
         });
         trackTikTokPurchase({ content_id: orderLines[0]?.variantId, currency: "EGP", value: purchaseValue, quantity: purchaseItems, order_id: String(data.orderNumber ?? data.shopifyOrderId ?? "") });
         trackShopifyPurchase({ orderId: String(data.shopifyOrderId ?? data.orderNumber ?? ""), orderNumber: data.orderNumber, totalPrice: purchaseValue, currencyCode: "EGP", lineItems: orderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })) });
-        const codMeta = buildMetaLineData(activeIsShopify, activeCart, d.localItems);
-        trackMetaPurchase({
-          content_ids: codMeta.contentIds.length > 0 ? codMeta.contentIds : orderLines.map((l) => l.variantId),
-          contents: codMeta.contents.length > 0 ? codMeta.contents : undefined,
-          num_items: codMeta.numItems || purchaseItems,
-          value: purchaseValue,
-          currency: "EGP",
-          order_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""),
-          user: {
-            email: d.form.email.trim() || undefined,
-            phone: d.form.phone.trim() || undefined,
-            first_name: d.form.firstName.trim() || undefined,
-            last_name: d.form.lastName.trim() || undefined,
-          },
-        });
         if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
           (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "purchase", { transaction_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""), value: purchaseValue, currency: "EGP", items: orderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })) });
         }

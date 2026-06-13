@@ -1,53 +1,61 @@
 ---
 name: Moi Meta Pixel + CAPI tracking
-description: How Meta (Facebook) Purchase tracking is wired across Moi's payment paths, the dedup contract, and the gating rules. Read before touching metaPixel.ts or any Purchase fire.
+description: How Meta (Facebook) tracking is wired in Moi, what fires and what does not, and why custom Purchase tracking was removed. Read before touching metaPixel.ts or any purchase flow.
 ---
 
 # Moi Meta Pixel + Conversions API (CAPI)
 
 Pixel ID 2281707575977889. Active ONLY on `buy-moi.com` / `www.buy-moi.com`.
 
-## The dedup contract (do not break)
-- Every Meta Purchase event_id = `hashId('purchase_' + order_id)` (computed in `trackEvent`, metaPixel.ts).
-- Therefore the **order_id passed to `trackPurchase` must be stable across any path that could fire for the same order**, or Meta double-counts → inflated ROAS.
-- All three CARD paths (iframe `handleIframeSuccess`, postMessage handler, full-page 3DS redirect-restore) use the **Paymob intent id** as order_id so they dedup to one event even if two fire.
-- The postMessage handler reads intentId as: `orderResult?.intentId ?? sessionStorage.getItem("moi_paymob_intent_id")` — the sessionStorage fallback is critical because after full-page navigation `orderResult` is null and `orderResult?.intentId` would be undefined, causing a fall to `transactionId` (a different identifier) → different event_id → no dedup.
-- COD / InstaPay use the order number; Apple Pay uses `shopifyOrderNumber ?? applePayIntentId`.
-- **Why:** There are NO server-side Meta Purchase fires (CAPI relay `/api/capi/event` is called only from the browser via `trackEvent`→`sendCapiEvent`). So browser-side order_id consistency is the *only* dedup mechanism. If you ever add a server-side Meta fire, it MUST reuse the same order_id.
+## Current state — Purchase tracking
+
+**Custom `trackMetaPurchase` calls have been REMOVED from all payment paths.**
+
+Shopify's native Facebook/Instagram Sales Channel sends server-side CAPI Purchase events to Meta automatically for every order created via the Admin API (COD, InstaPay, card, Apple Pay all use Admin API). Adding our own client-side `trackPurchase` calls on top produced 2 Purchase events per order in Meta Ads Manager — 1 from our code, 1 from Shopify.
+
+**Do NOT re-add `trackMetaPurchase` calls** without first confirming that Shopify's native Meta integration has been disabled. Adding them back without disabling Shopify's integration will immediately re-create the double-count.
+
+## What the Meta Pixel fires (still active)
+
+| Event | Source |
+|---|---|
+| `PageView` | index.html snippet on every page load |
+| `ViewContent` | `trackViewContent` in `useProductPageState.ts` |
+| `AddToCart` | `trackAddToCart` in `CartContext.tsx` |
+| `InitiateCheckout` | `trackInitiateCheckout` in `CartDrawer.tsx` |
+| `Purchase` | **Shopify only — not our code** |
 
 ## Gating
 - `isMetaTrackingEnabled()` exact-matches the two prod hostnames and gates BOTH the browser pixel AND CAPI inside `trackEvent`. Mirrors the pixel init gate in `index.html`. Preview/dev/*.replit.app never fire.
-- **Why:** The `fbq` stub is always defined by the index.html snippet, so gating on `fbq` existence leaks events from non-prod. Gate on hostname, never on `fbq`.
-- CAPI fires independently of `fbq` presence (recovers ad-blocked / iOS conversions).
+- `fbq('set', 'autoConfig', false, ...)` and `fbq('set', 'disableAutoInitialization', true, ...)` in index.html prevent Shopify's auto-pixel from firing through our SPA.
 
-## The original ZERO-conversions bug
-- `trackPurchase` was exported but never imported/called anywhere → zero Purchase events ever sent. Card-redirect and Apple Pay additionally fired nothing. This caused every reported symptom (wrong ROAS, missing Result Value, zero-conversion days).
-- **How to apply:** when adding a payment path, wire `trackPurchase` INSIDE the existing tracked-once guard (`paymobTrackedRef` / `codTrackedRef` / `instapayTrackedRef`) alongside the TikTok/Shopify fires, using the same order_id as those fires.
+## Pixel init (index.html)
+- `autoConfig: false` — no automatic event collection
+- `disableAutoInitialization: true` — Shopify's injected pixel cannot re-init ours
+- Only `PageView` fires automatically from the snippet
 
-## Double-count root causes (audited)
+## Dead code (intentionally left in place)
+- `metaPixel.ts` — `trackPurchase` function and `sendCapiEvent` are exported but no longer called
+- `/api/capi/event` server route — still in place, no longer receives traffic
+- `buildMetaLineData` in `checkoutUtils.ts` — still exported, no longer called from checkout
 
-Three concrete bugs that together explain 1 real order → 2 Meta Purchase events:
+## Double-count root causes (audited — now fixed/removed)
 
-### Bug 1 (most impactful): `moi_paymob_result` written but not cleared by postMessage handler
-- `/api/paymob-return` ALWAYS writes `moi_paymob_result` to sessionStorage, even when taking the postMessage path (e.g. Paymob's 3DS runs our return URL inside its iframe → `window.parent !== window` → postMessage → `sent=true` → no redirect).
-- The postMessage handler in CheckoutPage fired Purchase event A but never called `sessionStorage.removeItem("moi_paymob_result")`.
-- Later, Paymob's page navigates top-level to our site. Fresh mount → Path C reads the stale key → Purchase event B. If order_ids differ → different event_ids → Meta cannot dedup → 2 counted.
-- **Fix applied:** postMessage handler now calls `sessionStorage.removeItem("moi_paymob_result")` before firing.
+Three bugs were found and fixed before the decision to remove custom tracking entirely:
 
-### Bug 2: order_id inconsistency between postMessage and Path C
-- postMessage handler was using `orderResult?.intentId ?? data.transactionId`. After full-page navigation `orderResult` is null → fell back to Paymob's `transactionId`.
-- Path C (3DS restore) uses `sessionStorage.getItem("moi_paymob_intent_id")` (our DB intent ID).
-- `transactionId` ≠ `intentId` → different event_ids → no dedup.
-- **Fix applied:** postMessage handler now reads `orderResult?.intentId ?? sessionStorage.getItem("moi_paymob_intent_id")` — both paths use the same DB intent ID.
+1. `moi_paymob_result` never cleared by postMessage handler → Path C could re-fire after a postMessage already fired
+2. order_id inconsistency between postMessage path and Path C → different event_ids → no Meta dedup
+3. CAPI fetch lacked `keepalive: true` → navigation could cancel the request
 
-### Bug 3: CAPI fetch had no `keepalive: true`
-- Without keepalive, hard page navigations could cancel the CAPI request in flight.
-- If browser pixel (fbq) fired but CAPI was cancelled, the dedup partner never arrived at Meta. Any subsequent re-fire produces a non-matching event → 2 counted.
-- **Fix applied:** `keepalive: true` added to the CAPI fetch in `metaPixel.ts`.
+All three fixes were applied (postMessage handler clears key + reads intentId from sessionStorage; keepalive added). Then the decision was made to remove all custom Purchase tracking entirely to eliminate the Shopify duplicate.
 
-## Line data
-- `buildMetaLineData(isShopify, shopifyCart, localItems)` in checkoutUtils.ts → `{contentIds, contents, numItems}`. content_ids use `merchandise.id` (variant gid), consistent with TikTok/orderLines.
-- **Card 3DS redirect-restore omits content_ids on purpose:** after the page reload the only line data left is the `moi_paymob_items` snapshot whose `id` is the Shopify cart-LINE id (NOT the variant id). Sending it would pollute catalog matching. value+currency+order_id are enough there. Known minor: that path reports num_items=1 (trackPurchase default) for multi-item orders.
+## `trackShopifyPurchase` — NOT Meta
 
-## Advanced matching PII freshness trap
-- Card `handleIframeSuccess` and the postMessage handler are `useCallback`/effect closures that do NOT have `form` in their deps → `form` is STALE there. So those two paths pass NO user PII (rely on fbp/fbc/IP/UA). COD reads `d.form` via the always-fresh depsRef; InstaPay reads `form` inline in JSX (fresh); Apple Pay reads `sc` shippingContact (fresh). Don't add `form`-based PII to the card iframe/postMessage paths without first giving them a fresh form ref.
+`trackShopifyPurchase` (from `shopifyAnalytics.ts`) sends `payment_info_entered` to Shopify's own monorail endpoint. It has nothing to do with Meta. It remains in all checkout paths.
+
+## Internal purchase analytics — NOT Meta
+
+`trackPurchaseWithTime` (from `analytics.ts`) sends to our internal analytics service. Not Meta.
+
+## Advanced matching PII freshness (historical note)
+- Card iframe/postMessage handlers had stale `form` in their closure deps — those paths passed no PII to Meta. COD, InstaPay, Apple Pay had fresh form access. This is now moot since custom Purchase tracking is removed.

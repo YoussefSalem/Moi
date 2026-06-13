@@ -10,14 +10,14 @@ import { SHOPIFY_CONFIGURED, cartBuyerIdentityUpdate } from "@/lib/shopify";
 import { parseEGP } from "@/lib/price";
 import { trackTikTokPurchase } from "@/lib/tiktokPixel";
 import { trackShopifyPurchase } from "@/lib/shopifyAnalytics";
-import { trackPurchase as trackMetaPurchase } from "@/lib/metaPixel";
+
 import { getAttribution } from "@/lib/adAttribution";
 import { trackCheckoutStep, trackCheckoutStepTime } from "@/lib/analytics";
 import type { ShopifyCartLine } from "@/lib/shopify";
 import { CheckoutOrderSummaryPanel } from "./checkout/CheckoutOrderSummaryPanel";
 import { CheckoutDeliveryFormPanel } from "./checkout/CheckoutDeliveryFormPanel";
 import { resolveLineImage } from "@/lib/productImages";
-import { PUBLIC_COLOR_IMAGES, SHIPPING_EGP, resolveEmailImage, buildOrderAttribution, buildMetaLineData } from "./checkout/checkoutUtils";
+import { PUBLIC_COLOR_IMAGES, SHIPPING_EGP, resolveEmailImage, buildOrderAttribution } from "./checkout/checkoutUtils";
 import { triggerApplePayHandler } from "@/lib/applePayHandler";
 
 import type { OrderResult, OrderBreakdown, PaymentMethod, Step } from "./checkout/types";
@@ -511,17 +511,6 @@ export function CheckoutPage() {
       currencyCode: "EGP",
       lineItems: orderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
     });
-    // Meta Purchase — order_id = intentId keeps it deduplicated with the
-    // postMessage and full-page-redirect card paths (all use the same intentId).
-    const cardMeta = buildMetaLineData(isShopify, shopifyCart, localItems);
-    trackMetaPurchase({
-      content_ids: cardMeta.contentIds.length > 0 ? cardMeta.contentIds : orderLines.map((l) => l.variantId),
-      contents: cardMeta.contents.length > 0 ? cardMeta.contents : undefined,
-      num_items: cardMeta.numItems,
-      value: totalVal,
-      currency: "EGP",
-      order_id: String(orderIntentIdRef.current ?? effectiveOrderId ?? ""),
-    });
     if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
       (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "purchase", {
         transaction_id: effectiveOrderId,
@@ -720,28 +709,6 @@ export function CheckoutPage() {
               body: JSON.stringify({ intentId: syncIntentId, ...(txnId ? { paymobTxnId: txnId } : {}) }),
             }).catch(() => {});
           }
-          // Meta Purchase — the full-page 3DS redirect path previously fired NOTHING,
-          // silently dropping every redirect-completed card conversion. Fire here using
-          // the intent id as order_id so it deduplicates with the iframe / postMessage
-          // card paths (all share the same Paymob intent id). The live cart is gone after
-          // the reload and the stored line snapshot holds Shopify cart-LINE ids (not
-          // variant ids), so content_ids are omitted to avoid polluting catalog matching —
-          // value + currency + order_id are enough to recover ROAS / Result Value.
-          if (syncIntentId) {
-            let redirectValue = orderTotalRaw ? parseEGP(orderTotalRaw) : 0;
-            if (!(Number.isFinite(redirectValue) && redirectValue > 0) && breakdownRaw) {
-              try {
-                const bd = JSON.parse(breakdownRaw) as { subtotal?: number; savings?: number; shippingCost?: number };
-                const sum = (bd.subtotal ?? 0) - (bd.savings ?? 0) + (bd.shippingCost ?? 0);
-                if (Number.isFinite(sum) && sum > 0) redirectValue = sum;
-              } catch { /* ignore */ }
-            }
-            trackMetaPurchase({
-              value: Number.isFinite(redirectValue) && redirectValue > 0 ? redirectValue : undefined,
-              currency: "EGP",
-              order_id: String(syncIntentId),
-            });
-          }
           clearCart();
           // Unified success: persist the snapshot then land on OrderConfirmationPage.
           try {
@@ -838,16 +805,6 @@ export function CheckoutPage() {
           totalPrice: totalVal,
           currencyCode: "EGP",
           lineItems: orderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
-        });
-        // Meta Purchase — order_id = intentId (shared with the iframe + redirect paths).
-        const pmMeta = buildMetaLineData(isShopify, shopifyCart, localItems);
-        trackMetaPurchase({
-          content_ids: pmMeta.contentIds.length > 0 ? pmMeta.contentIds : orderLines.map((l) => l.variantId),
-          contents: pmMeta.contents.length > 0 ? pmMeta.contents : undefined,
-          num_items: pmMeta.numItems,
-          value: totalVal,
-          currency: "EGP",
-          order_id: effectiveOrderId,
         });
         navigateToOrderConfirmed(intentId ?? null);
       } else if (!data.pending) {
@@ -1076,23 +1033,6 @@ export function CheckoutPage() {
                   totalPrice: proofTotal,
                   currencyCode: "EGP",
                   lineItems: proofOrderLines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
-                });
-                // Meta Purchase — onProofSubmitted is inline JSX so `form` is the
-                // current render's value (fresh), allowing advanced-matching PII.
-                const proofMeta = buildMetaLineData(isShopify, shopifyCart, localItems);
-                trackMetaPurchase({
-                  content_ids: proofMeta.contentIds.length > 0 ? proofMeta.contentIds : proofOrderLines.map((l) => l.variantId),
-                  contents: proofMeta.contents.length > 0 ? proofMeta.contents : undefined,
-                  num_items: proofMeta.numItems || proofItems,
-                  value: proofTotal,
-                  currency: "EGP",
-                  order_id: String(orderNumber ?? shopifyOrderId ?? ""),
-                  user: {
-                    email: form.email.trim() || undefined,
-                    phone: form.phone.trim() || undefined,
-                    first_name: form.firstName.trim() || undefined,
-                    last_name: form.lastName.trim() || undefined,
-                  },
                 });
                 if (typeof window !== "undefined" && (window as unknown as { gtag?: unknown }).gtag) {
                   (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "purchase", {

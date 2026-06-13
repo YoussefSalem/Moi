@@ -1,5 +1,4 @@
-import { SHIPPING_EGP, buildMetaLineData } from "@/components/checkout/checkoutUtils";
-import { trackPurchase as trackMetaPurchase } from "@/lib/metaPixel";
+import { SHIPPING_EGP } from "@/components/checkout/checkoutUtils";
 import type { ShopifyCart, ShopifyCartLine } from "@/lib/shopify";
 
 type PaymentMethod = "cod" | "instapay" | "card" | "wallet" | "apple-pay";
@@ -199,25 +198,6 @@ export function triggerApplePayHandler({
       };
       if (data.success) {
         session.completePayment({ status: AP.STATUS_SUCCESS });
-        // Meta Purchase — Apple Pay previously fired NO purchase tracking at all.
-        // `sc` (Apple Pay shippingContact) gives fresh advanced-matching PII; the
-        // order_id prefers the real Shopify order number, falling back to the
-        // Paymob intent id so it deduplicates with any server-side fire.
-        const apMeta = buildMetaLineData(isShopify, shopifyCart, localItems);
-        trackMetaPurchase({
-          content_ids: apMeta.contentIds,
-          contents: apMeta.contents.length > 0 ? apMeta.contents : undefined,
-          num_items: apMeta.numItems,
-          value: totalCents / 100,
-          currency: "EGP",
-          order_id: String(data.shopifyOrderNumber ?? applePayIntentIdRef.current ?? ""),
-          user: sc ? {
-            email: sc.emailAddress?.trim() || undefined,
-            phone: sc.phoneNumber?.trim() || undefined,
-            first_name: sc.givenName?.trim() || undefined,
-            last_name: sc.familyName?.trim() || undefined,
-          } : undefined,
-        });
         const cartItemsSnapshot = isShopify && shopifyCart
           ? shopifyCart.lines.nodes.map((l) => ({
               id: l.id,
