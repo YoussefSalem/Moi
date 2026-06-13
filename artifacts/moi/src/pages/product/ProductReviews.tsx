@@ -128,9 +128,9 @@ function ReviewCarousel({
   const restX = useCallback(
     (idx: number) => {
       const CW   = containerWRef.current;
-      const STEP = CW * STEP_RATIO;
       const CW76 = CW * CARD_W_RATIO;
-      return CW / 2 - CW76 / 2 - idx * STEP;
+      // Physical card width (CW76) determines snapping position — NOT STEP_RATIO
+      return CW / 2 - CW76 / 2 - idx * CW76;
     },
     [],
   );
@@ -186,8 +186,8 @@ function ReviewCarousel({
       const CW76 = CW * CARD_W_RATIO;
 
       cardRefs.current.forEach((el, i) => {
-        // Normalised distance from center: 0 = center, ±1 = one step away
-        const cardCX = xVal + CW76 / 2 + i * STEP;
+        // Physical card center (CW76 spacing); STEP only normalises the falloff
+        const cardCX = xVal + CW76 / 2 + i * CW76;
         const dist   = (cardCX - CW / 2) / STEP;
         const absDist = Math.abs(dist);
         const t       = Math.max(0, 1 - absDist); // 1 at center, 0 at ±1+
@@ -310,6 +310,7 @@ function ReviewCarousel({
 
       const CW        = containerWRef.current;
       const STEP      = CW * STEP_RATIO;
+      const CW76      = CW * CARD_W_RATIO;
       const THRESHOLD = STEP * 0.22;
       const ai        = activeIdxRef.current;
       const len       = reviewsRef.current.length;
@@ -321,18 +322,18 @@ function ReviewCarousel({
 
       if (newIdx !== ai) {
         // ── Seamless infinite loop ───────────────────────────────────────────
-        // Teleport trackX by ±len·STEP so the spring starts from the correct
-        // visual position, then clamp/wrap newIdx into [0, len-1].
+        // Teleport by ±len×CW76 (physical card width) so the spring starts
+        // from the correct visual position, then wrap newIdx into [0, len-1].
         if (newIdx >= len) {
           if (canLoop) {
-            trackX.set(trackX.get() + len * STEP);
+            trackX.set(trackX.get() + len * CW76);
             newIdx = 0;
           } else {
             newIdx = len - 1;
           }
         } else if (newIdx < 0) {
           if (canLoop) {
-            trackX.set(trackX.get() - len * STEP);
+            trackX.set(trackX.get() - len * CW76);
             newIdx = len - 1;
           } else {
             newIdx = 0;
@@ -366,16 +367,16 @@ function ReviewCarousel({
   const goTo = useCallback((idx: number) => {
     const len  = reviewsRef.current.length;
     const CW   = containerWRef.current;
-    const STEP = CW * STEP_RATIO;
+    const CW76 = CW * CARD_W_RATIO;
 
     let targetIdx = idx;
     if (idx >= len) {
-      // Forward wrap: teleport track left by len steps, spring to card 0
-      trackX.set(trackX.get() + len * STEP);
+      // Forward wrap: teleport track left by len card-widths, spring to card 0
+      trackX.set(trackX.get() + len * CW76);
       targetIdx = 0;
     } else if (idx < 0) {
-      // Backward wrap: teleport track right by len steps, spring to card N-1
-      trackX.set(trackX.get() - len * STEP);
+      // Backward wrap: teleport track right by len card-widths, spring to card N-1
+      trackX.set(trackX.get() - len * CW76);
       targetIdx = len - 1;
     }
     setActiveIdx(targetIdx);
