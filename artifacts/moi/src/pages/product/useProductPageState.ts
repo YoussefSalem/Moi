@@ -11,7 +11,7 @@ import { trackViewContent } from "@/lib/metaPixel";
 import { trackTikTokViewContent } from "@/lib/tiktokPixel";
 import { buildAllRecs, deriveFallbackFromHandle } from "./productPageUtils";
 import { useMobileGallerySwipe } from "@/hooks/useMobileGallerySwipe";
-import type { ReviewItem } from "./ProductReviews";
+import { useReviewsPagination } from "./useReviewsPagination";
 
 const ALL_RECS = buildAllRecs();
 
@@ -37,8 +37,6 @@ export function useProductPageState(handle: string) {
   const [carouselLb, setCarouselLb] = useState<{ open: boolean; images: readonly string[]; idx: number }>({ open: false, images: [], idx: 0 });
   const addingRef = useRef(false);
 
-  const [reviews, setReviews] = useState<ReviewItem[]>([]);
-  const [reviewsLoaded, setReviewsLoaded] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
   useEffect(() => {
@@ -140,22 +138,7 @@ export function useProductPageState(handle: string) {
     return variants[0];
   }, [product.variants, pageColorName, sizeOption, selectedSize]);
 
-  // Fetch reviews for the selected variant (variant-scoped, backward-compatible fallback)
-  useEffect(() => {
-    if (!handle) return;
-    setReviewsLoaded(false);
-    const variantId = selectedVariant?.id ?? "";
-    const url = variantId
-      ? `/api/reviews/public?handle=${encodeURIComponent(handle)}&variantId=${encodeURIComponent(variantId)}`
-      : `/api/reviews/public?handle=${encodeURIComponent(handle)}`;
-    fetch(url)
-      .then((r) => r.json())
-      .then((data: { reviews: ReviewItem[] }) => {
-        setReviews(data.reviews ?? []);
-        setReviewsLoaded(true);
-      })
-      .catch(() => { setReviewsLoaded(true); });
-  }, [handle, selectedVariant]);
+  const reviewsPagination = useReviewsPagination(handle, selectedVariant?.id);
 
   const galleryImages = useMemo<string[]>(() => {
     const film = (product.filmstrip as string[]).filter(Boolean);
@@ -274,7 +257,7 @@ export function useProductPageState(handle: string) {
     applePayAvailable,
     recs,
     carouselLb, setCarouselLb,
-    reviews, reviewsLoaded,
+    reviewsPagination,
     reviewModalOpen, setReviewModalOpen,
     sizeOption, displaySizes, selectedSize, setSelectedSize,
     sizeGuideOpen, setSizeGuideOpen,

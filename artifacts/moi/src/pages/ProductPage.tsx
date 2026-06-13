@@ -110,7 +110,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
                 mobileGalleryDidDragRef={s.mobileGalleryDidDragRef}
               />
 
-              <ProductReviews reviews={s.reviews} reviewsLoaded={s.reviewsLoaded} onWriteReview={() => s.setReviewModalOpen(true)} />
+              <ProductReviews {...s.reviewsPagination} onWriteReview={() => s.setReviewModalOpen(true)} />
 
               {onNavigate && s.recs.length > 0 && (() => {
                 const carouselItems: CarouselItem[] = s.recs.map((rec) => ({

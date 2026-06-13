@@ -1,12 +1,15 @@
 import { Router, type IRouter, type Request } from "express";
 import { db } from "@workspace/db";
 import { productReviews } from "@workspace/db/schema";
-import { eq, and, gte, count, or, isNull } from "drizzle-orm";
+import { eq, and, gte, count, avg, gt, or, isNull } from "drizzle-orm";
 import { sendEmail, buildNewReviewAdminEmail } from "../lib/email.js";
 import { logger } from "../lib/logger.js";
 import { getSiteUrl } from "../lib/siteUrl.js";
 
 const router: IRouter = Router();
+
+const DEFAULT_PAGE_SIZE = 12;
+const MAX_PAGE_SIZE = 50;
 
 function getIp(req: Request): string {
   const forwarded = req.headers["x-forwarded-for"];
@@ -144,39 +147,72 @@ router.post("/reviews", async (req, res): Promise<void> => {
   res.status(201).json({ ok: true });
 });
 
-// GET /api/reviews/public?handle=<productHandle>&variantId=<variantId>
-// — approved reviews for product page. Variant-scoped with backward-compatible
-// fallback for pre-migration reviews (variantId IS NULL + productHandle match).
+// GET /api/reviews/public
+//   ?handle=<productHandle>
+//   &variantId=<variantId>   (optional)
+//   &limit=<n>               (1–50, default 12)
+//   &cursor=<lastId>         (last review id from previous page, for pagination)
+//
+// Returns: { reviews, nextCursor, total, avgRating }
+// — Variant-scoped with backward-compatible fallback for pre-migration
+//   reviews (variantId IS NULL + productHandle match).
+// — cursor-based pagination on `id ASC` for stable ordering with no duplicates.
 router.get("/reviews/public", async (req, res): Promise<void> => {
   const handle = typeof req.query.handle === "string" ? req.query.handle : null;
   const variantId = typeof req.query.variantId === "string" ? req.query.variantId : null;
+  const limitRaw = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : DEFAULT_PAGE_SIZE;
+  const cursorRaw = typeof req.query.cursor === "string" ? parseInt(req.query.cursor, 10) : null;
+
   if (!handle) {
     res.status(400).json({ error: "handle query param required" });
     return;
   }
 
-  const rows = await db
-    .select()
-    .from(productReviews)
-    .where(
-      and(
+  const limit = Math.min(Math.max(isNaN(limitRaw) ? DEFAULT_PAGE_SIZE : limitRaw, 1), MAX_PAGE_SIZE);
+  const cursor = cursorRaw !== null && !isNaN(cursorRaw) ? cursorRaw : null;
+
+  // Variant filter shared between page query and stats query
+  const variantFilter = variantId
+    ? and(
+        eq(productReviews.variantId, variantId),
+        eq(productReviews.productHandle, handle),
+      )
+    : and(
+        eq(productReviews.productHandle, handle),
         or(
-          variantId ? and(
-            eq(productReviews.variantId, variantId),
-            eq(productReviews.productHandle, handle),
-          ) : undefined,
-          variantId ? undefined : and(
-            eq(productReviews.productHandle, handle),
-            or(
-              eq(productReviews.variantId, ""),
-              isNull(productReviews.variantId),
-            ),
-          ),
+          eq(productReviews.variantId, ""),
+          isNull(productReviews.variantId),
         ),
-        eq(productReviews.status, "approved"),
-      ),
-    )
-    .orderBy(productReviews.submittedAt);
+      );
+
+  // Page condition — adds cursor constraint when paginating
+  const pageWhere = cursor !== null
+    ? and(variantFilter, eq(productReviews.status, "approved"), gt(productReviews.id, cursor))
+    : and(variantFilter, eq(productReviews.status, "approved"));
+
+  // Stats condition — always over all approved reviews (no cursor), for accurate header summary
+  const statsWhere = and(variantFilter, eq(productReviews.status, "approved"));
+
+  // Fetch one extra row to detect hasMore, and run stats in parallel
+  const [pageRows, statsRows] = await Promise.all([
+    db
+      .select()
+      .from(productReviews)
+      .where(pageWhere)
+      .orderBy(productReviews.id)
+      .limit(limit + 1),
+    db
+      .select({ total: count(), avgRating: avg(productReviews.rating) })
+      .from(productReviews)
+      .where(statsWhere),
+  ]);
+
+  const hasMore = pageRows.length > limit;
+  const rows = hasMore ? pageRows.slice(0, limit) : pageRows;
+  const nextCursor = hasMore ? rows[rows.length - 1].id : null;
+
+  const totalCount = Number(statsRows[0]?.total ?? 0);
+  const avgRating = statsRows[0]?.avgRating ? parseFloat(statsRows[0].avgRating) : 0;
 
   res.status(200).json({
     reviews: rows.map((r) => ({
@@ -188,6 +224,9 @@ router.get("/reviews/public", async (req, res): Promise<void> => {
       date: r.submittedAt.toLocaleDateString("en-GB", { month: "long", year: "numeric" }),
       verified: false,
     })),
+    nextCursor,
+    total: totalCount,
+    avgRating,
   });
 });
 
