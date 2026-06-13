@@ -5,6 +5,7 @@ import { z } from "zod/v4";
 export const productReviews = pgTable("product_reviews", {
   id: serial("id").primaryKey(),
   productHandle: text("product_handle").notNull(),
+  variantId: text("variant_id"),
   author: text("author"),
   email: text("email"),
   title: text("title"),

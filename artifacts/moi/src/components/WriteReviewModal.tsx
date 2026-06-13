@@ -270,11 +270,12 @@ export interface WriteReviewModalProps {
   open: boolean;
   onClose: () => void;
   productHandle?: string;
+  variantId?: string;
 }
 
 type ModalState = "idle" | "loading" | "success";
 
-export function WriteReviewModal({ open, onClose, productHandle }: WriteReviewModalProps) {
+export function WriteReviewModal({ open, onClose, productHandle, variantId }: WriteReviewModalProps) {
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -390,6 +391,7 @@ export function WriteReviewModal({ open, onClose, productHandle }: WriteReviewMo
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productHandle: productHandle ?? "unknown",
+          variantId: variantId || undefined,
           rating,
           title: title.trim() || undefined,
           body: body.trim() || undefined,

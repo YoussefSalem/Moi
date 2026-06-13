@@ -42,18 +42,6 @@ export function useProductPageState(handle: string) {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!handle) return;
-    setReviewsLoaded(false);
-    fetch(`/api/reviews/public?handle=${encodeURIComponent(handle)}`)
-      .then((r) => r.json())
-      .then((data: { reviews: ReviewItem[] }) => {
-        setReviews(data.reviews ?? []);
-        setReviewsLoaded(true);
-      })
-      .catch(() => { setReviewsLoaded(true); });
-  }, [handle]);
-
-  useEffect(() => {
     const AP = (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession;
     setApplePayAvailable(!!(ENABLE_APPLE_PAY && AP?.canMakePayments?.()));
   }, []);
@@ -130,6 +118,45 @@ export function useProductPageState(handle: string) {
   useEffect(() => { if (displaySizes[0]) setSelectedSize(displaySizes[0]); }, [product.slug]);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
 
+  const selectedVariant = useMemo(() => {
+    const variants = product.variants;
+    if (!variants?.length) return undefined;
+    const colorLower   = pageColorName.toLowerCase();
+    const sizeOptName  = sizeOption?.optionName.toLowerCase() ?? "";
+    const sizeLower    = selectedSize.toLowerCase();
+    if (pageColorName) {
+      const withBoth = variants.find((v) =>
+        v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorLower) &&
+        (!sizeOption || v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOptName && o.value.toLowerCase() === sizeLower))
+      );
+      if (withBoth) return withBoth;
+      const colorOnly = variants.find((v) => v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorLower));
+      if (colorOnly) return colorOnly;
+      return undefined;
+    }
+    if (sizeOption) {
+      return variants.find((v) => v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOptName && o.value.toLowerCase() === sizeLower)) ?? variants[0];
+    }
+    return variants[0];
+  }, [product.variants, pageColorName, sizeOption, selectedSize]);
+
+  // Fetch reviews for the selected variant (variant-scoped, backward-compatible fallback)
+  useEffect(() => {
+    if (!handle) return;
+    setReviewsLoaded(false);
+    const variantId = selectedVariant?.id ?? "";
+    const url = variantId
+      ? `/api/reviews/public?handle=${encodeURIComponent(handle)}&variantId=${encodeURIComponent(variantId)}`
+      : `/api/reviews/public?handle=${encodeURIComponent(handle)}`;
+    fetch(url)
+      .then((r) => r.json())
+      .then((data: { reviews: ReviewItem[] }) => {
+        setReviews(data.reviews ?? []);
+        setReviewsLoaded(true);
+      })
+      .catch(() => { setReviewsLoaded(true); });
+  }, [handle, selectedVariant]);
+
   const galleryImages = useMemo<string[]>(() => {
     const film = (product.filmstrip as string[]).filter(Boolean);
     if (film.length > 0) return Array.from(new Set(film));
@@ -172,28 +199,6 @@ export function useProductPageState(handle: string) {
     el.style.transform  = `translateX(-${rawIdx * 100}%)`;
     setTrackMounted(true);
   }, [galleryImages.length]);
-
-  const selectedVariant = (() => {
-    const variants = product.variants;
-    if (!variants?.length) return undefined;
-    const colorLower   = pageColorName.toLowerCase();
-    const sizeOptName  = sizeOption?.optionName.toLowerCase() ?? "";
-    const sizeLower    = selectedSize.toLowerCase();
-    if (pageColorName) {
-      const withBoth = variants.find((v) =>
-        v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorLower) &&
-        (!sizeOption || v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOptName && o.value.toLowerCase() === sizeLower))
-      );
-      if (withBoth) return withBoth;
-      const colorOnly = variants.find((v) => v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorLower));
-      if (colorOnly) return colorOnly;
-      return undefined;
-    }
-    if (sizeOption) {
-      return variants.find((v) => v.selectedOptions.some((o) => o.name.toLowerCase() === sizeOptName && o.value.toLowerCase() === sizeLower)) ?? variants[0];
-    }
-    return variants[0];
-  })();
 
   const isOutOfStock           = selectedVariant ? !selectedVariant.availableForSale : false;
   const effectivePrice         = selectedVariant?.price ?? product.price;

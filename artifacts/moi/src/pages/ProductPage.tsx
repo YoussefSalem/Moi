@@ -141,6 +141,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
       <WriteReviewModal
         open={s.reviewModalOpen}
         productHandle={handle}
+        variantId={s.selectedVariant?.id}
         onClose={() => s.setReviewModalOpen(false)}
       />
 

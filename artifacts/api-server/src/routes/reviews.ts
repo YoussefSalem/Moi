@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request } from "express";
 import { db } from "@workspace/db";
 import { productReviews } from "@workspace/db/schema";
-import { eq, and, gte, count, or } from "drizzle-orm";
+import { eq, and, gte, count, or, isNull } from "drizzle-orm";
 import { sendEmail, buildNewReviewAdminEmail } from "../lib/email.js";
 import { logger } from "../lib/logger.js";
 import { getSiteUrl } from "../lib/siteUrl.js";
@@ -22,6 +22,7 @@ function isValidEmail(s: string): boolean {
 router.post("/reviews", async (req, res): Promise<void> => {
   const body_ = req.body as Record<string, unknown>;
   const productHandle = typeof body_.productHandle === "string" ? body_.productHandle.trim() : "";
+  const variantId = typeof body_.variantId === "string" ? body_.variantId.trim() : null;
   const rating = typeof body_.rating === "number" ? body_.rating : NaN;
   const title = typeof body_.title === "string" ? body_.title.trim() : "";
   const body = typeof body_.body === "string" ? body_.body.trim() : "";
@@ -104,6 +105,7 @@ router.post("/reviews", async (req, res): Promise<void> => {
 
   await db.insert(productReviews).values({
     productHandle,
+    variantId: variantId || null,
     rating,
     title: title?.trim() || null,
     body: body.trim() || null,
@@ -142,9 +144,12 @@ router.post("/reviews", async (req, res): Promise<void> => {
   res.status(201).json({ ok: true });
 });
 
-// GET /api/reviews/public?handle=<productHandle> — approved reviews for product page
+// GET /api/reviews/public?handle=<productHandle>&variantId=<variantId>
+// — approved reviews for product page. Variant-scoped with backward-compatible
+// fallback for pre-migration reviews (variantId IS NULL + productHandle match).
 router.get("/reviews/public", async (req, res): Promise<void> => {
   const handle = typeof req.query.handle === "string" ? req.query.handle : null;
+  const variantId = typeof req.query.variantId === "string" ? req.query.variantId : null;
   if (!handle) {
     res.status(400).json({ error: "handle query param required" });
     return;
@@ -155,7 +160,19 @@ router.get("/reviews/public", async (req, res): Promise<void> => {
     .from(productReviews)
     .where(
       and(
-        eq(productReviews.productHandle, handle),
+        or(
+          variantId ? and(
+            eq(productReviews.variantId, variantId),
+            eq(productReviews.productHandle, handle),
+          ) : undefined,
+          variantId ? undefined : and(
+            eq(productReviews.productHandle, handle),
+            or(
+              eq(productReviews.variantId, ""),
+              isNull(productReviews.variantId),
+            ),
+          ),
+        ),
         eq(productReviews.status, "approved"),
       ),
     )
