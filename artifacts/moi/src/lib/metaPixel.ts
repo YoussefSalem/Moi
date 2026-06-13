@@ -114,6 +114,9 @@ function sendCapiEvent(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    // keepalive ensures the request completes even if the page navigates
+    // away immediately after trackEvent (e.g. after navigateToOrderConfirmed).
+    keepalive: true,
   }).catch(() => {
     // Silently ignore network errors — CAPI is a best-effort enhancement
   });

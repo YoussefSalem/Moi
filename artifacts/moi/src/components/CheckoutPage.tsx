@@ -806,11 +806,21 @@ export function CheckoutPage() {
       }
       if (!data || data.type !== "PAYMOB_RESULT") return;
 
-      const intentId = orderResult?.intentId;
+      // Prefer the in-memory intentId (set at paymob-init time) but fall back to the
+      // sessionStorage key so the order_id matches what Path C (3DS redirect restore)
+      // would use. This ensures both paths produce the same event_id for Meta dedup.
+      const intentId =
+        orderResult?.intentId ??
+        (typeof sessionStorage !== "undefined"
+          ? (sessionStorage.getItem("moi_paymob_intent_id") ?? undefined)
+          : undefined);
 
       if (data.success) {
         if (paymobTrackedRef.current) return;
         paymobTrackedRef.current = true;
+        // Clear the sessionStorage result key so the mount-only Path C (3DS redirect
+        // restore) cannot fire a second Purchase event if the component later remounts.
+        try { sessionStorage.removeItem("moi_paymob_result"); } catch { /* ignore */ }
         clearCart();
         markAbandonedCartRecovered();
         const orderLines = isShopify && shopifyCart
