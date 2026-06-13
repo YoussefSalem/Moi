@@ -42,17 +42,16 @@ export function useProductPageState(handle: string) {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
   useEffect(() => {
-    const slug = product.slug;
-    if (!slug) return;
+    if (!handle) return;
     setReviewsLoaded(false);
-    fetch(`/api/reviews/public?handle=${encodeURIComponent(slug)}`)
+    fetch(`/api/reviews/public?handle=${encodeURIComponent(handle)}`)
       .then((r) => r.json())
       .then((data: { reviews: ReviewItem[] }) => {
         setReviews(data.reviews ?? []);
         setReviewsLoaded(true);
       })
       .catch(() => { setReviewsLoaded(true); });
-  }, [product.slug]);
+  }, [handle]);
 
   useEffect(() => {
     const AP = (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession;

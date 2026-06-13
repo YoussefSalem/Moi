@@ -140,7 +140,7 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
 
       <WriteReviewModal
         open={s.reviewModalOpen}
-        productHandle={s.product.slug}
+        productHandle={handle}
         onClose={() => s.setReviewModalOpen(false)}
       />
 
