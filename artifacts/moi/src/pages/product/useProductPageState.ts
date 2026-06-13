@@ -183,7 +183,8 @@ export function useProductPageState(handle: string) {
     setTrackMounted(true);
   }, [galleryImages.length]);
 
-  const isOutOfStock           = selectedVariant ? !selectedVariant.availableForSale : false;
+  const hasVariants            = product.variants !== undefined && product.variants.length > 0;
+  const isOutOfStock           = hasVariants ? (selectedVariant !== undefined ? !selectedVariant.availableForSale : true) : false;
   const effectivePrice         = selectedVariant?.price ?? product.price;
   const effectiveCompareAtPrice = selectedVariant?.compareAtPrice ?? (product as unknown as { compareAtPrice?: string }).compareAtPrice;
   const mainImage              = galleryImages[galleryIndex] ?? product.productShot;

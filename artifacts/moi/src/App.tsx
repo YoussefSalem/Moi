@@ -119,6 +119,10 @@ function AppContent() {
     const variant = product.variants?.find((v) =>
       v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorLower)
     );
+    // Guard: if the variant is explicitly unavailable, block the add entirely.
+    if (variant !== undefined && !variant.availableForSale) {
+      return;
+    }
     // Only use product.variantId when there is no color constraint (i.e. colorName is empty).
     // If colorName is set but no variant was found, skip the Shopify add entirely rather
     // than silently adding the wrong color's variant to the cart.
