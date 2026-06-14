@@ -337,63 +337,11 @@ export function CheckoutPage() {
   const abandonedCartIdRef = useRef<number | null>(null);
 
   const markAbandonedCartRecovered = useCallback(() => {
-    // Fast path: email blur already recorded the cart — just mark it recovered.
-    if (abandonedCartIdRef.current) {
-      const id = abandonedCartIdRef.current;
-      abandonedCartIdRef.current = null;
-      fetch(`/api/abandoned-carts/${id}/recovered`, { method: "POST" }).catch(() => {});
-      return;
-    }
-    // Fallback: email blur didn't fire (mobile autofill, copy-paste without tab-out,
-    // or Shopify cart wasn't loaded yet).  Record + immediately recover so every
-    // completed order appears in the admin Abandoned Carts panel.
-    const email = form.email.trim();
-    if (!email || !email.includes("@")) return;
-    const lineItems = (isShopify && shopifyCart)
-      ? shopifyCart.lines.nodes.map((l) => {
-          const colorOpt = l.merchandise.selectedOptions?.find((o) => o.name.toLowerCase() === "color");
-          const colorName = colorOpt?.value;
-          return {
-            title: l.merchandise.product.title,
-            variant: colorName ? `Color: ${colorName}` : (l.merchandise.title === "Default Title" ? undefined : l.merchandise.title),
-            quantity: l.quantity,
-            price: `${Math.floor(parseFloat(l.merchandise.price.amount)).toLocaleString("en-US")} EGP`,
-            imageUrl: resolveEmailImage(l, localItems) ?? undefined,
-            variantId: l.merchandise.id,
-          };
-        })
-      : localItems.map((i) => {
-          const color = i.color?.toLowerCase() ?? "";
-          const publicImg = PUBLIC_COLOR_IMAGES[color];
-          return {
-            title: i.title,
-            variant: i.color ? `Color: ${i.color}` : undefined,
-            quantity: i.quantity,
-            price: i.price,
-            imageUrl: publicImg ?? (i.image?.startsWith("http") ? i.image : undefined),
-            variantId: i.variantId,
-          };
-        });
-    if (lineItems.length === 0) return;
-    fetch("/api/abandoned-carts/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        cartId: shopifyCart?.id ?? null,
-        lineItems,
-        totalAmount: fmt(totalAmount),
-      }),
-    })
-      .then((r) => r.json())
-      .then((data: unknown) => {
-        const id = (data as { id?: number })?.id;
-        if (id) {
-          fetch(`/api/abandoned-carts/${id}/recovered`, { method: "POST" }).catch(() => {});
-        }
-      })
-      .catch(() => {});
-  }, [form.email, isShopify, shopifyCart, localItems, totalAmount, fmt]);
+    if (!abandonedCartIdRef.current) return;
+    const id = abandonedCartIdRef.current;
+    abandonedCartIdRef.current = null;
+    fetch(`/api/abandoned-carts/${id}/recovered`, { method: "POST" }).catch(() => {});
+  }, []);
 
   const handleSuccessDone = useCallback(() => {
     // Safety net: mark recovered in case payment path missed it
@@ -994,16 +942,13 @@ export function CheckoutPage() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 32 }}
           transition={transitions.springEntry}
-          className="fixed inset-0 z-[120]"
+          className="fixed inset-0 z-[120] overflow-y-auto"
+          style={{ backgroundColor: "#efe6da", overscrollBehavior: "contain" }}
         >
-          {/* Gradient background — own element, no overflow/transform ancestor */}
-          <div className="absolute inset-0 moi-checkout-bg" aria-hidden="true" />
-          {/* Scroll container — transparent so gradient shows through */}
-          <div className="absolute inset-0 overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
-            style={{ backgroundColor: "rgba(247, 240, 230, 0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderBottom: "1px solid rgba(30,24,20,0.10)" }}
+            style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}
           >
             {step === "loading" ? (
               <div style={{ width: 80 }} />
@@ -1157,7 +1102,6 @@ export function CheckoutPage() {
               />
             </div>
           )}
-          </div>{/* end scroll container */}
         </motion.div>
       )}
     </AnimatePresence>
