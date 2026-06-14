@@ -591,7 +591,7 @@ interface ReviewOrder {
   line_items: ReviewOrderLineItem[];
   refunds: Array<{
     id: number;
-    transactions: Array<{ amount: string }>;
+    refund_line_items: Array<{ quantity: number }>;
   }>;
 }
 
@@ -605,11 +605,18 @@ export async function getShopifyOrderForReview(orderId: number): Promise<ReviewO
 
   const fields = "id,order_number,email,financial_status,cancelled_at,total_price,tags,customer,billing_address,line_items,refunds";
 
-  // Network errors propagate as-is; the caller treats them as transient.
-  const res = await fetch(
-    `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=${fields}`,
-    { headers: { "X-Shopify-Access-Token": adminToken } },
-  );
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=${fields}`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+  } catch (err) {
+    // Network-level failure (DNS, timeout, connection refused) — transient.
+    throw new TransientShopifyError(
+      `getShopifyOrderForReview: network error for order ${orderId}: ${String(err)}`,
+    );
+  }
 
   if (res.status === 404) {
     // Order genuinely not found — terminal; caller should not retry.
@@ -732,8 +739,9 @@ export async function getShopifyOrderDisputes(
     }
 
     const data = await res.json() as { disputes: Array<{ status: string }> };
-    // Suppress if any dispute the merchant hasn't won (active, lost, or refunded).
-    return (data.disputes ?? []).some((d) => d.status !== "won");
+    // Suppress if the dispute is unresolved or merchant lost.
+    // Allow "won" (merchant prevailed) and "expired" (dispute lapsed) to proceed.
+    return (data.disputes ?? []).some((d) => d.status !== "won" && d.status !== "expired");
   } catch (err) {
     logger.warn({ err, orderId }, "getShopifyOrderDisputes: fetch error — relying on tags");
     return false;

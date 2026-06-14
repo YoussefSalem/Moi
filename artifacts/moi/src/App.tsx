@@ -149,7 +149,7 @@ function AppContent() {
   const [page, setPage] = useState<PageType>(() => parsePath().page);
   const [productHandle, setProductHandle] = useState<string>(() => parsePath().productHandle);
   const [scrollTarget, setScrollTarget] = useState<string>(() => parsePath().section ?? "");
-  const [autoOpenReview, setAutoOpenReview] = useState(false);
+  const [autoOpenReview, setAutoOpenReview] = useState<string | null>(null);
 
   // Always-current references to page/handle for use inside stale-closure
   // callbacks (onPopState, navigateToProduct — both have empty deps arrays).
@@ -363,7 +363,7 @@ function AppContent() {
       sessionStorage.setItem(ssKey, "1");
     } catch { /* sessionStorage unavailable */ }
 
-    setAutoOpenReview(true);
+    setAutoOpenReview(handle);
     // Strip the param so the URL looks clean without breaking the SPA state
     window.history.replaceState(null, "", `/products/${handle}`);
   // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -15,7 +15,7 @@ import { useReviewsPagination } from "./useReviewsPagination";
 
 const ALL_RECS = buildAllRecs();
 
-export function useProductPageState(handle: string, autoOpenReview?: boolean) {
+export function useProductPageState(handle: string, autoOpenReview?: string | null) {
   const fallback = deriveFallbackFromHandle(handle);
   const { product, loading } = useShopifyProductByHandle(handle, fallback);
   const pageColorName = fallback.name.includes(" — ")
@@ -43,7 +43,7 @@ export function useProductPageState(handle: string, autoOpenReview?: boolean) {
   // Guard: fires only once per mount; skips while Shopify data is still loading.
   const reviewAutoOpenedRef = useRef(false);
   useEffect(() => {
-    if (!autoOpenReview || loading || reviewAutoOpenedRef.current) return;
+    if (autoOpenReview !== handle || loading || reviewAutoOpenedRef.current) return;
     reviewAutoOpenedRef.current = true;
     setReviewModalOpen(true);
     trackEvent("interaction", "review_modal_opened", { productHandle: handle });

@@ -8,7 +8,7 @@ import {
   replaceShopifyOrderTag,
   TransientShopifyError,
 } from "./integrations";
-import { buildReviewRequestEmail, sendEmail } from "./email";
+import { buildReviewRequestEmail, sendEmail, ResendTerminalError } from "./email";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -93,7 +93,7 @@ async function workDlq(jobs: JobWithMetadata<ReviewEmailJobData>[]): Promise<voi
         "review-email: job landed in DLQ — manual intervention may be needed",
       );
     } else {
-      logger.info(
+      logger.warn(
         { intentId: job.data.intentId, shopifyOrderId: job.data.shopifyOrderId },
         "review-email: DLQ event suppressed (alert rate-limited)",
       );
@@ -186,16 +186,17 @@ async function processJob(job: JobWithMetadata<ReviewEmailJobData>): Promise<voi
     return;
   }
 
-  // Partial-refund full-coverage check
+  // Partial-refund full-coverage check via line-item quantities.
+  // Quantity coverage is more reliable than transaction amounts (taxes, fees, etc.).
   if (order.financial_status === "partially_refunded" && order.refunds.length > 0) {
-    const refundTotal = order.refunds.reduce(
-      (sum, r) => sum + (r.transactions ?? []).reduce((s, t) => s + Number(t.amount || 0), 0),
+    const orderedQty = order.line_items.reduce((sum, li) => sum + (li.quantity ?? 0), 0);
+    const refundedQty = order.refunds.reduce(
+      (sum, r) => sum + (r.refund_line_items ?? []).reduce((s, rli) => s + (rli.quantity ?? 0), 0),
       0,
     );
-    const orderTotal = Number(order.total_price ?? 0);
-    if (orderTotal > 0 && refundTotal >= orderTotal) {
+    if (orderedQty > 0 && refundedQty >= orderedQty) {
       logger.info(
-        { intentId, orderId: shopifyOrderId, attempt, refundTotal, orderTotal, status: "partial_refund_full", durationMs: Date.now() - startMs },
+        { intentId, orderId: shopifyOrderId, attempt, orderedQty, refundedQty, status: "partial_refund_full", durationMs: Date.now() - startMs },
         "review-email: outcome",
       );
       return;
@@ -275,12 +276,29 @@ async function processJob(job: JobWithMetadata<ReviewEmailJobData>): Promise<voi
     productTitle: primary.title ?? "",
   });
 
-  await sendEmail({
-    to: customerEmail,
-    subject: "Your thoughts mean the world 💕",
-    html,
-    text,
-  });
+  try {
+    await sendEmail({
+      to: customerEmail,
+      subject: "Your thoughts mean the world 💕",
+      html,
+      text,
+    });
+  } catch (err) {
+    if (err instanceof ResendTerminalError) {
+      // 4xx from Resend — bad address, blocked, etc.  Do not retry.
+      logger.warn(
+        { intentId, orderId: shopifyOrderId, customerEmail, attempt, err: String(err), status: "email_terminal", durationMs: Date.now() - startMs },
+        "review-email: outcome",
+      );
+      return;
+    }
+    // Transient (5xx, network) — let pg-boss retry
+    logger.warn(
+      { intentId, orderId: shopifyOrderId, attempt, err: String(err), status: "email_transient", durationMs: Date.now() - startMs },
+      "review-email: outcome",
+    );
+    throw err;
+  }
 
   // Flip the Shopify tag only after a successful send.
   await replaceShopifyOrderTag(shopifyOrderId, TAG_PENDING, TAG_SENT);

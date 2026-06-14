@@ -1,4 +1,15 @@
 import { Resend } from "resend";
+
+/**
+ * Thrown when Resend rejects an email with a 4xx status code.
+ * These are terminal — the message will never succeed and should not be retried.
+ */
+export class ResendTerminalError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ResendTerminalError";
+  }
+}
 import { logger } from "./logger";
 import { parseEGP } from "@workspace/utils";
 import { getSiteUrl } from "./siteUrl";
@@ -38,6 +49,12 @@ export async function sendEmail(params: {
     ...(params.replyTo ? { replyTo: params.replyTo } : {}),
   });
   if (error) {
+    // 4xx = terminal (invalid address, blocked recipient, bad request) — never retry.
+    // 5xx = transient — let caller retry by throwing a plain Error.
+    const statusCode = (error as { statusCode?: number | null }).statusCode;
+    if (typeof statusCode === "number" && statusCode >= 400 && statusCode < 500) {
+      throw new ResendTerminalError(`Resend ${statusCode}: ${error.message}`);
+    }
     throw new Error(`Resend error: ${error.message}`);
   }
 }

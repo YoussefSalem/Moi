@@ -15,7 +15,7 @@ import { useProductPageState } from "./product/useProductPageState";
 
 interface ProductPageProps {
   handle: string;
-  autoOpenReview?: boolean;
+  autoOpenReview?: string | null;
   onBack: () => void;
   onNavigate?: (handle: string) => void;
   onPageNavigate?: (page: "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery", hash?: string) => void;

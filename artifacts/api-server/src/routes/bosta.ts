@@ -92,24 +92,26 @@ router.post("/bosta/status-webhook", async (req, res) => {
     return;
   }
 
+  // Replay-window enforcement — checked before acknowledging the request.
+  // BOSTA_WEBHOOK_REPLAY_WINDOW_MS defaults to 5 min (300 000 ms).
+  // Only enforced when updatedAt is present; absent timestamps skip the check.
+  const REPLAY_WINDOW_MS = parseInt(process.env.BOSTA_WEBHOOK_REPLAY_WINDOW_MS ?? "300000", 10);
+  const eventTs = payload.updatedAt ? Date.parse(payload.updatedAt) : NaN;
+  if (!isNaN(eventTs) && Date.now() - eventTs > REPLAY_WINDOW_MS) {
+    req.log.warn(
+      { eventAge: Date.now() - eventTs, updatedAt: payload.updatedAt },
+      "Bosta webhook: replay-window exceeded — rejecting stale event",
+    );
+    res.status(400).json({ error: "Event timestamp outside replay window" });
+    return;
+  }
+
   // Respond quickly; Bosta expects a fast 200
   res.status(200).json({ ok: true });
 
   const bostaState     = (payload.state?.value ?? "").toUpperCase();
   const trackingNumber = payload.trackingNumber ?? "";
   const shopifyStatus  = BOSTA_TO_SHOPIFY_STATUS[bostaState];
-
-  // Advisory replay-window check (non-blocking).
-  // BOSTA_WEBHOOK_REPLAY_WINDOW_MS defaults to 5 min (300 000 ms).
-  // Contract: Bosta must send updatedAt as an ISO 8601 timestamp; if absent we skip the check.
-  const REPLAY_WINDOW_MS = parseInt(process.env.BOSTA_WEBHOOK_REPLAY_WINDOW_MS ?? "300000", 10);
-  const eventTs = payload.updatedAt ? Date.parse(payload.updatedAt) : NaN;
-  if (!isNaN(eventTs) && Date.now() - eventTs > REPLAY_WINDOW_MS) {
-    req.log.warn(
-      { trackingNumber, bostaState, eventAge: Date.now() - eventTs, updatedAt: payload.updatedAt },
-      "Bosta webhook: replay-window advisory — event is stale (processing anyway)",
-    );
-  }
 
   req.log.info(
     { trackingNumber, bostaState, shopifyStatus },
@@ -189,14 +191,18 @@ router.post("/bosta/status-webhook", async (req, res) => {
         return;
       }
 
-      // Mark the Shopify order so the job dedup tag is set before the delay runs
-      await tagShopifyOrder(intent.shopifyConfirmedOrderId, "review-email-pending");
-
+      // Enqueue first so a failed enqueue doesn't leave the tag orphaned.
+      // pg-boss singletonKey is the authoritative idempotency guard; the
+      // pending tag is secondary (prevents duplicate DELIVERED events).
       await enqueueReviewEmail({
         intentId:            intent.intentId,
         bostaTrackingNumber: trackingNumber,
         shopifyOrderId:      intent.shopifyConfirmedOrderId,
       });
+
+      // Tag AFTER successful enqueue so the transition guard in subsequent
+      // DELIVERED events can skip without hitting the DB.
+      await tagShopifyOrder(intent.shopifyConfirmedOrderId, "review-email-pending");
 
       req.log.info(
         { intentId: intent.intentId, shopifyOrderId: intent.shopifyConfirmedOrderId },
