@@ -1029,8 +1029,13 @@ export function CheckoutPage() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 32 }}
           transition={transitions.springEntry}
-          className="fixed inset-0 z-[120] overflow-y-auto checkout-animated-bg"
-          style={{ overscrollBehavior: "contain" }}
+          className="fixed inset-0 z-[120] overflow-y-auto"
+          style={{
+            overscrollBehavior: "contain",
+            background: "linear-gradient(135deg, #FAFAF7 0%, #F5F1E8 30%, #EDE4D3 60%, #F5F1E8 80%, #FAFAF7 100%)",
+            backgroundSize: "400% 400%",
+            animation: "checkout-bg-drift 45s ease-in-out infinite",
+          }}
         >
           {/* Header */}
           <div
