@@ -1021,6 +1021,29 @@ export function CheckoutPage() {
         </motion.div>
       )}
     </AnimatePresence>
+    {/* Animated gradient background — separate motion.div so Framer Motion's transform on the
+        checkout overlay never creates a containing-block conflict with position:fixed children */}
+    <AnimatePresence>
+      {checkoutOpen && (
+        <motion.div
+          key="checkout-bg"
+          aria-hidden="true"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={transitions.springEntry}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 119,
+            pointerEvents: "none",
+            background: "linear-gradient(135deg, #FAFAF7 0%, #F5F1E8 30%, #EDE4D3 60%, #F5F1E8 80%, #FAFAF7 100%)",
+            backgroundSize: "400% 400%",
+            animation: "checkout-bg-drift 45s ease-in-out infinite",
+          }}
+        />
+      )}
+    </AnimatePresence>
     <AnimatePresence>
       {checkoutOpen && (
         <motion.div
@@ -1032,19 +1055,6 @@ export function CheckoutPage() {
           className="fixed inset-0 z-[120] overflow-y-auto"
           style={{ overscrollBehavior: "contain" }}
         >
-          {/* Animated background — plain div so Framer Motion can't interfere with the CSS animation */}
-          <div
-            aria-hidden="true"
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 0,
-              pointerEvents: "none",
-              background: "linear-gradient(135deg, #FAFAF7 0%, #F5F1E8 30%, #EDE4D3 60%, #F5F1E8 80%, #FAFAF7 100%)",
-              backgroundSize: "400% 400%",
-              animation: "checkout-bg-drift 45s ease-in-out infinite",
-            }}
-          />
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
