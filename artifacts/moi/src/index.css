@@ -489,11 +489,9 @@ header[class*="fixed"] {
 
 /* ── Checkout animated gradient background ──────────────────── */
 @keyframes checkoutGradientFlow {
-  0%   { background-position: 0% 0%; }
-  25%  { background-position: 100% 0%; }
-  50%  { background-position: 100% 100%; }
-  75%  { background-position: 0% 100%; }
-  100% { background-position: 0% 0%; }
+  0%   { background-position: 15% 15%; }
+  50%  { background-position: 85% 85%; }
+  100% { background-position: 15% 15%; }
 }
 
 .moi-checkout-bg {
@@ -508,7 +506,7 @@ header[class*="fixed"] {
     #fdf6ec 100%
   );
   background-size: 220% 220%;
-  animation: checkoutGradientFlow 18s ease-in-out infinite;
+  animation: checkoutGradientFlow 20s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
