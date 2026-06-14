@@ -1045,10 +1045,10 @@ export function CheckoutPage() {
           <div className="checkout-bg-ribbons" aria-hidden="true">
             {(
               [
-                { top: "12%",  speed: "20s", opacity: 0.80, delay: "0s",   angle: -26 },
-                { top: "32%",  speed: "28s", opacity: 0.55, delay: "-11s", angle: -24 },
-                { top: "56%",  speed: "16s", opacity: 0.70, delay: "-6s",  angle: -28 },
-                { top: "76%",  speed: "24s", opacity: 0.45, delay: "-16s", angle: -25 },
+                { top: "12%",  speed: "20s", opacity: 0.55, delay: "0s",   angle: 26 },
+                { top: "32%",  speed: "28s", opacity: 0.38, delay: "-11s", angle: 24 },
+                { top: "56%",  speed: "16s", opacity: 0.48, delay: "-6s",  angle: 28 },
+                { top: "76%",  speed: "24s", opacity: 0.32, delay: "-16s", angle: 25 },
               ] as { top: string; speed: string; opacity: number; delay: string; angle: number }[]
             ).map((r, i) => (
               <div
@@ -1079,7 +1079,7 @@ export function CheckoutPage() {
                     <path
                       d="M0,20 C27,7 73,7 100,20 C127,33 173,33 200,20 C227,7 273,7 300,20 C327,33 373,33 400,20"
                       fill="none"
-                      stroke="rgba(155,132,100,0.30)"
+                      stroke="rgba(155,132,100,0.18)"
                       strokeWidth="1.5"
                       strokeLinecap="round"
                       transform="translate(0,-8)"
@@ -1087,7 +1087,7 @@ export function CheckoutPage() {
                     <path
                       d="M0,24 C27,11 73,11 100,24 C127,37 173,37 200,24 C227,11 273,11 300,24 C327,37 373,37 400,24"
                       fill="none"
-                      stroke="rgba(155,132,100,0.72)"
+                      stroke="rgba(155,132,100,0.50)"
                       strokeWidth="2.5"
                       strokeLinecap="round"
                     />
