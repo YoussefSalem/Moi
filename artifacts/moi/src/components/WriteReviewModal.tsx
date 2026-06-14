@@ -273,20 +273,22 @@ export interface WriteReviewModalProps {
   variantId?: string;
   initialEmail?: string;
   initialName?: string;
+  initialRating?: number;
 }
 
 type ModalState = "idle" | "loading" | "success";
 
-export function WriteReviewModal({ open, onClose, productHandle, variantId, initialEmail, initialName }: WriteReviewModalProps) {
-  const [rating, setRating] = useState(0);
+export function WriteReviewModal({ open, onClose, productHandle, variantId, initialEmail, initialName, initialRating }: WriteReviewModalProps) {
+  const [rating, setRating] = useState(initialRating ?? 0);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [name, setName] = useState(initialName ?? "");
   const [email, setEmail] = useState(initialEmail ?? "");
 
-  // Sync initial values if they arrive after mount (e.g. state resolved from URL params)
+  // Sync initial values when they arrive after mount (URL params resolve asynchronously)
   useEffect(() => { if (initialEmail) setEmail(initialEmail); }, [initialEmail]);
   useEffect(() => { if (initialName) setName(initialName); }, [initialName]);
+  useEffect(() => { if (initialRating) setRating(initialRating); }, [initialRating]);
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
