@@ -494,7 +494,7 @@ header[class*="fixed"] {
   100% { background-position: 0% 50%; }
 }
 
-.moi-checkout-overlay {
+.moi-checkout-bg {
   background: linear-gradient(
     135deg,
     #faf5ee 0%,
@@ -508,7 +508,7 @@ header[class*="fixed"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .moi-checkout-overlay {
+  .moi-checkout-bg {
     animation: none;
     background: #f0e8d8;
   }

@@ -942,9 +942,12 @@ export function CheckoutPage() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 32 }}
           transition={transitions.springEntry}
-          className="fixed inset-0 z-[120] overflow-y-auto moi-checkout-overlay"
-          style={{ overscrollBehavior: "contain" }}
+          className="fixed inset-0 z-[120]"
         >
+          {/* Gradient background — own element, no overflow/transform ancestor */}
+          <div className="absolute inset-0 moi-checkout-bg" aria-hidden="true" />
+          {/* Scroll container — transparent so gradient shows through */}
+          <div className="absolute inset-0 overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
@@ -1102,6 +1105,7 @@ export function CheckoutPage() {
               />
             </div>
           )}
+          </div>{/* end scroll container */}
         </motion.div>
       )}
     </AnimatePresence>
