@@ -1381,63 +1381,76 @@ export function buildReviewRequestEmail(params: {
 <title>Your thoughts mean the world — Moi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
 </head>
-<body style="margin:0;padding:0;background:#e8e3dc;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
-<div style="display:none;max-height:0;overflow:hidden;">We hope you love it ✨ A moment of your time means everything to us.</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e8e3dc;">
-<tr><td align="center" style="padding:48px 16px 56px;">
-  <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#faf8f5;">
+<body style="margin:0;padding:0;background:#f5f0eb;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
+<div style="display:none;max-height:0;overflow:hidden;">We hope you love it — A moment of your time means everything to us.</div>
 
-    <tr><td style="background:#1a1714;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f0eb;">
+<tr><td align="center" style="padding:40px 12px 48px;">
 
-    <tr><td style="padding:40px 44px 28px;border-bottom:1px solid rgba(30,24,20,0.10);">
-      <p style="margin:0 0 12px;font-size:9px;letter-spacing:0.52em;text-transform:uppercase;color:#9a8e82;font-weight:700;font-family:'Montserrat',Arial,Helvetica,sans-serif;">Moi</p>
-      <h1 style="margin:0;font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-size:28px;font-weight:400;color:#1a1714;line-height:1.25;">Your thoughts mean<br />the world&nbsp;\u{1F495}</h1>
+  <!-- Envelope top -->
+  <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#faf8f5;border-radius:16px 16px 0 0;overflow:hidden;border:1px solid #e8e0d6;border-bottom:0;">
+    <tr><td style="background:#c4a882;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
+    <tr><td style="background:#faf8f5;padding:32px 44px 0;text-align:center;">
+      <p style="margin:0 0 8px;font-size:10px;letter-spacing:0.65em;text-transform:uppercase;color:#b0a08e;font-weight:700;font-family:'Montserrat',Arial,Helvetica,sans-serif;">Moi</p>
+      <p style="margin:0;font-size:13px;color:#c4a882;letter-spacing:0.1em;">&#x2728; &#x1F48C; &#x2728;</p>
+    </td></tr>
+  </table>
+
+  <!-- Card body -->
+  <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#faf8f5;border-radius:0 0 16px 16px;overflow:hidden;border:1px solid #e8e0d6;border-top:0;">
+
+    <tr><td style="padding:0 44px 28px;text-align:center;">
+      <h1 style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;font-weight:400;color:#3a2e25;line-height:1.2;">
+        Your thoughts<br/>mean the world
+      </h1>
+      <p style="margin:8px 0 0;font-size:14px;color:#c4a882;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;">\u{1F495} \u{1F48C} \u{1F495}</p>
     </td></tr>
 
-    <tr><td style="padding:32px 44px 0;">
-      <p style="margin:0 0 20px;font-size:14px;color:#4a4035;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
-        Hi ${firstName},
+    <tr><td style="padding:0 44px;text-align:center;">
+      <img src="${siteUrl}/images/sand-main.jpg" alt="${productTitle}" style="display:block;margin:0 auto 24px;width:180px;height:240px;object-fit:cover;border-radius:12px;border:1px solid #e8e0d6;" />
+      <p style="margin:0 0 18px;font-size:14px;color:#5c5045;line-height:1.8;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
+        Hi <strong style="color:#3a2e25;">${firstName}</strong>,
       </p>
-      <p style="margin:0 0 20px;font-size:14px;color:#4a4035;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
-        We hope your <strong style="color:#1a1714;font-weight:600;">${productTitle}</strong> has arrived and you\u2019re already in love with it. \u{1F33F}
+      <p style="margin:0 0 18px;font-size:14px;color:#5c5045;line-height:1.8;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
+        We hope your <strong style="color:#3a2e25;">${productTitle}</strong> has arrived and you're already in love with it. \u{1F33F}
       </p>
-      <p style="margin:0 0 32px;font-size:14px;color:#4a4035;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
-        If you have a spare moment, we\u2019d love to hear what you think. Your honest words help other Moi women discover what could become their new favourite piece \u2014 and they help us keep getting better.
+      <p style="margin:0 0 32px;font-size:14px;color:#5c5045;line-height:1.8;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
+        If you have a spare moment, we'd love to hear what you think. Your honest words help other Moi women discover what could become their new favourite piece — and they help us keep getting better.
       </p>
     </td></tr>
 
-    <tr><td style="padding:0 44px 40px;">
-      <table role="presentation" cellpadding="0" cellspacing="0">
+    <tr><td style="padding:0 44px 36px;text-align:center;">
+      <table role="presentation" cellpadding="0" cellspacing="0" align="center">
         <tr>
-          <td style="background:#1a1714;">
+          <td style="background:#c4a882;border-radius:50px;">
             <a href="${reviewUrl}"
-               style="display:inline-block;padding:14px 36px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.36em;text-transform:uppercase;color:#faf8f5;text-decoration:none;white-space:nowrap;">
+               style="display:inline-block;padding:16px 40px;font-family:'Montserrat',Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#fff;text-decoration:none;white-space:nowrap;">
               Leave a Review
             </a>
           </td>
         </tr>
       </table>
-      <p style="margin:16px 0 0;font-size:11px;color:#9a8e82;font-family:Arial,Helvetica,sans-serif;">
-        Or copy this link: <a href="${reviewUrl}" style="color:#9a8e82;">${reviewUrl}</a>
+      <p style="margin:16px 0 0;font-size:11px;color:#b0a08e;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
+        <a href="${reviewUrl}" style="color:#b0a08e;text-decoration:underline;">${reviewUrl}</a>
       </p>
     </td></tr>
 
-    <tr><td style="padding:0 44px 36px;border-top:1px solid rgba(30,24,20,0.10);">
-      <p style="margin:28px 0 0;font-size:12px;color:#b0a89e;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
-        With love,<br />The Moi Team \u{1F90D}
+    <tr><td style="padding:0 44px 32px;text-align:center;border-top:1px solid #e8e0d6;">
+      <p style="margin:24px 0 0;font-size:12px;color:#b0a08e;line-height:1.7;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
+        With love,<br/><strong style="color:#5c5045;">The Moi Team</strong> \u{1F90D}
       </p>
     </td></tr>
 
-    <tr><td style="padding:0 44px 28px;">
-      <p style="margin:0;font-size:10px;color:#c8c0b8;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">
-        You\u2019re receiving this email because you recently ordered from <a href="${siteUrl}" style="color:#c8c0b8;">buy-moi.com</a>. If you didn\u2019t place this order, please ignore this message.
-      </p>
-    </td></tr>
-
-    <tr><td style="background:#1a1714;height:2px;font-size:0;line-height:0;">&nbsp;</td></tr>
+    <tr><td style="background:#c4a882;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
   </table>
+
+  <!-- Footer outside the card -->
+  <p style="margin:20px 0 0;font-size:10px;color:#c8c0b8;line-height:1.6;font-family:'Montserrat',Arial,Helvetica,sans-serif;text-align:center;">
+    You're receiving this because you recently ordered from <a href="${siteUrl}" style="color:#c8c0b8;">buy-moi.com</a>.<br/>If you didn't place this order, please ignore this message.
+  </p>
+
 </td></tr>
 </table>
 </body>
