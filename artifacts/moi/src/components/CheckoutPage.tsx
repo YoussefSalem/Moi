@@ -1038,7 +1038,7 @@ export function CheckoutPage() {
             zIndex: 119,
             pointerEvents: "none",
             overflow: "hidden",
-            backgroundColor: "#FAFAF7",
+            backgroundColor: "#000",
           }}
         >
           <div className="checkout-blob checkout-blob-1" />
