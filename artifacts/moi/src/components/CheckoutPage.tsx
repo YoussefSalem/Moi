@@ -942,16 +942,13 @@ export function CheckoutPage() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 32 }}
           transition={transitions.springEntry}
-          className="fixed inset-0 z-[120]"
+          className="fixed inset-0 z-[120] overflow-y-auto"
+          style={{ backgroundColor: "#efe6da", overscrollBehavior: "contain" }}
         >
-          {/* Gradient background — own element, no overflow/transform ancestor */}
-          <div className="absolute inset-0 moi-checkout-bg" aria-hidden="true" />
-          {/* Scroll container — transparent so gradient shows through */}
-          <div className="absolute inset-0 overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
-            style={{ backgroundColor: "rgba(247, 240, 230, 0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderBottom: "1px solid rgba(30,24,20,0.10)" }}
+            style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}
           >
             {step === "loading" ? (
               <div style={{ width: 80 }} />
@@ -1105,7 +1102,6 @@ export function CheckoutPage() {
               />
             </div>
           )}
-          </div>{/* end scroll container */}
         </motion.div>
       )}
     </AnimatePresence>

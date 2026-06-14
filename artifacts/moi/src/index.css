@@ -487,36 +487,6 @@ header[class*="fixed"] {
   pointer-events: none !important;
 }
 
-/* ── Checkout animated gradient background ──────────────────── */
-@keyframes checkoutGradientFlow {
-  0%   { background-position: 0% 0%; }
-  33%  { background-position: 100% 0%; }
-  66%  { background-position: 100% 100%; }
-  100% { background-position: 0% 0%; }
-}
-
-.moi-checkout-bg {
-  background: linear-gradient(
-    125deg,
-    #ffffff 0%,
-    #f5ede0 20%,
-    #fdfaf6 35%,
-    #ede4d6 50%,
-    #faf6f0 65%,
-    #f0e6d8 80%,
-    #ffffff 100%
-  );
-  background-size: 220% 220%;
-  animation: checkoutGradientFlow 24s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .moi-checkout-bg {
-    animation: none;
-    background: #f0e8d8;
-  }
-}
-
 /* ── Apple Pay button — single canonical source ──────────────── */
 .apple-pay-btn {
   -webkit-appearance: -apple-pay-button;

@@ -110,8 +110,7 @@ export const ProductColorSection = memo(function ProductColorSection({
             const variant = product.variants?.find((v) =>
               v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === cNameLower)
             );
-            const hasVariants = product.variants !== undefined && product.variants.length > 0;
-            const outOfStock = hasVariants ? (variant !== undefined ? !variant.availableForSale : true) : false;
+            const outOfStock = variant !== undefined && !variant.availableForSale;
 
             return (
               <div
