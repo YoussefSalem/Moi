@@ -1381,6 +1381,16 @@ export function buildReviewRequestEmail(params: {
   const reviewUrl = `${siteUrl}/products/${encodeURIComponent(handlePath)}?review=1`;
   const firstName = customerName.split(" ")[0]?.trim() || "there";
 
+  // Derive product image URL from handle + variant slug.
+  // Wavvy images live at /images/{variantSlug}-main.jpg (e.g. sand-main.jpg).
+  // Versa images live at /images/versa-{variantSlug}-main.jpg (e.g. versa-beige-main.jpg).
+  // Only render the <img> when we have a variant slug to avoid broken image tags.
+  const productImgSrc = variantSlug
+    ? productHandle.includes("versa")
+      ? `${siteUrl}/images/versa-${variantSlug}-main.jpg`
+      : `${siteUrl}/images/${variantSlug}-main.jpg`
+    : null;
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1417,14 +1427,15 @@ export function buildReviewRequestEmail(params: {
     </td></tr>
 
     <tr><td style="padding:0 44px;text-align:center;">
+      ${productImgSrc ? `<img src="${productImgSrc}" alt="${productTitle}" style="display:block;margin:0 auto 28px;width:180px;height:240px;object-fit:cover;border-radius:12px;border:1px solid #e8e0d6;" />` : ""}
       <p style="margin:0 0 18px;font-size:14px;color:#5c5045;line-height:1.8;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
         Hi <strong style="color:#3a2e25;">${firstName}</strong>,
       </p>
       <p style="margin:0 0 18px;font-size:14px;color:#5c5045;line-height:1.8;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
-        We hope your <strong style="color:#3a2e25;">${productTitle}</strong> has arrived and you're already in love with it. \u{1F33F}
+        We hope your <strong style="color:#3a2e25;">${productTitle}</strong> has arrived and you're already in love with it ✨
       </p>
       <p style="margin:0 0 32px;font-size:14px;color:#5c5045;line-height:1.8;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
-        If you have a spare moment, we'd love to hear what you think. Your honest words help other Moi women discover what could become their new favourite piece — and they help us keep getting better.
+        If you have a spare moment, we'd truly love to hear what you think. Your honest words help other Moi women discover their next favourite piece — and help us keep creating pieces you'll adore.
       </p>
     </td></tr>
 
@@ -1446,7 +1457,7 @@ export function buildReviewRequestEmail(params: {
 
     <tr><td style="padding:0 44px 32px;text-align:center;border-top:1px solid #e8e0d6;">
       <p style="margin:24px 0 0;font-size:12px;color:#b0a08e;line-height:1.7;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
-        With love,<br/><strong style="color:#5c5045;">The Moi Team</strong> \u{1F90D}
+        XoXo,<br/><strong style="color:#5c5045;">Moi</strong> \u{1F48B}
       </p>
     </td></tr>
 
@@ -1468,17 +1479,17 @@ export function buildReviewRequestEmail(params: {
     ``,
     `Hi ${firstName},`,
     ``,
-    `We hope your ${productTitle} has arrived and you're already in love with it.`,
+    `We hope your ${productTitle} has arrived and you're already in love with it ✨`,
     ``,
-    `If you have a spare moment, we'd love to hear what you think. Your honest words`,
-    `help other Moi women discover what could become their new favourite piece —`,
-    `and they help us keep getting better.`,
+    `If you have a spare moment, we'd truly love to hear what you think. Your honest`,
+    `words help other Moi women discover their next favourite piece — and help us`,
+    `keep creating pieces you'll adore.`,
     ``,
     `Leave a Review:`,
     reviewUrl,
     ``,
-    `With love,`,
-    `The Moi Team`,
+    `XoXo,`,
+    `Moi 💋`,
     ``,
     `—`,
     `You're receiving this because you recently ordered from buy-moi.com.`,
