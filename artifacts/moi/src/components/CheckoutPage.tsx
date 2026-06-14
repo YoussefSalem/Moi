@@ -1041,7 +1041,22 @@ export function CheckoutPage() {
           }}
         >
           <div className="checkout-bg-gradient" />
-          {/* Ribbon layer — lives in fixed bg, always below z-[120] overlay */}
+          <div className="checkout-bg-noise" />
+        </motion.div>
+      )}
+    </AnimatePresence>
+    <AnimatePresence>
+      {checkoutOpen && (
+        <motion.div
+          key="checkout-overlay"
+          initial={{ opacity: 0, y: 32 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 32 }}
+          transition={transitions.springEntry}
+          className="fixed inset-0 z-[120] overflow-y-auto checkout-bg-gradient"
+          style={{ overscrollBehavior: "contain" }}
+        >
+          {/* Ribbon layer — z-0, sibling to form wrapper inside same stacking context */}
           <div className="checkout-bg-ribbons" aria-hidden="true">
             {(
               [
@@ -1096,21 +1111,8 @@ export function CheckoutPage() {
               </div>
             ))}
           </div>
-          <div className="checkout-bg-noise" />
-        </motion.div>
-      )}
-    </AnimatePresence>
-    <AnimatePresence>
-      {checkoutOpen && (
-        <motion.div
-          key="checkout-overlay"
-          initial={{ opacity: 0, y: 32 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 32 }}
-          transition={transitions.springEntry}
-          className="fixed inset-0 z-[120] overflow-y-auto"
-          style={{ overscrollBehavior: "contain" }}
-        >
+          {/* Form wrapper — z-1, always above ribbon layer */}
+          <div style={{ position: "relative", zIndex: 1 }}>
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
@@ -1268,6 +1270,7 @@ export function CheckoutPage() {
               />
             </div>
           )}
+          </div>{/* end form wrapper z-1 */}
         </motion.div>
       )}
     </AnimatePresence>
