@@ -1037,16 +1037,15 @@ export function CheckoutPage() {
             inset: 0,
             zIndex: 119,
             pointerEvents: "none",
-            background: [
-              "radial-gradient(ellipse 110% 18% at 50% 50%, #EDE4D3 0%, transparent 100%)",
-              "radial-gradient(ellipse 18% 110% at 50% 50%, #E7DDC8 0%, transparent 100%)",
-              "radial-gradient(ellipse 70% 30% at 50% 50%, #F5F1E8 0%, transparent 90%)",
-              "#FAFAF7",
-            ].join(", "),
-            backgroundSize: "350% 350%, 350% 350%, 350% 350%, auto",
-            animation: "checkout-silk 18s ease-in-out infinite",
+            overflow: "hidden",
+            backgroundColor: "#FAFAF7",
           }}
-        />
+        >
+          <div className="checkout-blob checkout-blob-1" />
+          <div className="checkout-blob checkout-blob-2" />
+          <div className="checkout-blob checkout-blob-3" />
+          <div className="checkout-blob checkout-blob-4" />
+        </motion.div>
       )}
     </AnimatePresence>
     <AnimatePresence>
