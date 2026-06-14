@@ -1056,24 +1056,6 @@ export function CheckoutPage() {
           className="fixed inset-0 z-[120] overflow-y-auto"
           style={{ overscrollBehavior: "contain" }}
         >
-          {/* Shooting stars — absolute inside scrollable overlay, behind all UI */}
-          <div className="checkout-bg-shooting-stars">
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-            <div className="checkout-shooting-star" />
-          </div>
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
