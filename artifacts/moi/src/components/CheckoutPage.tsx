@@ -1044,61 +1044,6 @@ export function CheckoutPage() {
           }}
         >
           <div className="checkout-bg-gradient" />
-          {/* Ribbon layer — lives in fixed bg, always below z-[120] overlay */}
-          <div className="checkout-bg-ribbons" aria-hidden="true">
-            {(
-              [
-                { top: "12%",  speed: "20s", opacity: 0.55, delay: "0s",   angle: 26 },
-                { top: "32%",  speed: "28s", opacity: 0.38, delay: "-11s", angle: 24 },
-                { top: "56%",  speed: "16s", opacity: 0.48, delay: "-6s",  angle: 28 },
-                { top: "76%",  speed: "24s", opacity: 0.32, delay: "-16s", angle: 25 },
-              ] as { top: string; speed: string; opacity: number; delay: string; angle: number }[]
-            ).map((r, i) => (
-              <div
-                key={i}
-                className="checkout-ribbon"
-                style={{
-                  top: r.top,
-                  opacity: r.opacity,
-                  left: "-40%",
-                  width: "180%",
-                  transform: `rotate(${r.angle}deg)`,
-                }}
-              >
-                <div
-                  style={{
-                    width: "200%",
-                    animation: `moiWaveScroll ${r.speed} linear infinite`,
-                    animationDelay: r.delay,
-                    willChange: "transform",
-                  }}
-                >
-                  <svg
-                    viewBox="0 0 400 48"
-                    xmlns="http://www.w3.org/2000/svg"
-                    style={{ width: "100%", height: 40, display: "block" }}
-                    preserveAspectRatio="none"
-                  >
-                    <path
-                      d="M0,20 C27,7 73,7 100,20 C127,33 173,33 200,20 C227,7 273,7 300,20 C327,33 373,33 400,20"
-                      fill="none"
-                      stroke="rgba(155,132,100,0.18)"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      transform="translate(0,-8)"
-                    />
-                    <path
-                      d="M0,24 C27,11 73,11 100,24 C127,37 173,37 200,24 C227,11 273,11 300,24 C327,37 373,37 400,24"
-                      fill="none"
-                      stroke="rgba(155,132,100,0.50)"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
-              </div>
-            ))}
-          </div>
           <div className="checkout-bg-noise" />
         </motion.div>
       )}
@@ -1114,6 +1059,63 @@ export function CheckoutPage() {
           className="fixed inset-0 z-[120] overflow-y-auto"
           style={{ overscrollBehavior: "contain" }}
         >
+          <div style={{ position: "relative", minHeight: "100%" }}>
+            {/* Ribbon layer — scrolls with checkout page content */}
+            <div className="checkout-bg-ribbons" aria-hidden="true">
+              {(
+                [
+                  { top: "12%",  speed: "20s", opacity: 0.55, delay: "0s",   angle: 26 },
+                  { top: "32%",  speed: "28s", opacity: 0.38, delay: "-11s", angle: 24 },
+                  { top: "56%",  speed: "16s", opacity: 0.48, delay: "-6s",  angle: 28 },
+                  { top: "76%",  speed: "24s", opacity: 0.32, delay: "-16s", angle: 25 },
+                ] as { top: string; speed: string; opacity: number; delay: string; angle: number }[]
+              ).map((r, i) => (
+                <div
+                  key={i}
+                  className="checkout-ribbon"
+                  style={{
+                    top: r.top,
+                    opacity: r.opacity,
+                    left: "-40%",
+                    width: "180%",
+                    transform: `rotate(${r.angle}deg)`,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "200%",
+                      animation: `moiWaveScroll ${r.speed} linear infinite`,
+                      animationDelay: r.delay,
+                      willChange: "transform",
+                    }}
+                  >
+                    <svg
+                      viewBox="0 0 400 48"
+                      xmlns="http://www.w3.org/2000/svg"
+                      style={{ width: "100%", height: 40, display: "block" }}
+                      preserveAspectRatio="none"
+                    >
+                      <path
+                        d="M0,20 C27,7 73,7 100,20 C127,33 173,33 200,20 C227,7 273,7 300,20 C327,33 373,33 400,20"
+                        fill="none"
+                        stroke="rgba(155,132,100,0.18)"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        transform="translate(0,-8)"
+                      />
+                      <path
+                        d="M0,24 C27,11 73,11 100,24 C127,37 173,37 200,24 C227,11 273,11 300,24 C327,37 373,37 400,24"
+                        fill="none"
+                        stroke="rgba(155,132,100,0.50)"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ position: "relative", zIndex: 1 }}>
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
@@ -1271,6 +1273,8 @@ export function CheckoutPage() {
               />
             </div>
           )}
+            </div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
