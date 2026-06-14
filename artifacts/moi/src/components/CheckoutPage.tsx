@@ -1038,6 +1038,9 @@ export function CheckoutPage() {
             pointerEvents: "none",
             overflow: "hidden",
             backgroundColor: "#000",
+            transform: "translateZ(0)",
+            WebkitTransform: "translateZ(0)",
+            willChange: "transform",
           }}
         >
           <div className="checkout-bg-gradient" />
