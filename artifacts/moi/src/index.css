@@ -650,12 +650,12 @@ header[class*="fixed"] {
     #FAFAF7;
 }
 
-/* 2. Ribbon layer — diagonal SVG waves, strictly behind all form content */
+/* 2. Ribbon layer — diagonal SVG waves, in fixed bg layer (z-119), below z-120 overlay */
 .checkout-bg-ribbons {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: -1;
+  z-index: 1;
   overflow: hidden;
 }
 
