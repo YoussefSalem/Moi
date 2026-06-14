@@ -1021,8 +1021,7 @@ export function CheckoutPage() {
         </motion.div>
       )}
     </AnimatePresence>
-    {/* Animated gradient background — separate motion.div so Framer Motion's transform on the
-        checkout overlay never creates a containing-block conflict with position:fixed children */}
+    {/* Background layer — fixed black backdrop, no stars */}
     <AnimatePresence>
       {checkoutOpen && (
         <motion.div
@@ -1043,6 +1042,21 @@ export function CheckoutPage() {
         >
           <div className="checkout-bg-gradient" />
           <div className="checkout-bg-noise" />
+        </motion.div>
+      )}
+    </AnimatePresence>
+    <AnimatePresence>
+      {checkoutOpen && (
+        <motion.div
+          key="checkout-overlay"
+          initial={{ opacity: 0, y: 32 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 32 }}
+          transition={transitions.springEntry}
+          className="fixed inset-0 z-[120] overflow-y-auto"
+          style={{ overscrollBehavior: "contain" }}
+        >
+          {/* Shooting stars — absolute inside scrollable overlay, behind all UI */}
           <div className="checkout-bg-shooting-stars">
             <div className="checkout-shooting-star" />
             <div className="checkout-shooting-star" />
@@ -1060,20 +1074,6 @@ export function CheckoutPage() {
             <div className="checkout-shooting-star" />
             <div className="checkout-shooting-star" />
           </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-    <AnimatePresence>
-      {checkoutOpen && (
-        <motion.div
-          key="checkout-overlay"
-          initial={{ opacity: 0, y: 32 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 32 }}
-          transition={transitions.springEntry}
-          className="fixed inset-0 z-[120] overflow-y-auto"
-          style={{ overscrollBehavior: "contain" }}
-        >
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
