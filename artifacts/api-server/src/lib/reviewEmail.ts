@@ -52,11 +52,11 @@ function buildProductForm(
 </td>`;
   }).join("\n");
 
-  // Each td: visible native radio input immediately followed by label.
-  // Keeping the input visible and properly sized ensures tap targets work on iOS Mail.
-  // accent-color styles the filled dot gold in modern clients (iOS 15.4+, macOS Safari 15.4+).
+  // Fixed-width cells (76px each × 5 = 380px) ensures perfectly even spacing.
+  // The emoji span has a fixed height (40px line-height) so growing the font-size
+  // on :checked doesn't shift the layout — the container stays the same height.
   const emojiCells = MOODS.map(({ value, emoji, label }) => `
-<td style="text-align:center;padding:0 4px;vertical-align:top;">
+<td style="text-align:center;padding:0;width:76px;vertical-align:top;">
   <input
     class="emi"
     type="radio"
@@ -64,16 +64,16 @@ function buildProductForm(
     value="${value}"
     id="em${value}_${pid}"
     ${value === 1 ? "required" : ""}
-    style="display:block;margin:0 auto 8px;width:18px;height:18px;cursor:pointer;accent-color:#c9a07a;"
+    style="display:block;margin:0 auto 10px;width:18px;height:18px;cursor:pointer;accent-color:#c9a07a;"
   />
   <label
     for="em${value}_${pid}"
     class="eml"
     title="${label}"
-    style="display:block;cursor:pointer;text-align:center;padding:8px 6px 10px;border-radius:10px;border:1.5px solid transparent;box-sizing:border-box;"
+    style="display:block;cursor:pointer;text-align:center;padding:10px 4px 12px;border-radius:12px;border:1.5px solid transparent;box-sizing:border-box;"
   >
-    <span class="eml-emoji" style="display:block;font-size:30px;line-height:1;margin-bottom:6px;">${emoji}</span>
-    <span class="eml-text" style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:#b0a89e;">${label}</span>
+    <span class="eml-emoji" style="display:block;font-size:28px;line-height:40px;height:40px;margin-bottom:8px;text-align:center;">${emoji}</span>
+    <span class="eml-text" style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:#b0a89e;line-height:1.4;">${label}</span>
   </label>
 </td>`).join("\n");
 
@@ -216,21 +216,25 @@ export function buildReviewEmail(params: {
 :root { color-scheme: light; }
 
 /* Visible native radio inputs with gold accent color */
-.emi { display:block!important;margin:0 auto 8px!important;width:18px!important;height:18px!important;cursor:pointer!important;accent-color:#c9a07a!important; }
+.emi { display:block!important;margin:0 auto 10px!important;width:18px!important;height:18px!important;cursor:pointer!important;accent-color:#c9a07a!important; }
 
-/* Emoji option label — card container */
-.eml { display:block!important;cursor:pointer!important;text-align:center!important;padding:8px 6px 10px!important;border-radius:10px!important;border:1.5px solid transparent!important;box-sizing:border-box!important; }
+/* Emoji option label — card container, consistent height */
+.eml { display:block!important;cursor:pointer!important;text-align:center!important;padding:10px 4px 12px!important;border-radius:12px!important;border:1.5px solid transparent!important;box-sizing:border-box!important;transition:none!important; }
 
-/* Emoji character */
-.eml-emoji { display:block!important;font-size:30px!important;line-height:1!important;margin-bottom:6px!important; }
+/* Emoji character — fixed line-height container for stable layout */
+.eml-emoji { display:block!important;font-size:28px!important;line-height:40px!important;height:40px!important;margin-bottom:8px!important;text-align:center!important; }
 
 /* Small text label */
-.eml-text { display:block!important;font-family:Arial,Helvetica,sans-serif!important;font-size:8px!important;letter-spacing:0.22em!important;text-transform:uppercase!important;color:#b0a89e!important; }
+.eml-text { display:block!important;font-family:Arial,Helvetica,sans-serif!important;font-size:8px!important;letter-spacing:0.22em!important;text-transform:uppercase!important;color:#b0a89e!important;line-height:1.4!important; }
 
-/* Selected state: warm champagne card highlight + gold border */
-.emi:checked + .eml { background:rgba(201,160,122,0.10)!important;border-color:#c9a07a!important; }
+/* ── Selected state: subtle glow ring + warm card + bigger emoji ── */
+/* Ring and glow on the card */
+.emi:checked + .eml { background:rgba(201,160,122,0.08)!important;border-color:#c9a07a!important;box-shadow:0 0 0 2px rgba(201,160,122,0.25),0 4px 14px rgba(201,160,122,0.18)!important; }
 
-/* Selected: gold text */
+/* Emoji grows within its fixed-height container */
+.emi:checked + .eml .eml-emoji { font-size:36px!important;line-height:40px!important; }
+
+/* Text turns gold */
 .emi:checked + .eml .eml-text { color:#c9a07a!important;font-weight:700!important; }
 
 /* ── Dark mode: force light colours ── */
@@ -244,8 +248,8 @@ export function buildReviewEmail(params: {
 @media screen and (max-width:480px) {
   .email-card  { width:100%!important; }
   .email-pad   { padding-left:20px!important;padding-right:20px!important; }
-  .eml-emoji   { font-size:26px!important; }
-  .eml         { padding:6px 4px 8px!important; }
+  .eml-emoji   { font-size:24px!important;line-height:34px!important;height:34px!important; }
+  .emi:checked + .eml .eml-emoji { font-size:30px!important;line-height:34px!important; }
 }
 </style>
 </head>
