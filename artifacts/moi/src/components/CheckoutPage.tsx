@@ -1043,18 +1043,6 @@ export function CheckoutPage() {
         >
           <div className="checkout-bg-gradient" />
           <div className="checkout-bg-noise" />
-          <div className="checkout-bg-sparkles">
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-          </div>
         </motion.div>
       )}
     </AnimatePresence>
@@ -1069,6 +1057,29 @@ export function CheckoutPage() {
           className="fixed inset-0 z-[120] overflow-y-auto"
           style={{ overscrollBehavior: "contain" }}
         >
+          <div className="relative min-h-full">
+            {/* Sparkles — scroll with content, gentle falling starlight */}
+            <div className="checkout-bg-sparkles">
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+              <div className="checkout-sparkle" />
+            </div>
+
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
@@ -1226,6 +1237,7 @@ export function CheckoutPage() {
               />
             </div>
           )}
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

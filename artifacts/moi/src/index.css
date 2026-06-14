@@ -661,22 +661,23 @@ header[class*="fixed"] {
   background-size: 256px 256px;
 }
 
-/* 3. Elegant sparkle particles — feminine, soft, delicate, whisper-light */
+/* 3. Gentle falling starlight — 18 particles, scroll with content, soft drift */
 .checkout-bg-sparkles {
   position: absolute;
   inset: 0;
   pointer-events: none;
   overflow: hidden;
+  z-index: 0;
 }
 
 .checkout-sparkle {
   position: absolute;
   pointer-events: none;
-  will-change: opacity;
-  animation: checkout-sparkle-fade 14s ease-in-out infinite;
+  will-change: opacity, transform;
+  animation: checkout-starlight 16s ease-in-out infinite;
 }
 
-/* Diamond lozenge shape — rotated 45deg, soft pearl / champagne tones */
+/* Diamond starlight shape — rotated 45deg, soft pearl glow */
 .checkout-sparkle::before {
   content: "";
   display: block;
@@ -686,32 +687,49 @@ header[class*="fixed"] {
   transform: rotate(45deg);
 }
 
-/* Bigger, clearly visible pearl sparkles with soft glow */
-.checkout-sparkle:nth-child(1)  { top: 16%; left: 10%; width: 8px; height: 8px; animation-delay: 0s; }
-.checkout-sparkle:nth-child(1)::before  { background: rgba(225, 210, 190, 0.65); box-shadow: 0 0 24px 8px rgba(225, 210, 190, 0.35); }
-.checkout-sparkle:nth-child(2)  { top: 35%; left: 25%; width: 6px; height: 6px; animation-delay: 3.2s; }
-.checkout-sparkle:nth-child(2)::before  { background: rgba(230, 215, 195, 0.60); box-shadow: 0 0 18px 6px rgba(230, 215, 195, 0.30); }
-.checkout-sparkle:nth-child(3)  { top: 8%;  left: 62%; width: 10px; height: 10px; animation-delay: 6.0s; }
-.checkout-sparkle:nth-child(3)::before  { background: rgba(220, 205, 185, 0.58); box-shadow: 0 0 28px 10px rgba(220, 205, 185, 0.28); }
-.checkout-sparkle:nth-child(4)  { top: 52%; left: 14%; width: 6px; height: 6px; animation-delay: 1.7s; }
-.checkout-sparkle:nth-child(4)::before  { background: rgba(235, 220, 200, 0.62); box-shadow: 0 0 20px 7px rgba(235, 220, 200, 0.32); }
-.checkout-sparkle:nth-child(5)  { top: 72%; left: 38%; width: 8px; height: 8px; animation-delay: 8.5s; }
-.checkout-sparkle:nth-child(5)::before  { background: rgba(218, 203, 183, 0.68); box-shadow: 0 0 24px 8px rgba(218, 203, 183, 0.38); }
-.checkout-sparkle:nth-child(6)  { top: 24%; left: 85%; width: 6px; height: 6px; animation-delay: 4.8s; }
-.checkout-sparkle:nth-child(6)::before  { background: rgba(228, 213, 193, 0.60); box-shadow: 0 0 18px 6px rgba(228, 213, 193, 0.30); }
-.checkout-sparkle:nth-child(7)  { top: 60%; left: 75%; width: 8px; height: 8px; animation-delay: 10.2s; }
-.checkout-sparkle:nth-child(7)::before  { background: rgba(215, 200, 180, 0.63); box-shadow: 0 0 24px 8px rgba(215, 200, 180, 0.33); }
-.checkout-sparkle:nth-child(8)  { top: 88%; left: 18%; width: 6px; height: 6px; animation-delay: 2.3s; }
-.checkout-sparkle:nth-child(8)::before  { background: rgba(232, 217, 197, 0.58); box-shadow: 0 0 18px 6px rgba(232, 217, 197, 0.28); }
-.checkout-sparkle:nth-child(9)  { top: 44%; left: 92%; width: 10px; height: 10px; animation-delay: 7.1s; }
-.checkout-sparkle:nth-child(9)::before  { background: rgba(210, 195, 175, 0.62); box-shadow: 0 0 28px 10px rgba(210, 195, 175, 0.32); }
-.checkout-sparkle:nth-child(10) { top: 80%; left: 58%; width: 6px; height: 6px; animation-delay: 11.6s; }
-.checkout-sparkle:nth-child(10)::before { background: rgba(225, 210, 190, 0.60); box-shadow: 0 0 18px 6px rgba(225, 210, 190, 0.30); }
+/* 18 starlight particles — scattered, varied sizes, gentle drift */
+.checkout-sparkle:nth-child(1)  { top: 5%;  left: 8%;  width: 7px; height: 7px; animation-delay: 0s; }
+.checkout-sparkle:nth-child(1)::before  { background: rgba(225, 210, 190, 0.62); box-shadow: 0 0 20px 6px rgba(225, 210, 190, 0.32); }
+.checkout-sparkle:nth-child(2)  { top: 18%; left: 22%; width: 5px; height: 5px; animation-delay: 2.1s; }
+.checkout-sparkle:nth-child(2)::before  { background: rgba(230, 215, 195, 0.55); box-shadow: 0 0 14px 4px rgba(230, 215, 195, 0.26); }
+.checkout-sparkle:nth-child(3)  { top: 12%; left: 55%; width: 8px; height: 8px; animation-delay: 4.5s; }
+.checkout-sparkle:nth-child(3)::before  { background: rgba(220, 205, 185, 0.58); box-shadow: 0 0 24px 8px rgba(220, 205, 185, 0.28); }
+.checkout-sparkle:nth-child(4)  { top: 28%; left: 75%; width: 5px; height: 5px; animation-delay: 1.3s; }
+.checkout-sparkle:nth-child(4)::before  { background: rgba(235, 220, 200, 0.52); box-shadow: 0 0 16px 5px rgba(235, 220, 200, 0.24); }
+.checkout-sparkle:nth-child(5)  { top: 35%; left: 15%; width: 6px; height: 6px; animation-delay: 6.2s; }
+.checkout-sparkle:nth-child(5)::before  { background: rgba(218, 203, 183, 0.60); box-shadow: 0 0 18px 6px rgba(218, 203, 183, 0.30); }
+.checkout-sparkle:nth-child(6)  { top: 42%; left: 42%; width: 9px; height: 9px; animation-delay: 3.8s; }
+.checkout-sparkle:nth-child(6)::before  { background: rgba(228, 213, 193, 0.54); box-shadow: 0 0 26px 8px rgba(228, 213, 193, 0.26); }
+.checkout-sparkle:nth-child(7)  { top: 48%; left: 88%; width: 5px; height: 5px; animation-delay: 8.0s; }
+.checkout-sparkle:nth-child(7)::before  { background: rgba(215, 200, 180, 0.56); box-shadow: 0 0 14px 4px rgba(215, 200, 180, 0.27); }
+.checkout-sparkle:nth-child(8)  { top: 55%; left: 30%; width: 7px; height: 7px; animation-delay: 5.4s; }
+.checkout-sparkle:nth-child(8)::before  { background: rgba(232, 217, 197, 0.58); box-shadow: 0 0 20px 6px rgba(232, 217, 197, 0.28); }
+.checkout-sparkle:nth-child(9)  { top: 62%; left: 65%; width: 6px; height: 6px; animation-delay: 9.7s; }
+.checkout-sparkle:nth-child(9)::before  { background: rgba(210, 195, 175, 0.52); box-shadow: 0 0 18px 6px rgba(210, 195, 175, 0.25); }
+.checkout-sparkle:nth-child(10) { top: 68%; left: 10%; width: 5px; height: 5px; animation-delay: 7.2s; }
+.checkout-sparkle:nth-child(10)::before { background: rgba(225, 210, 190, 0.54); box-shadow: 0 0 14px 4px rgba(225, 210, 190, 0.26); }
+.checkout-sparkle:nth-child(11) { top: 72%; left: 50%; width: 8px; height: 8px; animation-delay: 11.3s; }
+.checkout-sparkle:nth-child(11)::before { background: rgba(220, 205, 185, 0.60); box-shadow: 0 0 24px 8px rgba(220, 205, 185, 0.30); }
+.checkout-sparkle:nth-child(12) { top: 78%; left: 82%; width: 5px; height: 5px; animation-delay: 4.0s; }
+.checkout-sparkle:nth-child(12)::before { background: rgba(235, 220, 200, 0.50); box-shadow: 0 0 16px 5px rgba(235, 220, 200, 0.23); }
+.checkout-sparkle:nth-child(13) { top: 82%; left: 25%; width: 7px; height: 7px; animation-delay: 13.5s; }
+.checkout-sparkle:nth-child(13)::before { background: rgba(218, 203, 183, 0.56); box-shadow: 0 0 20px 6px rgba(218, 203, 183, 0.27); }
+.checkout-sparkle:nth-child(14) { top: 88%; left: 60%; width: 6px; height: 6px; animation-delay: 10.1s; }
+.checkout-sparkle:nth-child(14)::before { background: rgba(228, 213, 193, 0.54); box-shadow: 0 0 18px 6px rgba(228, 213, 193, 0.26); }
+.checkout-sparkle:nth-child(15) { top: 92%; left: 45%; width: 8px; height: 8px; animation-delay: 6.8s; }
+.checkout-sparkle:nth-child(15)::before { background: rgba(215, 200, 180, 0.58); box-shadow: 0 0 24px 8px rgba(215, 200, 180, 0.28); }
+.checkout-sparkle:nth-child(16) { top: 15%; left: 92%; width: 5px; height: 5px; animation-delay: 14.2s; }
+.checkout-sparkle:nth-child(16)::before { background: rgba(232, 217, 197, 0.52); box-shadow: 0 0 14px 4px rgba(232, 217, 197, 0.24); }
+.checkout-sparkle:nth-child(17) { top: 58%; left: 5%;  width: 6px; height: 6px; animation-delay: 1.8s; }
+.checkout-sparkle:nth-child(17)::before { background: rgba(210, 195, 175, 0.56); box-shadow: 0 0 18px 6px rgba(210, 195, 175, 0.27); }
+.checkout-sparkle:nth-child(18) { top: 38%; left: 68%; width: 7px; height: 7px; animation-delay: 15.0s; }
+.checkout-sparkle:nth-child(18)::before { background: rgba(225, 210, 190, 0.60); box-shadow: 0 0 20px 6px rgba(225, 210, 190, 0.30); }
 
-@keyframes checkout-sparkle-fade {
-  0%   { opacity: 0; }
-  12%  { opacity: 1; }
-  38%  { opacity: 0.2; }
-  62%  { opacity: 0.7; }
-  100% { opacity: 0; }
+@keyframes checkout-starlight {
+  0%   { opacity: 0;   transform: translateY(0px); }
+  15%  { opacity: 1;   transform: translateY(4px); }
+  40%  { opacity: 0.3; transform: translateY(12px); }
+  65%  { opacity: 0.8; transform: translateY(20px); }
+  85%  { opacity: 0.2; transform: translateY(28px); }
+  100% { opacity: 0;   transform: translateY(36px); }
 }
