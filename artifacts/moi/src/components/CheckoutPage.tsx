@@ -1041,6 +1041,12 @@ export function CheckoutPage() {
           }}
         >
           <div className="checkout-bg-gradient" />
+          <div className="checkout-bg-ribbons">
+            <div className="checkout-ribbon" />
+            <div className="checkout-ribbon" />
+            <div className="checkout-ribbon" />
+            <div className="checkout-ribbon" />
+          </div>
           <div className="checkout-bg-noise" />
         </motion.div>
       )}
