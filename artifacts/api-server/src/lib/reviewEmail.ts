@@ -52,10 +52,11 @@ function buildProductForm(
 </td>`;
   }).join("\n");
 
-  // Each td: hidden input immediately followed by label (enables input:checked + label CSS).
-  // The label contains three spans: the radio circle dot, the emoji, and the text label.
+  // Each td: visible native radio input immediately followed by label.
+  // Keeping the input visible and properly sized ensures tap targets work on iOS Mail.
+  // accent-color styles the filled dot gold in modern clients (iOS 15.4+, macOS Safari 15.4+).
   const emojiCells = MOODS.map(({ value, emoji, label }) => `
-<td style="text-align:center;padding:0 10px;vertical-align:top;">
+<td style="text-align:center;padding:0 4px;vertical-align:top;">
   <input
     class="emi"
     type="radio"
@@ -63,16 +64,15 @@ function buildProductForm(
     value="${value}"
     id="em${value}_${pid}"
     ${value === 1 ? "required" : ""}
-    style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
+    style="display:block;margin:0 auto 8px;width:18px;height:18px;cursor:pointer;accent-color:#c9a07a;"
   />
   <label
     for="em${value}_${pid}"
     class="eml"
     title="${label}"
-    style="display:block;cursor:pointer;text-align:center;padding:2px 0;"
+    style="display:block;cursor:pointer;text-align:center;padding:8px 6px 10px;border-radius:10px;border:1.5px solid transparent;box-sizing:border-box;"
   >
-    <span class="eml-dot" style="display:block;width:18px;height:18px;border-radius:50%;border:1.5px solid #c8beb6;margin:0 auto 10px;box-sizing:border-box;background:transparent;"></span>
-    <span class="eml-emoji" style="display:block;font-size:28px;line-height:1;margin-bottom:8px;">${emoji}</span>
+    <span class="eml-emoji" style="display:block;font-size:30px;line-height:1;margin-bottom:6px;">${emoji}</span>
     <span class="eml-text" style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:#b0a89e;">${label}</span>
   </label>
 </td>`).join("\n");
@@ -215,25 +215,22 @@ export function buildReviewEmail(params: {
 <style>
 :root { color-scheme: light; }
 
-/* Hidden radio inputs (still submitted with the form) */
-.emi { position:absolute!important;opacity:0!important;width:0!important;height:0!important;overflow:hidden!important; }
+/* Visible native radio inputs with gold accent color */
+.emi { display:block!important;margin:0 auto 8px!important;width:18px!important;height:18px!important;cursor:pointer!important;accent-color:#c9a07a!important; }
 
-/* Emoji option label — block so the circle, emoji, and text stack vertically */
-.eml { display:block!important;cursor:pointer!important;text-align:center!important;padding:2px 0!important; }
-
-/* Radio-style circle indicator (empty by default) */
-.eml-dot { display:block!important;width:18px!important;height:18px!important;border-radius:50%!important;border:1.5px solid #c8beb6!important;margin:0 auto 10px!important;box-sizing:border-box!important;background:transparent!important; }
+/* Emoji option label — card container */
+.eml { display:block!important;cursor:pointer!important;text-align:center!important;padding:8px 6px 10px!important;border-radius:10px!important;border:1.5px solid transparent!important;box-sizing:border-box!important; }
 
 /* Emoji character */
-.eml-emoji { display:block!important;font-size:28px!important;line-height:1!important;margin-bottom:8px!important; }
+.eml-emoji { display:block!important;font-size:30px!important;line-height:1!important;margin-bottom:6px!important; }
 
 /* Small text label */
 .eml-text { display:block!important;font-family:Arial,Helvetica,sans-serif!important;font-size:8px!important;letter-spacing:0.22em!important;text-transform:uppercase!important;color:#b0a89e!important; }
 
-/* Selected: gold-filled radio circle with white dot inside */
-.emi:checked + .eml .eml-dot { background:#c9a07a!important;border-color:#c9a07a!important;box-shadow:inset 0 0 0 4px #ffffff,0 0 0 1.5px #c9a07a!important; }
+/* Selected state: warm champagne card highlight + gold border */
+.emi:checked + .eml { background:rgba(201,160,122,0.10)!important;border-color:#c9a07a!important; }
 
-/* Selected: gold text label */
+/* Selected: gold text */
 .emi:checked + .eml .eml-text { color:#c9a07a!important;font-weight:700!important; }
 
 /* ── Dark mode: force light colours ── */
@@ -241,15 +238,14 @@ export function buildReviewEmail(params: {
   body,.email-body { background-color:#e8e3dc!important;color:#1a1714!important; }
   .email-card      { background-color:#ffffff!important; }
   .form-card       { background-color:#fffaf7!important; }
-  .eml-dot         { border-color:#a89e96!important; }
   input[type="text"],textarea { background-color:#ffffff!important;color:#1a1714!important;border-color:#d4c8be!important; }
 }
 
 @media screen and (max-width:480px) {
   .email-card  { width:100%!important; }
   .email-pad   { padding-left:20px!important;padding-right:20px!important; }
-  .eml-emoji   { font-size:24px!important; }
-  .eml-dot     { width:16px!important;height:16px!important; }
+  .eml-emoji   { font-size:26px!important; }
+  .eml         { padding:6px 4px 8px!important; }
 }
 </style>
 </head>
