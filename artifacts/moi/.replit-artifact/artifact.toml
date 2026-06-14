@@ -19,7 +19,7 @@ run = "pnpm --filter @workspace/moi run dev"
 
 [services.production]
 build = [ "pnpm", "--filter", "@workspace/moi", "run", "build" ]
-run = "pnpm --filter @workspace/moi run serve:prod"
+run = "node artifacts/moi/server.js"
 
 [services.env]
 PORT = "18266"
