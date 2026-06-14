@@ -101,8 +101,11 @@ router.post("/orders/paymob-init", async (req, res) => {
   }
 
   const cartTotalEGP = cart.totalAmount;
-  const totalEGP = cartTotalEGP + SHIPPING_EGP;
+  const FREE_SHIPPING_THRESHOLD = 2000;
+  const shippingEGP = cartTotalEGP >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_EGP;
+  const totalEGP = cartTotalEGP + shippingEGP;
   const amountCents = Math.round(totalEGP * 100);
+  const shippingCents = Math.round(shippingEGP * 100);
   const total = totalEGP.toFixed(2);
 
   const intentId = randomUUID();
@@ -114,6 +117,7 @@ router.post("/orders/paymob-init", async (req, res) => {
     cartId,
     discountCode: discountCode ?? null,
     amountCents,
+    shippingCents,
     total,
     status: "pending",
     attribution: attribution as Record<string, unknown> | null ?? null,

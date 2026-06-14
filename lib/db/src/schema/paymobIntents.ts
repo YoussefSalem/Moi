@@ -19,6 +19,8 @@ export const paymobIntents = pgTable("paymob_intents", {
   /** Human-readable Shopify order number (e.g. 1081) — stored so it can be displayed without calling Shopify API */
   shopifyOrderNumber: integer("shopify_order_number"),
   paymobTxnId: text("paymob_txn_id"),
+  /** Shipping amount in cents for this order (0 = free shipping, 5000 = 50 EGP). Null on legacy intents. */
+  shippingCents: integer("shipping_cents"),
   /** Marketing attribution captured from the session (UTM, fbclid, gclid, ttclid) */
   attribution: jsonb("attribution"),
   /** Shopify abandoned-checkout token from /api/checkouts/register — completed when order succeeds */

@@ -723,7 +723,7 @@ export function CheckoutPage() {
       setStep("form");
       setSubmitError("Network error. Please check your connection and try again.");
     }
-  }, [isShopify, shopifyCart, localItems, form, promoApplied, shopifyCheckoutToken, totalAmount, subtotalAmount, savings, shippingCost, freeShipping, fmt]);
+  }, [isShopify, shopifyCart, localItems, form, promoApplied, shopifyCheckoutToken, totalAmount, subtotalAmount, savings, shippingCost, freeShipping, fmt, paymentMethod]);
 
   // Keep refreshSessionRef pointing at the latest handleRefreshPaymobSession so
   // callbacks defined earlier in the component can call it without an ordering issue.

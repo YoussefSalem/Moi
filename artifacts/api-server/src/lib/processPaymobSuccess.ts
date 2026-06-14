@@ -53,6 +53,7 @@ export async function processPaymobSuccess(params: {
       total: paymobIntents.total,
       attribution: paymobIntents.attribution,
       checkoutToken: paymobIntents.checkoutToken,
+      shippingCents: paymobIntents.shippingCents,
     });
 
   if (claimed.length === 0) {
@@ -160,7 +161,12 @@ export async function processPaymobSuccess(params: {
   const paymentMethodLabel = isApplePay ? "Apple Pay (Paymob)" : "Credit/Debit Card (Paymob)";
 
   if (customer.email) {
-    const shippingPrice = parseEGP(amount) >= 2000 ? "0.00" : "50.00";
+    // Use the stored shippingCents from the intent for accuracy.
+    // Legacy intents (created before shippingCents was added) will have null — treat as 50 EGP
+    // since all pre-fix intents always charged the fixed 50 EGP shipping rate.
+    const shippingPrice = intent.shippingCents != null
+      ? (intent.shippingCents / 100).toFixed(2)
+      : "50.00";
     const { html, text } = buildOrderConfirmationEmail({
       orderNumber: shopifyOrderNumber,
       customerName: customer.firstName,
@@ -187,7 +193,9 @@ export async function processPaymobSuccess(params: {
   // Admin notification email
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
   if (adminEmail) {
-    const shippingForAdmin = parseEGP(amount) >= 2000 ? "0.00" : "50.00";
+    const shippingForAdmin = intent.shippingCents != null
+      ? (intent.shippingCents / 100).toFixed(2)
+      : "50.00";
     const { html: adminHtml, text: adminText } = buildAdminPaymentNotificationEmail({
       draftOrderId: shopifyOrderId,
       orderNumber: shopifyOrderNumber,
