@@ -1038,22 +1038,18 @@ export function CheckoutPage() {
             zIndex: 119,
             pointerEvents: "none",
             overflow: "hidden",
-            backgroundColor: "#FAFAF7",
+            backgroundColor: "#000",
           }}
         >
           <div className="checkout-bg-gradient" />
           <div className="checkout-bg-noise" />
-          <div className="checkout-bg-sparkles">
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
+          <div className="checkout-bg-shooting-stars">
+            <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
           </div>
         </motion.div>
       )}

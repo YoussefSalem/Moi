@@ -1,0 +1,86 @@
+🚀 Replit Prompt: Pixel-Perfect Shooting Star Animation
+
+Build a high-performance, pixel-perfect shooting star background animation for a web page using HTML + CSS (no heavy libraries unless necessary).
+
+✨ Goal
+
+Create a visually premium night-sky effect with:
+
+Multiple shooting stars streaking diagonally across the screen
+A feeling of soft starlight / magical motion
+Elegant, not overwhelming (luxury UI aesthetic)
+🎨 Visual Requirements
+
+Each shooting star should:
+
+Start off-screen and move diagonally across the viewport
+Look like a bright white dot with a glowing trailing streak
+Fade in quickly, then fade out smoothly
+Rotate slightly to match movement direction
+Feel like natural meteor / starlight motion
+
+Add:
+
+Multiple stars with different:
+delays
+speeds
+starting vertical positions
+A subtle night-sky background (dark gradient)
+Optional faint star dust background (very subtle)
+⚡ Performance Requirements (IMPORTANT)
+
+Use best CSS performance practices:
+
+Use only transform and opacity for animation
+Avoid layout-triggering properties (no top/left animation)
+Use will-change: transform, opacity
+Keep DOM lightweight (few elements OR reusable system)
+Use pseudo-elements for glow/trails when possible
+Ensure smooth 60fps performance
+🌠 Animation Style
+
+Shooting stars should:
+
+Move from top-left → bottom-right diagonally
+Have a glowing tail using a linear-gradient blur trail
+Use scale + opacity for realism
+Feel random but controlled (not robotic)
+
+Timing:
+
+Duration: ~2s–4s per star
+Infinite loop
+Staggered delays for natural randomness
+💡 Extra Polish (Important)
+
+Add:
+
+A soft space-like gradient background (dark blue / black)
+Slight glow bloom effect on stars
+Optional subtle static “star dust” layer (very low opacity)
+Ensure it looks premium for a checkout / landing page UI
+📱 UX Constraints
+Must not distract from UI content (keep subtle)
+Must not reduce readability of foreground elements
+Should feel elegant and “luxury tech” rather than game-like
+🧱 Output Format
+
+Generate a complete working project with:
+
+index.html
+style.css
+(optional) script.js only if necessary
+
+No frameworks required.
+
+✨ Final Intent
+
+The result should feel like:
+
+“a calm night sky with occasional elegant shooting stars passing through”
+
+Not:
+
+arcade game effects
+neon chaos
+heavy particle simulation
