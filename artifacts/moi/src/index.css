@@ -650,12 +650,12 @@ header[class*="fixed"] {
     #FAFAF7;
 }
 
-/* 2. Ribbon layer — slow-drifting diagonal light bands, silk-like depth */
+/* 2. Ribbon layer — diagonal SVG waves, strictly behind all form content */
 .checkout-bg-ribbons {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
   overflow: hidden;
 }
 
