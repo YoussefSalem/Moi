@@ -1043,7 +1043,23 @@ export function CheckoutPage() {
         >
           <div className="checkout-bg-gradient" />
           <div className="checkout-bg-noise" />
-          <div className="checkout-bg-shimmer" />
+          <div className="checkout-bg-sparkles">
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
