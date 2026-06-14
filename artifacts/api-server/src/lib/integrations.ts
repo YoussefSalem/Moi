@@ -721,34 +721,39 @@ export async function getShopifyOrderDisputes(
   orderId: number,
   fallbackTagSet?: Set<string>,
 ): Promise<boolean> {
-  // Fast path: tag heuristic (always available, no extra API call)
-  if (fallbackTagSet?.has("disputed") || fallbackTagSet?.has("chargeback")) return true;
-
+  // Primary: Shopify Payments Disputes API.
+  // Tag/note inspection is used ONLY as fallback when the API is unavailable or errors.
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
-  const adminToken = await getShopifyAdminToken();
-  if (!storeDomain || !adminToken) return false;
+  const adminToken  = await getShopifyAdminToken();
 
-  try {
-    const res = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/shopify_payments/disputes.json?order_id=${orderId}`,
-      { headers: { "X-Shopify-Access-Token": adminToken } },
-    );
+  if (storeDomain && adminToken) {
+    try {
+      const res = await fetch(
+        `https://${storeDomain}/admin/api/2024-04/shopify_payments/disputes.json?order_id=${orderId}`,
+        { headers: { "X-Shopify-Access-Token": adminToken } },
+      );
 
-    // 403/404 = Shopify Payments not available on this plan — tags already checked above.
-    if (res.status === 403 || res.status === 404) return false;
-    if (!res.ok) {
-      logger.warn({ orderId, status: res.status }, "getShopifyOrderDisputes: non-2xx");
-      return false;
+      if (res.ok) {
+        const data = await res.json() as { disputes: Array<{ status: string }> };
+        // Suppress if unresolved or merchant lost.
+        // Allow "won" (merchant prevailed) and "expired" (dispute lapsed) to proceed.
+        return (data.disputes ?? []).some((d) => d.status !== "won" && d.status !== "expired");
+      }
+
+      // 403/404 = Shopify Payments not available on this plan; fall through to tag fallback.
+      if (res.status !== 403 && res.status !== 404) {
+        logger.warn({ orderId, status: res.status }, "getShopifyOrderDisputes: non-2xx — falling back to tags");
+      }
+      // Fall through to tag fallback
+    } catch (err) {
+      logger.warn({ err, orderId }, "getShopifyOrderDisputes: fetch error — falling back to tags");
+      // Fall through to tag fallback
     }
-
-    const data = await res.json() as { disputes: Array<{ status: string }> };
-    // Suppress if the dispute is unresolved or merchant lost.
-    // Allow "won" (merchant prevailed) and "expired" (dispute lapsed) to proceed.
-    return (data.disputes ?? []).some((d) => d.status !== "won" && d.status !== "expired");
-  } catch (err) {
-    logger.warn({ err, orderId }, "getShopifyOrderDisputes: fetch error — relying on tags");
-    return false;
   }
+
+  // Tag fallback: consulted only when Disputes API is unavailable/errors.
+  // These tags are typically set by manual review workflows.
+  return !!(fallbackTagSet?.has("disputed") || fallbackTagSet?.has("chargeback"));
 }
 
 export function verifyShopifyHmac(

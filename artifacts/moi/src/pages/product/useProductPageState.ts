@@ -40,11 +40,16 @@ export function useProductPageState(handle: string, autoOpenReview?: string | nu
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
   // Auto-open the review modal when arriving via ?review=1 deep-link.
-  // Guard: fires only once per mount; skips while Shopify data is still loading.
+  // Guard: sessionStorage key prevents re-firing on same product across remounts
+  // (SPA back-navigation) within the same tab session.  The in-memory ref
+  // provides a synchronous safety-net for the current mount cycle.
   const reviewAutoOpenedRef = useRef(false);
   useEffect(() => {
     if (autoOpenReview !== handle || loading || reviewAutoOpenedRef.current) return;
+    const ssKey = `review-modal-opened-${handle}`;
+    if (sessionStorage.getItem(ssKey)) return;
     reviewAutoOpenedRef.current = true;
+    sessionStorage.setItem(ssKey, "1");
     setReviewModalOpen(true);
     trackEvent("interaction", "review_modal_opened", { productHandle: handle });
   }, [autoOpenReview, loading, handle]);
