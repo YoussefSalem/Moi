@@ -170,7 +170,7 @@ router.post("/orders/instapay-init", async (req, res) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Order creation failed";
     req.log.error({ err }, "Instapay init — order creation failed");
-    if (message.includes("not applicable")) {
+    if (message.includes("not applicable") || message.includes("no longer available") || message.includes("out of stock")) {
       res.status(422).json({ error: message });
     } else {
       res.status(500).json({ error: "Could not place your order. Please try again." });
@@ -300,7 +300,7 @@ router.post("/orders/create", async (req, res) => {
     const message = err instanceof Error ? err.message : "Could not place your order.";
     req.log.error({ err }, "Order creation failed");
 
-    if (message.includes("not applicable")) {
+    if (message.includes("not applicable") || message.includes("no longer available") || message.includes("out of stock")) {
       res.status(422).json({ error: message });
     } else {
       res.status(500).json({ error: "Could not place your order. Please try again." });
