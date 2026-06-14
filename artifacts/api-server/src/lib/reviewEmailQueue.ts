@@ -295,6 +295,7 @@ async function processJob(job: JobWithMetadata<ReviewEmailJobData>): Promise<voi
   const lineItems = (order.line_items ?? []) as Array<{
     product_id:     number | null;
     title:          string;
+    variant_title:  string | null;
     price:          string;           // unit price after variant discounts
     quantity:       number;
     total_discount: string;           // line-item discount total
@@ -340,6 +341,7 @@ async function processJob(job: JobWithMetadata<ReviewEmailJobData>): Promise<voi
   const { html, text } = buildReviewRequestEmail({
     customerName,
     productHandle,
+    variantTitle: primary.variant_title,
     productTitle: primary.title ?? "",
   });
 

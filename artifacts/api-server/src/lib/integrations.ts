@@ -567,9 +567,10 @@ export async function completeShopifyCheckout(token: string): Promise<void> {
 interface ReviewOrderLineItem {
   product_id:     number | null;
   title:          string;
-  price:          string;      // unit price (after variant discounts)
+  variant_title:  string | null; // e.g. "Sand" — colour variant name
+  price:          string;        // unit price (after variant discounts)
   quantity:       number;
-  total_discount: string;      // total line-item discount amount
+  total_discount: string;        // total line-item discount amount
 }
 
 export class TransientShopifyError extends Error {

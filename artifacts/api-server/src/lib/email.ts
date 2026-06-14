@@ -1363,14 +1363,22 @@ export function buildReviewConfirmationEmail(params: {
 // Post-purchase review request email
 // ---------------------------------------------------------------------------
 
+/**
+ * Build a review-request email.  If a variant is passed, the link targets the
+ * colour-specific product page (e.g. /products/moi-wavvy-sand?review=1) so the
+ * product image and gallery match what the customer actually bought.
+ */
 export function buildReviewRequestEmail(params: {
   customerName: string;
   productHandle: string;
+  variantTitle?: string | null;
   productTitle: string;
 }): { html: string; text: string } {
-  const { customerName, productHandle, productTitle } = params;
+  const { customerName, productHandle, variantTitle, productTitle } = params;
   const siteUrl = getSiteUrl();
-  const reviewUrl = `${siteUrl}/products/${encodeURIComponent(productHandle)}?review=1`;
+  const variantSlug = variantTitle ? variantTitle.toLowerCase().replace(/\s+/g, "-") : "";
+  const handlePath = variantSlug ? `${productHandle}-${variantSlug}` : productHandle;
+  const reviewUrl = `${siteUrl}/products/${encodeURIComponent(handlePath)}?review=1`;
   const firstName = customerName.split(" ")[0]?.trim() || "there";
 
   const html = `<!DOCTYPE html>
@@ -1409,7 +1417,6 @@ export function buildReviewRequestEmail(params: {
     </td></tr>
 
     <tr><td style="padding:0 44px;text-align:center;">
-      <img src="${siteUrl}/images/sand-main.jpg" alt="${productTitle}" style="display:block;margin:0 auto 24px;width:180px;height:240px;object-fit:cover;border-radius:12px;border:1px solid #e8e0d6;" />
       <p style="margin:0 0 18px;font-size:14px;color:#5c5045;line-height:1.8;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
         Hi <strong style="color:#3a2e25;">${firstName}</strong>,
       </p>
