@@ -1,0 +1,197 @@
+#128 — Post-Purchase Review Email (Final System Plan)
+What & Why
+
+After Bosta confirms a delivery, send a “Your thoughts mean the world 💕” review request email 48–72 hours later.
+
+Bosta is the source of truth for delivery (not Shopify fulfillment). The flow works for all payment methods (card, COD, InstaPay, Apple Pay).
+
+The email links to:
+/products/[handle]?review=1 → auto-opens review modal.
+
+System Architecture
+1. Trigger Source (Bosta Webhook)
+Webhook receives delivery event from Bosta
+Must be:
+signature verified using HMAC-SHA256 on raw UTF-8 Buffer
+verified with constant-time comparison
+Must use route-scoped express.raw() middleware (not global parsing)
+Valid processing only if:
+status ∈ terminal delivery states (e.g. DELIVERED / CUSTOMER_RECEIVED)
+Invalid states ignored:
+OUT_FOR_DELIVERY
+DELIVERY_ATTEMPTED
+RETURNED
+RESCHEDULED
+any non-terminal state
+Replay handling (two-layer model):
+Advisory replay window (5 min):
+rejects obviously stale/replayed events
+Authoritative dedupe:
+pg-boss job key: review-<intentId>
+guarantees single execution regardless of retries
+Output:
+extract bostaDeliveredAt from event timestamp
+enqueue pg-boss job with delay 48–72h
+2. Job Queue (pg-boss)
+PostgreSQL-backed job system
+Config:
+3 retries
+exponential backoff
+DLQ: review-email-dlq
+Job key enforces idempotency
+
+Lifecycle logs:
+
+worker start
+worker stop
+3. Job Worker (Core Logic)
+Step A — Fetch + Re-verify Order (Shopify)
+
+Fetch order via shopifyConfirmedOrderId
+
+Fail handling:
+
+transient error → retry (throw)
+404 → skip (no retry)
+Blocking rules:
+
+Order is SKIPPED if:
+
+cancelled
+fully refunded
+partial refund that equals full order quantity
+chargeback detected via:
+Shopify Disputes API (primary)
+fallback: admin tag + refund signals
+
+Open disputes do NOT block.
+
+Step B — Product Selection
+
+Primary product = line item with highest:
+
+line_price (price × quantity after discounts)
+
+Tie-breaker:
+
+lowest index in line_items
+Step C — Product Handle Resolution
+product_id → handle
+in-memory cache (single-instance assumption)
+fallback to Shopify API if cache miss
+lightweight throttling applied
+Step D — Deduplication (Retry-Safe Tagging)
+Add tag: review-email-pending
+If review-email-sent exists → stop
+If pending exists → resume job (mid-failure recovery)
+Email send (via Resend):
+
+Failure types:
+
+terminal (hard bounce, invalid email, suppressed domain)
+→ skip + alert
+transient (timeout, rate limit, 5xx)
+→ retry via pg-boss
+On success:
+replace pending → sent
+
+If tagging fails at final step:
+
+log warning only (email already sent)
+4. Metrics + Logging + Alerts
+Logs (always emitted):
+{
+  orderId,
+  intentId,
+  customerEmail,
+  productHandle,
+  attempt,
+  status,
+  error,
+  durationMs
+}
+Metrics (in-memory only)
+review_email_enqueued
+review_email_sent
+review_email_skipped
+review_email_failed
+
+Notes:
+
+reset on restart
+not globally aggregated
+DLQ is source of truth
+Timing metric:
+time_to_review_email_ms
+= sendTime − bostaDeliveredAt
+recorded only on first successful send
+Alerts:
+per-intent cooldown (1h)
+global cap (5/hour)
+if exceeded:
+alert is dropped
+WARN log is emitted
+
+DLQ is always authoritative failure record.
+
+5. Email System
+
+Via Resend
+
+Template:
+
+Subject: “Your thoughts mean the world 💕”
+
+CTA:
+
+https://buy-moi.com/products/[handle]?review=1
+
+Styling:
+
+Cormorant Garamond headings
+Montserrat body
+warm off-white palette
+near-black text
+6. Frontend Behavior
+Product page:
+
+URL param:
+
+?review=1
+
+Flow:
+
+App detects param
+passes autoOpenReview to ProductPage
+modal opens only when:
+autoOpenReview === true
+product data is loaded
+Modal safety:
+no hydration race conditions
+useEffect gated on product readiness
+Analytics:
+
+Event:
+
+review_modal_opened
+
+Rules:
+
+fires once per tab session per product
+stored in sessionStorage
+prevents duplicate firing on refresh/back nav
+cross-tab duplicates allowed by design
+Out of Scope
+HMAC signing of review link
+DB schema changes (paymob_intents)
+per-variant reviews
+order-level review flow
+Redis / horizontal scaling / shared cache
+Core Guarantees
+Exactly-once email sending (logical idempotency)
+Delivery-driven trigger (Bosta authoritative)
+Retry-safe processing (pg-boss + tagging)
+Safe against webhook replay
+Safe against partial refunds/chargebacks
+Hydration-safe frontend modal logic
+Observable via logs + DLQ (metrics are secondary)
