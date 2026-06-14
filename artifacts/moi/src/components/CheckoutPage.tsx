@@ -1042,10 +1042,52 @@ export function CheckoutPage() {
         >
           <div className="checkout-bg-gradient" />
           <div className="checkout-bg-ribbons">
-            <div className="checkout-ribbon" />
-            <div className="checkout-ribbon" />
-            <div className="checkout-ribbon" />
-            <div className="checkout-ribbon" />
+            {(
+              [
+                { top: "20%", speed: "18s", opacity: 0.65, delay: "0s" },
+                { top: "40%", speed: "26s", opacity: 0.40, delay: "-10s" },
+                { top: "62%", speed: "15s", opacity: 0.55, delay: "-5s" },
+                { top: "80%", speed: "22s", opacity: 0.30, delay: "-14s" },
+              ] as { top: string; speed: string; opacity: number; delay: string }[]
+            ).map((r, i) => (
+              <div
+                key={i}
+                className="checkout-ribbon"
+                style={{ top: r.top, opacity: r.opacity }}
+              >
+                <div
+                  style={{
+                    width: "200%",
+                    animation: `moiWaveScroll ${r.speed} linear infinite`,
+                    animationDelay: r.delay,
+                    willChange: "transform",
+                  }}
+                >
+                  <svg
+                    viewBox="0 0 400 48"
+                    xmlns="http://www.w3.org/2000/svg"
+                    style={{ width: "100%", height: 32, display: "block" }}
+                    preserveAspectRatio="none"
+                  >
+                    <path
+                      d="M0,20 C27,7 73,7 100,20 C127,33 173,33 200,20 C227,7 273,7 300,20 C327,33 373,33 400,20"
+                      fill="none"
+                      stroke="rgba(180,155,130,0.16)"
+                      strokeWidth="1"
+                      strokeLinecap="round"
+                      transform="translate(0,-6)"
+                    />
+                    <path
+                      d="M0,24 C27,11 73,11 100,24 C127,37 173,37 200,24 C227,11 273,11 300,24 C327,37 373,37 400,24"
+                      fill="none"
+                      stroke="rgba(180,155,130,0.42)"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
+              </div>
+            ))}
           </div>
           <div className="checkout-bg-noise" />
         </motion.div>
