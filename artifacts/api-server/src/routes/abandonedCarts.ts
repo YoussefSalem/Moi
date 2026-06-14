@@ -2,7 +2,7 @@ import { Router } from "express";
 import crypto from "crypto";
 import { db } from "@workspace/db";
 import { abandonedCarts } from "@workspace/db/schema";
-import { eq, desc, and, isNull, isNotNull } from "drizzle-orm";
+import { eq, desc, and, isNull, isNotNull, or } from "drizzle-orm";
 import { sendEmail, buildAbandonedCartEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 import { getSiteUrl } from "../lib/siteUrl";
@@ -21,7 +21,9 @@ function generateRecoveryToken(): string {
 
 /**
  * POST /api/abandoned-carts/start
- * Records an abandoned cart when the customer enters their email in checkout.
+ * Idempotent upsert: if a "started" cart already exists for this email,
+ * update its line items and total. Otherwise create a new record.
+ * Safe to call multiple times (debounce, onBlur, and sendBeacon all hit this).
  */
 router.post("/abandoned-carts/start", async (req, res) => {
   const { email, cartId, lineItems, totalAmount } = req.body as {
@@ -44,12 +46,30 @@ router.post("/abandoned-carts/start", async (req, res) => {
 
   try {
     const safeEmail = email.trim().toLowerCase();
-    // Cancel any previous "started" carts for this email so stale recovery
-    // emails are never sent if the customer comes back and starts over.
-    await db.update(abandonedCarts)
-      .set({ status: "cancelled", updatedAt: new Date() })
-      .where(and(eq(abandonedCarts.email, safeEmail), eq(abandonedCarts.status, "started")));
 
+    // Upsert: update the most-recent "started" cart for this email if one exists.
+    const [existing] = await db.select()
+      .from(abandonedCarts)
+      .where(and(eq(abandonedCarts.email, safeEmail), eq(abandonedCarts.status, "started")))
+      .orderBy(desc(abandonedCarts.createdAt))
+      .limit(1);
+
+    if (existing) {
+      await db.update(abandonedCarts)
+        .set({
+          lineItems,
+          totalAmount,
+          cartId: cartId ?? existing.cartId,
+          updatedAt: new Date(),
+        })
+        .where(eq(abandonedCarts.id, existing.id));
+
+      req.log.info({ id: existing.id, email: safeEmail }, "abandoned-cart: updated");
+      res.status(200).json({ id: existing.id, recoveryToken: existing.recoveryToken });
+      return;
+    }
+
+    // No existing record — create a fresh one.
     const token = generateRecoveryToken();
     const [row] = await db.insert(abandonedCarts).values({
       email: safeEmail,
@@ -61,7 +81,7 @@ router.post("/abandoned-carts/start", async (req, res) => {
       status: "started",
     }).returning();
 
-    req.log.info({ id: row.id, email: row.email, token }, "abandoned-cart: recorded");
+    req.log.info({ id: row.id, email: row.email }, "abandoned-cart: started");
     res.status(200).json({ id: row.id, recoveryToken: token });
   } catch (err) {
     req.log.error({ err }, "abandoned-cart: failed to record");
@@ -143,7 +163,7 @@ router.post("/abandoned-carts/complete", async (req, res) => {
       await db.update(abandonedCarts)
         .set({ status: "recovered", recoveredAt: new Date(), updatedAt: new Date() })
         .where(eq(abandonedCarts.id, existing.id));
-      req.log.info({ id: existing.id, email: safeEmail }, "abandoned-cart: complete — recovered existing started cart");
+      req.log.info({ id: existing.id, email: safeEmail }, "abandoned-cart: recovered");
     } else {
       const token = generateRecoveryToken();
       const [row] = await db.insert(abandonedCarts).values({
@@ -156,7 +176,7 @@ router.post("/abandoned-carts/complete", async (req, res) => {
         status: "recovered",
         recoveredAt: new Date(),
       }).returning();
-      req.log.info({ id: row.id, email: safeEmail }, "abandoned-cart: complete — created + recovered (no prior blur record)");
+      req.log.info({ id: row.id, email: safeEmail }, "abandoned-cart: recovered (no prior started record)");
     }
 
     res.status(200).json({ ok: true });

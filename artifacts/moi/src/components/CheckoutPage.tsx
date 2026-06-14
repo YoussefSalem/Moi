@@ -285,7 +285,7 @@ export function CheckoutPage() {
         price: item.price,
       })));
 
-  function fmt(amount: number) {
+  const fmt = useCallback((amount: number) => {
     try {
       return new Intl.NumberFormat("en-EG", {
         style: "currency", currency: currencyCode, minimumFractionDigits: 0, maximumFractionDigits: 0,
@@ -293,7 +293,7 @@ export function CheckoutPage() {
     } catch {
       return `${amount.toFixed(0)} EGP`;
     }
-  }
+  }, [currencyCode]);
 
 
   const handleApplyPromo = useCallback(async () => {
@@ -406,62 +406,124 @@ export function CheckoutPage() {
     closeCheckout();
   }, [clearCart, closeCheckout]);
 
+  // Build the current abandoned-cart payload. Returns null if email is invalid
+  // or the cart is empty. Shared by the debounce, onBlur fallback, and beacon.
+  const buildAbandonedCartPayload = useCallback(() => {
+    const email = form.email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) return null;
+
+    const cartId = shopifyCart?.id ?? null;
+    const lineItems = isShopify && shopifyCart
+      ? shopifyCart.lines.nodes.map((l) => {
+          const colorOpt = l.merchandise.selectedOptions?.find((o) => o.name.toLowerCase() === "color");
+          const colorName = colorOpt?.value;
+          return {
+            title: l.merchandise.product.title,
+            variant: colorName ? `Color: ${colorName}` : (l.merchandise.title === "Default Title" ? undefined : l.merchandise.title),
+            quantity: l.quantity,
+            price: `${Math.floor(parseFloat(l.merchandise.price.amount)).toLocaleString("en-US")} EGP`,
+            imageUrl: resolveEmailImage(l, localItems) ?? undefined,
+            variantId: l.merchandise.id,
+          };
+        })
+      : localItems.map((i) => {
+          const color = i.color?.toLowerCase() ?? "";
+          const publicImg = PUBLIC_COLOR_IMAGES[color];
+          return {
+            title: i.title,
+            variant: i.color ? `Color: ${i.color}` : undefined,
+            quantity: i.quantity,
+            price: i.price,
+            imageUrl: publicImg ?? (i.image?.startsWith("http") ? i.image : undefined),
+            variantId: i.variantId,
+          };
+        });
+
+    if (!lineItems.length) return null;
+    return { email, cartId, lineItems, totalAmount: fmt(totalAmount) };
+  }, [form.email, shopifyCart, isShopify, localItems, totalAmount, fmt]);
+
+  // Send /api/abandoned-carts/start. The backend upserts by email so calling
+  // this multiple times is safe — it updates the existing record, not duplicate.
+  const triggerAbandonedCartStart = useCallback(
+    (payload: NonNullable<ReturnType<typeof buildAbandonedCartPayload>>) => {
+      fetch("/api/abandoned-carts/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+        .then((r) => r.json())
+        .then((data: unknown) => {
+          const id = (data as { id?: number })?.id;
+          if (id) abandonedCartIdRef.current = id;
+        })
+        .catch(() => {});
+    },
+    [],
+  );
+
+  // onBlur secondary fallback: fires immediately when the email field loses focus
+  // (catches autofill / paste / iOS keyboard-dismiss without typing).
   const handleEmailBlur = useCallback(() => {
     const email = form.email.trim();
-    if (!email) return;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return;
-    const cartId = shopifyCart?.id;
-    if (cartId) {
-      // Fire-and-forget: set buyer identity on cart via Storefront API
-      cartBuyerIdentityUpdate(cartId, email).catch(() => {});
+    if (!email || !emailRegex.test(email)) return;
 
-      // Fire-and-forget: record abandoned cart for recovery email
-      const lineItems = isShopify && shopifyCart
-        ? shopifyCart.lines.nodes.map((l) => {
-            const colorOpt = l.merchandise.selectedOptions?.find((o) => o.name.toLowerCase() === "color");
-            const colorName = colorOpt?.value;
-            return {
-              title: l.merchandise.product.title,
-              variant: colorName ? `Color: ${colorName}` : (l.merchandise.title === "Default Title" ? undefined : l.merchandise.title),
-              quantity: l.quantity,
-              price: `${Math.floor(parseFloat(l.merchandise.price.amount)).toLocaleString("en-US")} EGP`,
-              imageUrl: resolveEmailImage(l, localItems) ?? undefined,
-              variantId: l.merchandise.id,
-            };
-          })
-        : localItems.map((i) => {
-            const color = i.color?.toLowerCase() ?? "";
-            const publicImg = PUBLIC_COLOR_IMAGES[color];
-            return {
-              title: i.title,
-              variant: i.color ? `Color: ${i.color}` : undefined,
-              quantity: i.quantity,
-              price: i.price,
-              imageUrl: publicImg ?? (i.image?.startsWith("http") ? i.image : undefined),
-              variantId: i.variantId,
-            };
-          });
-      if (!abandonedCartIdRef.current) {
+    // Keep Shopify buyer-identity in sync regardless of abandoned-cart state.
+    const cartId = shopifyCart?.id;
+    if (cartId) cartBuyerIdentityUpdate(cartId, email).catch(() => {});
+
+    // Fallback capture: only fires if the debounce hasn't already stored an ID.
+    if (!abandonedCartIdRef.current) {
+      const payload = buildAbandonedCartPayload();
+      if (payload) triggerAbandonedCartStart(payload);
+    }
+  }, [form.email, shopifyCart, buildAbandonedCartPayload, triggerAbandonedCartStart]);
+
+  // Always-fresh ref for the visibilitychange beacon — avoids stale closure capture.
+  const latestBeaconPayloadRef = useRef<ReturnType<typeof buildAbandonedCartPayload>>(null);
+  useEffect(() => {
+    latestBeaconPayloadRef.current = buildAbandonedCartPayload();
+  }, [buildAbandonedCartPayload]);
+
+  // Primary trigger: fire 1.75 s after the email becomes valid (or cart changes
+  // while a valid email is already present). Debounce prevents excessive calls.
+  useEffect(() => {
+    if (!checkoutOpen) return;
+    const payload = buildAbandonedCartPayload();
+    if (!payload) return;
+
+    const timer = window.setTimeout(() => {
+      triggerAbandonedCartStart(payload);
+    }, 1750);
+    return () => window.clearTimeout(timer);
+  }, [checkoutOpen, buildAbandonedCartPayload, triggerAbandonedCartStart]);
+
+  // Mobile safety net: when the user switches apps or closes the browser tab,
+  // send the latest cart data via sendBeacon so the server can capture the
+  // abandonment even if the page unloads before the debounce fires.
+  useEffect(() => {
+    function onVisibilityHide() {
+      if (document.visibilityState !== "hidden") return;
+      const payload = latestBeaconPayloadRef.current;
+      if (!payload) return;
+
+      const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+      const queued = navigator.sendBeacon("/api/abandoned-carts/start", blob);
+      if (!queued) {
+        // sendBeacon queue full — fall back to keepalive fetch
         fetch("/api/abandoned-carts/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            cartId,
-            lineItems,
-            totalAmount: fmt(totalAmount),
-          }),
-        })
-          .then((r) => r.json())
-          .then((data: unknown) => {
-            const id = (data as { id?: number })?.id;
-            if (id) abandonedCartIdRef.current = id;
-          })
-          .catch(() => {});
+          body: JSON.stringify(payload),
+          keepalive: true,
+        }).catch(() => {});
       }
     }
-  }, [form.email, shopifyCart, isShopify, localItems, totalAmount, fmt]);
+    document.addEventListener("visibilitychange", onVisibilityHide);
+    return () => document.removeEventListener("visibilitychange", onVisibilityHide);
+  }, []);
 
   const handleIframeSuccess = useCallback((txnId?: string, shopifyOrderId?: number | null, shopifyOrderNumber?: number | null) => {
     // Update orderResult immediately so Shopify data reaches the state even
