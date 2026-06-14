@@ -101,7 +101,7 @@ export const IMAGES = {
       "Breathable fabric keeps you cool.",
       "Made for drifting with ease.",
     ],
-    price: "899 EGP",
+    price: "", // pulled from Shopify — do not hardcode
     outer: "Outer shell: 100% Polyester",
     lining: "",
     ref: "2076/511/400",
@@ -156,7 +156,7 @@ export const IMAGES = {
       "Light and comfortable for all-day wear.",
       "A polished piece that elevates every look.",
     ],
-    price: "1,399 EGP",
+    price: "", // pulled from Shopify — do not hardcode
     outer: "Outer shell: 100% Polyester",
     lining: "Lining: 96% Polyester, 4% Elastane",
     ref: "2076/511/401",
@@ -192,7 +192,7 @@ export const IMAGES = {
     shopifyTitle: "Trio Bangles.",
     colorLabel: "",
     description: "Three slim stacking bangles in a polished finish — worn together or layered freely. Lightweight, adjustable, and crafted to accompany every look.",
-    price: "890 EGP",
+    price: "", // pulled from Shopify — do not hardcode
     outer: "Material: Brass with gold-tone plating",
     lining: "Set of 3 bangles",
     ref: "ACC/001/TRB",

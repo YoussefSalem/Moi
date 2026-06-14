@@ -1493,6 +1493,7 @@ interface AbandonedCartItem {
   totalAmount: string;
   status: string;
   lineItemsCount: number;
+  lineItems: Array<{ title: string; variant?: string; quantity: number; price: string; imageUrl?: string }>;
   createdAt: string;
   emailSentAt: string | null;
   clickedAt: string | null;
@@ -1654,7 +1655,7 @@ function AbandonedCartsTab({ token, onAuth }: { token: string; onAuth?: (t: stri
               <table style={{ minWidth: 1100, borderCollapse: "collapse", width: "100%" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid rgba(30,24,20,0.08)", backgroundColor: "#faf8f5" }}>
-                    {["Email", "Items", "Total", "Status", "Created", "Sent", "Clicked", "Recovered", ""].map((h) => (
+                    {["Email", "Products", "Total", "Status", "Created", "Sent", "Clicked", "Recovered", ""].map((h) => (
                       <th key={h} style={{ ...mono, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(30,24,20,0.5)", fontWeight: 700, textAlign: "left", padding: "10px 14px", whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>
@@ -1668,7 +1669,18 @@ function AbandonedCartsTab({ token, onAuth }: { token: string; onAuth?: (t: stri
                     return (
                       <tr key={item.id} style={{ borderBottom: i < items.length - 1 ? "1px solid rgba(30,24,20,0.05)" : "none" }}>
                         <td style={{ ...mono, fontSize: 14, color: "#1e1814", padding: "10px 14px", whiteSpace: "nowrap" }}>{item.email}</td>
-                        <td style={{ ...mono, fontSize: 14, color: "rgba(30,24,20,0.7)", padding: "10px 14px", whiteSpace: "nowrap" }}>{item.lineItemsCount}</td>
+                        <td style={{ ...mono, fontSize: 12, color: "rgba(30,24,20,0.7)", padding: "10px 14px", maxWidth: 220 }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                            {item.lineItems?.slice(0, 3).map((li, idx) => (
+                              <span key={idx} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {li.title}{li.variant ? ` (${li.variant})` : ""} &times;{li.quantity}
+                              </span>
+                            ))}
+                            {(item.lineItems?.length ?? 0) > 3 && (
+                              <span style={{ color: "rgba(30,24,20,0.4)", fontSize: 11 }}>+{(item.lineItems!.length - 3)} more</span>
+                            )}
+                          </div>
+                        </td>
                         <td style={{ ...mono, fontSize: 14, color: "#1e1814", fontWeight: 600, padding: "10px 14px", whiteSpace: "nowrap" }}>{item.totalAmount}</td>
                         <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
                           <span style={{ ...mono, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "3px 8px", backgroundColor: sc.bg, color: sc.text }}>

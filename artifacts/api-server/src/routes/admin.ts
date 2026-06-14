@@ -928,6 +928,7 @@ router.get("/admin/abandoned-carts", requireAdminAuth, async (req, res) => {
       totalAmount: r.totalAmount,
       status: r.status,
       lineItemsCount: Array.isArray(r.lineItems) ? r.lineItems.length : 0,
+      lineItems: Array.isArray(r.lineItems) ? r.lineItems as Array<{ title: string; variant?: string; quantity: number; price: string; imageUrl?: string }> : [],
       createdAt: r.createdAt,
       emailSentAt: r.emailSentAt,
       clickedAt: r.clickedAt,
