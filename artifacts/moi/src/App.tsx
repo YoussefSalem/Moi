@@ -119,6 +119,10 @@ function AppContent() {
     const variant = product.variants?.find((v) =>
       v.selectedOptions.some((o) => o.name.toLowerCase() === "color" && o.value.toLowerCase() === colorLower)
     );
+    // Guard: if the variant is explicitly unavailable, block the add entirely.
+    if (variant !== undefined && !variant.availableForSale) {
+      return;
+    }
     // Only use product.variantId when there is no color constraint (i.e. colorName is empty).
     // If colorName is set but no variant was found, skip the Shopify add entirely rather
     // than silently adding the wrong color's variant to the cart.
@@ -701,7 +705,7 @@ function AppContent() {
                   <NotFoundPage onNavigateHome={() => navigateTo("home")} />
                 </Suspense>
               ) : page === "checkout" ? (
-                <div style={{ minHeight: "100vh", background: "#efe6da" }} />
+                <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #faf5ee 0%, #ddd0bb 30%, #ede3d2 55%, #d8c9b3 80%, #faf5ee 100%)", backgroundSize: "250% 250%", animation: "checkoutGradientFlow 12s ease-in-out infinite" }} />
               ) : (
                 <Suspense fallback={<div style={{ minHeight: "60vh", background: "#faf8f5" }} />}>
                   <PolicyPage policy={page as "privacy" | "refund" | "return" | "delivery"} onClose={() => navigateTo("home", undefined, true)} />

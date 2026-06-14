@@ -253,7 +253,7 @@ export function ProductCard({ product, onLookView, onNavigateToProduct }: Produc
     setGalleryIndex(0);
   }, [selectedColor]);
 
-  const isOutOfStock = hasShopifyVariants && selectedVariant ? !selectedVariant.availableForSale : false;
+  const isOutOfStock = hasShopifyVariants ? (selectedVariant !== undefined ? !selectedVariant.availableForSale : true) : false;
 
   // Deterministic scarcity count: hashes product slug + color so the number is
   // stable across page loads (same combo always shows same count, never fluctuates).

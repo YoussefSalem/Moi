@@ -404,6 +404,79 @@ export async function completeShopifyDraftOrder(draftOrderId: number): Promise<{
 }
 
 /**
+ * Validate that every variant in the order lines is available for sale.
+ * Uses the Shopify Admin GraphQL API to check availableForSale on each
+ * variant. Throws if any variant is missing or explicitly unavailable.
+ *
+ * If the API call itself fails (network, timeout, etc.), we log and
+ * proceed (fail-open) so a transient Shopify error doesn't block valid
+ * orders. Only explicit out-of-stock results block the order.
+ */
+async function validateVariantAvailability(
+  lines: OrderLine[],
+  storeDomain: string,
+  adminToken: string,
+): Promise<void> {
+  const ids = lines
+    .map((l) => extractVariantId(l.variantId))
+    .filter((id) => id > 0);
+  if (ids.length === 0) return;
+
+  const query = `
+    query CheckAvailability($ids: [ID!]!) {
+      nodes(ids: $ids) {
+        ... on ProductVariant {
+          id
+          availableForSale
+        }
+      }
+    }
+  `;
+
+  try {
+    const res = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/graphql.json`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": adminToken,
+        },
+        body: JSON.stringify({
+          query,
+          variables: { ids: ids.map((id) => `gid://shopify/ProductVariant/${id}`) },
+        }),
+      },
+    );
+    if (!res.ok) return;
+
+    const data = await res.json() as {
+      data?: {
+        nodes?: Array<{ id: string; availableForSale: boolean } | null>;
+      };
+    };
+
+    const nodes = data?.data?.nodes ?? [];
+    for (const line of lines) {
+      const varId = extractVariantId(line.variantId);
+      const gid = `gid://shopify/ProductVariant/${varId}`;
+      const node = nodes.find((n) => n?.id === gid);
+      if (!node) {
+        throw new Error(`One or more items in your order are no longer available.`);
+      }
+      if (!node.availableForSale) {
+        throw new Error(`One or more items in your order are out of stock.`);
+      }
+    }
+  } catch (err) {
+    if (err instanceof Error && (err.message.includes("out of stock") || err.message.includes("no longer available"))) {
+      throw err;
+    }
+    logger.warn({ err }, "Variant availability check failed — proceeding with order creation");
+  }
+}
+
+/**
  * Batch-fetch variant prices from Shopify Admin REST API.
  * Used when there is no Storefront cart to derive lineSubtotal from,
  * so we can apply the free-shipping threshold correctly.
@@ -456,6 +529,8 @@ export async function createDraftOrder(params: {
   const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) throw new Error("Shopify Admin API not configured");
+
+  await validateVariantAvailability(params.lines, storeDomain, adminToken);
 
   const lineItems = params.lines.map((l) => ({
     variant_id: extractVariantId(l.variantId),
