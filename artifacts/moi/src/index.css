@@ -496,26 +496,6 @@ header[class*="fixed"] {
   100% { background-position: 0% 50%; }
 }
 
-.checkout-gradient-bg {
-  background: linear-gradient(
-    135deg,
-    #f7f0e6 0%,
-    #ede3d4 25%,
-    #e2d8c8 50%,
-    #eee4d6 75%,
-    #f7f0e6 100%
-  );
-  background-size: 400% 400%;
-  animation: checkoutGradientFlow 18s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .checkout-gradient-bg {
-    animation: none;
-    background: #efe6da;
-  }
-}
-
 /* ── Apple Pay button — single canonical source ──────────────── */
 .apple-pay-btn {
   -webkit-appearance: -apple-pay-button;

@@ -953,9 +953,9 @@ export function CheckoutPage() {
               inset: 0,
               zIndex: -1,
               pointerEvents: "none",
-              background: "linear-gradient(135deg, #f7f0e6 0%, #ede3d4 25%, #e2d8c8 50%, #eee4d6 75%, #f7f0e6 100%)",
-              backgroundSize: "400% 400%",
-              animation: "checkoutGradientFlow 18s ease-in-out infinite",
+              background: "linear-gradient(135deg, #faf5ee 0%, #ddd0bb 30%, #ede3d2 55%, #d8c9b3 80%, #faf5ee 100%)",
+              backgroundSize: "250% 250%",
+              animation: "checkoutGradientFlow 12s ease-in-out infinite",
             }}
           />
           {/* Header */}
