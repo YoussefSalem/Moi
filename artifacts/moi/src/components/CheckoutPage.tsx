@@ -943,13 +943,20 @@ export function CheckoutPage() {
           exit={{ opacity: 0, y: 32 }}
           transition={transitions.springEntry}
           className="fixed inset-0 z-[120] overflow-y-auto"
-          style={{
-            overscrollBehavior: "contain",
-            background: "linear-gradient(135deg, #f7f0e6 0%, #ede3d4 25%, #e2d8c8 50%, #eee4d6 75%, #f7f0e6 100%)",
-            backgroundSize: "400% 400%",
-            animation: "checkoutGradientFlow 18s ease-in-out infinite",
-          }}
+          style={{ overscrollBehavior: "contain" }}
         >
+          {/* Animated gradient background layer — fixed so it never scrolls away */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "fixed",
+              inset: 0,
+              pointerEvents: "none",
+              background: "linear-gradient(135deg, #f7f0e6 0%, #ede3d4 25%, #e2d8c8 50%, #eee4d6 75%, #f7f0e6 100%)",
+              backgroundSize: "400% 400%",
+              animation: "checkoutGradientFlow 18s ease-in-out infinite",
+            }}
+          />
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
