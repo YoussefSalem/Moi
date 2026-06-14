@@ -1037,8 +1037,13 @@ export function CheckoutPage() {
             inset: 0,
             zIndex: 119,
             pointerEvents: "none",
-            background: "linear-gradient(135deg, #000000 0%, #3d3d3d 25%, #111111 50%, #4a4a4a 75%, #000000 100%)",
-            backgroundSize: "400% 400%",
+            background: [
+              "radial-gradient(ellipse 55% 45% at 25% 35%, #3d3d3d 0%, transparent 70%)",
+              "radial-gradient(ellipse 45% 55% at 75% 65%, #2a2a2a 0%, transparent 65%)",
+              "radial-gradient(ellipse 35% 35% at 50% 20%, #1f1f1f 0%, transparent 55%)",
+              "#000000",
+            ].join(", "),
+            backgroundSize: "400% 400%, 400% 400%, 400% 400%, auto",
             animation: "checkout-bg-drift 15s ease-in-out infinite",
           }}
         />
