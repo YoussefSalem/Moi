@@ -44,17 +44,18 @@ function buildProductForm(
   // Gmail fallback: single-click GET links (no form required)
   const quickRateCells = MOODS.map(({ value, emoji, label }) => {
     const url = `${siteUrl}/api/review-email/quick-rate?handle=${encodeURIComponent(product.slug)}&email=${encodeURIComponent(email)}&orderId=${encodeURIComponent(orderId)}&rating=${value}&token=${token}`;
-    return `<td style="text-align:center;padding:0 5px;vertical-align:top;">
-  <a href="${url}" target="_blank" style="display:inline-block;font-size:28px;line-height:1;text-decoration:none;padding:8px 6px;border-radius:50%;border:1.5px solid #e0d8d0;-webkit-filter:grayscale(1) contrast(0.85);filter:grayscale(1) contrast(0.85);">${emoji}</a>
-  <p style="margin:5px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:#b0a89e;">${label}</p>
+    return `<td style="text-align:center;padding:0 10px;vertical-align:top;">
+  <a href="${url}" target="_blank" style="display:block;text-decoration:none;text-align:center;">
+    <span style="display:block;font-size:28px;line-height:1;margin-bottom:6px;">${emoji}</span>
+    <span style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:#b0a89e;">${label}</span>
+  </a>
 </td>`;
   }).join("\n");
 
-  // Emoji radio inputs interleaved with labels:
-  // input[v1] label[v1] input[v2] label[v2] … so that
-  // CSS `input:checked + label` selects the correct label within each td.
+  // Each td: hidden input immediately followed by label (enables input:checked + label CSS).
+  // The label contains three spans: the radio circle dot, the emoji, and the text label.
   const emojiCells = MOODS.map(({ value, emoji, label }) => `
-<td style="text-align:center;padding:0 3px;vertical-align:top;">
+<td style="text-align:center;padding:0 10px;vertical-align:top;">
   <input
     class="emi"
     type="radio"
@@ -68,9 +69,12 @@ function buildProductForm(
     for="em${value}_${pid}"
     class="eml"
     title="${label}"
-    style="display:inline-block;font-size:32px;line-height:1;cursor:pointer;padding:9px 7px;border-radius:50%;border:2px solid transparent;box-sizing:border-box;-webkit-filter:grayscale(1) contrast(0.8);filter:grayscale(1) contrast(0.8);"
-  >${emoji}</label>
-  <p class="emt" style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:#b0a89e;text-align:center;">${label}</p>
+    style="display:block;cursor:pointer;text-align:center;padding:2px 0;"
+  >
+    <span class="eml-dot" style="display:block;width:18px;height:18px;border-radius:50%;border:1.5px solid #c8beb6;margin:0 auto 10px;box-sizing:border-box;background:transparent;"></span>
+    <span class="eml-emoji" style="display:block;font-size:28px;line-height:1;margin-bottom:8px;">${emoji}</span>
+    <span class="eml-text" style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:#b0a89e;">${label}</span>
+  </label>
 </td>`).join("\n");
 
   return `
@@ -211,33 +215,41 @@ export function buildReviewEmail(params: {
 <style>
 :root { color-scheme: light; }
 
-/* ── Emoji radio inputs (hidden but submittable) ── */
+/* Hidden radio inputs (still submitted with the form) */
 .emi { position:absolute!important;opacity:0!important;width:0!important;height:0!important;overflow:hidden!important; }
 
-/* ── Emoji labels: default = greyscale ── */
-.eml { display:inline-block!important;font-size:32px!important;line-height:1!important;cursor:pointer!important;padding:9px 7px!important;border-radius:50%!important;border:2px solid transparent!important;box-sizing:border-box!important;-webkit-filter:grayscale(1) contrast(0.8)!important;filter:grayscale(1) contrast(0.8)!important;transition:filter 0.12s,border-color 0.12s!important; }
-.eml:hover { -webkit-filter:grayscale(0.3)!important;filter:grayscale(0.3)!important; }
+/* Emoji option label — block so the circle, emoji, and text stack vertically */
+.eml { display:block!important;cursor:pointer!important;text-align:center!important;padding:2px 0!important; }
 
-/* Selected emoji: full colour + gold ring.
-   Each td contains input then label as adjacent siblings,
-   so the CSS adjacent-sibling combinator targets the correct label. */
-.emi:checked + .eml { -webkit-filter:none!important;filter:none!important;border-color:#c9a07a!important;background:rgba(201,160,122,0.1)!important; }
+/* Radio-style circle indicator (empty by default) */
+.eml-dot { display:block!important;width:18px!important;height:18px!important;border-radius:50%!important;border:1.5px solid #c8beb6!important;margin:0 auto 10px!important;box-sizing:border-box!important;background:transparent!important; }
 
-/* Selected emoji text label turns gold */
-.emi:checked ~ .emt { color:#c9a07a!important; }
+/* Emoji character */
+.eml-emoji { display:block!important;font-size:28px!important;line-height:1!important;margin-bottom:8px!important; }
+
+/* Small text label */
+.eml-text { display:block!important;font-family:Arial,Helvetica,sans-serif!important;font-size:8px!important;letter-spacing:0.22em!important;text-transform:uppercase!important;color:#b0a89e!important; }
+
+/* Selected: gold-filled radio circle with white dot inside */
+.emi:checked + .eml .eml-dot { background:#c9a07a!important;border-color:#c9a07a!important;box-shadow:inset 0 0 0 4px #ffffff,0 0 0 1.5px #c9a07a!important; }
+
+/* Selected: gold text label */
+.emi:checked + .eml .eml-text { color:#c9a07a!important;font-weight:700!important; }
 
 /* ── Dark mode: force light colours ── */
 @media (prefers-color-scheme:dark) {
   body,.email-body { background-color:#e8e3dc!important;color:#1a1714!important; }
   .email-card      { background-color:#ffffff!important; }
   .form-card       { background-color:#fffaf7!important; }
+  .eml-dot         { border-color:#a89e96!important; }
   input[type="text"],textarea { background-color:#ffffff!important;color:#1a1714!important;border-color:#d4c8be!important; }
 }
 
 @media screen and (max-width:480px) {
-  .email-card { width:100%!important; }
-  .email-pad  { padding-left:20px!important;padding-right:20px!important; }
-  .eml        { font-size:26px!important;padding:7px 5px!important; }
+  .email-card  { width:100%!important; }
+  .email-pad   { padding-left:20px!important;padding-right:20px!important; }
+  .eml-emoji   { font-size:24px!important; }
+  .eml-dot     { width:16px!important;height:16px!important; }
 }
 </style>
 </head>
