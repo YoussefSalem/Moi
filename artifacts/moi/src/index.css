@@ -675,9 +675,9 @@ header[class*="fixed"] {
   height: 3px;
   pointer-events: none;
   will-change: transform, opacity;
-  background: linear-gradient(90deg, rgba(255,50,50,0.95) 0%, rgba(255,80,80,0.35) 60%, transparent 100%);
+  background: linear-gradient(270deg, rgba(255,50,50,0.95) 0%, rgba(255,80,80,0.35) 60%, transparent 100%);
   border-radius: 1px;
-  transform: rotate(-35deg);
+  transform: rotate(35deg);
   box-shadow: 0 0 12px 4px rgba(255,60,60,0.55);
   opacity: 0;
   animation: checkout-shoot 3.5s ease-out infinite;
@@ -691,9 +691,9 @@ header[class*="fixed"] {
 .checkout-shooting-star:nth-child(6)  { top: 15%; left: -25%; animation-delay: 3.6s;   animation-duration: 3.5s;  }
 
 @keyframes checkout-shoot {
-  0%   { transform: translateX(0) translateY(0) rotate(-35deg); opacity: 0; }
+  0%   { transform: translateX(0) translateY(0) rotate(35deg); opacity: 0; }
   5%   { opacity: 1; }
   15%  { opacity: 1; }
-  45%  { transform: translateX(60vw) translateY(45vh) rotate(-35deg); opacity: 0; }
-  100% { transform: translateX(60vw) translateY(45vh) rotate(-35deg); opacity: 0; }
+  45%  { transform: translateX(60vw) translateY(45vh) rotate(35deg); opacity: 0; }
+  100% { transform: translateX(60vw) translateY(45vh) rotate(35deg); opacity: 0; }
 }
