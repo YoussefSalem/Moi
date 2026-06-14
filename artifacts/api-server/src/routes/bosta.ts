@@ -92,18 +92,20 @@ router.post("/bosta/status-webhook", async (req, res) => {
     return;
   }
 
-  // Replay-window enforcement — checked before acknowledging the request.
+  // Advisory replay-window check.
   // BOSTA_WEBHOOK_REPLAY_WINDOW_MS defaults to 5 min (300 000 ms).
-  // Only enforced when updatedAt is present; absent timestamps skip the check.
+  // This is ADVISORY only — stale events are logged but processing continues so
+  // that legitimate delayed retries (e.g. Bosta retrying a timed-out delivery)
+  // are never silently dropped.  The authoritative dedup layers are the pg-boss
+  // singletonKey (in-window) and the Shopify review-email-enqueued/sent tags
+  // (out-of-window).  Absent timestamps skip the check entirely.
   const REPLAY_WINDOW_MS = parseInt(process.env.BOSTA_WEBHOOK_REPLAY_WINDOW_MS ?? "300000", 10);
   const eventTs = payload.updatedAt ? Date.parse(payload.updatedAt) : NaN;
   if (!isNaN(eventTs) && Date.now() - eventTs > REPLAY_WINDOW_MS) {
     req.log.warn(
       { eventAge: Date.now() - eventTs, updatedAt: payload.updatedAt },
-      "Bosta webhook: replay-window exceeded — rejecting stale event",
+      "Bosta webhook: replay-window exceeded — processing anyway (advisory)",
     );
-    res.status(400).json({ error: "Event timestamp outside replay window" });
-    return;
   }
 
   // Respond quickly; Bosta expects a fast 200
