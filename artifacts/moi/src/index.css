@@ -634,3 +634,23 @@ header[class*="fixed"] {
     color: #1e1814 !important;
   }
 }
+
+/* ── Checkout animated background ───────────────────────────── */
+@keyframes checkout-bg-drift {
+  0%   { background-position: 0% 0%; }
+  50%  { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+.checkout-animated-bg {
+  background: linear-gradient(
+    135deg,
+    #FAFAF7 0%,
+    #F5F1E8 30%,
+    #EDE4D3 60%,
+    #F5F1E8 80%,
+    #FAFAF7 100%
+  );
+  background-size: 400% 400%;
+  animation: checkout-bg-drift 45s ease-in-out infinite;
+}

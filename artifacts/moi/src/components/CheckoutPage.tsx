@@ -1029,13 +1029,13 @@ export function CheckoutPage() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 32 }}
           transition={transitions.springEntry}
-          className="fixed inset-0 z-[120] overflow-y-auto"
-          style={{ backgroundColor: "#efe6da", overscrollBehavior: "contain" }}
+          className="fixed inset-0 z-[120] overflow-y-auto checkout-animated-bg"
+          style={{ overscrollBehavior: "contain" }}
         >
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
-            style={{ backgroundColor: "#efe6da", borderBottom: "1px solid rgba(30,24,20,0.14)" }}
+            style={{ backgroundColor: "rgba(245, 241, 232, 0.88)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderBottom: "1px solid rgba(30,24,20,0.10)" }}
           >
             {step === "loading" ? (
               <div style={{ width: 80 }} />
