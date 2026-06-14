@@ -22,6 +22,7 @@ import { triggerApplePayHandler } from "@/lib/applePayHandler";
 
 import type { OrderResult, OrderBreakdown, PaymentMethod, Step } from "./checkout/types";
 import { useCheckoutSubmit } from "./checkout/useCheckoutSubmit";
+import { StarField } from "./checkout/StarField";
 import { CODConfirmation } from "./checkout/CODConfirmation";
 import { CardConfirmation } from "./checkout/CardConfirmation";
 import { InstapayConfirmation } from "./checkout/InstapayConfirmation";
@@ -1059,26 +1060,7 @@ export function CheckoutPage() {
         >
           <div className="relative min-h-full">
             {/* Sparkles — scroll with content, gentle falling starlight */}
-            <div className="checkout-bg-sparkles">
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-              <div className="checkout-sparkle" />
-            </div>
+            <StarField count={1000} />
 
           {/* Header */}
           <div
