@@ -20,6 +20,18 @@ function getIp(req: import("express").Request): string {
   return req.socket.remoteAddress ?? "unknown";
 }
 
+// Set AMP CORS headers so Gmail's AMP runtime can POST to this endpoint.
+// AMP for Email sends requests with AMP-Same-Origin or a sandboxed Origin.
+// We allow any origin here because the token validates authenticity instead.
+function setAmpCorsHeaders(req: import("express").Request, res: import("express").Response): void {
+  const origin = req.headers.origin ?? "*";
+  res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, AMP-Same-Origin");
+  res.setHeader("AMP-Access-Control-Allow-Source-Origin", origin === "*" ? "*" : origin);
+}
+
 const EMOJI_MAP: Record<number, string> = { 1: "😡", 2: "😕", 3: "😐", 4: "🙂", 5: "😍" };
 const LABEL_MAP: Record<number, string> = { 1: "terrible", 2: "meh", 3: "okay", 4: "loved it", 5: "obsessed" };
 
@@ -34,7 +46,7 @@ function thankYouPage(opts: {
   const { siteUrl, productHandle, rating, title, reviewText, author } = opts;
   const shopLink = productHandle && productHandle !== "shop"
     ? `${siteUrl}/products/${productHandle}`
-    : `${siteUrl}`;
+    : siteUrl;
 
   const emoji = rating ? EMOJI_MAP[rating] ?? "" : "";
   const label = rating ? LABEL_MAP[rating] ?? "" : "";
@@ -149,46 +161,101 @@ async function checkEmailDuplicate(email: string, handle: string, since: Date): 
   return value > 0;
 }
 
+// ─── AMP CORS preflight ───────────────────────────────────────────────────────
+router.options("/review-email/submit", (req, res): void => {
+  setAmpCorsHeaders(req, res);
+  res.sendStatus(204);
+});
+
 /**
  * POST /api/review-email/submit
  *
- * Handles form submission directly from the email client.
- * Returns a branded thank-you HTML page in a new browser tab.
+ * Handles form submission from the email client.
+ *
+ * Standard clients (Apple Mail, Yahoo Mail): opens a new tab, returns a
+ * branded HTML thank-you page.
+ *
+ * AMP for Email (Gmail): ?format=amp in the action URL triggers JSON
+ * responses so <amp-form> can show the success/error inline in the email.
+ *
+ * Hidden fields expected in the POST body:
+ *   productHandle  — product slug (required for validation)
+ *   productId      — Shopify numeric product ID (logged, not stored)
+ *   email          — customer email (used for spam detection + token check)
+ *   orderId        — order number (used for token check)
+ *   customerId     — Shopify customer ID (logged, not stored)
+ *   token          — HMAC token from generateReviewToken (required)
+ *   rating         — 1–5 (required)
+ *   author         — display name
+ *   title          — review headline
+ *   body           — review body text
  */
 router.post("/review-email/submit", async (req, res): Promise<void> => {
+  const isAmp = req.query.format === "amp";
+  if (isAmp) setAmpCorsHeaders(req, res);
+
   const body = req.body as Record<string, unknown>;
   const siteUrl = getSiteUrl();
 
   const productHandle = (typeof body.productHandle === "string" ? body.productHandle : "").trim().toLowerCase();
-  const email = (typeof body.email === "string" ? body.email : "").trim();
-  const author = (typeof body.author === "string" ? body.author : "").trim().slice(0, 80);
-  const title = (typeof body.title === "string" ? body.title : "").trim().slice(0, 200);
-  const reviewBody = (typeof body.body === "string" ? body.body : "").trim().slice(0, 2000);
-  const ratingRaw = typeof body.rating === "string" ? parseInt(body.rating, 10) : NaN;
+  const productId     = (typeof body.productId     === "string" ? body.productId     : "").trim();
+  const email         = (typeof body.email         === "string" ? body.email         : "").trim();
+  const orderId       = (typeof body.orderId       === "string" ? body.orderId       : "").trim();
+  const customerId    = (typeof body.customerId    === "string" ? body.customerId    : "").trim();
+  const token         = (typeof body.token         === "string" ? body.token         : "").trim();
+  const author        = (typeof body.author        === "string" ? body.author        : "").trim().slice(0, 80);
+  const title         = (typeof body.title         === "string" ? body.title         : "").trim().slice(0, 200);
+  const reviewBody    = (typeof body.body          === "string" ? body.body          : "").trim().slice(0, 2000);
+  const ratingRaw     = typeof body.rating === "string" ? parseInt(body.rating, 10) : NaN;
 
+  // ── Field validation ────────────────────────────────────────────────────────
   if (!productHandle || !VALID_HANDLE_RE.test(productHandle)) {
+    if (isAmp) { res.status(400).json({ message: "We couldn't identify the product. Please use the link below." }); return; }
     res.status(400).send(errorPage("We couldn't identify the product. Please try leaving your review on the website."));
     return;
   }
 
   if (isNaN(ratingRaw) || ratingRaw < 1 || ratingRaw > 5) {
-    res.status(400).send(errorPage("Please select a mood rating before submitting."));
+    if (isAmp) { res.status(400).json({ message: "Please select a star rating before submitting." }); return; }
+    res.status(400).send(errorPage("Please select a star rating before submitting."));
     return;
   }
 
   if (email && !isValidEmail(email)) {
+    if (isAmp) { res.status(400).json({ message: "The email address doesn't look right. Please try again." }); return; }
     res.status(400).send(errorPage("The email address doesn't look right. Please try again."));
     return;
   }
 
+  // ── Token validation ────────────────────────────────────────────────────────
+  // The token is an HMAC of (productHandle, email, orderId) generated when
+  // the email was sent. Verifying it ensures the submission came from a
+  // genuine review email, not a forged POST.
+  if (!token || !email || !orderId) {
+    if (isAmp) { res.status(403).json({ message: "This review link is invalid or has expired." }); return; }
+    res.status(403).send(errorPage("This review link is invalid or has expired. Please use the link in your email."));
+    return;
+  }
+
+  const expectedToken = generateReviewToken(productHandle, email, orderId);
+  if (token !== expectedToken) {
+    logger.warn({ productHandle, email, orderId }, "review-email/submit: invalid token");
+    if (isAmp) { res.status(403).json({ message: "This review link is invalid or has expired." }); return; }
+    res.status(403).send(errorPage("This review link is invalid or has expired."));
+    return;
+  }
+
+  // ── Rate limiting ────────────────────────────────────────────────────────────
   const ip = getIp(req);
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   if (await checkRateLimit(ip, since24h)) {
+    if (isAmp) { res.status(429).json({ message: "You've submitted a few reviews already today. Come back tomorrow 🤍" }); return; }
     res.status(429).send(errorPage("You've submitted a few reviews already today. Come back tomorrow 🤍"));
     return;
   }
 
+  // ── Spam detection ──────────────────────────────────────────────────────────
   let status = "pending";
   let spamReason: string | undefined;
 
@@ -200,6 +267,7 @@ router.post("/review-email/submit", async (req, res): Promise<void> => {
     }
   }
 
+  // ── Insert review ────────────────────────────────────────────────────────────
   try {
     await db.insert(productReviews).values({
       productHandle,
@@ -213,10 +281,19 @@ router.post("/review-email/submit", async (req, res): Promise<void> => {
       ipAddress: ip,
     });
 
-    logger.info({ productHandle, rating: ratingRaw, email, status }, "review-email/submit: review inserted");
+    logger.info(
+      { productHandle, productId, customerId, rating: ratingRaw, email, status },
+      "review-email/submit: review inserted"
+    );
   } catch (err) {
     logger.error({ err }, "review-email/submit: DB insert failed");
+    if (isAmp) { res.status(500).json({ message: "Something went wrong on our end. Please try again in a moment." }); return; }
     res.status(500).send(errorPage("Something went wrong on our end. Please try again in a moment."));
+    return;
+  }
+
+  if (isAmp) {
+    res.status(200).json({ result: "ok" });
     return;
   }
 
@@ -233,16 +310,16 @@ router.post("/review-email/submit", async (req, res): Promise<void> => {
 /**
  * GET /api/review-email/quick-rate
  *
- * Single-click review submission for email clients that strip <form> tags (Gmail etc.).
+ * Single-click review submission for email clients that strip <form> tags.
  * Validates an HMAC token then inserts the review and returns the thank-you page.
  */
 router.get("/review-email/quick-rate", async (req, res): Promise<void> => {
-  const handle = (typeof req.query.handle === "string" ? req.query.handle : "").trim().toLowerCase();
-  const email = (typeof req.query.email === "string" ? req.query.email : "").trim();
+  const handle  = (typeof req.query.handle  === "string" ? req.query.handle  : "").trim().toLowerCase();
+  const email   = (typeof req.query.email   === "string" ? req.query.email   : "").trim();
   const orderId = (typeof req.query.orderId === "string" ? req.query.orderId : "").trim();
   const ratingStr = typeof req.query.rating === "string" ? req.query.rating : "";
-  const token = typeof req.query.token === "string" ? req.query.token : "";
-  const siteUrl = getSiteUrl();
+  const token     = typeof req.query.token  === "string" ? req.query.token  : "";
+  const siteUrl   = getSiteUrl();
 
   if (!handle || !VALID_HANDLE_RE.test(handle)) {
     res.status(400).send(errorPage("Invalid product link."));
@@ -255,7 +332,6 @@ router.get("/review-email/quick-rate", async (req, res): Promise<void> => {
     return;
   }
 
-  // Validate HMAC token — prevents forged quick-rate URLs
   const expected = generateReviewToken(handle, email, orderId);
   if (!token || token !== expected) {
     res.status(403).send(errorPage("This review link has expired or is invalid."));
@@ -265,7 +341,6 @@ router.get("/review-email/quick-rate", async (req, res): Promise<void> => {
   const ip = getIp(req);
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  // Idempotency: if already reviewed this product with same email today, just show thank you
   if (email) {
     const alreadyDone = await checkEmailDuplicate(email, handle, since24h);
     if (alreadyDone) {

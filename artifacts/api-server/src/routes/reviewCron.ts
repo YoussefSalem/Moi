@@ -57,14 +57,15 @@ router.post("/review-email/preview", async (req, res): Promise<void> => {
   }
 
   try {
-    const { html, text, subject } = buildReviewEmail({
+    const { html, ampHtml, text, subject } = buildReviewEmail({
       customerName,
       orderId,
       customerEmail: to,
+      customerId: typeof body.customerId === "string" ? body.customerId : "",
       products: products.length > 0 ? products : [{ name: "Sand Wavvy", slug: "sand-wavvy", id: "preview" }],
     });
 
-    await sendEmail({ to, subject, html, text });
+    await sendEmail({ to, subject, html, amp: ampHtml, text });
     res.json({ ok: true, subject, to });
   } catch (err) {
     res.status(500).json({ error: "Send failed", details: String(err) });

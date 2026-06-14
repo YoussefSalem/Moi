@@ -79,10 +79,11 @@ export async function runReviewEmailCron(): Promise<CronResult> {
 
     try {
       const orderId = String(order.shopifyOrderNumber ?? order.shopifyOrderId);
-      const { html, text, subject } = buildReviewEmail({
+      const { html, ampHtml, text, subject } = buildReviewEmail({
         customerName: order.customerName,
         orderId,
         customerEmail: order.customerEmail,
+        customerId: order.customerId,
         products: order.products,
       });
 
@@ -90,6 +91,7 @@ export async function runReviewEmailCron(): Promise<CronResult> {
         to: order.customerEmail,
         subject,
         html,
+        amp: ampHtml,
         text,
       });
 

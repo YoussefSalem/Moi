@@ -20,58 +20,65 @@ function pickSubject(customerName: string, orderId: string): string {
   return fn(first);
 }
 
-// Emoji mood map (1 = terrible → 5 = obsessed)
-const MOODS = [
-  { value: 1, emoji: "😡", label: "terrible" },
-  { value: 2, emoji: "😕", label: "meh" },
-  { value: 3, emoji: "😐", label: "okay" },
-  { value: 4, emoji: "🙂", label: "loved" },
-  { value: 5, emoji: "😍", label: "obsessed" },
-] as const;
+const STAR_LABELS: Record<number, string> = {
+  1: "not great",
+  2: "meh",
+  3: "okay",
+  4: "loved it",
+  5: "obsessed",
+};
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Standard HTML form block (per product)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Star rating approach:
+//   - Inputs and labels are INTERLEAVED in reverse order (5→1) inside an
+//     RTL container. This lets CSS `input:checked ~ label` colour only the
+//     stars to the visual LEFT of the selected star without `:has()`.
+//   - Inputs are hidden via the `.sr` class defined in the <style> block.
+//   - Gmail strips <style>, so the interactive stars won't work there —
+//     the prominent quick-rate fallback links handle Gmail readers.
+//   - Apple Mail (iOS/macOS 15.4+), Yahoo Mail, and Outlook.com all
+//     support the <style> block and render the interactive stars correctly.
+// ─────────────────────────────────────────────────────────────────────────────
 function buildProductForm(
   product: ReviewEmailProduct,
   orderId: string,
   email: string,
+  customerId: string,
   customerName: string,
   siteUrl: string
 ): string {
   const formAction = `${siteUrl}/api/review-email/submit`;
   const firstName = customerName ? customerName.split(" ")[0] : "love";
-  const pid = product.id.replace(/[^a-z0-9]/gi, "") || "p";
+  const pid = (product.id.replace(/[^a-z0-9]/gi, "") || "p").slice(0, 16);
   const token = generateReviewToken(product.slug, email, orderId);
 
-  // Gmail fallback: single-click GET links (no form required)
-  const quickRateCells = MOODS.map(({ value, emoji, label }) => {
-    const url = `${siteUrl}/api/review-email/quick-rate?handle=${encodeURIComponent(product.slug)}&email=${encodeURIComponent(email)}&orderId=${encodeURIComponent(orderId)}&rating=${value}&token=${token}`;
-    return `<td style="text-align:center;padding:0 10px;vertical-align:top;">
-  <a href="${url}" target="_blank" style="display:block;text-decoration:none;text-align:center;">
-    <span style="display:block;font-size:28px;line-height:1;margin-bottom:6px;">${emoji}</span>
-    <span style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:#b0a89e;">${label}</span>
-  </a>
-</td>`;
-  }).join("\n");
+  // Reverse-order interleaved inputs + labels for the CSS ~ trick
+  const starRows = [5, 4, 3, 2, 1]
+    .map(
+      (v) => `
+      <input class="sr" type="radio" name="rating" id="s${v}_${pid}" value="${v}" />
+      <label class="sl" for="s${v}_${pid}" title="${v} star${v !== 1 ? "s" : ""} — ${STAR_LABELS[v]}">&#9733;</label>`
+    )
+    .join("");
 
-  // Input is INSIDE the label (implicit association — no for/id needed).
-  // Clicking anywhere on the card checks the radio.
-  // The radio is display:none (hidden, but stays in the DOM so the form
-  // submits the checked value). CSS :has(.emi:checked) on the label then
-  // applies the selected state — this works in iOS Mail (Safari/WebKit 15.4+)
-  // where input:checked + label sibling selectors are blocked.
-  const emojiCells = MOODS.map(({ value, emoji, label }) => `
-<td style="text-align:center;padding:0;width:80px;vertical-align:top;">
-  <label class="eml" title="${label}">
-    <input class="emi" type="radio" name="rating" value="${value}" ${value === 1 ? "required" : ""} />
-    <span class="eml-emoji">${emoji}</span>
-    <span class="eml-text">${label}</span>
-  </label>
-</td>`).join("\n");
+  // Single-click fallback links for Gmail (no form rendering)
+  const quickLinks = [1, 2, 3, 4, 5]
+    .map((v) => {
+      const url = `${siteUrl}/api/review-email/quick-rate?handle=${encodeURIComponent(product.slug)}&email=${encodeURIComponent(email)}&orderId=${encodeURIComponent(orderId)}&rating=${v}&token=${token}`;
+      const stars = "★".repeat(v) + "☆".repeat(5 - v);
+      return `<a href="${url}" target="_blank" style="display:inline-block;margin:0 3px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#c9a07a;white-space:nowrap;">${stars}&nbsp;${STAR_LABELS[v]}</a>`;
+    })
+    .join("<br />\n      ");
+
+  const websiteReviewUrl = `${siteUrl}/products/${product.slug}#write-review`;
 
   return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
 <tr><td class="email-pad" style="padding:0 44px;">
 
-  <!-- Product name label -->
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:22px;">
     <tr>
       <td style="border-left:2px solid #c9a07a;padding-left:12px;">
@@ -81,24 +88,31 @@ function buildProductForm(
     </tr>
   </table>
 
-  <!-- Review card -->
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="form-card" style="background:#fffaf7;border:1px solid #e8ddd6;border-top:2px solid #c9a07a;">
   <tr><td style="padding:26px 22px 24px;">
 
     <form action="${formAction}" method="POST" target="_blank" accept-charset="UTF-8">
       <input type="hidden" name="productHandle" value="${product.slug}" />
-      <input type="hidden" name="email" value="${email}" />
-      <input type="hidden" name="orderId" value="${orderId}" />
+      <input type="hidden" name="productId"     value="${product.id}" />
+      <input type="hidden" name="email"         value="${email}" />
+      <input type="hidden" name="orderId"       value="${orderId}" />
+      <input type="hidden" name="customerId"    value="${customerId}" />
+      <input type="hidden" name="token"         value="${token}" />
 
-      <!-- ── Emoji mood selector ── -->
-      <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:9px;letter-spacing:0.35em;text-transform:uppercase;color:#c9a07a;font-weight:700;text-align:center;">how did she make you feel?</p>
-      <p style="margin:0 0 20px;font-family:Georgia,'Times New Roman',Times,serif;font-size:12px;color:#7a6e64;text-align:center;line-height:1.5;">tap to select your mood, then fill in the rest ↓</p>
+      <!-- ── Star rating ── -->
+      <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:9px;letter-spacing:0.35em;text-transform:uppercase;color:#c9a07a;font-weight:700;text-align:center;">tap your rating</p>
+      <p style="margin:0 0 14px;font-family:Georgia,'Times New Roman',Times,serif;font-size:12px;color:#7a6e64;text-align:center;line-height:1.5;">select a star, then fill in the rest ↓</p>
 
-      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
-        <tr>${emojiCells}</tr>
-      </table>
+      <!--
+        RTL container — inputs and labels interleaved in reverse order (5-1).
+        CSS input:checked ~ label colours every label after the checked input
+        in the DOM, which in RTL display is every star to its visual left.
+        Selecting star 3 fills stars 1-3. No :has(), no modern selectors.
+      -->
+      <div style="direction:rtl;unicode-bidi:bidi-override;text-align:center;padding:6px 0 16px;font-size:0;line-height:0;">
+        ${starRows}
+      </div>
 
-      <!-- ── Divider ── -->
       <div style="border-top:1px solid #f0e0d6;margin-bottom:20px;"></div>
 
       <!-- ── Name ── -->
@@ -155,12 +169,31 @@ function buildProductForm(
 
     </form>
 
-    <!-- ── Gmail fallback ── -->
-    <div style="margin-top:22px;padding-top:18px;border-top:1px solid #f0e0d6;">
-      <p style="margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#b0a89e;text-align:center;line-height:1.7;">buttons not working? (common on Gmail)<br />tap directly to rate — one click &amp; you're done:</p>
-      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
-        <tr>${quickRateCells}</tr>
+    <!-- ── Fallback: website link + quick-rate links for Gmail ── -->
+    <div style="margin-top:22px;padding-top:18px;border-top:1px solid #f0e0d6;text-align:center;">
+
+      <!-- Primary fallback: link to the website review form -->
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 14px;">
+        <tr>
+          <td style="text-align:center;">
+            <a href="${websiteReviewUrl}" target="_blank"
+               style="display:inline-block;background:#fffaf7;color:#1a1714;text-decoration:none;padding:10px 28px;font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.38em;text-transform:uppercase;border:1px solid #c9a07a;">
+              write review on the website
+            </a>
+          </td>
+        </tr>
       </table>
+
+      <!-- Secondary fallback: single-click rating links for clients that strip forms -->
+      <p style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#b0a89e;line-height:1.7;">
+        or just tap a star — one click&nbsp;&amp;&nbsp;you're done:
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+        <tr><td style="padding:2px 0;line-height:1.9;font-size:11px;text-align:center;">
+          ${quickLinks}
+        </td></tr>
+      </table>
+
     </div>
 
   </td></tr>
@@ -170,29 +203,132 @@ function buildProductForm(
 </table>`;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AMP for Email form block (per product)
+// ─────────────────────────────────────────────────────────────────────────────
+function buildAmpProductForm(
+  product: ReviewEmailProduct,
+  orderId: string,
+  email: string,
+  customerId: string,
+  customerName: string,
+  siteUrl: string
+): string {
+  const formAction = `${siteUrl}/api/review-email/submit?format=amp`;
+  const firstName = customerName ? customerName.split(" ")[0] : "love";
+  const pid = (product.id.replace(/[^a-z0-9]/gi, "") || "p").slice(0, 16);
+  const token = generateReviewToken(product.slug, email, orderId);
+  const websiteReviewUrl = `${siteUrl}/products/${product.slug}#write-review`;
+
+  const starRows = [5, 4, 3, 2, 1]
+    .map(
+      (v) => `
+        <input class="sr" type="radio" name="rating" id="as${v}_${pid}" value="${v}" />
+        <label class="sl" for="as${v}_${pid}" title="${v} star${v !== 1 ? "s" : ""} — ${STAR_LABELS[v]}">&#9733;</label>`
+    )
+    .join("");
+
+  return `
+    <div class="product-block">
+      <div class="product-label">
+        <span class="product-eyebrow">your piece ✦</span>
+        <span class="product-name">${product.name}</span>
+      </div>
+
+      <div class="form-card">
+        <amp-form action="${formAction}" method="POST" target="_blank">
+          <input type="hidden" name="productHandle" value="${product.slug}" />
+          <input type="hidden" name="productId"     value="${product.id}" />
+          <input type="hidden" name="email"         value="${email}" />
+          <input type="hidden" name="orderId"       value="${orderId}" />
+          <input type="hidden" name="customerId"    value="${customerId}" />
+          <input type="hidden" name="token"         value="${token}" />
+
+          <div class="field-group">
+            <p class="field-eyebrow">tap your rating</p>
+            <p class="field-sub">select a star, then fill in the rest ↓</p>
+            <div class="stars-wrap">
+              ${starRows}
+            </div>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="field-group">
+            <label class="field-label" for="amp_author_${pid}">your name, lovely</label>
+            <input class="field-input" type="text" id="amp_author_${pid}" name="author"
+                   value="${firstName}" maxlength="80" placeholder="how should we credit you?" />
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="amp_title_${pid}">give it a headline ✨</label>
+            <input class="field-input" type="text" id="amp_title_${pid}" name="title"
+                   maxlength="200" placeholder="in three words or less..." />
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="amp_body_${pid}">now spill, babe 💬</label>
+            <textarea class="field-textarea" id="amp_body_${pid}" name="body"
+                      rows="4" maxlength="2000"
+                      placeholder="the fit, the feel, the way she made you feel — we want everything 🤍"></textarea>
+          </div>
+
+          <div class="submit-row">
+            <input class="submit-btn" type="submit" value="share the love 💌" />
+          </div>
+
+          <div submit-success>
+            <template type="amp-mustache">
+              <div class="amp-success">
+                <p>thank you, genuinely. 🤍</p>
+                <p style="font-size:11px;color:#5c504a;">your review is in — we'll be reading it, promise.</p>
+              </div>
+            </template>
+          </div>
+
+          <div submit-error>
+            <template type="amp-mustache">
+              <div class="amp-error">
+                <p>something went sideways 😬</p>
+                <p style="font-size:11px;">
+                  <a href="${websiteReviewUrl}" style="color:#c9a07a;">write your review on the website</a>
+                </p>
+              </div>
+            </template>
+          </div>
+        </amp-form>
+
+        <div class="fallback-row">
+          <a href="${websiteReviewUrl}" class="website-btn">write review on the website</a>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Standard HTML email
+// ─────────────────────────────────────────────────────────────────────────────
 export function buildReviewEmail(params: {
   customerName: string;
   orderId: string;
   customerEmail: string;
+  customerId?: string;
   products: ReviewEmailProduct[];
   siteUrl?: string;
-}): { html: string; text: string; subject: string } {
+}): { html: string; ampHtml: string; text: string; subject: string } {
   const { customerName, orderId, customerEmail, products } = params;
+  const customerId = params.customerId ?? "";
   const siteUrl = params.siteUrl ?? getSiteUrl();
   const firstName = customerName ? customerName.split(" ")[0] : "gorgeous";
   const subject = pickSubject(customerName, orderId);
 
-  const formBlocks = products.length > 0
-    ? products.map((p) => buildProductForm(p, orderId, customerEmail, customerName, siteUrl)).join(
-        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="height:28px;"></td></tr></table>`
-      )
-    : buildProductForm(
-        { name: "your Moi piece", slug: "shop", id: "default" },
-        orderId,
-        customerEmail,
-        customerName,
-        siteUrl
-      );
+  const productList = products.length > 0
+    ? products
+    : [{ name: "your Moi piece", slug: "shop", id: "default" }];
+
+  const formBlocks = productList
+    .map((p) => buildProductForm(p, orderId, customerEmail, customerId, customerName, siteUrl))
+    .join(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="height:28px;"></td></tr></table>`);
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -205,40 +341,52 @@ export function buildReviewEmail(params: {
 <style>
 :root { color-scheme: light; }
 
-/* ── Radio: hidden but stays in the DOM so form submits the checked value ── */
-.emi { display:none!important; }
+/*
+  Star rating — hidden radio + visible label trick.
+  Inputs are hidden but remain in the DOM so checked state is
+  serialised in the form POST. Labels are the visible stars.
+  RTL container + interleaved DOM order (5-1) lets the sibling
+  combinator (~) fill only the stars to the visual left of the
+  selected one. No :has(), no modern selectors required.
+  Gmail strips style blocks from HTML; AMP part handles Gmail.
+*/
+.sr { display:none!important; }
 
-/* ── Emoji card: default state — no inline styles on .eml so :has() wins cleanly ── */
-.eml { display:block!important;cursor:pointer!important;text-align:center!important;padding:14px 4px 12px!important;border-radius:14px!important;border:1.5px solid #e0d8d0!important;box-sizing:border-box!important; }
+.sl {
+  display:inline-block!important;
+  cursor:pointer!important;
+  font-size:34px!important;
+  line-height:1.1!important;
+  padding:3px 4px!important;
+  color:#d9cec7!important;
+  font-family:Arial,Helvetica,sans-serif!important;
+  font-style:normal!important;
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  transition:color 0.1s!important;
+}
 
-/* Emoji span: 28px resting size inside a fixed-height container */
-.eml-emoji { display:block!important;font-size:28px!important;line-height:42px!important;height:42px!important;margin-bottom:6px!important;text-align:center!important; }
+/* Fill all labels that follow a checked input (via RTL, these are the stars to its left visually) */
+.sr:checked ~ .sl { color:#c9a07a!important; }
 
-/* Small text label */
-.eml-text { display:block!important;font-family:Arial,Helvetica,sans-serif!important;font-size:8px!important;letter-spacing:0.2em!important;text-transform:uppercase!important;color:#b0a89e!important;line-height:1.4!important;white-space:nowrap!important; }
+/* Hover — only in clients that support :hover (Apple Mail, Yahoo) */
+.sl:hover,
+.sl:hover ~ .sl { color:#c9a07a!important; }
 
-/* ── SELECTED STATE via :has() ──
-   Supported in iOS Mail since iOS 15.4 (Safari 15.4 / WebKit 616).
-   label:has(input:checked) targets the card that CONTAINS the checked radio —
-   no sibling combinator, no cascade conflict with inline styles. ── */
-.eml:has(.emi:checked) { border:2px solid #c9a07a!important;background:rgba(201,160,122,0.09)!important;outline:3px solid rgba(201,160,122,0.20)!important;outline-offset:2px!important; }
-.eml:has(.emi:checked) .eml-emoji { font-size:36px!important;line-height:42px!important; }
-.eml:has(.emi:checked) .eml-text { color:#c9a07a!important;font-weight:700!important; }
-
-/* ── Dark mode ── */
+/* Dark mode — keep warm palette readable on dark backgrounds */
 @media (prefers-color-scheme:dark) {
   body,.email-body { background-color:#e8e3dc!important;color:#1a1714!important; }
   .email-card      { background-color:#ffffff!important; }
   .form-card       { background-color:#fffaf7!important; }
-  .eml             { border-color:#c8c0b8!important; }
+  .sl              { color:#9e9189!important; }
+  .sr:checked ~ .sl { color:#c9a07a!important; }
   input[type="text"],textarea { background-color:#ffffff!important;color:#1a1714!important;border-color:#d4c8be!important; }
 }
 
 @media screen and (max-width:480px) {
   .email-card { width:100%!important; }
   .email-pad  { padding-left:20px!important;padding-right:20px!important; }
-  .eml-emoji  { font-size:24px!important;line-height:36px!important;height:36px!important; }
-  .eml:has(.emi:checked) .eml-emoji { font-size:32px!important;line-height:36px!important; }
+  .sl         { font-size:28px!important;padding:2px 3px!important; }
 }
 </style>
 </head>
@@ -251,7 +399,7 @@ export function buildReviewEmail(params: {
 
   <table role="presentation" width="560" class="email-card" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;">
 
-    <!-- Top bar: gold → dark -->
+    <!-- Top gradient bar -->
     <tr><td style="background:linear-gradient(to right,#c9a07a,#1a1714);height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
 
     <!-- Header -->
@@ -311,7 +459,7 @@ export function buildReviewEmail(params: {
       </table>
     </td></tr>
 
-    <!-- Bottom bar: gold → dark -->
+    <!-- Bottom gradient bar -->
     <tr><td style="background:linear-gradient(to right,#c9a07a,#1a1714);height:2px;font-size:0;line-height:0;">&nbsp;</td></tr>
 
   </table>
@@ -321,23 +469,169 @@ export function buildReviewEmail(params: {
 </body>
 </html>`;
 
-  const productText = products.length > 0
-    ? products.map((p) => {
-        const token = generateReviewToken(p.slug, customerEmail, orderId);
-        const base = `${siteUrl}/api/review-email/quick-rate?handle=${encodeURIComponent(p.slug)}&email=${encodeURIComponent(customerEmail)}&orderId=${encodeURIComponent(orderId)}&token=${token}`;
-        return MOODS.map(({ value, emoji, label }) => `  ${emoji} ${label} → ${base}&rating=${value}`).join("\n");
-      }).join("\n\n")
-    : "  Review your order → " + siteUrl;
+  // ─── AMP for Email ─────────────────────────────────────────────────────────
+  //
+  // Gmail renders this MIME part (text/x-amp-html) when the email passes
+  // AMP validation and the sender domain is whitelisted (or the recipient
+  // has enabled dynamic email in Gmail settings).
+  //
+  // Differences from standard HTML version:
+  //   • <amp-form> handles submission; success/error shown inline.
+  //   • CSS `~` star trick works in Gmail via <style amp-custom>.
+  //   • amp-mustache renders the inline success/error templates.
+  //   • The form action must respond with JSON and AMP CORS headers.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const ampFormBlocks = productList
+    .map((p) => buildAmpProductForm(p, orderId, customerEmail, customerId, customerName, siteUrl))
+    .join(`<hr style="border:none;border-top:1px solid #e8ddd6;margin:24px 0;" />`);
+
+  const ampHtml = `<!doctype html>
+<html ⚡4email data-css-strict>
+<head>
+<meta charset="UTF-8" />
+<script async src="https://cdn.ampproject.org/v0.js"></script>
+<script async custom-element="amp-form" src="https://cdn.ampproject.org/v0/amp-form-0.1.js"></script>
+<script async custom-template="amp-mustache" src="https://cdn.ampproject.org/v0/amp-mustache-0.2.js"></script>
+<style amp4email-boilerplate>body{visibility:hidden}</style>
+<style amp-custom>
+/* ── Layout ── */
+body {
+  margin:0;padding:0;background:#e8e3dc;
+  font-family:Arial,Helvetica,sans-serif;
+  color:#1a1714;
+}
+.wrap { max-width:560px;margin:0 auto;padding:32px 16px 48px; }
+.card { background:#ffffff; }
+.bar-top { background:linear-gradient(to right,#c9a07a,#1a1714);height:3px; }
+.bar-bot { background:linear-gradient(to right,#c9a07a,#1a1714);height:2px; }
+
+.header { padding:24px 36px;border-bottom:1px solid #ede9e3; }
+.logo   { font-family:Georgia,'Times New Roman',Times,serif;font-size:20px;letter-spacing:0.14em;color:#1a1714; }
+.order-ref { font-size:9px;letter-spacing:0.38em;text-transform:uppercase;color:#c9a07a; }
+
+.hero   { padding:36px 36px 10px; }
+.hero h1 { margin:0 0 12px;font-family:Georgia,'Times New Roman',Times,serif;font-size:24px;font-weight:400;color:#1a1714;line-height:1.28; }
+.hero p  { margin:0;font-size:13px;line-height:1.85;color:#5c504a; }
+
+.divider-gold { padding:20px 36px; }
+.divider-gold hr { border:none;border-top:1px solid #c9a07a;margin:0; }
+
+.product-block { padding:0 36px 8px; }
+.product-label { border-left:2px solid #c9a07a;padding-left:12px;margin-bottom:18px; }
+.product-eyebrow { display:block;font-size:9px;letter-spacing:0.4em;text-transform:uppercase;color:#c9a07a;font-weight:700;margin-bottom:2px; }
+.product-name   { display:block;font-family:Georgia,'Times New Roman',Times,serif;font-size:19px;color:#1a1714;line-height:1.2; }
+
+.form-card { background:#fffaf7;border:1px solid #e8ddd6;border-top:2px solid #c9a07a;padding:22px 18px 20px; }
+
+/* ── Star rating (same RTL interleaved trick) ── */
+.sr { display:none; }
+.sl {
+  display:inline-block;
+  cursor:pointer;
+  font-size:32px;
+  line-height:1.1;
+  padding:3px 4px;
+  color:#d9cec7;
+  font-style:normal;
+}
+.sr:checked ~ .sl { color:#c9a07a; }
+
+.stars-wrap {
+  direction:rtl;
+  unicode-bidi:bidi-override;
+  text-align:center;
+  padding:6px 0 16px;
+  font-size:0;
+  line-height:0;
+}
+.field-eyebrow { margin:0 0 4px;font-size:9px;letter-spacing:0.35em;text-transform:uppercase;color:#c9a07a;font-weight:700;text-align:center; }
+.field-sub     { margin:0 0 12px;font-family:Georgia,'Times New Roman',Times,serif;font-size:12px;color:#7a6e64;text-align:center;line-height:1.5; }
+
+.divider { border:none;border-top:1px solid #f0e0d6;margin:0 0 18px; }
+
+.field-group  { margin-bottom:16px; }
+.field-label  { display:block;font-size:9px;letter-spacing:0.35em;text-transform:uppercase;color:#c9a07a;font-weight:700;margin-bottom:6px; }
+.field-input  { width:100%;box-sizing:border-box;padding:8px 0;font-size:13px;color:#1a1714;background:transparent;border:none;border-bottom:1px solid #d4c8be;outline:none; }
+.field-textarea { width:100%;box-sizing:border-box;padding:10px 12px;font-size:13px;color:#1a1714;background:#ffffff;border:1px solid #e2d8d0;outline:none;resize:vertical;line-height:1.7; }
+
+.submit-row  { text-align:center;margin-top:20px; }
+.submit-btn  { background:#1a1714;color:#ffffff;border:none;padding:14px 48px;font-size:10px;font-weight:700;letter-spacing:0.42em;text-transform:uppercase;cursor:pointer;display:inline-block; }
+
+.amp-success { padding:16px;background:#f8f4f0;border-left:2px solid #c9a07a;margin-top:16px;font-family:Georgia,'Times New Roman',Times,serif;font-size:15px;color:#1a1714;text-align:center; }
+.amp-error   { padding:16px;background:#fff5f5;border-left:2px solid #e07070;margin-top:16px;font-size:13px;color:#5c504a;text-align:center; }
+
+.fallback-row { margin-top:18px;padding-top:16px;border-top:1px solid #f0e0d6;text-align:center; }
+.website-btn  { display:inline-block;background:#fffaf7;color:#1a1714;text-decoration:none;padding:10px 24px;font-size:9px;font-weight:700;letter-spacing:0.38em;text-transform:uppercase;border:1px solid #c9a07a; }
+
+.footer { padding:22px 36px 26px;border-top:1px solid #ede9e3; }
+.footer-brand { font-size:9px;font-weight:700;letter-spacing:0.5em;text-transform:uppercase;color:#1a1714;margin:0 0 4px; }
+.footer-xoxo  { font-family:Georgia,'Times New Roman',Times,serif;font-size:13px;color:#5c504a;margin:0 0 6px; }
+.footer-link  { font-size:11px;color:#b0a89e;margin:0; }
+.footer-link a { color:#1a1714;text-decoration:underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card">
+  <div class="bar-top"></div>
+
+  <div class="header">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td><span class="logo">MOI</span></td>
+        <td style="text-align:right;vertical-align:middle;"><span class="order-ref">Order #${orderId}</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="hero">
+    <h1>okay ${firstName} —<br />she arrived. spill. 🌸</h1>
+    <p>fill in the form below — it takes 30 seconds, promise. your review helps other girls find their next favourite piece 🤍</p>
+  </div>
+
+  <div class="divider-gold"><hr /></div>
+
+  ${ampFormBlocks}
+
+  <div style="height:32px;"></div>
+
+  <div class="footer">
+    <p class="footer-brand">M O I</p>
+    <p class="footer-xoxo">XoXo, Moi.💋</p>
+    <p class="footer-link">anything else? <a href="mailto:hello@buy-moi.com">hello@buy-moi.com</a></p>
+  </div>
+
+  <div class="bar-bot"></div>
+</div>
+</div>
+</body>
+</html>`;
+
+  // ─── Plain text fallback ───────────────────────────────────────────────────
+  const productText = productList
+    .map((p) => {
+      const token = generateReviewToken(p.slug, customerEmail, orderId);
+      const base = `${siteUrl}/api/review-email/quick-rate?handle=${encodeURIComponent(p.slug)}&email=${encodeURIComponent(customerEmail)}&orderId=${encodeURIComponent(orderId)}&token=${token}`;
+      return [
+        `  ${p.name}`,
+        [5, 4, 3, 2, 1]
+          .map((v) => `  ${"★".repeat(v)}${"☆".repeat(5 - v)} ${STAR_LABELS[v]} → ${base}&rating=${v}`)
+          .join("\n"),
+        `  Or write your full review: ${siteUrl}/products/${p.slug}#write-review`,
+      ].join("\n");
+    })
+    .join("\n\n");
 
   const text = [
     `okay ${firstName} — she arrived. spill. 🌸`,
     "",
-    "fill in the form in this email, or tap a rating below:",
+    "tap a star rating below, or open the email to fill in the full form:",
     "",
     productText,
     "",
     "XoXo, Moi. 💋",
   ].join("\n");
 
-  return { html, text, subject };
+  return { html, ampHtml, text, subject };
 }

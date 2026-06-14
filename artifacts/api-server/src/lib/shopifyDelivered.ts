@@ -12,6 +12,7 @@ export interface DeliveredOrder {
   shopifyOrderNumber: number;
   customerEmail: string;
   customerName: string;
+  customerId: string;
   deliveredAt: Date;
   products: DeliveredOrderProduct[];
 }
@@ -32,7 +33,7 @@ interface ShopifyOrder {
   id: number;
   order_number: number;
   email: string | null;
-  customer?: { first_name?: string; last_name?: string } | null;
+  customer?: { id?: number; first_name?: string; last_name?: string } | null;
   shipping_address?: { first_name?: string } | null;
   line_items?: ShopifyLineItem[];
   fulfillments?: ShopifyFulfillment[];
@@ -116,6 +117,7 @@ export async function fetchDeliveredOrders(): Promise<DeliveredOrder[]> {
         order.customer?.first_name ||
         order.shipping_address?.first_name ||
         "",
+      customerId: order.customer?.id ? String(order.customer.id) : "",
       deliveredAt: new Date(deliveredFulfillment.updated_at),
       products,
     });
