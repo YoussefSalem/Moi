@@ -661,86 +661,70 @@ header[class*="fixed"] {
 
 .checkout-ribbon {
   position: absolute;
-  inset: -60%;
-  width: 220%;
-  height: 220%;
+  left: -8%;
+  width: 116%;
+  height: 1px;
   pointer-events: none;
   will-change: transform;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(162, 148, 122, 0.18) 12%,
+    rgba(168, 153, 126, 0.38) 50%,
+    rgba(162, 148, 122, 0.18) 88%,
+    transparent 100%
+  );
+  filter: blur(0.4px);
 }
 
 .checkout-ribbon:nth-child(1) {
-  background: linear-gradient(
-    108deg,
-    transparent 35%,
-    rgba(205, 185, 150, 0.05) 41%,
-    rgba(215, 193, 155, 0.21) 43.5%,
-    rgba(205, 185, 150, 0.05) 46%,
-    transparent 52%
-  );
-  animation: ribbon-drift-1 30s ease-in-out infinite;
+  top: 24%;
+  animation: ribbon-line-1 34s ease-in-out infinite;
 }
 
 .checkout-ribbon:nth-child(2) {
-  background: linear-gradient(
-    120deg,
-    transparent 22%,
-    rgba(190, 170, 135, 0.04) 28%,
-    rgba(200, 178, 142, 0.18) 30.5%,
-    rgba(190, 170, 135, 0.04) 33%,
-    transparent 39%
-  );
-  animation: ribbon-drift-2 38s ease-in-out infinite;
-  animation-delay: -14s;
+  top: 44%;
+  opacity: 0.7;
+  animation: ribbon-line-2 42s ease-in-out infinite;
+  animation-delay: -17s;
 }
 
 .checkout-ribbon:nth-child(3) {
-  background: linear-gradient(
-    97deg,
-    transparent 58%,
-    rgba(218, 200, 165, 0.05) 64%,
-    rgba(222, 205, 168, 0.19) 66.5%,
-    rgba(218, 200, 165, 0.05) 69%,
-    transparent 75%
-  );
-  animation: ribbon-drift-3 25s ease-in-out infinite;
-  animation-delay: -8s;
+  top: 63%;
+  opacity: 0.85;
+  animation: ribbon-line-3 28s ease-in-out infinite;
+  animation-delay: -9s;
 }
 
 .checkout-ribbon:nth-child(4) {
-  background: linear-gradient(
-    114deg,
-    transparent 14%,
-    rgba(180, 162, 128, 0.04) 20%,
-    rgba(192, 174, 138, 0.16) 22.5%,
-    rgba(180, 162, 128, 0.04) 25%,
-    transparent 31%
-  );
-  animation: ribbon-drift-4 34s ease-in-out infinite;
-  animation-delay: -22s;
+  top: 79%;
+  opacity: 0.55;
+  animation: ribbon-line-4 38s ease-in-out infinite;
+  animation-delay: -25s;
 }
 
-@keyframes ribbon-drift-1 {
-  0%   { transform: translateX(-7%)  translateY(0%);  }
-  50%  { transform: translateX(5%)   translateY(-4%); }
-  100% { transform: translateX(-7%)  translateY(0%);  }
+@keyframes ribbon-line-1 {
+  0%   { transform: rotate(-0.6deg) translateY(0px);   }
+  50%  { transform: rotate(-0.6deg) translateY(-14px); }
+  100% { transform: rotate(-0.6deg) translateY(0px);   }
 }
 
-@keyframes ribbon-drift-2 {
-  0%   { transform: translateX(6%)  translateY(3%);  }
-  50%  { transform: translateX(-6%) translateY(-3%); }
-  100% { transform: translateX(6%)  translateY(3%);  }
+@keyframes ribbon-line-2 {
+  0%   { transform: rotate(0.4deg) translateY(0px);  }
+  50%  { transform: rotate(0.4deg) translateY(11px); }
+  100% { transform: rotate(0.4deg) translateY(0px);  }
 }
 
-@keyframes ribbon-drift-3 {
-  0%   { transform: translateX(0%)  translateY(-5%); }
-  50%  { transform: translateX(-5%) translateY(4%);  }
-  100% { transform: translateX(0%)  translateY(-5%); }
+@keyframes ribbon-line-3 {
+  0%   { transform: rotate(-1.0deg) translateY(0px);   }
+  50%  { transform: rotate(-1.0deg) translateY(-9px); }
+  100% { transform: rotate(-1.0deg) translateY(0px);   }
 }
 
-@keyframes ribbon-drift-4 {
-  0%   { transform: translateX(-4%) translateY(4%);  }
-  50%  { transform: translateX(7%)  translateY(-2%); }
-  100% { transform: translateX(-4%) translateY(4%);  }
+@keyframes ribbon-line-4 {
+  0%   { transform: rotate(0.7deg) translateY(0px);  }
+  50%  { transform: rotate(0.7deg) translateY(16px); }
+  100% { transform: rotate(0.7deg) translateY(0px);  }
 }
 
 /* 3. Noise / grain overlay — SVG data URI, very low opacity, prevents banding */
