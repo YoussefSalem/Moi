@@ -1,10 +1,12 @@
 import { PgBoss } from "pg-boss";
-import type { Job } from "pg-boss";
+import type { JobWithMetadata } from "pg-boss";
 import { logger } from "./logger";
 import {
   getShopifyOrderForReview,
   getShopifyProductHandle,
+  getShopifyOrderDisputes,
   replaceShopifyOrderTag,
+  TransientShopifyError,
 } from "./integrations";
 import { buildReviewRequestEmail, sendEmail } from "./email";
 
@@ -70,41 +72,85 @@ async function resolveProductHandle(productId: number): Promise<string | null> {
   return handle ?? null;
 }
 
+// ── DLQ monitoring ────────────────────────────────────────────────────────────
+// Rate-limited: at most one WARN alert per hour to avoid log storms.
+
+let lastDlqWarnMs = 0;
+const DLQ_WARN_INTERVAL_MS = 60 * 60 * 1000;
+
+async function workDlq(jobs: JobWithMetadata<ReviewEmailJobData>[]): Promise<void> {
+  for (const job of jobs) {
+    const now = Date.now();
+    const suppress = now - lastDlqWarnMs < DLQ_WARN_INTERVAL_MS;
+    if (!suppress) {
+      lastDlqWarnMs = now;
+      logger.warn(
+        {
+          intentId:       job.data.intentId,
+          shopifyOrderId: job.data.shopifyOrderId,
+          retryCount:     job.retryCount,
+        },
+        "review-email: job landed in DLQ — manual intervention may be needed",
+      );
+    } else {
+      logger.info(
+        { intentId: job.data.intentId, shopifyOrderId: job.data.shopifyOrderId },
+        "review-email: DLQ event suppressed (alert rate-limited)",
+      );
+    }
+  }
+}
+
 // ── Job worker ────────────────────────────────────────────────────────────────
 
-async function work(jobs: Job<ReviewEmailJobData>[]): Promise<void> {
+async function work(jobs: JobWithMetadata<ReviewEmailJobData>[]): Promise<void> {
   for (const job of jobs) {
     await processJob(job);
   }
 }
 
-async function processJob(job: Job<ReviewEmailJobData>): Promise<void> {
+async function processJob(job: JobWithMetadata<ReviewEmailJobData>): Promise<void> {
   const { intentId, shopifyOrderId } = job.data;
-  logger.info({ intentId, shopifyOrderId }, "review-email: processing");
+  const attempt = (job.retryCount ?? 0) + 1;
+  const startMs = Date.now();
 
-  // In-process rate limit
+  logger.info({ intentId, shopifyOrderId, attempt }, "review-email: processing");
+
+  // In-process rate limit (belt-and-suspenders; Shopify tags are authoritative)
   const rateLimitReason = isRateLimited(intentId);
   if (rateLimitReason) {
-    logger.warn({ intentId, reason: rateLimitReason }, "review-email: rate limited — dropping");
+    logger.warn(
+      { intentId, reason: rateLimitReason, orderId: shopifyOrderId, attempt, status: "rate_limited", durationMs: Date.now() - startMs },
+      "review-email: outcome",
+    );
     return;
   }
 
-  // Fetch order
-  const order = await getShopifyOrderForReview(shopifyOrderId);
+  // ── Fetch order (transient vs terminal distinction) ───────────────────────
+
+  let order: Awaited<ReturnType<typeof getShopifyOrderForReview>>;
+  try {
+    order = await getShopifyOrderForReview(shopifyOrderId);
+  } catch (err) {
+    if (err instanceof TransientShopifyError) {
+      logger.warn(
+        { intentId, shopifyOrderId, attempt, err, status: "transient_error", durationMs: Date.now() - startMs },
+        "review-email: transient Shopify error — retrying",
+      );
+      throw err; // pg-boss will retry
+    }
+    logger.warn(
+      { intentId, shopifyOrderId, attempt, err, status: "fetch_error", durationMs: Date.now() - startMs },
+      "review-email: unexpected fetch error — aborting",
+    );
+    return;
+  }
+
   if (!order) {
-    logger.warn({ intentId, shopifyOrderId }, "review-email: order not found — aborting");
-    return;
-  }
-
-  // ── Blocking states ────────────────────────────────────────────────────────
-
-  if (order.cancelled_at) {
-    logger.info({ intentId }, "review-email: order cancelled — skipping");
-    return;
-  }
-
-  if (order.financial_status === "refunded") {
-    logger.info({ intentId }, "review-email: order fully refunded — skipping");
+    logger.warn(
+      { intentId, shopifyOrderId, attempt, status: "not_found", durationMs: Date.now() - startMs },
+      "review-email: order not found (404) — terminal abort",
+    );
     return;
   }
 
@@ -112,15 +158,57 @@ async function processJob(job: Job<ReviewEmailJobData>): Promise<void> {
     (order.tags ?? "").split(",").map((t) => t.trim().toLowerCase()).filter(Boolean),
   );
 
-  if (tagSet.has("disputed") || tagSet.has("chargeback")) {
-    logger.info({ intentId }, "review-email: order disputed/chargebacked — skipping");
-    return;
-  }
-
   // ── Shopify-tag dedup ──────────────────────────────────────────────────────
 
   if (tagSet.has(TAG_SENT)) {
-    logger.info({ intentId }, "review-email: already sent (tag present) — skipping");
+    logger.info(
+      { intentId, orderId: shopifyOrderId, attempt, status: "already_sent", durationMs: Date.now() - startMs },
+      "review-email: outcome",
+    );
+    return;
+  }
+
+  // ── Blocking states ────────────────────────────────────────────────────────
+
+  if (order.cancelled_at) {
+    logger.info(
+      { intentId, orderId: shopifyOrderId, attempt, status: "cancelled", durationMs: Date.now() - startMs },
+      "review-email: outcome",
+    );
+    return;
+  }
+
+  if (order.financial_status === "refunded") {
+    logger.info(
+      { intentId, orderId: shopifyOrderId, attempt, status: "refunded", durationMs: Date.now() - startMs },
+      "review-email: outcome",
+    );
+    return;
+  }
+
+  // Partial-refund full-coverage check
+  if (order.financial_status === "partially_refunded" && order.refunds.length > 0) {
+    const refundTotal = order.refunds.reduce(
+      (sum, r) => sum + (r.transactions ?? []).reduce((s, t) => s + Number(t.amount || 0), 0),
+      0,
+    );
+    const orderTotal = Number(order.total_price ?? 0);
+    if (orderTotal > 0 && refundTotal >= orderTotal) {
+      logger.info(
+        { intentId, orderId: shopifyOrderId, attempt, refundTotal, orderTotal, status: "partial_refund_full", durationMs: Date.now() - startMs },
+        "review-email: outcome",
+      );
+      return;
+    }
+  }
+
+  // Disputes check: Shopify Payments API with tag fallback
+  const hasDispute = await getShopifyOrderDisputes(shopifyOrderId, tagSet);
+  if (hasDispute) {
+    logger.info(
+      { intentId, orderId: shopifyOrderId, attempt, status: "disputed", durationMs: Date.now() - startMs },
+      "review-email: outcome",
+    );
     return;
   }
 
@@ -128,7 +216,10 @@ async function processJob(job: Job<ReviewEmailJobData>): Promise<void> {
 
   const customerEmail = order.email;
   if (!customerEmail) {
-    logger.warn({ intentId }, "review-email: no customer email — skipping");
+    logger.warn(
+      { intentId, orderId: shopifyOrderId, attempt, status: "no_email", durationMs: Date.now() - startMs },
+      "review-email: outcome",
+    );
     return;
   }
 
@@ -145,7 +236,10 @@ async function processJob(job: Job<ReviewEmailJobData>): Promise<void> {
   }>;
 
   if (lineItems.length === 0) {
-    logger.warn({ intentId }, "review-email: no line items — skipping");
+    logger.warn(
+      { intentId, orderId: shopifyOrderId, attempt, status: "no_line_items", durationMs: Date.now() - startMs },
+      "review-email: outcome",
+    );
     return;
   }
 
@@ -163,17 +257,17 @@ async function processJob(job: Job<ReviewEmailJobData>): Promise<void> {
 
   if (!productHandle) {
     logger.warn(
-      { intentId, productId: primary.product_id },
-      "review-email: cannot resolve product handle — skipping",
+      { intentId, orderId: shopifyOrderId, productId: primary.product_id, attempt, status: "no_product_handle", durationMs: Date.now() - startMs },
+      "review-email: outcome",
     );
     return;
   }
 
-  // ── Atomic dedup: flip tag pending → sent ─────────────────────────────────
-
-  await replaceShopifyOrderTag(shopifyOrderId, TAG_PENDING, TAG_SENT);
-
   // ── Build & send email ────────────────────────────────────────────────────
+  // IMPORTANT: send first, then flip the Shopify tag.
+  // If the tag were flipped before send, a failed send would cause retries
+  // to silently skip (sent tag already present), producing a missed send.
+  // At-least-once is preferable over at-most-once for a review-request email.
 
   const { html, text } = buildReviewRequestEmail({
     customerName,
@@ -188,8 +282,23 @@ async function processJob(job: Job<ReviewEmailJobData>): Promise<void> {
     text,
   });
 
+  // Flip the Shopify tag only after a successful send.
+  await replaceShopifyOrderTag(shopifyOrderId, TAG_PENDING, TAG_SENT);
   recordSend(intentId);
-  logger.info({ intentId, shopifyOrderId, productHandle, to: customerEmail }, "review-email: sent");
+
+  logger.info(
+    {
+      outcome:       "sent",
+      orderId:       shopifyOrderId,
+      intentId,
+      customerEmail,
+      productHandle,
+      attempt,
+      status:        "success",
+      durationMs:    Date.now() - startMs,
+    },
+    "review-email: outcome",
+  );
 }
 
 // ── Boss singleton ────────────────────────────────────────────────────────────
@@ -220,6 +329,7 @@ export async function startReviewEmailQueue(): Promise<void> {
   await boss.createQueue(DLQ_NAME);
 
   await boss.work<ReviewEmailJobData>(JOB_NAME, work);
+  await boss.work<ReviewEmailJobData>(DLQ_NAME, workDlq);
 
   logger.info("pg-boss: review-email queue started");
 }

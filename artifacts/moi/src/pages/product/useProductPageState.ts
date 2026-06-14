@@ -6,7 +6,7 @@ import { parseEGP } from "@/lib/price";
 import { useCart } from "@/context/CartContext";
 import { useCustomer } from "@/context/CustomerContext";
 import { ENABLE_APPLE_PAY } from "@/config/features";
-import { trackAddToCart } from "@/lib/analytics";
+import { trackAddToCart, trackEvent } from "@/lib/analytics";
 import { trackViewContent } from "@/lib/metaPixel";
 import { trackTikTokViewContent } from "@/lib/tiktokPixel";
 import { buildAllRecs, deriveFallbackFromHandle } from "./productPageUtils";
@@ -46,7 +46,8 @@ export function useProductPageState(handle: string, autoOpenReview?: boolean) {
     if (!autoOpenReview || loading || reviewAutoOpenedRef.current) return;
     reviewAutoOpenedRef.current = true;
     setReviewModalOpen(true);
-  }, [autoOpenReview, loading]);
+    trackEvent("interaction", "review_modal_opened", { productHandle: handle });
+  }, [autoOpenReview, loading, handle]);
 
   useEffect(() => {
     const AP = (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession;

@@ -34,9 +34,9 @@ router.post("/bosta/create-shipment", async (_req, res) => {
 // Register in your Bosta dashboard:
 //   POST /api/bosta/status-webhook
 //
-// Auth (checked in order):
-//   1. HMAC-SHA256:  X-Bosta-Hmac-Signature header verified against BOSTA_WEBHOOK_SECRET
-//   2. Query param:  ?secret=<BOSTA_WEBHOOK_SECRET>  (legacy fallback)
+// Auth:
+//   HMAC-SHA256: X-Bosta-Hmac-Signature header verified against BOSTA_WEBHOOK_SECRET.
+//   Missing or invalid signature → 401.  No query-param fallback.
 //
 // req.body is a raw Buffer (express.raw applied in app.ts for this path).
 
@@ -66,27 +66,23 @@ router.post("/bosta/status-webhook", async (req, res) => {
 
   const rawBody = req.body as Buffer;
 
-  // Auth: try HMAC header first, fall back to query param
+  // Auth: HMAC-SHA256 only — no query-param fallback
   const hmacHeader = (req.headers["x-bosta-hmac-signature"] ?? "") as string;
-
-  if (hmacHeader) {
-    if (!verifyBostaHmac(rawBody, hmacHeader, webhookSecret)) {
-      req.log.warn("Bosta status webhook: HMAC signature mismatch");
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-  } else {
-    const provided = req.query["secret"] as string | undefined;
-    if (!provided || provided !== webhookSecret) {
-      req.log.warn("Bosta status webhook: invalid or missing secret query param");
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
+  if (!hmacHeader) {
+    req.log.warn("Bosta status webhook: missing X-Bosta-Hmac-Signature header");
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  if (!verifyBostaHmac(rawBody, hmacHeader, webhookSecret)) {
+    req.log.warn("Bosta status webhook: HMAC signature mismatch");
+    res.status(401).json({ error: "Unauthorized" });
+    return;
   }
 
   let payload: {
     state?: { value?: string };
     trackingNumber?: string;
+    updatedAt?: string;
   };
 
   try {
@@ -102,6 +98,18 @@ router.post("/bosta/status-webhook", async (req, res) => {
   const bostaState     = (payload.state?.value ?? "").toUpperCase();
   const trackingNumber = payload.trackingNumber ?? "";
   const shopifyStatus  = BOSTA_TO_SHOPIFY_STATUS[bostaState];
+
+  // Advisory replay-window check (non-blocking).
+  // BOSTA_WEBHOOK_REPLAY_WINDOW_MS defaults to 5 min (300 000 ms).
+  // Contract: Bosta must send updatedAt as an ISO 8601 timestamp; if absent we skip the check.
+  const REPLAY_WINDOW_MS = parseInt(process.env.BOSTA_WEBHOOK_REPLAY_WINDOW_MS ?? "300000", 10);
+  const eventTs = payload.updatedAt ? Date.parse(payload.updatedAt) : NaN;
+  if (!isNaN(eventTs) && Date.now() - eventTs > REPLAY_WINDOW_MS) {
+    req.log.warn(
+      { trackingNumber, bostaState, eventAge: Date.now() - eventTs, updatedAt: payload.updatedAt },
+      "Bosta webhook: replay-window advisory — event is stale (processing anyway)",
+    );
+  }
 
   req.log.info(
     { trackingNumber, bostaState, shopifyStatus },
@@ -147,6 +155,20 @@ router.post("/bosta/status-webhook", async (req, res) => {
 
   if (bostaState === "DELIVERED") {
     try {
+      // First-terminal-DELIVERED guard: skip if a prior DELIVERED event already
+      // set the pending/sent tag.  This prevents duplicate enqueues from Bosta
+      // replaying webhooks without needing to touch the database.
+      const existingTags = new Set(
+        (order.tags ?? "").split(",").map((t) => t.trim().toLowerCase()).filter(Boolean),
+      );
+      if (existingTags.has("review-email-pending") || existingTags.has("review-email-sent")) {
+        req.log.info(
+          { trackingNumber, orderNumber: order.order_number },
+          "Bosta DELIVERED: review email already in-flight or sent — skipping duplicate",
+        );
+        return;
+      }
+
       // Look up the paymob_intent so we have the intentId for idempotent job key
       const rows = await db
         .select({

@@ -571,17 +571,28 @@ interface ReviewOrderLineItem {
   quantity: number;
 }
 
+export class TransientShopifyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TransientShopifyError";
+  }
+}
+
 interface ReviewOrder {
   id: number;
   order_number: number;
   email: string | null;
   financial_status: string;
   cancelled_at: string | null;
+  total_price: string;
   tags: string;
   customer: { first_name?: string; last_name?: string } | null;
   billing_address: { first_name?: string } | null;
   line_items: ReviewOrderLineItem[];
-  refunds: Array<{ id: number }>;
+  refunds: Array<{
+    id: number;
+    transactions: Array<{ amount: string }>;
+  }>;
 }
 
 /**
@@ -592,23 +603,28 @@ export async function getShopifyOrderForReview(orderId: number): Promise<ReviewO
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return null;
 
-  const fields = "id,order_number,email,financial_status,cancelled_at,tags,customer,billing_address,line_items,refunds";
+  const fields = "id,order_number,email,financial_status,cancelled_at,total_price,tags,customer,billing_address,line_items,refunds";
 
-  try {
-    const res = await fetch(
-      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=${fields}`,
-      { headers: { "X-Shopify-Access-Token": adminToken } },
-    );
-    if (!res.ok) {
-      logger.warn({ orderId, status: res.status }, "getShopifyOrderForReview: non-2xx");
-      return null;
-    }
-    const data = await res.json() as { order: ReviewOrder };
-    return data.order ?? null;
-  } catch (err) {
-    logger.warn({ err, orderId }, "getShopifyOrderForReview: fetch error");
+  // Network errors propagate as-is; the caller treats them as transient.
+  const res = await fetch(
+    `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=${fields}`,
+    { headers: { "X-Shopify-Access-Token": adminToken } },
+  );
+
+  if (res.status === 404) {
+    // Order genuinely not found — terminal; caller should not retry.
     return null;
   }
+
+  if (!res.ok) {
+    // 5xx or other unexpected status — transient; let the caller retry.
+    throw new TransientShopifyError(
+      `getShopifyOrderForReview: HTTP ${res.status} for order ${orderId}`,
+    );
+  }
+
+  const data = await res.json() as { order: ReviewOrder };
+  return data.order ?? null;
 }
 
 /**
@@ -683,6 +699,44 @@ export async function replaceShopifyOrderTag(
     );
   } catch (err) {
     logger.warn({ err, orderId, oldTag, newTag }, "replaceShopifyOrderTag: failed");
+  }
+}
+
+/**
+ * Check whether a Shopify order has any unresolved disputes via the Shopify Payments
+ * Disputes API, falling back to tag inspection when the API is unavailable.
+ * Returns true if the order has an active/unresolved dispute and the email should be suppressed.
+ */
+export async function getShopifyOrderDisputes(
+  orderId: number,
+  fallbackTagSet?: Set<string>,
+): Promise<boolean> {
+  // Fast path: tag heuristic (always available, no extra API call)
+  if (fallbackTagSet?.has("disputed") || fallbackTagSet?.has("chargeback")) return true;
+
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const adminToken = await getShopifyAdminToken();
+  if (!storeDomain || !adminToken) return false;
+
+  try {
+    const res = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/shopify_payments/disputes.json?order_id=${orderId}`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+
+    // 403/404 = Shopify Payments not available on this plan — tags already checked above.
+    if (res.status === 403 || res.status === 404) return false;
+    if (!res.ok) {
+      logger.warn({ orderId, status: res.status }, "getShopifyOrderDisputes: non-2xx");
+      return false;
+    }
+
+    const data = await res.json() as { disputes: Array<{ status: string }> };
+    // Suppress if any dispute the merchant hasn't won (active, lost, or refunded).
+    return (data.disputes ?? []).some((d) => d.status !== "won");
+  } catch (err) {
+    logger.warn({ err, orderId }, "getShopifyOrderDisputes: fetch error — relying on tags");
+    return false;
   }
 }
 
