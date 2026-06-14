@@ -52,28 +52,15 @@ function buildProductForm(
 </td>`;
   }).join("\n");
 
-  // Fixed-width cells (76px each × 5 = 380px) ensures perfectly even spacing.
-  // The emoji span has a fixed height (40px line-height) so growing the font-size
-  // on :checked doesn't shift the layout — the container stays the same height.
+  // NO inline styles on .emi / .eml / .eml-emoji / .eml-text — all appearance
+  // is driven purely by CSS classes so input:checked + label rules have nothing
+  // to fight against and apply cleanly in iOS Mail and Apple Mail.
   const emojiCells = MOODS.map(({ value, emoji, label }) => `
 <td style="text-align:center;padding:0;width:76px;vertical-align:top;">
-  <input
-    class="emi"
-    type="radio"
-    name="rating"
-    value="${value}"
-    id="em${value}_${pid}"
-    ${value === 1 ? "required" : ""}
-    style="display:block;margin:0 auto 10px;width:18px;height:18px;cursor:pointer;accent-color:#c9a07a;"
-  />
-  <label
-    for="em${value}_${pid}"
-    class="eml"
-    title="${label}"
-    style="display:block;cursor:pointer;text-align:center;padding:10px 4px 12px;border-radius:12px;border:1.5px solid transparent;box-sizing:border-box;"
-  >
-    <span class="eml-emoji" style="display:block;font-size:28px;line-height:40px;height:40px;margin-bottom:8px;text-align:center;">${emoji}</span>
-    <span class="eml-text" style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:#b0a89e;line-height:1.4;">${label}</span>
+  <input class="emi" type="radio" name="rating" value="${value}" id="em${value}_${pid}" ${value === 1 ? "required" : ""} />
+  <label for="em${value}_${pid}" class="eml" title="${label}">
+    <span class="eml-emoji">${emoji}</span>
+    <span class="eml-text">${label}</span>
   </label>
 </td>`).join("\n");
 
@@ -215,33 +202,39 @@ export function buildReviewEmail(params: {
 <style>
 :root { color-scheme: light; }
 
-/* Visible native radio inputs with gold accent color */
+/* ── Radio inputs ──
+   No inline styles on .emi so accent-color and display come purely from here. */
 .emi { display:block!important;margin:0 auto 10px!important;width:18px!important;height:18px!important;cursor:pointer!important;accent-color:#c9a07a!important; }
 
-/* Emoji option label — card container, consistent height */
-.eml { display:block!important;cursor:pointer!important;text-align:center!important;padding:10px 4px 12px!important;border-radius:12px!important;border:1.5px solid transparent!important;box-sizing:border-box!important;transition:none!important; }
+/* ── Label card: default state ──
+   No inline border/padding/border-radius on the label element so :checked
+   styles below have no inline specificity to fight against. */
+.eml { display:block!important;cursor:pointer!important;text-align:center!important;padding:10px 4px 12px!important;border-radius:12px!important;border:1.5px solid #e0d8d0!important;box-sizing:border-box!important; }
 
-/* Emoji character — fixed line-height container for stable layout */
+/* ── Emoji span: 28px default, fixed 40px height so the layout stays stable
+   when the selected state bumps it to 36px. ── */
 .eml-emoji { display:block!important;font-size:28px!important;line-height:40px!important;height:40px!important;margin-bottom:8px!important;text-align:center!important; }
 
-/* Small text label */
+/* ── Text label ── */
 .eml-text { display:block!important;font-family:Arial,Helvetica,sans-serif!important;font-size:8px!important;letter-spacing:0.22em!important;text-transform:uppercase!important;color:#b0a89e!important;line-height:1.4!important; }
 
-/* ── Selected state: subtle glow ring + warm card + bigger emoji ── */
-/* Ring and glow on the card */
-.emi:checked + .eml { background:rgba(201,160,122,0.08)!important;border-color:#c9a07a!important;box-shadow:0 0 0 2px rgba(201,160,122,0.25),0 4px 14px rgba(201,160,122,0.18)!important; }
+/* ── SELECTED STATE ──
+   Uses full border shorthand (not border-color) to avoid shorthand vs longhand
+   cascade issues. outline adds the outer glow ring without fighting border. ── */
+.emi:checked + .eml { border:2px solid #c9a07a!important;background:rgba(201,160,122,0.09)!important;outline:3px solid rgba(201,160,122,0.22)!important;outline-offset:1px!important; }
 
-/* Emoji grows within its fixed-height container */
+/* Emoji grows inside its fixed-height container */
 .emi:checked + .eml .eml-emoji { font-size:36px!important;line-height:40px!important; }
 
-/* Text turns gold */
+/* Text label turns gold */
 .emi:checked + .eml .eml-text { color:#c9a07a!important;font-weight:700!important; }
 
-/* ── Dark mode: force light colours ── */
+/* ── Dark mode ── */
 @media (prefers-color-scheme:dark) {
   body,.email-body { background-color:#e8e3dc!important;color:#1a1714!important; }
   .email-card      { background-color:#ffffff!important; }
   .form-card       { background-color:#fffaf7!important; }
+  .eml             { border-color:#c8c0b8!important; }
   input[type="text"],textarea { background-color:#ffffff!important;color:#1a1714!important;border-color:#d4c8be!important; }
 }
 
