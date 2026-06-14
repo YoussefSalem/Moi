@@ -31,3 +31,4 @@ export * from "./chatInteractions";
 export * from "./conversations";
 export * from "./messages";
 export * from "./productReviews";
+export * from "./reviewEmailQueue";

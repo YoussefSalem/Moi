@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { registerRestockWebhooks } from "./lib/shopifyWebhook";
+import { startReviewEmailCron } from "./lib/reviewEmailCron";
 
 const rawPort = process.env["PORT"];
 
@@ -61,4 +62,7 @@ app.listen(port, (err) => {
   registerRestockWebhooks().catch((e) =>
     logger.warn({ err: e }, "Webhook registration error"),
   );
+
+  // Start hourly cron — sends review request emails 24h after delivery
+  startReviewEmailCron();
 });

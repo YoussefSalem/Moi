@@ -24,6 +24,7 @@ import metaCapiRouter from "./metaCapi";
 import anthropicRouter from "./anthropic/index";
 import applePayDirectRouter from "./applePayDirect";
 import reviewsRouter from "./reviews";
+import reviewCronRouter from "./reviewCron";
 
 const router: IRouter = Router();
 
@@ -52,5 +53,6 @@ router.use(abandonedCartsRouter);
 router.use(metaCapiRouter);
 router.use(anthropicRouter);
 router.use(reviewsRouter);
+router.use(reviewCronRouter);
 
 export default router;
