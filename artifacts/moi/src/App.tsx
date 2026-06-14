@@ -345,27 +345,38 @@ function AppContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle post-purchase review deep-links (?review=1)
-  // Runs once on mount. If we land on a product page with this param, raise the
-  // autoOpenReview flag so ProductPage can open WriteReviewModal once it loads.
+  // Handle post-purchase review deep-links (?review=1 or #write-review)
+  // Runs once on mount and also listens for hashchange (e.g. email link clicked
+  // while already on the product page). Raises autoOpenReview so ProductPage can
+  // open WriteReviewModal once the product finishes loading.
   // sessionStorage prevents the modal re-opening on a manual refresh.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("review") !== "1") return;
 
-    const handle = parsePath().productHandle;
-    if (!handle) return;
+    function tryTriggerReview() {
+      const params = new URLSearchParams(window.location.search);
+      const isQueryParam = params.get("review") === "1";
+      const isHash = window.location.hash === "#write-review";
+      if (!isQueryParam && !isHash) return;
 
-    const ssKey = `moi_review_modal_${handle}`;
-    try {
-      if (sessionStorage.getItem(ssKey)) return;
-      sessionStorage.setItem(ssKey, "1");
-    } catch { /* sessionStorage unavailable */ }
+      const handle = parsePath().productHandle;
+      if (!handle) return;
 
-    setAutoOpenReview(handle);
-    // Strip the param so the URL looks clean without breaking the SPA state
-    window.history.replaceState(null, "", `/products/${handle}`);
+      const ssKey = `moi_review_modal_${handle}`;
+      try {
+        if (sessionStorage.getItem(ssKey)) return;
+        sessionStorage.setItem(ssKey, "1");
+      } catch { /* sessionStorage unavailable */ }
+
+      setAutoOpenReview(handle);
+      // Strip the param/hash so the URL is clean
+      window.history.replaceState(null, "", `/products/${handle}`);
+    }
+
+    tryTriggerReview();
+
+    window.addEventListener("hashchange", tryTriggerReview);
+    return () => window.removeEventListener("hashchange", tryTriggerReview);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

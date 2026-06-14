@@ -1378,7 +1378,7 @@ export function buildReviewRequestEmail(params: {
   const siteUrl = getSiteUrl();
   const variantSlug = variantTitle ? variantTitle.toLowerCase().replace(/\s+/g, "-") : "";
   const handlePath = variantSlug ? `${productHandle}-${variantSlug}` : productHandle;
-  const reviewUrl = `${siteUrl}/products/${encodeURIComponent(handlePath)}?review=1`;
+  const reviewUrl = `${siteUrl}/products/${encodeURIComponent(handlePath)}#write-review`;
   const firstName = customerName.split(" ")[0]?.trim() || "there";
 
   // Derive product image URL from handle + variant slug.
