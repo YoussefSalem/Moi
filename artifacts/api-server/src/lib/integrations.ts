@@ -585,6 +585,7 @@ interface ReviewOrder {
   financial_status: string;
   cancelled_at: string | null;
   total_price: string;
+  note: string | null;
   tags: string;
   customer: { first_name?: string; last_name?: string } | null;
   billing_address: { first_name?: string } | null;
@@ -603,7 +604,7 @@ export async function getShopifyOrderForReview(orderId: number): Promise<ReviewO
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return null;
 
-  const fields = "id,order_number,email,financial_status,cancelled_at,total_price,tags,customer,billing_address,line_items,refunds";
+  const fields = "id,order_number,email,financial_status,cancelled_at,total_price,note,tags,customer,billing_address,line_items,refunds";
 
   let res: Response;
   try {

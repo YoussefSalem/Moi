@@ -157,16 +157,17 @@ router.post("/bosta/status-webhook", async (req, res) => {
 
   if (bostaState === "DELIVERED") {
     try {
-      // First-terminal-DELIVERED guard: skip if a prior DELIVERED event already
-      // set the pending/sent tag.  This prevents duplicate enqueues from Bosta
-      // replaying webhooks without needing to touch the database.
+      // First-terminal-DELIVERED guard: skip if this order already received its
+      // review email.  The pending tag is now set by the worker (phase 1), so
+      // we only check the sent tag here; duplicate DELIVERED webhooks within the
+      // 24–28 h window are deduplicated by the pg-boss singletonKey.
       const existingTags = new Set(
         (order.tags ?? "").split(",").map((t) => t.trim().toLowerCase()).filter(Boolean),
       );
-      if (existingTags.has("review-email-pending") || existingTags.has("review-email-sent")) {
+      if (existingTags.has("review-email-sent")) {
         req.log.info(
           { trackingNumber, orderNumber: order.order_number },
-          "Bosta DELIVERED: review email already in-flight or sent — skipping duplicate",
+          "Bosta DELIVERED: review email already sent — skipping duplicate",
         );
         return;
       }
@@ -191,18 +192,15 @@ router.post("/bosta/status-webhook", async (req, res) => {
         return;
       }
 
-      // Enqueue first so a failed enqueue doesn't leave the tag orphaned.
-      // pg-boss singletonKey is the authoritative idempotency guard; the
-      // pending tag is secondary (prevents duplicate DELIVERED events).
+      // Enqueue; throws if the boss is unavailable.
+      // pg-boss singletonKey is the authoritative idempotency guard for the
+      // 24–28 h window.  The pending tag is set by the worker (phase 1) so a
+      // failed enqueue never leaves an orphaned tag on the order.
       await enqueueReviewEmail({
         intentId:            intent.intentId,
         bostaTrackingNumber: trackingNumber,
         shopifyOrderId:      intent.shopifyConfirmedOrderId,
       });
-
-      // Tag AFTER successful enqueue so the transition guard in subsequent
-      // DELIVERED events can skip without hitting the DB.
-      await tagShopifyOrder(intent.shopifyConfirmedOrderId, "review-email-pending");
 
       req.log.info(
         { intentId: intent.intentId, shopifyOrderId: intent.shopifyConfirmedOrderId },

@@ -6,6 +6,7 @@ import {
   getShopifyProductHandle,
   getShopifyOrderDisputes,
   replaceShopifyOrderTag,
+  tagShopifyOrder,
   TransientShopifyError,
 } from "./integrations";
 import { buildReviewRequestEmail, sendEmail, ResendTerminalError } from "./email";
@@ -72,30 +73,69 @@ async function resolveProductHandle(productId: number): Promise<string | null> {
   return handle ?? null;
 }
 
-// ── DLQ monitoring ────────────────────────────────────────────────────────────
-// Rate-limited: at most one WARN alert per hour to avoid log storms.
+// ── Shopify Admin API throttle ─────────────────────────────────────────────
+// Shopify allows 2 req/s (Standard plan). All worker Shopify calls go through
+// this guard to prevent 429s during multi-attempt batch processing.
 
-let lastDlqWarnMs = 0;
-const DLQ_WARN_INTERVAL_MS = 60 * 60 * 1000;
+const SHOPIFY_THROTTLE_MS = 500; // 2 req/s
+let lastShopifyCallMs = 0;
+
+async function shopifyThrottle(): Promise<void> {
+  const wait = SHOPIFY_THROTTLE_MS - (Date.now() - lastShopifyCallMs);
+  if (wait > 0) await new Promise<void>((r) => setTimeout(r, wait));
+  lastShopifyCallMs = Date.now();
+}
+
+// ── DLQ monitoring ────────────────────────────────────────────────────────────
+// Two-layer rate limiting: per-intent 1 h cooldown + global 5/hr cap.
+// Both layers emit WARN with explicit suppressionReason when throttled.
+
+const dlqAlertByIntentId = new Map<string, number>(); // intentId → lastAlertMs
+const dlqGlobalAlertTs:    number[] = [];
+const DLQ_ALERT_PER_INTENT_MS   = 60 * 60 * 1000; // 1 h per intent
+const DLQ_GLOBAL_CAP_PER_HOUR   = 5;
+const DLQ_ALERT_WINDOW_MS       = 60 * 60 * 1000;
+
+function shouldEmitDlqAlert(intentId: string): { emit: boolean; reason?: string } {
+  const now    = Date.now();
+  const cutoff = now - DLQ_ALERT_WINDOW_MS;
+
+  // Prune stale entries
+  for (const [k, v] of dlqAlertByIntentId) if (v < cutoff) dlqAlertByIntentId.delete(k);
+  let i = 0;
+  while (i < dlqGlobalAlertTs.length && (dlqGlobalAlertTs[i] ?? 0) < cutoff) i++;
+  if (i > 0) dlqGlobalAlertTs.splice(0, i);
+
+  // Per-intent cooldown
+  const lastForIntent = dlqAlertByIntentId.get(intentId);
+  if (lastForIntent !== undefined && now - lastForIntent < DLQ_ALERT_PER_INTENT_MS) {
+    const remaining = Math.round((DLQ_ALERT_PER_INTENT_MS - (now - lastForIntent)) / 60000);
+    return { emit: false, reason: `per-intent cooldown (${remaining}min remaining for ${intentId})` };
+  }
+
+  // Global hourly cap
+  if (dlqGlobalAlertTs.length >= DLQ_GLOBAL_CAP_PER_HOUR) {
+    return { emit: false, reason: `global DLQ cap (${DLQ_GLOBAL_CAP_PER_HOUR}/hr reached)` };
+  }
+
+  dlqAlertByIntentId.set(intentId, now);
+  dlqGlobalAlertTs.push(now);
+  return { emit: true };
+}
 
 async function workDlq(jobs: JobWithMetadata<ReviewEmailJobData>[]): Promise<void> {
   for (const job of jobs) {
-    const now = Date.now();
-    const suppress = now - lastDlqWarnMs < DLQ_WARN_INTERVAL_MS;
-    if (!suppress) {
-      lastDlqWarnMs = now;
+    const { intentId, shopifyOrderId } = job.data;
+    const { emit, reason } = shouldEmitDlqAlert(intentId);
+    if (emit) {
       logger.warn(
-        {
-          intentId:       job.data.intentId,
-          shopifyOrderId: job.data.shopifyOrderId,
-          retryCount:     job.retryCount,
-        },
+        { intentId, shopifyOrderId, retryCount: job.retryCount },
         "review-email: job landed in DLQ — manual intervention may be needed",
       );
     } else {
       logger.warn(
-        { intentId: job.data.intentId, shopifyOrderId: job.data.shopifyOrderId },
-        "review-email: DLQ event suppressed (alert rate-limited)",
+        { intentId, shopifyOrderId, suppressionReason: reason },
+        "review-email: DLQ alert suppressed",
       );
     }
   }
@@ -130,6 +170,7 @@ async function processJob(job: JobWithMetadata<ReviewEmailJobData>): Promise<voi
 
   let order: Awaited<ReturnType<typeof getShopifyOrderForReview>>;
   try {
+    await shopifyThrottle();
     order = await getShopifyOrderForReview(shopifyOrderId);
   } catch (err) {
     if (err instanceof TransientShopifyError) {
@@ -153,6 +194,14 @@ async function processJob(job: JobWithMetadata<ReviewEmailJobData>): Promise<voi
     );
     return;
   }
+
+  // ── Phase 1: mark job as in-flight ────────────────────────────────────────
+  // Idempotent: if TAG_PENDING is already present (prior failed attempt between
+  // phase 1 and phase 3), tagShopifyOrder is a no-op.  Moving this into the
+  // worker (not the webhook) ensures the tag is only set when a job is actually
+  // executing, so a failed enqueue never orphans a pending tag.
+  await shopifyThrottle();
+  await tagShopifyOrder(shopifyOrderId, TAG_PENDING);
 
   const tagSet = new Set(
     (order.tags ?? "").split(",").map((t) => t.trim().toLowerCase()).filter(Boolean),
@@ -204,10 +253,20 @@ async function processJob(job: JobWithMetadata<ReviewEmailJobData>): Promise<voi
   }
 
   // Disputes check: Shopify Payments API with tag fallback
+  await shopifyThrottle();
   const hasDispute = await getShopifyOrderDisputes(shopifyOrderId, tagSet);
   if (hasDispute) {
     logger.info(
       { intentId, orderId: shopifyOrderId, attempt, status: "disputed", durationMs: Date.now() - startMs },
+      "review-email: outcome",
+    );
+    return;
+  }
+
+  // Chargeback/dispute mention in order note (safety-net for manual flags)
+  if (order.note && /chargeback|dispute/i.test(order.note)) {
+    logger.info(
+      { intentId, orderId: shopifyOrderId, attempt, status: "chargeback_note", durationMs: Date.now() - startMs },
       "review-email: outcome",
     );
     return;
@@ -252,6 +311,7 @@ async function processJob(job: JobWithMetadata<ReviewEmailJobData>): Promise<voi
     }
   }
 
+  await shopifyThrottle();
   const productHandle = primary.product_id
     ? await resolveProductHandle(primary.product_id)
     : null;
@@ -300,7 +360,8 @@ async function processJob(job: JobWithMetadata<ReviewEmailJobData>): Promise<voi
     throw err;
   }
 
-  // Flip the Shopify tag only after a successful send.
+  // Phase 3: flip pending → sent (only after a confirmed successful send).
+  await shopifyThrottle();
   await replaceShopifyOrderTag(shopifyOrderId, TAG_PENDING, TAG_SENT);
   recordSend(intentId);
 
@@ -354,8 +415,9 @@ export async function startReviewEmailQueue(): Promise<void> {
 
 export async function enqueueReviewEmail(data: ReviewEmailJobData): Promise<void> {
   if (!boss) {
-    logger.warn(data, "review-email queue not started — cannot enqueue");
-    return;
+    const msg = "review-email queue not started — cannot enqueue";
+    logger.error(data, msg);
+    throw new Error(msg);
   }
 
   const delaySec = DELAY_MIN + Math.floor(Math.random() * (DELAY_MAX - DELAY_MIN));
