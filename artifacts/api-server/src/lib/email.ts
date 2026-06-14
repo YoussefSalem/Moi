@@ -1381,15 +1381,25 @@ export function buildReviewRequestEmail(params: {
   const reviewUrl = `${siteUrl}/products/${encodeURIComponent(handlePath)}#write-review`;
   const firstName = customerName.split(" ")[0]?.trim() || "there";
 
-  // Derive product image URL from handle + variant slug.
-  // Wavvy images live at /images/{variantSlug}-main.jpg (e.g. sand-main.jpg).
-  // Versa images live at /images/versa-{variantSlug}-main.jpg (e.g. versa-beige-main.jpg).
-  // Only render the <img> when we have a variant slug to avoid broken image tags.
-  const productImgSrc = variantSlug
-    ? productHandle.includes("versa")
-      ? `${siteUrl}/images/versa-${variantSlug}-main.jpg`
-      : `${siteUrl}/images/${variantSlug}-main.jpg`
-    : null;
+  // Explicit lookup: variant slug → filename in /public/images/.
+  // Using a hardcoded map avoids broken images when the variant name in
+  // Shopify differs slightly from the slug (e.g. "Navi" vs "Navy").
+  const WAVVY_IMG: Record<string, string> = {
+    "sand":       "sand-main.jpg",
+    "light-blue": "light-blue-main.jpg",
+    "navy":       "navy-main.jpg",
+    "mint":       "mint-main.jpg",
+  };
+  const VERSA_IMG: Record<string, string> = {
+    "white":    "versa-white-main.jpg",
+    "cashmere": "versa-cashmere-main.jpg",
+    "beige":    "versa-beige-main.jpg",
+    "yellow":   "versa-yellow-main.jpg",
+    "teal":     "versa-teal-main.jpg",
+  };
+  const imgMap = productHandle.includes("versa") ? VERSA_IMG : WAVVY_IMG;
+  const imgFile = variantSlug ? (imgMap[variantSlug] ?? null) : null;
+  const productImgSrc = imgFile ? `${siteUrl}/images/${imgFile}` : null;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
