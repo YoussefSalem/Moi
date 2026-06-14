@@ -38,6 +38,18 @@ export function useProductPageState(handle: string) {
   const addingRef = useRef(false);
 
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewInitialEmail, setReviewInitialEmail] = useState("");
+  const [reviewInitialName, setReviewInitialName] = useState("");
+
+  // Auto-open review modal when the email fallback link is clicked
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("writeReview") === "1") {
+      setReviewInitialEmail(params.get("email") ?? "");
+      setReviewInitialName(params.get("name") ?? "");
+      setReviewModalOpen(true);
+    }
+  }, []);
 
   useEffect(() => {
     const AP = (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession;
@@ -259,6 +271,7 @@ export function useProductPageState(handle: string) {
     carouselLb, setCarouselLb,
     reviewsPagination,
     reviewModalOpen, setReviewModalOpen,
+    reviewInitialEmail, reviewInitialName,
     sizeOption, displaySizes, selectedSize, setSelectedSize,
     sizeGuideOpen, setSizeGuideOpen,
     selectedVariant,
