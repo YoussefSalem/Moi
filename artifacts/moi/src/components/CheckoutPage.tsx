@@ -1041,10 +1041,9 @@ export function CheckoutPage() {
             backgroundColor: "#000",
           }}
         >
-          <div className="checkout-blob checkout-blob-1" />
-          <div className="checkout-blob checkout-blob-2" />
-          <div className="checkout-blob checkout-blob-3" />
-          <div className="checkout-blob checkout-blob-4" />
+          <div className="checkout-bg-gradient" />
+          <div className="checkout-bg-noise" />
+          <div className="checkout-bg-shimmer" />
         </motion.div>
       )}
     </AnimatePresence>
