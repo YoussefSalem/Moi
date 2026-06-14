@@ -709,25 +709,79 @@ header[class*="fixed"] {
   pointer-events: none;
 }
 
-.checkout-shooting-star:nth-child(1)  { top: 8%;  left: -12%; animation-delay: 0s;    animation-duration: 4.0s; }
-.checkout-shooting-star:nth-child(2)  { top: 22%; left: -18%; animation-delay: 2.1s;  animation-duration: 4.5s; }
-.checkout-shooting-star:nth-child(3)  { top: 5%;  left: -6%;  animation-delay: 5.8s;  animation-duration: 3.8s; }
-.checkout-shooting-star:nth-child(4)  { top: 38%; left: -22%; animation-delay: 1.4s;  animation-duration: 4.2s; }
-.checkout-shooting-star:nth-child(5)  { top: 55%; left: -10%; animation-delay: 7.2s;  animation-duration: 4.8s; }
-.checkout-shooting-star:nth-child(6)  { top: 14%; left: -28%; animation-delay: 3.6s;  animation-duration: 3.9s; }
-.checkout-shooting-star:nth-child(7)  { top: 68%; left: -15%; animation-delay: 9.0s;  animation-duration: 4.3s; }
-.checkout-shooting-star:nth-child(8)  { top: 32%; left: -8%;  animation-delay: 0.7s;  animation-duration: 4.1s; }
-.checkout-shooting-star:nth-child(9)  { top: 78%; left: -20%; animation-delay: 6.5s;  animation-duration: 5.0s; }
-.checkout-shooting-star:nth-child(10) { top: 45%; left: -5%;  animation-delay: 4.3s;  animation-duration: 4.6s; }
-.checkout-shooting-star:nth-child(11) { top: 12%; left: -25%; animation-delay: 11.2s; animation-duration: 4.4s; }
-.checkout-shooting-star:nth-child(12) { top: 62%; left: -12%; animation-delay: 8.1s;  animation-duration: 3.7s; }
-.checkout-shooting-star:nth-child(13) { top: 28%; left: -30%; animation-delay: 1.9s;  animation-duration: 4.9s; }
-.checkout-shooting-star:nth-child(14) { top: 82%; left: -18%; animation-delay: 10.5s; animation-duration: 4.2s; }
-.checkout-shooting-star:nth-child(15) { top: 18%; left: -4%;  animation-delay: 13.8s; animation-duration: 4.7s; }
+.checkout-shooting-star:nth-child(1)  { top: 8%;  left: -12%; animation-name: checkout-shoot;         animation-delay: 0s;    animation-duration: 4.0s; }
+.checkout-shooting-star:nth-child(2)  { top: 22%; left: -18%; animation-name: checkout-shoot-curve-1;    animation-delay: 2.1s;  animation-duration: 4.5s; }
+.checkout-shooting-star:nth-child(3)  { top: 5%;  left: -6%;  animation-name: checkout-shoot-curve-2;    animation-delay: 5.8s;  animation-duration: 3.8s; }
+.checkout-shooting-star:nth-child(4)  { top: 38%; left: -22%; animation-name: checkout-shoot-curve-3;    animation-delay: 1.4s;  animation-duration: 4.2s; }
+.checkout-shooting-star:nth-child(5)  { top: 55%; left: -10%; animation-name: checkout-shoot;         animation-delay: 7.2s;  animation-duration: 4.8s; }
+.checkout-shooting-star:nth-child(6)  { top: 14%; left: -28%; animation-name: checkout-shoot-curve-1;    animation-delay: 3.6s;  animation-duration: 3.9s; }
+.checkout-shooting-star:nth-child(7)  { top: 68%; left: -15%; animation-name: checkout-shoot-curve-2;    animation-delay: 9.0s;  animation-duration: 4.3s; }
+.checkout-shooting-star:nth-child(8)  { top: 32%; left: -8%;  animation-name: checkout-shoot-curve-3;    animation-delay: 0.7s;  animation-duration: 4.1s; }
+.checkout-shooting-star:nth-child(9)  { top: 78%; left: -20%; animation-name: checkout-shoot;         animation-delay: 6.5s;  animation-duration: 5.0s; }
+.checkout-shooting-star:nth-child(10) { top: 45%; left: -5%;  animation-name: checkout-shoot-curve-1;    animation-delay: 4.3s;  animation-duration: 4.6s; }
+.checkout-shooting-star:nth-child(11) { top: 12%; left: -25%; animation-name: checkout-shoot-curve-2;    animation-delay: 11.2s; animation-duration: 4.4s; }
+.checkout-shooting-star:nth-child(12) { top: 62%; left: -12%; animation-name: checkout-shoot-curve-3;    animation-delay: 8.1s;  animation-duration: 3.7s; }
+.checkout-shooting-star:nth-child(13) { top: 28%; left: -30%; animation-name: checkout-shoot;         animation-delay: 1.9s;  animation-duration: 4.9s; }
+.checkout-shooting-star:nth-child(14) { top: 82%; left: -18%; animation-name: checkout-shoot-curve-1;    animation-delay: 10.5s; animation-duration: 4.2s; }
+.checkout-shooting-star:nth-child(15) { top: 18%; left: -4%;  animation-name: checkout-shoot-curve-2;    animation-delay: 13.8s; animation-duration: 4.7s; }
 
+/* —— Curved trajectories + micro-flicker —— */
 @keyframes checkout-shoot {
   0%   { transform: translateX(0) translateY(0) rotate(35deg); opacity: 0; }
-  3%   { opacity: 1; }
-  85%  { opacity: 1; }
+  2%   { opacity: 0.85; }
+  4%   { opacity: 1; }
+  6%   { opacity: 0.92; }
+  20%  { transform: translateX(22vw) translateY(16vh) rotate(35deg); }
+  45%  { transform: translateX(50vw) translateY(40vh) rotate(35deg); }
+  70%  { transform: translateX(78vw) translateY(62vh) rotate(35deg); }
+  82%  { opacity: 1; }
+  88%  { opacity: 0.75; }
+  92%  { opacity: 0.95; }
+  96%  { opacity: 0.60; }
   100% { transform: translateX(110vw) translateY(85vh) rotate(35deg); opacity: 0; }
+}
+
+@keyframes checkout-shoot-curve-1 {
+  0%   { transform: translateX(0) translateY(0) rotate(35deg); opacity: 0; }
+  2%   { opacity: 0.80; }
+  5%   { opacity: 1; }
+  8%   { opacity: 0.88; }
+  25%  { transform: translateX(28vw) translateY(22vh) rotate(35deg); }
+  50%  { transform: translateX(55vw) translateY(35vh) rotate(35deg); }
+  75%  { transform: translateX(82vw) translateY(68vh) rotate(35deg); }
+  84%  { opacity: 1; }
+  90%  { opacity: 0.70; }
+  94%  { opacity: 0.90; }
+  98%  { opacity: 0.55; }
+  100% { transform: translateX(115vw) translateY(90vh) rotate(35deg); opacity: 0; }
+}
+
+@keyframes checkout-shoot-curve-2 {
+  0%   { transform: translateX(0) translateY(0) rotate(35deg); opacity: 0; }
+  3%   { opacity: 0.90; }
+  6%   { opacity: 1; }
+  9%   { opacity: 0.85; }
+  22%  { transform: translateX(24vw) translateY(12vh) rotate(35deg); }
+  48%  { transform: translateX(52vw) translateY(45vh) rotate(35deg); }
+  72%  { transform: translateX(80vw) translateY(58vh) rotate(35deg); }
+  85%  { opacity: 1; }
+  91%  { opacity: 0.78; }
+  95%  { opacity: 0.92; }
+  99%  { opacity: 0.50; }
+  100% { transform: translateX(112vw) translateY(88vh) rotate(35deg); opacity: 0; }
+}
+
+@keyframes checkout-shoot-curve-3 {
+  0%   { transform: translateX(0) translateY(0) rotate(35deg); opacity: 0; }
+  2%   { opacity: 0.75; }
+  5%   { opacity: 1; }
+  7%   { opacity: 0.90; }
+  18%  { transform: translateX(20vw) translateY(18vh) rotate(35deg); }
+  42%  { transform: translateX(48vw) translateY(38vh) rotate(35deg); }
+  68%  { transform: translateX(76vw) translateY(55vh) rotate(35deg); }
+  83%  { opacity: 1; }
+  89%  { opacity: 0.72; }
+  93%  { opacity: 0.88; }
+  97%  { opacity: 0.48; }
+  100% { transform: translateX(108vw) translateY(82vh) rotate(35deg); opacity: 0; }
 }
