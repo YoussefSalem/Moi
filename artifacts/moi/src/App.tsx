@@ -150,6 +150,7 @@ function AppContent() {
   const [productHandle, setProductHandle] = useState<string>(() => parsePath().productHandle);
   const [scrollTarget, setScrollTarget] = useState<string>(() => parsePath().section ?? "");
   const [autoOpenReview, setAutoOpenReview] = useState<string | null>(null);
+  const [reviewNonce, setReviewNonce] = useState(0);
 
   // Always-current references to page/handle for use inside stale-closure
   // callbacks (onPopState, navigateToProduct — both have empty deps arrays).
@@ -362,11 +363,23 @@ function AppContent() {
       const handle = parsePath().productHandle;
       if (!handle) return;
 
-      const ssKey = `moi_review_modal_${handle}`;
-      try {
-        if (sessionStorage.getItem(ssKey)) return;
-        sessionStorage.setItem(ssKey, "1");
-      } catch { /* sessionStorage unavailable */ }
+      if (isHash) {
+        // Fresh email-link click — always open. Clear any stale session guards
+        // (both the App-level guard and the useProductPageState guard) so the
+        // modal fires even if it has been opened before in this browser session.
+        try {
+          sessionStorage.removeItem(`moi_review_modal_${handle}`);
+          sessionStorage.removeItem(`review-modal-opened-${handle}`);
+        } catch { /* sessionStorage unavailable */ }
+        setReviewNonce((n) => n + 1);
+      } else {
+        // ?review=1 (legacy links) — session guard prevents double-open on refresh.
+        const ssKey = `moi_review_modal_${handle}`;
+        try {
+          if (sessionStorage.getItem(ssKey)) return;
+          sessionStorage.setItem(ssKey, "1");
+        } catch { /* sessionStorage unavailable */ }
+      }
 
       setAutoOpenReview(handle);
       // Strip the param/hash so the URL is clean
@@ -715,6 +728,7 @@ function AppContent() {
                 <ProductPage
                   handle={productHandle}
                   autoOpenReview={autoOpenReview}
+                  autoOpenReviewNonce={reviewNonce}
                   onBack={() => navigateTo("home", undefined, true)}
                   onNavigate={navigateToProduct}
                   onPageNavigate={(p, hash) => navigateTo(p as PageType, hash)}

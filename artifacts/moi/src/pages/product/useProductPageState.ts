@@ -15,7 +15,7 @@ import { useReviewsPagination } from "./useReviewsPagination";
 
 const ALL_RECS = buildAllRecs();
 
-export function useProductPageState(handle: string, autoOpenReview?: string | null) {
+export function useProductPageState(handle: string, autoOpenReview?: string | null, autoOpenReviewNonce?: number) {
   const fallback = deriveFallbackFromHandle(handle);
   const { product, loading } = useShopifyProductByHandle(handle, fallback);
   const pageColorName = fallback.name.includes(" — ")
@@ -39,11 +39,15 @@ export function useProductPageState(handle: string, autoOpenReview?: string | nu
 
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
-  // Auto-open the review modal when arriving via ?review=1 deep-link.
-  // Guard: sessionStorage key prevents re-firing on same product across remounts
-  // (SPA back-navigation) within the same tab session.  The in-memory ref
-  // provides a synchronous safety-net for the current mount cycle.
+  // Auto-open the review modal when arriving via ?review=1 or #write-review deep-link.
+  // Guard: sessionStorage key prevents re-firing on SPA back-navigation within the same
+  // tab session. The in-memory ref is a synchronous safety-net for the current mount cycle.
+  // When a fresh #write-review hash fires (nonce increments), both guards are reset so the
+  // modal always opens — even if it was already opened earlier in the same session.
   const reviewAutoOpenedRef = useRef(false);
+  useEffect(() => {
+    reviewAutoOpenedRef.current = false;
+  }, [autoOpenReviewNonce]);
   useEffect(() => {
     if (autoOpenReview !== handle || loading || reviewAutoOpenedRef.current) return;
     const ssKey = `review-modal-opened-${handle}`;
@@ -52,7 +56,7 @@ export function useProductPageState(handle: string, autoOpenReview?: string | nu
     sessionStorage.setItem(ssKey, "1");
     setReviewModalOpen(true);
     trackEvent("interaction", "review_modal_opened", { productHandle: handle });
-  }, [autoOpenReview, loading, handle]);
+  }, [autoOpenReview, autoOpenReviewNonce, loading, handle]);
 
   useEffect(() => {
     const AP = (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession;
