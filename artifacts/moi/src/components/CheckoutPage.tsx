@@ -22,7 +22,6 @@ import { triggerApplePayHandler } from "@/lib/applePayHandler";
 
 import type { OrderResult, OrderBreakdown, PaymentMethod, Step } from "./checkout/types";
 import { useCheckoutSubmit } from "./checkout/useCheckoutSubmit";
-import { StarField } from "./checkout/StarField";
 import { CODConfirmation } from "./checkout/CODConfirmation";
 import { CardConfirmation } from "./checkout/CardConfirmation";
 import { InstapayConfirmation } from "./checkout/InstapayConfirmation";
@@ -1044,6 +1043,18 @@ export function CheckoutPage() {
         >
           <div className="checkout-bg-gradient" />
           <div className="checkout-bg-noise" />
+          <div className="checkout-bg-sparkles">
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+            <div className="checkout-sparkle" />
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
@@ -1058,10 +1069,6 @@ export function CheckoutPage() {
           className="fixed inset-0 z-[120] overflow-y-auto"
           style={{ overscrollBehavior: "contain" }}
         >
-          <div className="relative min-h-full">
-            {/* Sparkles — scroll with content, gentle falling starlight */}
-            <StarField count={1000} />
-
           {/* Header */}
           <div
             className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-10 py-5"
@@ -1219,7 +1226,6 @@ export function CheckoutPage() {
               />
             </div>
           )}
-          </div>
         </motion.div>
       )}
     </AnimatePresence>

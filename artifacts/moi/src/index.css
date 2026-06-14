@@ -661,19 +661,57 @@ header[class*="fixed"] {
   background-size: 256px 256px;
 }
 
-/* 3. Shooting star rain keyframes — used by StarField component */
-@keyframes checkout-shooting-star {
-  0%   { opacity: 0; transform: translate(0, 0) scale(1); }
-  8%   { opacity: 1; transform: translate(2px, 6px) scale(1); }
-  40%  { opacity: 0.7; transform: translate(10px, 60px) scale(0.8); }
-  80%  { opacity: 0.2; transform: translate(20px, 140px) scale(0.4); }
-  100% { opacity: 0; transform: translate(24px, 180px) scale(0); }
+/* 3. Elegant sparkle particles — feminine, soft, delicate, whisper-light */
+.checkout-bg-sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
 
-@keyframes checkout-star-trail {
-  0%   { opacity: 0; transform: translate(-50%, -50%) rotate(35deg) scaleX(0); }
-  8%   { opacity: 1; transform: translate(-50%, -50%) rotate(35deg) scaleX(1); }
-  40%  { opacity: 0.6; transform: translate(-50%, -50%) rotate(35deg) scaleX(0.8); }
-  80%  { opacity: 0.1; transform: translate(-50%, -50%) rotate(35deg) scaleX(0.3); }
-  100% { opacity: 0; transform: translate(-50%, -50%) rotate(35deg) scaleX(0); }
+.checkout-sparkle {
+  position: absolute;
+  pointer-events: none;
+  will-change: opacity;
+  animation: checkout-sparkle-fade 14s ease-in-out infinite;
+}
+
+/* Diamond lozenge shape — rotated 45deg, soft pearl / champagne tones */
+.checkout-sparkle::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 40%;
+  transform: rotate(45deg);
+}
+
+/* Bigger, clearly visible pearl sparkles with soft glow */
+.checkout-sparkle:nth-child(1)  { top: 16%; left: 10%; width: 8px; height: 8px; animation-delay: 0s; }
+.checkout-sparkle:nth-child(1)::before  { background: rgba(225, 210, 190, 0.65); box-shadow: 0 0 24px 8px rgba(225, 210, 190, 0.35); }
+.checkout-sparkle:nth-child(2)  { top: 35%; left: 25%; width: 6px; height: 6px; animation-delay: 3.2s; }
+.checkout-sparkle:nth-child(2)::before  { background: rgba(230, 215, 195, 0.60); box-shadow: 0 0 18px 6px rgba(230, 215, 195, 0.30); }
+.checkout-sparkle:nth-child(3)  { top: 8%;  left: 62%; width: 10px; height: 10px; animation-delay: 6.0s; }
+.checkout-sparkle:nth-child(3)::before  { background: rgba(220, 205, 185, 0.58); box-shadow: 0 0 28px 10px rgba(220, 205, 185, 0.28); }
+.checkout-sparkle:nth-child(4)  { top: 52%; left: 14%; width: 6px; height: 6px; animation-delay: 1.7s; }
+.checkout-sparkle:nth-child(4)::before  { background: rgba(235, 220, 200, 0.62); box-shadow: 0 0 20px 7px rgba(235, 220, 200, 0.32); }
+.checkout-sparkle:nth-child(5)  { top: 72%; left: 38%; width: 8px; height: 8px; animation-delay: 8.5s; }
+.checkout-sparkle:nth-child(5)::before  { background: rgba(218, 203, 183, 0.68); box-shadow: 0 0 24px 8px rgba(218, 203, 183, 0.38); }
+.checkout-sparkle:nth-child(6)  { top: 24%; left: 85%; width: 6px; height: 6px; animation-delay: 4.8s; }
+.checkout-sparkle:nth-child(6)::before  { background: rgba(228, 213, 193, 0.60); box-shadow: 0 0 18px 6px rgba(228, 213, 193, 0.30); }
+.checkout-sparkle:nth-child(7)  { top: 60%; left: 75%; width: 8px; height: 8px; animation-delay: 10.2s; }
+.checkout-sparkle:nth-child(7)::before  { background: rgba(215, 200, 180, 0.63); box-shadow: 0 0 24px 8px rgba(215, 200, 180, 0.33); }
+.checkout-sparkle:nth-child(8)  { top: 88%; left: 18%; width: 6px; height: 6px; animation-delay: 2.3s; }
+.checkout-sparkle:nth-child(8)::before  { background: rgba(232, 217, 197, 0.58); box-shadow: 0 0 18px 6px rgba(232, 217, 197, 0.28); }
+.checkout-sparkle:nth-child(9)  { top: 44%; left: 92%; width: 10px; height: 10px; animation-delay: 7.1s; }
+.checkout-sparkle:nth-child(9)::before  { background: rgba(210, 195, 175, 0.62); box-shadow: 0 0 28px 10px rgba(210, 195, 175, 0.32); }
+.checkout-sparkle:nth-child(10) { top: 80%; left: 58%; width: 6px; height: 6px; animation-delay: 11.6s; }
+.checkout-sparkle:nth-child(10)::before { background: rgba(225, 210, 190, 0.60); box-shadow: 0 0 18px 6px rgba(225, 210, 190, 0.30); }
+
+@keyframes checkout-sparkle-fade {
+  0%   { opacity: 0; }
+  12%  { opacity: 1; }
+  38%  { opacity: 0.2; }
+  62%  { opacity: 0.7; }
+  100% { opacity: 0; }
 }
