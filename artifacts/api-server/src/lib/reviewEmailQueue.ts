@@ -86,47 +86,51 @@ async function shopifyThrottle(): Promise<void> {
   lastShopifyCallMs = Date.now();
 }
 
-// ── DLQ monitoring ────────────────────────────────────────────────────────────
-// Two-layer rate limiting: per-intent 1 h cooldown + global 5/hr cap.
-// Both layers emit WARN with explicit suppressionReason when throttled.
+// ── Alert limiter ─────────────────────────────────────────────────────────────
+// Reusable two-layer rate limiter: per-intent cooldown + global hourly cap.
+// Both tiers always emit a WARN so logs remain observable, but the body of the
+// alert is suppressed to avoid log storms.
 
-const dlqAlertByIntentId = new Map<string, number>(); // intentId → lastAlertMs
-const dlqGlobalAlertTs:    number[] = [];
-const DLQ_ALERT_PER_INTENT_MS   = 60 * 60 * 1000; // 1 h per intent
-const DLQ_GLOBAL_CAP_PER_HOUR   = 5;
-const DLQ_ALERT_WINDOW_MS       = 60 * 60 * 1000;
+const ALERT_WINDOW_MS = 60 * 60 * 1000; // 1 h
 
-function shouldEmitDlqAlert(intentId: string): { emit: boolean; reason?: string } {
-  const now    = Date.now();
-  const cutoff = now - DLQ_ALERT_WINDOW_MS;
-
-  // Prune stale entries
-  for (const [k, v] of dlqAlertByIntentId) if (v < cutoff) dlqAlertByIntentId.delete(k);
-  let i = 0;
-  while (i < dlqGlobalAlertTs.length && (dlqGlobalAlertTs[i] ?? 0) < cutoff) i++;
-  if (i > 0) dlqGlobalAlertTs.splice(0, i);
-
-  // Per-intent cooldown
-  const lastForIntent = dlqAlertByIntentId.get(intentId);
-  if (lastForIntent !== undefined && now - lastForIntent < DLQ_ALERT_PER_INTENT_MS) {
-    const remaining = Math.round((DLQ_ALERT_PER_INTENT_MS - (now - lastForIntent)) / 60000);
-    return { emit: false, reason: `per-intent cooldown (${remaining}min remaining for ${intentId})` };
+class AlertLimiter {
+  private readonly byIntentId = new Map<string, number>();
+  private readonly globalTs:   number[] = [];
+  constructor(
+    private readonly perIntentMs: number,
+    private readonly globalCap:   number,
+    private readonly windowMs:    number = ALERT_WINDOW_MS,
+  ) {}
+  check(intentId: string): { emit: boolean; reason?: string } {
+    const now    = Date.now();
+    const cutoff = now - this.windowMs;
+    for (const [k, v] of this.byIntentId) if (v < cutoff) this.byIntentId.delete(k);
+    let i = 0;
+    while (i < this.globalTs.length && (this.globalTs[i] ?? 0) < cutoff) i++;
+    if (i > 0) this.globalTs.splice(0, i);
+    const last = this.byIntentId.get(intentId);
+    if (last !== undefined && now - last < this.perIntentMs) {
+      const rem = Math.round((this.perIntentMs - (now - last)) / 60000);
+      return { emit: false, reason: `per-intent cooldown (${rem}min remaining for ${intentId})` };
+    }
+    if (this.globalTs.length >= this.globalCap) {
+      return { emit: false, reason: `global cap (${this.globalCap}/hr reached)` };
+    }
+    this.byIntentId.set(intentId, now);
+    this.globalTs.push(now);
+    return { emit: true };
   }
-
-  // Global hourly cap
-  if (dlqGlobalAlertTs.length >= DLQ_GLOBAL_CAP_PER_HOUR) {
-    return { emit: false, reason: `global DLQ cap (${DLQ_GLOBAL_CAP_PER_HOUR}/hr reached)` };
-  }
-
-  dlqAlertByIntentId.set(intentId, now);
-  dlqGlobalAlertTs.push(now);
-  return { emit: true };
 }
+
+// DLQ: 1 h per-intent cooldown, 5 alerts/hr global cap
+const dlqLimiter = new AlertLimiter(ALERT_WINDOW_MS, 5);
+// Terminal Resend failures: same policy — bad addresses are unlikely to self-heal
+const terminalEmailLimiter = new AlertLimiter(ALERT_WINDOW_MS, 5);
 
 async function workDlq(jobs: JobWithMetadata<ReviewEmailJobData>[]): Promise<void> {
   for (const job of jobs) {
     const { intentId, shopifyOrderId } = job.data;
-    const { emit, reason } = shouldEmitDlqAlert(intentId);
+    const { emit, reason } = dlqLimiter.check(intentId);
     if (emit) {
       logger.warn(
         { intentId, shopifyOrderId, retryCount: job.retryCount },
@@ -289,10 +293,11 @@ async function processJob(job: JobWithMetadata<ReviewEmailJobData>): Promise<voi
     "";
 
   const lineItems = (order.line_items ?? []) as Array<{
-    product_id: number | null;
-    title: string;
-    price: string;
-    quantity: number;
+    product_id:     number | null;
+    title:          string;
+    price:          string;           // unit price after variant discounts
+    quantity:       number;
+    total_discount: string;           // line-item discount total
   }>;
 
   if (lineItems.length === 0) {
@@ -303,12 +308,14 @@ async function processJob(job: JobWithMetadata<ReviewEmailJobData>): Promise<voi
     return;
   }
 
-  // Highest total price; tie-break by array index
+  // line_price = price * quantity − total_discount (true net revenue per line).
+  // Tie-break: first appearance (slice(1) loop only replaces on strict greater).
+  const linePrice = (item: { price: string; quantity: number; total_discount: string }) =>
+    Number(item.price) * item.quantity - Number(item.total_discount ?? "0");
+
   let primary = lineItems[0]!;
   for (const item of lineItems.slice(1)) {
-    if (Number(item.price) * item.quantity > Number(primary.price) * primary.quantity) {
-      primary = item;
-    }
+    if (linePrice(item) > linePrice(primary)) primary = item;
   }
 
   await shopifyThrottle();
@@ -346,10 +353,19 @@ async function processJob(job: JobWithMetadata<ReviewEmailJobData>): Promise<voi
   } catch (err) {
     if (err instanceof ResendTerminalError) {
       // 4xx from Resend — bad address, blocked, etc.  Do not retry.
-      logger.warn(
-        { intentId, orderId: shopifyOrderId, customerEmail, attempt, err: String(err), status: "email_terminal", durationMs: Date.now() - startMs },
-        "review-email: outcome",
-      );
+      // Rate-limited alert so bad-address storms don't flood logs.
+      const { emit, reason } = terminalEmailLimiter.check(intentId);
+      if (emit) {
+        logger.warn(
+          { intentId, orderId: shopifyOrderId, customerEmail, attempt, err: String(err), status: "email_terminal", durationMs: Date.now() - startMs },
+          "review-email: terminal Resend failure — manual review needed",
+        );
+      } else {
+        logger.warn(
+          { intentId, orderId: shopifyOrderId, suppressionReason: reason, status: "email_terminal", durationMs: Date.now() - startMs },
+          "review-email: terminal Resend failure alert suppressed",
+        );
+      }
       return;
     }
     // Transient (5xx, network) — let pg-boss retry

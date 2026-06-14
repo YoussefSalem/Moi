@@ -565,10 +565,11 @@ export async function completeShopifyCheckout(token: string): Promise<void> {
 // ── Review Email Helpers ──────────────────────────────────────────────────────
 
 interface ReviewOrderLineItem {
-  product_id: number | null;
-  title: string;
-  price: string;
-  quantity: number;
+  product_id:     number | null;
+  title:          string;
+  price:          string;      // unit price (after variant discounts)
+  quantity:       number;
+  total_discount: string;      // total line-item discount amount
 }
 
 export class TransientShopifyError extends Error {
@@ -604,6 +605,7 @@ export async function getShopifyOrderForReview(orderId: number): Promise<ReviewO
   const adminToken = await getShopifyAdminToken();
   if (!storeDomain || !adminToken) return null;
 
+  // line_items sub-fields: include total_discount so we can compute the true line total
   const fields = "id,order_number,email,financial_status,cancelled_at,total_price,note,tags,customer,billing_address,line_items,refunds";
 
   let res: Response;

@@ -164,10 +164,10 @@ router.post("/bosta/status-webhook", async (req, res) => {
       const existingTags = new Set(
         (order.tags ?? "").split(",").map((t) => t.trim().toLowerCase()).filter(Boolean),
       );
-      if (existingTags.has("review-email-sent")) {
+      if (existingTags.has("review-email-sent") || existingTags.has("review-email-enqueued")) {
         req.log.info(
           { trackingNumber, orderNumber: order.order_number },
-          "Bosta DELIVERED: review email already sent — skipping duplicate",
+          "Bosta DELIVERED: review email already enqueued/sent — skipping duplicate",
         );
         return;
       }
@@ -201,6 +201,12 @@ router.post("/bosta/status-webhook", async (req, res) => {
         bostaTrackingNumber: trackingNumber,
         shopifyOrderId:      intent.shopifyConfirmedOrderId,
       });
+
+      // Durable first-DELIVERED marker: survives terminal non-send outcomes
+      // (cancelled, refunded, disputed) so a later re-DELIVERED webhook can
+      // never schedule a second job.  pg-boss singletonKey provides in-window
+      // dedup; this tag covers the window after singletonKey is freed.
+      await tagShopifyOrder(intent.shopifyConfirmedOrderId, "review-email-enqueued");
 
       req.log.info(
         { intentId: intent.intentId, shopifyOrderId: intent.shopifyConfirmedOrderId },

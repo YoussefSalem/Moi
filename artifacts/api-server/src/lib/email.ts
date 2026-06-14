@@ -1379,8 +1379,11 @@ export function buildReviewRequestEmail(params: {
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Your thoughts mean the world — Moi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
 </head>
-<body style="margin:0;padding:0;background:#e8e3dc;font-family:Arial,Helvetica,sans-serif;">
+<body style="margin:0;padding:0;background:#e8e3dc;font-family:'Montserrat',Arial,Helvetica,sans-serif;">
 <div style="display:none;max-height:0;overflow:hidden;">We hope you love it ✨ A moment of your time means everything to us.</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e8e3dc;">
 <tr><td align="center" style="padding:48px 16px 56px;">
@@ -1389,8 +1392,8 @@ export function buildReviewRequestEmail(params: {
     <tr><td style="background:#1a1714;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
 
     <tr><td style="padding:40px 44px 28px;border-bottom:1px solid rgba(30,24,20,0.10);">
-      <p style="margin:0 0 12px;font-size:9px;letter-spacing:0.52em;text-transform:uppercase;color:#9a8e82;font-weight:700;font-family:Arial,Helvetica,sans-serif;">Moi</p>
-      <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:400;color:#1a1714;line-height:1.25;">Your thoughts mean<br />the world&nbsp;\u{1F495}</h1>
+      <p style="margin:0 0 12px;font-size:9px;letter-spacing:0.52em;text-transform:uppercase;color:#9a8e82;font-weight:700;font-family:'Montserrat',Arial,Helvetica,sans-serif;">Moi</p>
+      <h1 style="margin:0;font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-size:28px;font-weight:400;color:#1a1714;line-height:1.25;">Your thoughts mean<br />the world&nbsp;\u{1F495}</h1>
     </td></tr>
 
     <tr><td style="padding:32px 44px 0;">
