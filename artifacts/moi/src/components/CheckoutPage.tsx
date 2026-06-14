@@ -1050,6 +1050,15 @@ export function CheckoutPage() {
             <div className="checkout-shooting-star" />
             <div className="checkout-shooting-star" />
             <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
+            <div className="checkout-shooting-star" />
           </div>
         </motion.div>
       )}
