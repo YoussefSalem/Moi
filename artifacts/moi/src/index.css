@@ -671,11 +671,11 @@ header[class*="fixed"] {
 .checkout-ribbon:nth-child(1) {
   background: linear-gradient(
     108deg,
-    transparent 28%,
-    rgba(205, 185, 150, 0.13) 38%,
-    rgba(215, 195, 158, 0.22) 43%,
-    rgba(205, 185, 150, 0.13) 48%,
-    transparent 58%
+    transparent 35%,
+    rgba(205, 185, 150, 0.05) 41%,
+    rgba(215, 193, 155, 0.21) 43.5%,
+    rgba(205, 185, 150, 0.05) 46%,
+    transparent 52%
   );
   animation: ribbon-drift-1 30s ease-in-out infinite;
 }
@@ -683,11 +683,11 @@ header[class*="fixed"] {
 .checkout-ribbon:nth-child(2) {
   background: linear-gradient(
     120deg,
-    transparent 18%,
-    rgba(190, 170, 135, 0.10) 30%,
-    rgba(200, 180, 145, 0.18) 35%,
-    rgba(190, 170, 135, 0.10) 40%,
-    transparent 52%
+    transparent 22%,
+    rgba(190, 170, 135, 0.04) 28%,
+    rgba(200, 178, 142, 0.18) 30.5%,
+    rgba(190, 170, 135, 0.04) 33%,
+    transparent 39%
   );
   animation: ribbon-drift-2 38s ease-in-out infinite;
   animation-delay: -14s;
@@ -696,11 +696,11 @@ header[class*="fixed"] {
 .checkout-ribbon:nth-child(3) {
   background: linear-gradient(
     97deg,
-    transparent 52%,
-    rgba(218, 200, 165, 0.11) 62%,
-    rgba(225, 208, 172, 0.20) 66%,
-    rgba(218, 200, 165, 0.11) 70%,
-    transparent 80%
+    transparent 58%,
+    rgba(218, 200, 165, 0.05) 64%,
+    rgba(222, 205, 168, 0.19) 66.5%,
+    rgba(218, 200, 165, 0.05) 69%,
+    transparent 75%
   );
   animation: ribbon-drift-3 25s ease-in-out infinite;
   animation-delay: -8s;
@@ -709,11 +709,11 @@ header[class*="fixed"] {
 .checkout-ribbon:nth-child(4) {
   background: linear-gradient(
     114deg,
-    transparent 8%,
-    rgba(180, 162, 128, 0.09) 20%,
-    rgba(195, 176, 142, 0.16) 25%,
-    rgba(180, 162, 128, 0.09) 30%,
-    transparent 42%
+    transparent 14%,
+    rgba(180, 162, 128, 0.04) 20%,
+    rgba(192, 174, 138, 0.16) 22.5%,
+    rgba(180, 162, 128, 0.04) 25%,
+    transparent 31%
   );
   animation: ribbon-drift-4 34s ease-in-out infinite;
   animation-delay: -22s;
