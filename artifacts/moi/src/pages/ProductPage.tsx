@@ -15,13 +15,14 @@ import { useProductPageState } from "./product/useProductPageState";
 
 interface ProductPageProps {
   handle: string;
+  autoOpenReview?: boolean;
   onBack: () => void;
   onNavigate?: (handle: string) => void;
   onPageNavigate?: (page: "home" | "accessories" | "ambassador" | "privacy" | "refund" | "return" | "delivery", hash?: string) => void;
 }
 
-export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: ProductPageProps) {
-  const s = useProductPageState(handle);
+export function ProductPage({ handle, autoOpenReview, onBack, onNavigate, onPageNavigate }: ProductPageProps) {
+  const s = useProductPageState(handle, autoOpenReview);
 
   return (
     <>

@@ -149,6 +149,7 @@ function AppContent() {
   const [page, setPage] = useState<PageType>(() => parsePath().page);
   const [productHandle, setProductHandle] = useState<string>(() => parsePath().productHandle);
   const [scrollTarget, setScrollTarget] = useState<string>(() => parsePath().section ?? "");
+  const [autoOpenReview, setAutoOpenReview] = useState(false);
 
   // Always-current references to page/handle for use inside stale-closure
   // callbacks (onPopState, navigateToProduct — both have empty deps arrays).
@@ -341,6 +342,30 @@ function AppContent() {
   // Intentionally omit deps: this effect must run once on mount only to process
   // the ?recover-cart= token from the URL, then clear it. Adding deps would re-run
   // and potentially re-process the (already consumed) token on every state change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Handle post-purchase review deep-links (?review=1)
+  // Runs once on mount. If we land on a product page with this param, raise the
+  // autoOpenReview flag so ProductPage can open WriteReviewModal once it loads.
+  // sessionStorage prevents the modal re-opening on a manual refresh.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("review") !== "1") return;
+
+    const handle = parsePath().productHandle;
+    if (!handle) return;
+
+    const ssKey = `moi_review_modal_${handle}`;
+    try {
+      if (sessionStorage.getItem(ssKey)) return;
+      sessionStorage.setItem(ssKey, "1");
+    } catch { /* sessionStorage unavailable */ }
+
+    setAutoOpenReview(true);
+    // Strip the param so the URL looks clean without breaking the SPA state
+    window.history.replaceState(null, "", `/products/${handle}`);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -678,6 +703,7 @@ function AppContent() {
               ) : isProductPage ? (
                 <ProductPage
                   handle={productHandle}
+                  autoOpenReview={autoOpenReview}
                   onBack={() => navigateTo("home", undefined, true)}
                   onNavigate={navigateToProduct}
                   onPageNavigate={(p, hash) => navigateTo(p as PageType, hash)}

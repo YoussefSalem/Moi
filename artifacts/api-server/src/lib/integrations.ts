@@ -562,6 +562,130 @@ export async function completeShopifyCheckout(token: string): Promise<void> {
   }
 }
 
+// ── Review Email Helpers ──────────────────────────────────────────────────────
+
+interface ReviewOrderLineItem {
+  product_id: number | null;
+  title: string;
+  price: string;
+  quantity: number;
+}
+
+interface ReviewOrder {
+  id: number;
+  order_number: number;
+  email: string | null;
+  financial_status: string;
+  cancelled_at: string | null;
+  tags: string;
+  customer: { first_name?: string; last_name?: string } | null;
+  billing_address: { first_name?: string } | null;
+  line_items: ReviewOrderLineItem[];
+  refunds: Array<{ id: number }>;
+}
+
+/**
+ * Fetch a Shopify order with all fields needed for review-email eligibility checks.
+ */
+export async function getShopifyOrderForReview(orderId: number): Promise<ReviewOrder | null> {
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const adminToken = await getShopifyAdminToken();
+  if (!storeDomain || !adminToken) return null;
+
+  const fields = "id,order_number,email,financial_status,cancelled_at,tags,customer,billing_address,line_items,refunds";
+
+  try {
+    const res = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=${fields}`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+    if (!res.ok) {
+      logger.warn({ orderId, status: res.status }, "getShopifyOrderForReview: non-2xx");
+      return null;
+    }
+    const data = await res.json() as { order: ReviewOrder };
+    return data.order ?? null;
+  } catch (err) {
+    logger.warn({ err, orderId }, "getShopifyOrderForReview: fetch error");
+    return null;
+  }
+}
+
+/**
+ * Fetch the URL handle of a Shopify product by its numeric ID.
+ */
+export async function getShopifyProductHandle(productId: number): Promise<string | null> {
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const adminToken = await getShopifyAdminToken();
+  if (!storeDomain || !adminToken) return null;
+
+  try {
+    const res = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/products/${productId}.json?fields=id,handle`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+    if (!res.ok) {
+      logger.warn({ productId, status: res.status }, "getShopifyProductHandle: non-2xx");
+      return null;
+    }
+    const data = await res.json() as { product: { handle: string } };
+    return data.product?.handle ?? null;
+  } catch (err) {
+    logger.warn({ err, productId }, "getShopifyProductHandle: fetch error");
+    return null;
+  }
+}
+
+/**
+ * Atomically swap one Shopify order tag for another.
+ * Removes `oldTag` (if present) and adds `newTag` in a single PUT.
+ * Safe to call even if `oldTag` is absent — `newTag` is always added.
+ */
+export async function replaceShopifyOrderTag(
+  orderId: number,
+  oldTag: string,
+  newTag: string,
+): Promise<void> {
+  const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+  const adminToken = await getShopifyAdminToken();
+  if (!storeDomain || !adminToken) return;
+
+  try {
+    const getRes = await fetch(
+      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json?fields=tags`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+    let currentTags = "";
+    if (getRes.ok) {
+      const data = await getRes.json() as { order: { tags: string } };
+      currentTags = data.order?.tags ?? "";
+    }
+
+    const tagList = currentTags
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t && t.toLowerCase() !== oldTag.toLowerCase());
+
+    if (!tagList.map((t) => t.toLowerCase()).includes(newTag.toLowerCase())) {
+      tagList.push(newTag);
+    }
+
+    await fetch(
+      `https://${storeDomain}/admin/api/2024-04/orders/${orderId}.json`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": adminToken,
+        },
+        body: JSON.stringify({ order: { id: orderId, tags: tagList.join(", ") } }),
+      },
+    );
+  } catch (err) {
+    logger.warn({ err, orderId, oldTag, newTag }, "replaceShopifyOrderTag: failed");
+  }
+}
+
 export function verifyShopifyHmac(
   rawBody: Buffer,
   hmacHeader: string,

@@ -1341,3 +1341,109 @@ export function buildReviewConfirmationEmail(params: {
 
   return { html, text };
 }
+
+// ---------------------------------------------------------------------------
+// Post-purchase review request email
+// ---------------------------------------------------------------------------
+
+export function buildReviewRequestEmail(params: {
+  customerName: string;
+  productHandle: string;
+  productTitle: string;
+}): { html: string; text: string } {
+  const { customerName, productHandle, productTitle } = params;
+  const siteUrl = getSiteUrl();
+  const reviewUrl = `${siteUrl}/products/${encodeURIComponent(productHandle)}?review=1`;
+  const firstName = customerName.split(" ")[0]?.trim() || "there";
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Your thoughts mean the world — Moi</title>
+</head>
+<body style="margin:0;padding:0;background:#e8e3dc;font-family:Arial,Helvetica,sans-serif;">
+<div style="display:none;max-height:0;overflow:hidden;">We hope you love it ✨ A moment of your time means everything to us.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e8e3dc;">
+<tr><td align="center" style="padding:48px 16px 56px;">
+  <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#faf8f5;">
+
+    <tr><td style="background:#1a1714;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+    <tr><td style="padding:40px 44px 28px;border-bottom:1px solid rgba(30,24,20,0.10);">
+      <p style="margin:0 0 12px;font-size:9px;letter-spacing:0.52em;text-transform:uppercase;color:#9a8e82;font-weight:700;font-family:Arial,Helvetica,sans-serif;">Moi</p>
+      <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:400;color:#1a1714;line-height:1.25;">Your thoughts mean<br />the world&nbsp;\u{1F495}</h1>
+    </td></tr>
+
+    <tr><td style="padding:32px 44px 0;">
+      <p style="margin:0 0 20px;font-size:14px;color:#4a4035;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
+        Hi ${firstName},
+      </p>
+      <p style="margin:0 0 20px;font-size:14px;color:#4a4035;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
+        We hope your <strong style="color:#1a1714;font-weight:600;">${productTitle}</strong> has arrived and you\u2019re already in love with it. \u{1F33F}
+      </p>
+      <p style="margin:0 0 32px;font-size:14px;color:#4a4035;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
+        If you have a spare moment, we\u2019d love to hear what you think. Your honest words help other Moi women discover what could become their new favourite piece \u2014 and they help us keep getting better.
+      </p>
+    </td></tr>
+
+    <tr><td style="padding:0 44px 40px;">
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="background:#1a1714;">
+            <a href="${reviewUrl}"
+               style="display:inline-block;padding:14px 36px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.36em;text-transform:uppercase;color:#faf8f5;text-decoration:none;white-space:nowrap;">
+              Leave a Review
+            </a>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:16px 0 0;font-size:11px;color:#9a8e82;font-family:Arial,Helvetica,sans-serif;">
+        Or copy this link: <a href="${reviewUrl}" style="color:#9a8e82;">${reviewUrl}</a>
+      </p>
+    </td></tr>
+
+    <tr><td style="padding:0 44px 36px;border-top:1px solid rgba(30,24,20,0.10);">
+      <p style="margin:28px 0 0;font-size:12px;color:#b0a89e;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+        With love,<br />The Moi Team \u{1F90D}
+      </p>
+    </td></tr>
+
+    <tr><td style="padding:0 44px 28px;">
+      <p style="margin:0;font-size:10px;color:#c8c0b8;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">
+        You\u2019re receiving this email because you recently ordered from <a href="${siteUrl}" style="color:#c8c0b8;">buy-moi.com</a>. If you didn\u2019t place this order, please ignore this message.
+      </p>
+    </td></tr>
+
+    <tr><td style="background:#1a1714;height:2px;font-size:0;line-height:0;">&nbsp;</td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+  const text = [
+    `Your thoughts mean the world`,
+    ``,
+    `Hi ${firstName},`,
+    ``,
+    `We hope your ${productTitle} has arrived and you're already in love with it.`,
+    ``,
+    `If you have a spare moment, we'd love to hear what you think. Your honest words`,
+    `help other Moi women discover what could become their new favourite piece —`,
+    `and they help us keep getting better.`,
+    ``,
+    `Leave a Review:`,
+    reviewUrl,
+    ``,
+    `With love,`,
+    `The Moi Team`,
+    ``,
+    `—`,
+    `You're receiving this because you recently ordered from buy-moi.com.`,
+    `If you didn't place this order, please ignore this message.`,
+  ].join("\n");
+
+  return { html, text };
+}

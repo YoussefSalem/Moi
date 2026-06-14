@@ -15,7 +15,7 @@ import { useReviewsPagination } from "./useReviewsPagination";
 
 const ALL_RECS = buildAllRecs();
 
-export function useProductPageState(handle: string) {
+export function useProductPageState(handle: string, autoOpenReview?: boolean) {
   const fallback = deriveFallbackFromHandle(handle);
   const { product, loading } = useShopifyProductByHandle(handle, fallback);
   const pageColorName = fallback.name.includes(" — ")
@@ -38,6 +38,15 @@ export function useProductPageState(handle: string) {
   const addingRef = useRef(false);
 
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
+
+  // Auto-open the review modal when arriving via ?review=1 deep-link.
+  // Guard: fires only once per mount; skips while Shopify data is still loading.
+  const reviewAutoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!autoOpenReview || loading || reviewAutoOpenedRef.current) return;
+    reviewAutoOpenedRef.current = true;
+    setReviewModalOpen(true);
+  }, [autoOpenReview, loading]);
 
   useEffect(() => {
     const AP = (window as { ApplePaySession?: { canMakePayments?: () => boolean } }).ApplePaySession;

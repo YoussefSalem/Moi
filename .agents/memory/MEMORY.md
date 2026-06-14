@@ -19,3 +19,4 @@
 - [Moi motion token system](moi-motion-tokens.md) — all Framer transitions must use tokens from motion.ts; MotionConfig reducedMotion="user" wraps App; useFocusTrap hook for drawers; role="dialog" aria-modal on panels.
 - [Moi Meta Pixel + CAPI tracking](moi-meta-tracking.md) — Purchase event_id=hashId('purchase_'+order_id); order_id must be stable across paths or ROAS double-counts; hostname gate not fbq; card-redirect omits content_ids; PII freshness traps.
 - [Paymob shipping threshold bug + shippingCents](paymob-shipping-cents.md) — paymobInit must apply free-shipping threshold (>=2000 EGP) before computing amountCents; shippingCents stored in paymobIntents for accurate email display.
+- [pg-boss v12 setup quirks](pgboss-v12-setup.md) — named export `{ PgBoss }` not default; must `createQueue()` before `work()`; `Job<T>` imported separately; no monitorStateIntervalMinutes (use monitorIntervalSeconds).

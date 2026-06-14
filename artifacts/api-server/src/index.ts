@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { registerRestockWebhooks } from "./lib/shopifyWebhook";
+import { startReviewEmailQueue, stopReviewEmailQueue } from "./lib/reviewEmailQueue";
 
 const rawPort = process.env["PORT"];
 
@@ -61,4 +62,18 @@ app.listen(port, (err) => {
   registerRestockWebhooks().catch((e) =>
     logger.warn({ err: e }, "Webhook registration error"),
   );
+
+  // Start the pg-boss review-email job queue (non-fatal if it fails)
+  startReviewEmailQueue().catch((e) =>
+    logger.warn({ err: e }, "review-email queue failed to start"),
+  );
 });
+
+// Graceful shutdown: stop pg-boss so in-flight jobs finish cleanly
+const shutdown = () => {
+  stopReviewEmailQueue()
+    .catch((e) => logger.warn({ err: e }, "review-email queue stop error"))
+    .finally(() => process.exit(0));
+};
+process.once("SIGTERM", shutdown);
+process.once("SIGINT", shutdown);
