@@ -1037,9 +1037,9 @@ export function CheckoutPage() {
             inset: 0,
             zIndex: 119,
             pointerEvents: "none",
-            background: "linear-gradient(135deg, #FAFAF7 0%, #F5F1E8 30%, #EDE4D3 60%, #F5F1E8 80%, #FAFAF7 100%)",
+            background: "linear-gradient(135deg, #000000 0%, #3d3d3d 25%, #111111 50%, #4a4a4a 75%, #000000 100%)",
             backgroundSize: "400% 400%",
-            animation: "checkout-bg-drift 45s ease-in-out infinite",
+            animation: "checkout-bg-drift 15s ease-in-out infinite",
           }}
         />
       )}
