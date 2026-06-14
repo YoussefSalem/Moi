@@ -507,8 +507,8 @@ header[class*="fixed"] {
     #d4bfa0 80%,
     #fdf6ec 100%
   );
-  background-size: 300% 300%;
-  animation: checkoutGradientFlow 9s ease-in-out infinite;
+  background-size: 220% 220%;
+  animation: checkoutGradientFlow 18s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
