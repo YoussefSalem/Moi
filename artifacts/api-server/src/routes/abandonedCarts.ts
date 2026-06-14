@@ -112,6 +112,61 @@ router.get("/abandoned-carts/recover", async (req, res) => {
 });
 
 /**
+ * POST /api/abandoned-carts/complete
+ * Fallback called at order completion when no cart was recorded via email blur
+ * (e.g. mobile autofill / copy-paste). Finds any "started" cart for this email
+ * and marks it recovered, or creates a new record already in "recovered" state
+ * so every completed order appears in the admin panel.
+ */
+router.post("/abandoned-carts/complete", async (req, res) => {
+  const { email, cartId, lineItems, totalAmount } = req.body as {
+    email?: string;
+    cartId?: string | null;
+    lineItems?: Array<{ title: string; variant?: string | null; quantity: number; price: string; imageUrl?: string | null }>;
+    totalAmount?: string;
+  };
+
+  if (!email || !lineItems || !totalAmount) {
+    res.status(400).json({ error: "email, lineItems, and totalAmount required" });
+    return;
+  }
+
+  const safeEmail = email.trim().toLowerCase();
+
+  try {
+    const [existing] = await db.select().from(abandonedCarts)
+      .where(and(eq(abandonedCarts.email, safeEmail), eq(abandonedCarts.status, "started")))
+      .orderBy(desc(abandonedCarts.createdAt))
+      .limit(1);
+
+    if (existing) {
+      await db.update(abandonedCarts)
+        .set({ status: "recovered", recoveredAt: new Date(), updatedAt: new Date() })
+        .where(eq(abandonedCarts.id, existing.id));
+      req.log.info({ id: existing.id, email: safeEmail }, "abandoned-cart: complete — recovered existing started cart");
+    } else {
+      const token = generateRecoveryToken();
+      const [row] = await db.insert(abandonedCarts).values({
+        email: safeEmail,
+        cartId: cartId ?? null,
+        originalCartId: cartId ?? null,
+        lineItems,
+        totalAmount,
+        recoveryToken: token,
+        status: "recovered",
+        recoveredAt: new Date(),
+      }).returning();
+      req.log.info({ id: row.id, email: safeEmail }, "abandoned-cart: complete — created + recovered (no prior blur record)");
+    }
+
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "abandoned-cart: complete failed");
+    res.status(500).json({ error: "Failed" });
+  }
+});
+
+/**
  * POST /api/abandoned-carts/:id/recovered
  * Called by the frontend when a recovered cart successfully places an order.
  */

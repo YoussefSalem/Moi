@@ -27,7 +27,7 @@ interface SubmitDeps {
   fmt: (n: number) => string;
   clearCart: () => void;
   waitForSync: () => Promise<ShopifyCart | null>;
-  markAbandonedCartRecovered: () => void;
+  markAbandonedCartRecovered: (fallback?: { email: string; cartId?: string | null; lineItems: Array<{ title: string; variant?: string | null; quantity: number; price: string; imageUrl?: string | null }>; totalAmount: string }) => void;
   formatShopifyLinePrice: (line: ShopifyCartLine) => string;
   navigateToOrderConfirmed: (intentId?: string | null) => void;
   closeCheckout: () => void;
@@ -223,7 +223,18 @@ export function useCheckoutSubmit(deps: SubmitDeps): () => Promise<void> {
         d.setOrderResult(orderResultPayload);
         sessionStorage.setItem("moi_instapay_order_result", JSON.stringify(orderResultPayload));
         d.setStep("instapay-confirm");
-        d.markAbandonedCartRecovered();
+        d.markAbandonedCartRecovered({
+          email: d.form.email.trim(),
+          cartId: activeCart?.id ?? null,
+          lineItems: cartItemsSnapshot.map((i) => ({
+            title: i.title,
+            variant: i.variantTitle,
+            quantity: i.quantity,
+            price: i.price,
+            imageUrl: i.image,
+          })),
+          totalAmount: data.total ?? d.fmt(d.totalAmount),
+        });
       } catch {
         d.setStep("form");
         d.setSubmitError("Network error. Please check your connection and try again.");
@@ -266,7 +277,18 @@ export function useCheckoutSubmit(deps: SubmitDeps): () => Promise<void> {
           (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "purchase", { transaction_id: String(data.orderNumber ?? data.shopifyOrderId ?? ""), value: purchaseValue, currency: "EGP", items: orderLines.map((l) => ({ item_id: l.variantId, quantity: l.quantity })) });
         }
       }
-      d.markAbandonedCartRecovered();
+      d.markAbandonedCartRecovered({
+        email: d.form.email.trim(),
+        cartId: activeCart?.id ?? null,
+        lineItems: codItemsSnapshot.map((i) => ({
+          title: i.title,
+          variant: i.variantTitle,
+          quantity: i.quantity,
+          price: i.price,
+          imageUrl: i.image,
+        })),
+        totalAmount: data.total ?? d.fmt(d.totalAmount),
+      });
       d.submittingRef.current = false;
       d.setStep("form");
       window.history.pushState(null, "", "/order-confirmed");

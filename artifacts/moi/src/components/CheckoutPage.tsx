@@ -336,11 +336,25 @@ export function CheckoutPage() {
 
   const abandonedCartIdRef = useRef<number | null>(null);
 
-  const markAbandonedCartRecovered = useCallback(() => {
-    if (!abandonedCartIdRef.current) return;
-    const id = abandonedCartIdRef.current;
-    abandonedCartIdRef.current = null;
-    fetch(`/api/abandoned-carts/${id}/recovered`, { method: "POST" }).catch(() => {});
+  type AbandonedCartFallback = {
+    email: string;
+    cartId?: string | null;
+    lineItems: Array<{ title: string; variant?: string | null; quantity: number; price: string; imageUrl?: string | null }>;
+    totalAmount: string;
+  };
+
+  const markAbandonedCartRecovered = useCallback((fallback?: AbandonedCartFallback) => {
+    if (abandonedCartIdRef.current) {
+      const id = abandonedCartIdRef.current;
+      abandonedCartIdRef.current = null;
+      fetch(`/api/abandoned-carts/${id}/recovered`, { method: "POST" }).catch(() => {});
+    } else if (fallback?.email) {
+      fetch("/api/abandoned-carts/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fallback),
+      }).catch(() => {});
+    }
   }, []);
 
   const handleSuccessDone = useCallback(() => {
@@ -494,7 +508,18 @@ export function CheckoutPage() {
 
     setPaymobIframeUrl(null);
     clearCart();
-    markAbandonedCartRecovered();
+    markAbandonedCartRecovered({
+      email: form.email.trim(),
+      cartId: shopifyCart?.id ?? null,
+      lineItems: itemsSnapshot.map((i) => ({
+        title: i.title,
+        variant: i.variantTitle,
+        quantity: i.quantity,
+        price: i.price,
+        imageUrl: i.image,
+      })),
+      totalAmount: fmt(totalAmount),
+    });
     const orderLines = isShopify && shopifyCart
       ? shopifyCart.lines.nodes.map((l) => ({ variantId: l.merchandise.id, quantity: l.quantity }))
       : localItems.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
@@ -523,7 +548,7 @@ export function CheckoutPage() {
     // Card item/breakdown snapshot is already in sessionStorage (moi_paymob_*);
     // the intent id drives order-number polling on the confirmation page.
     navigateToOrderConfirmed(orderIntentIdRef.current);
-  }, [clearCart, markAbandonedCartRecovered, isShopify, shopifyCart, localItems, totalAmount, navigateToOrderConfirmed]);
+  }, [clearCart, markAbandonedCartRecovered, isShopify, shopifyCart, localItems, totalAmount, form.email, fmt, navigateToOrderConfirmed]);
 
 
   const handleApplePayFail = useCallback(() => {
