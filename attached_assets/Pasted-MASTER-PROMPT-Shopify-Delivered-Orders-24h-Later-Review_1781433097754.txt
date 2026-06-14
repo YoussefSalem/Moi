@@ -1,0 +1,163 @@
+MASTER PROMPT (Shopify Delivered Orders → 24h Later Review Email via Resend)
+
+You are an expert full-stack engineer building an automated email system using:
+
+Shopify Admin API
+Node.js (Replit environment)
+Resend email service
+Cron job or scheduler
+🎯 CORE GOAL
+
+Send a beautiful review request email exactly 24 hours after a Shopify order has:
+
+fulfillment_status = "delivered"
+
+No other status is valid.
+
+⚙️ TRIGGER LOGIC (STRICT RULE)
+
+You must ONLY trigger email flow when:
+
+order.fulfillment_status === "delivered"
+⏱️ DELAY RULE
+
+Once an order becomes:
+
+delivered
+
+Then:
+
+👉 Wait 24 hours
+👉 Then send review email via Resend
+
+Recommended implementation
+
+Use ONE of:
+
+Option A (BEST): Cron job system
+Runs every hour
+Finds orders where:
+fulfillment_status === "delivered"
+deliveredAt exists
+now - deliveredAt >= 24 hours
+emailSent === false
+Option B: Queue system
+When status becomes delivered → create delayed job (24h)
+📦 INPUT DATA STRUCTURE
+{
+  orderId: "12345",
+  customerName: "John",
+  customerEmail: "john@email.com",
+  deliveredAt: "2026-06-13T10:00:00Z",
+  fulfillment_status: "delivered",
+  emailSent: false,
+  products: [
+    {
+      name: "Navy Wavvy",
+      slug: "navy-wavvy",
+      id: "prod_001"
+    }
+  ]
+}
+🔗 LINKS LOGIC
+Product page:
+https://yourwebsite.com/product/{slug}
+Pre-filled review form (IMPORTANT):
+https://yourwebsite.com/product/{slug}?review=true&orderId={orderId}&email={customerEmail}
+
+Must auto-fill:
+
+customer email
+orderId
+product slug
+✉️ EMAIL REQUIREMENTS (RESEND HTML)
+Style:
+Premium, clean, Apple/Stripe style
+Inline CSS only
+Mobile responsive
+Strong CTA buttons
+SUBJECT LINES (pick dynamically)
+“How was your {productName}? ⭐”
+“We’d love your feedback”
+“Your order just arrived — how did it go?”
+📩 EMAIL STRUCTURE
+1. Header
+Brand logo/name
+Soft gradient background
+2. Greeting
+Hi {customerName || "there"},
+3. Message
+
+Tell them:
+
+Their order was delivered
+They’ve had 1 day to try it
+Ask for honest feedback
+4. PRODUCT REVIEW CARDS (loop products)
+
+For each product:
+
+Product name (bold)
+Message:
+“How is your {productName} going so far?”
+CTA 1:
+👉 Leave a Review (prefilled form link)
+CTA 2:
+👉 View Product
+⚠️ FALLBACK SECTION (MANDATORY)
+
+Add under products:
+
+Text:
+
+Trouble filling out the form?
+
+Then:
+
+👉 “Write a review on our website instead”
+
+Link:
+
+https://yourwebsite.com/product/{slug}
+
+(If multiple products, link each or use shop page fallback)
+
+🧠 EDGE CASE HANDLING
+
+You MUST handle:
+
+Multiple products → multiple review cards
+Missing slug → fallback to /shop
+Missing name → “there”
+Prevent duplicate emails (emailSent === true)
+Safe URL encoding:
+encodeURIComponent(email)
+encodeURIComponent(orderId)
+encodeURIComponent(email)
+📤 RESEND IMPLEMENTATION
+
+Use:
+
+resend.emails.send({
+  from: "Your Brand <support@yourdomain.com>",
+  to: customerEmail,
+  subject: "...",
+  html: emailHtml
+})
+🧩 REQUIRED OUTPUT FROM YOU (REPLIT AI)
+
+Generate:
+
+Shopify order fetch / webhook handler
+Delivery filter logic (ONLY fulfillment_status = "delivered")
+Cron job system (24h delay check)
+Resend email sender function
+Full HTML email template
+Helper functions for:
+review link generator
+product link generator
+🚀 OPTIONAL HIGH-CONVERSION ADD-ONS
+⭐ star rating row UI (click suggestion)
+“Reply to this email” trust line
+Subtle urgency:
+“It only takes 20 seconds to leave feedback”
