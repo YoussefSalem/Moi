@@ -636,10 +636,11 @@ header[class*="fixed"] {
 }
 
 /* ── Checkout animated background ───────────────────────────── */
-@keyframes checkout-bg-drift {
-  0%   { background-position: 0% 0%; }
-  25%  { background-position: 100% 0%; }
-  50%  { background-position: 100% 100%; }
-  75%  { background-position: 0% 100%; }
-  100% { background-position: 0% 0%; }
+@keyframes checkout-silk {
+  0%   { background-position: 0% 30%, 100% 70%, 50% 0%; }
+  18%  { background-position: 70% 0%,  30% 100%, 100% 50%; }
+  36%  { background-position: 100% 40%, 0% 60%,  80% 100%; }
+  54%  { background-position: 60% 100%, 40% 0%,  0% 70%; }
+  72%  { background-position: 10% 70%, 90% 30%,  30% 10%; }
+  100% { background-position: 0% 30%, 100% 70%, 50% 0%; }
 }

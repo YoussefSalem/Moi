@@ -1038,13 +1038,13 @@ export function CheckoutPage() {
             zIndex: 119,
             pointerEvents: "none",
             background: [
-              "radial-gradient(ellipse 55% 45% at 25% 35%, #3d3d3d 0%, transparent 70%)",
-              "radial-gradient(ellipse 45% 55% at 75% 65%, #2a2a2a 0%, transparent 65%)",
-              "radial-gradient(ellipse 35% 35% at 50% 20%, #1f1f1f 0%, transparent 55%)",
+              "radial-gradient(ellipse 110% 18% at 50% 50%, #4d4d4d 0%, transparent 100%)",
+              "radial-gradient(ellipse 18% 110% at 50% 50%, #383838 0%, transparent 100%)",
+              "radial-gradient(ellipse 70% 30% at 50% 50%, #222222 0%, transparent 90%)",
               "#000000",
             ].join(", "),
-            backgroundSize: "400% 400%, 400% 400%, 400% 400%, auto",
-            animation: "checkout-bg-drift 15s ease-in-out infinite",
+            backgroundSize: "350% 350%, 350% 350%, 350% 350%, auto",
+            animation: "checkout-silk 18s ease-in-out infinite",
           }}
         />
       )}
