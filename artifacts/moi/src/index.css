@@ -498,13 +498,13 @@ header[class*="fixed"] {
 .moi-checkout-bg {
   background: linear-gradient(
     125deg,
-    #fdf6ec 0%,
-    #e8cfa8 20%,
-    #f5e6d0 35%,
-    #c9b49a 50%,
-    #ede0c8 65%,
-    #d4bfa0 80%,
-    #fdf6ec 100%
+    #ffffff 0%,
+    #f5ede0 20%,
+    #fdfaf6 35%,
+    #ede4d6 50%,
+    #faf6f0 65%,
+    #f0e6d8 80%,
+    #ffffff 100%
   );
   background-size: 220% 220%;
   animation: checkoutGradientFlow 24s linear infinite;
