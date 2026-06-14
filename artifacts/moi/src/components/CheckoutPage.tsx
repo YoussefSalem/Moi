@@ -337,11 +337,63 @@ export function CheckoutPage() {
   const abandonedCartIdRef = useRef<number | null>(null);
 
   const markAbandonedCartRecovered = useCallback(() => {
-    if (!abandonedCartIdRef.current) return;
-    const id = abandonedCartIdRef.current;
-    abandonedCartIdRef.current = null;
-    fetch(`/api/abandoned-carts/${id}/recovered`, { method: "POST" }).catch(() => {});
-  }, []);
+    // Fast path: email blur already recorded the cart — just mark it recovered.
+    if (abandonedCartIdRef.current) {
+      const id = abandonedCartIdRef.current;
+      abandonedCartIdRef.current = null;
+      fetch(`/api/abandoned-carts/${id}/recovered`, { method: "POST" }).catch(() => {});
+      return;
+    }
+    // Fallback: email blur didn't fire (mobile autofill, copy-paste without tab-out,
+    // or Shopify cart wasn't loaded yet).  Record + immediately recover so every
+    // completed order appears in the admin Abandoned Carts panel.
+    const email = form.email.trim();
+    if (!email || !email.includes("@")) return;
+    const lineItems = (isShopify && shopifyCart)
+      ? shopifyCart.lines.nodes.map((l) => {
+          const colorOpt = l.merchandise.selectedOptions?.find((o) => o.name.toLowerCase() === "color");
+          const colorName = colorOpt?.value;
+          return {
+            title: l.merchandise.product.title,
+            variant: colorName ? `Color: ${colorName}` : (l.merchandise.title === "Default Title" ? undefined : l.merchandise.title),
+            quantity: l.quantity,
+            price: `${Math.floor(parseFloat(l.merchandise.price.amount)).toLocaleString("en-US")} EGP`,
+            imageUrl: resolveEmailImage(l, localItems) ?? undefined,
+            variantId: l.merchandise.id,
+          };
+        })
+      : localItems.map((i) => {
+          const color = i.color?.toLowerCase() ?? "";
+          const publicImg = PUBLIC_COLOR_IMAGES[color];
+          return {
+            title: i.title,
+            variant: i.color ? `Color: ${i.color}` : undefined,
+            quantity: i.quantity,
+            price: i.price,
+            imageUrl: publicImg ?? (i.image?.startsWith("http") ? i.image : undefined),
+            variantId: i.variantId,
+          };
+        });
+    if (lineItems.length === 0) return;
+    fetch("/api/abandoned-carts/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        cartId: shopifyCart?.id ?? null,
+        lineItems,
+        totalAmount: fmt(totalAmount),
+      }),
+    })
+      .then((r) => r.json())
+      .then((data: unknown) => {
+        const id = (data as { id?: number })?.id;
+        if (id) {
+          fetch(`/api/abandoned-carts/${id}/recovered`, { method: "POST" }).catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }, [form.email, isShopify, shopifyCart, localItems, totalAmount, fmt]);
 
   const handleSuccessDone = useCallback(() => {
     // Safety net: mark recovered in case payment path missed it
