@@ -661,10 +661,9 @@ header[class*="fixed"] {
 
 .checkout-ribbon {
   position: absolute;
-  left: 0;
-  width: 100%;
   pointer-events: none;
   overflow: hidden;
+  transform-origin: center center;
 }
 
 /* 3. Noise / grain overlay — SVG data URI, very low opacity, prevents banding */
