@@ -25,7 +25,7 @@ const MOODS = [
   { value: 1, emoji: "😡", label: "terrible" },
   { value: 2, emoji: "😕", label: "meh" },
   { value: 3, emoji: "😐", label: "okay" },
-  { value: 4, emoji: "🙂", label: "loved it" },
+  { value: 4, emoji: "🙂", label: "loved" },
   { value: 5, emoji: "😍", label: "obsessed" },
 ] as const;
 
@@ -52,13 +52,16 @@ function buildProductForm(
 </td>`;
   }).join("\n");
 
-  // NO inline styles on .emi / .eml / .eml-emoji / .eml-text — all appearance
-  // is driven purely by CSS classes so input:checked + label rules have nothing
-  // to fight against and apply cleanly in iOS Mail and Apple Mail.
+  // Input is INSIDE the label (implicit association — no for/id needed).
+  // Clicking anywhere on the card checks the radio.
+  // The radio is display:none (hidden, but stays in the DOM so the form
+  // submits the checked value). CSS :has(.emi:checked) on the label then
+  // applies the selected state — this works in iOS Mail (Safari/WebKit 15.4+)
+  // where input:checked + label sibling selectors are blocked.
   const emojiCells = MOODS.map(({ value, emoji, label }) => `
-<td style="text-align:center;padding:0;width:76px;vertical-align:top;">
-  <input class="emi" type="radio" name="rating" value="${value}" id="em${value}_${pid}" ${value === 1 ? "required" : ""} />
-  <label for="em${value}_${pid}" class="eml" title="${label}">
+<td style="text-align:center;padding:0;width:80px;vertical-align:top;">
+  <label class="eml" title="${label}">
+    <input class="emi" type="radio" name="rating" value="${value}" ${value === 1 ? "required" : ""} />
     <span class="eml-emoji">${emoji}</span>
     <span class="eml-text">${label}</span>
   </label>
@@ -202,32 +205,25 @@ export function buildReviewEmail(params: {
 <style>
 :root { color-scheme: light; }
 
-/* ── Radio inputs ──
-   No inline styles on .emi so accent-color and display come purely from here. */
-.emi { display:block!important;margin:0 auto 10px!important;width:18px!important;height:18px!important;cursor:pointer!important;accent-color:#c9a07a!important; }
+/* ── Radio: hidden but stays in the DOM so form submits the checked value ── */
+.emi { display:none!important; }
 
-/* ── Label card: default state ──
-   No inline border/padding/border-radius on the label element so :checked
-   styles below have no inline specificity to fight against. */
-.eml { display:block!important;cursor:pointer!important;text-align:center!important;padding:10px 4px 12px!important;border-radius:12px!important;border:1.5px solid #e0d8d0!important;box-sizing:border-box!important; }
+/* ── Emoji card: default state — no inline styles on .eml so :has() wins cleanly ── */
+.eml { display:block!important;cursor:pointer!important;text-align:center!important;padding:14px 4px 12px!important;border-radius:14px!important;border:1.5px solid #e0d8d0!important;box-sizing:border-box!important; }
 
-/* ── Emoji span: 28px default, fixed 40px height so the layout stays stable
-   when the selected state bumps it to 36px. ── */
-.eml-emoji { display:block!important;font-size:28px!important;line-height:40px!important;height:40px!important;margin-bottom:8px!important;text-align:center!important; }
+/* Emoji span: 28px resting size inside a fixed-height container */
+.eml-emoji { display:block!important;font-size:28px!important;line-height:42px!important;height:42px!important;margin-bottom:6px!important;text-align:center!important; }
 
-/* ── Text label ── */
-.eml-text { display:block!important;font-family:Arial,Helvetica,sans-serif!important;font-size:8px!important;letter-spacing:0.22em!important;text-transform:uppercase!important;color:#b0a89e!important;line-height:1.4!important; }
+/* Small text label */
+.eml-text { display:block!important;font-family:Arial,Helvetica,sans-serif!important;font-size:8px!important;letter-spacing:0.2em!important;text-transform:uppercase!important;color:#b0a89e!important;line-height:1.4!important;white-space:nowrap!important; }
 
-/* ── SELECTED STATE ──
-   Uses full border shorthand (not border-color) to avoid shorthand vs longhand
-   cascade issues. outline adds the outer glow ring without fighting border. ── */
-.emi:checked + .eml { border:2px solid #c9a07a!important;background:rgba(201,160,122,0.09)!important;outline:3px solid rgba(201,160,122,0.22)!important;outline-offset:1px!important; }
-
-/* Emoji grows inside its fixed-height container */
-.emi:checked + .eml .eml-emoji { font-size:36px!important;line-height:40px!important; }
-
-/* Text label turns gold */
-.emi:checked + .eml .eml-text { color:#c9a07a!important;font-weight:700!important; }
+/* ── SELECTED STATE via :has() ──
+   Supported in iOS Mail since iOS 15.4 (Safari 15.4 / WebKit 616).
+   label:has(input:checked) targets the card that CONTAINS the checked radio —
+   no sibling combinator, no cascade conflict with inline styles. ── */
+.eml:has(.emi:checked) { border:2px solid #c9a07a!important;background:rgba(201,160,122,0.09)!important;outline:3px solid rgba(201,160,122,0.20)!important;outline-offset:2px!important; }
+.eml:has(.emi:checked) .eml-emoji { font-size:36px!important;line-height:42px!important; }
+.eml:has(.emi:checked) .eml-text { color:#c9a07a!important;font-weight:700!important; }
 
 /* ── Dark mode ── */
 @media (prefers-color-scheme:dark) {
@@ -239,10 +235,10 @@ export function buildReviewEmail(params: {
 }
 
 @media screen and (max-width:480px) {
-  .email-card  { width:100%!important; }
-  .email-pad   { padding-left:20px!important;padding-right:20px!important; }
-  .eml-emoji   { font-size:24px!important;line-height:34px!important;height:34px!important; }
-  .emi:checked + .eml .eml-emoji { font-size:30px!important;line-height:34px!important; }
+  .email-card { width:100%!important; }
+  .email-pad  { padding-left:20px!important;padding-right:20px!important; }
+  .eml-emoji  { font-size:24px!important;line-height:36px!important;height:36px!important; }
+  .eml:has(.emi:checked) .eml-emoji { font-size:32px!important;line-height:36px!important; }
 }
 </style>
 </head>
