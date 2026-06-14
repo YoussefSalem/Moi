@@ -1,0 +1,179 @@
+Build a complete automated post-purchase review system integrated with Shopify.
+
+IMPORTANT:
+- Delete/ignore any previous implementation related to review emails or flows.
+- Rebuild from scratch with a clean architecture.
+- The design must be feminine, soft, and girly (pastel colors, rounded UI, elegant typography, minimal but cute aesthetic).
+
+---
+
+## 🎯 GOAL
+
+Create a system that automatically sends a review email to customers after their Shopify order is marked "Delivered", and routes them to a unique review form for their purchased products.
+
+---
+
+## 🔁 FLOW
+
+1. Customer places order in Shopify.
+2. Order is fulfilled and marked as "Delivered".
+3. After EXACTLY 12 hours from the “Delivered” status timestamp:
+   → Trigger an automated email.
+4. Email contains a single CTA button:
+   → “Leave Your Review 💕”
+5. Clicking the button opens a unique review page tied to that specific order.
+
+---
+
+## 📩 EMAIL REQUIREMENTS
+
+Design the email with a feminine / girly aesthetic:
+- Soft pastel background (pink, lavender, cream tones)
+- Rounded buttons
+- Friendly tone (warm, not corporate)
+- Minimal text
+
+Example copy:
+
+Subject:
+“Your thoughts mean the world 💕”
+
+Body:
+“Hi there ✨  
+We hope you’re loving your order.  
+We’d be so grateful if you shared your experience with us 💖”
+
+Button:
+“Leave Your Review 💕”
+
+Button link must include:
+- unique order ID
+- secure token (signed URL, not guessable)
+
+Example:
+https://buy-moi.com/review?order_id=12345&token=SECURE_TOKEN
+
+---
+
+## 🧾 REVIEW PAGE REQUIREMENTS
+
+Route:
+https://buy-moi.com/review
+
+This page must:
+
+### 1. Load order securely
+- Validate token
+- Fetch order details from Shopify API
+- Never allow guessing or access without valid token
+
+---
+
+### 2. Show products in the order
+
+If 1 product:
+- Show that product only
+
+If multiple products:
+- Show ALL products in ONE form
+
+IMPORTANT RULE:
+- One single review submission
+- The same review content must be applied to ALL products in that order
+- Do NOT create separate forms per product
+
+---
+
+### 3. Review form fields
+
+- Star rating (1–5, emoji style ⭐)
+- Review title (text input)
+- Review details (textarea)
+
+Optional:
+- “Would you recommend this?” yes/no toggle
+
+---
+
+### 4. Submission behavior
+
+When submitted:
+- Save review in database
+- Attach review to ALL products in the order
+- Store:
+  - order_id
+  - product_ids array
+  - rating
+  - title
+  - review text
+  - timestamp
+
+---
+
+## 🛍 PRODUCT EXAMPLE
+
+If a customer bought:
+https://buy-moi.com/products/moi-wavvy-light-blue
+
+Then the review must automatically attach to that product.
+
+If multiple items were bought:
+→ The same review must be duplicated and linked to each product_id in backend.
+
+---
+
+## 🔐 SECURITY REQUIREMENTS
+
+- Token must be HMAC-signed or equivalent secure signature
+- Prevent tampering with order_id or product list
+- No public access to review page without valid token
+
+---
+
+## 🎨 DESIGN REQUIREMENTS (VERY IMPORTANT)
+
+Style must be:
+- Feminine / girly aesthetic
+- Soft gradients (pink, blush, lavender)
+- Rounded corners (12–24px radius)
+- Light shadows
+- Elegant serif + soft sans-serif mix
+- Mobile-first design
+- Emoji-friendly UI (⭐ 💕 ✨)
+
+Avoid:
+- Harsh black/white corporate look
+- Technical or boring UI
+- Dense text blocks
+
+---
+
+## ⚙️ TECH STACK (suggested)
+
+- Node.js (Express or Next.js)
+- Shopify Admin API
+- Database: PostgreSQL or SQLite
+- Email provider: SendGrid or Resend
+- Cron/job scheduler for 12-hour delay
+- Secure token generator (JWT or HMAC)
+
+---
+
+## 🧠 EDGE CASES
+
+- If order has multiple items → show all in one review form
+- If email clicked twice → show same review (no duplicates)
+- If token expired → show “link expired, request new one”
+- If order not found → safe error page
+
+---
+
+## 🚀 OUTPUT EXPECTATION
+
+Build:
+- Email template system
+- Delivery-triggered automation logic
+- Review page UI
+- Secure backend API
+- Database schema
+- Token system
