@@ -672,9 +672,9 @@ header[class*="fixed"] {
   background: linear-gradient(
     108deg,
     transparent 28%,
-    rgba(255, 252, 244, 0.07) 38%,
-    rgba(255, 250, 238, 0.11) 43%,
-    rgba(255, 252, 244, 0.07) 48%,
+    rgba(205, 185, 150, 0.13) 38%,
+    rgba(215, 195, 158, 0.22) 43%,
+    rgba(205, 185, 150, 0.13) 48%,
     transparent 58%
   );
   animation: ribbon-drift-1 30s ease-in-out infinite;
@@ -684,9 +684,9 @@ header[class*="fixed"] {
   background: linear-gradient(
     120deg,
     transparent 18%,
-    rgba(238, 232, 218, 0.05) 30%,
-    rgba(244, 238, 225, 0.09) 35%,
-    rgba(238, 232, 218, 0.05) 40%,
+    rgba(190, 170, 135, 0.10) 30%,
+    rgba(200, 180, 145, 0.18) 35%,
+    rgba(190, 170, 135, 0.10) 40%,
     transparent 52%
   );
   animation: ribbon-drift-2 38s ease-in-out infinite;
@@ -697,9 +697,9 @@ header[class*="fixed"] {
   background: linear-gradient(
     97deg,
     transparent 52%,
-    rgba(255, 247, 232, 0.06) 62%,
-    rgba(255, 251, 240, 0.10) 66%,
-    rgba(255, 247, 232, 0.06) 70%,
+    rgba(218, 200, 165, 0.11) 62%,
+    rgba(225, 208, 172, 0.20) 66%,
+    rgba(218, 200, 165, 0.11) 70%,
     transparent 80%
   );
   animation: ribbon-drift-3 25s ease-in-out infinite;
@@ -710,9 +710,9 @@ header[class*="fixed"] {
   background: linear-gradient(
     114deg,
     transparent 8%,
-    rgba(240, 235, 222, 0.04) 20%,
-    rgba(246, 241, 230, 0.07) 25%,
-    rgba(240, 235, 222, 0.04) 30%,
+    rgba(180, 162, 128, 0.09) 20%,
+    rgba(195, 176, 142, 0.16) 25%,
+    rgba(180, 162, 128, 0.09) 30%,
     transparent 42%
   );
   animation: ribbon-drift-4 34s ease-in-out infinite;
