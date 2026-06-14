@@ -24,19 +24,17 @@ export async function sendEmail(params: {
   subject: string;
   html: string;
   text: string;
-  amp?: string;
   replyTo?: string;
 }): Promise<void> {
   const resend = getResend();
   const from = getBrandFrom();
-  logger.info({ from, to: params.to, subject: params.subject, hasAmp: !!params.amp }, "Sending email via Resend SDK");
+  logger.info({ from, to: params.to, subject: params.subject }, "Sending email via Resend SDK");
   const { error } = await resend.emails.send({
     from,
     to: params.to,
     subject: params.subject,
     html: params.html,
     text: params.text,
-    ...(params.amp ? { amp: params.amp } : {}),
     ...(params.replyTo ? { replyTo: params.replyTo } : {}),
   });
   if (error) {

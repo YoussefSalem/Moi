@@ -142,9 +142,6 @@ export function ProductPage({ handle, onBack, onNavigate, onPageNavigate }: Prod
         open={s.reviewModalOpen}
         productHandle={handle}
         variantId={s.selectedVariant?.id}
-        initialEmail={s.reviewInitialEmail}
-        initialName={s.reviewInitialName}
-        initialRating={s.reviewInitialRating}
         onClose={() => s.setReviewModalOpen(false)}
       />
 
