@@ -1054,11 +1054,6 @@ export function CheckoutPage() {
             <div className="checkout-sparkle" />
             <div className="checkout-sparkle" />
             <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
-            <div className="checkout-sparkle" />
           </div>
         </motion.div>
       )}
