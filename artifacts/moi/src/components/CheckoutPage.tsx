@@ -1038,7 +1038,7 @@ export function CheckoutPage() {
             zIndex: 119,
             pointerEvents: "none",
             overflow: "hidden",
-            backgroundColor: "#000",
+            backgroundColor: "#FAFAF7",
           }}
         >
           <div className="checkout-bg-gradient" />

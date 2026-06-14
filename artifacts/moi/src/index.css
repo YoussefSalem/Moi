@@ -661,13 +661,13 @@ header[class*="fixed"] {
   background-size: 256px 256px;
 }
 
-/* 3. Micro-motion shimmer — very subtle, slow, barely noticeable light drift */
+/* 3. Micro-motion shimmer — dark, slow, clearly visible drift */
 .checkout-bg-shimmer {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse 90% 40% at 30% 40%, rgba(255,255,255,0.18) 0%, transparent 60%);
-  mix-blend-mode: soft-light;
+  background: radial-gradient(ellipse 90% 40% at 30% 40%, rgba(0,0,0,0.35) 0%, transparent 60%);
+  mix-blend-mode: multiply;
   animation: checkout-micro-shimmer 20s ease-in-out infinite;
   will-change: opacity, transform;
 }
