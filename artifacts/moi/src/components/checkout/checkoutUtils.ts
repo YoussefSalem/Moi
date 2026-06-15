@@ -71,10 +71,17 @@ export function resolveEmailImage(
   line: ShopifyCartLine,
   localItems?: { variantId: string; color?: string; image?: string | null }[],
 ): string | null {
-  // 1. Static color map → /api/images/ URLs served by the API server (preferred)
   const variantId = line.merchandise.id;
   const localMatch = localItems?.find((li) => li.variantId === variantId);
 
+  // 1. Shopify CDN variant image — always product-and-variant-specific, most reliable
+  const shopifyVariantUrl = line.merchandise.image?.url ?? "";
+  if (shopifyVariantUrl && shopifyVariantUrl.includes("cdn.shopify.com")) {
+    return shopifyVariantUrl;
+  }
+
+  // 2. Static color+product map → /api/images/ URLs (fallback when Shopify has no variant image)
+  //    Key format: "<product-slug>:<color>" for product-aware lookup, then bare color as last resort.
   const SIZE_OPTION_NAMES = new Set(["size", "titre", "taille", "tamanho", "gr\u00f6\u00dfe"]);
   const colorCandidates: string[] = [];
   if (localMatch?.color) colorCandidates.push(localMatch.color.toLowerCase());
@@ -83,18 +90,22 @@ export function resolveEmailImage(
       colorCandidates.push(opt.value.toLowerCase());
     }
   }
+  const productTitle = line.merchandise.product.title.toLowerCase();
   for (const color of colorCandidates) {
-    const publicHit = PUBLIC_COLOR_IMAGES[color];
-    if (publicHit) return publicHit;
+    const productKey = `${productTitle}:${color}`;
+    const productHit = PUBLIC_COLOR_IMAGES[productKey];
+    if (productHit) return productHit;
+    const colorHit = PUBLIC_COLOR_IMAGES[color];
+    if (colorHit) return colorHit;
   }
 
-  // 2. Shopify CDN URL — fallback if no local image exists for this color
-  const shopifyUrl = line.merchandise.image?.url ?? line.merchandise.product.featuredImage?.url ?? "";
-  if (shopifyUrl && shopifyUrl.includes("cdn.shopify.com")) {
-    return shopifyUrl;
+  // 3. Shopify product featured image — less specific but still correct product
+  const shopifyFeaturedUrl = line.merchandise.product.featuredImage?.url ?? "";
+  if (shopifyFeaturedUrl && shopifyFeaturedUrl.includes("cdn.shopify.com")) {
+    return shopifyFeaturedUrl;
   }
 
-  // 3. Local match image if it's an absolute URL
+  // 4. Local match image if it's an absolute URL
   if (localMatch?.image && localMatch.image.startsWith("http")) return localMatch.image;
 
   return null;
