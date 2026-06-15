@@ -2,7 +2,7 @@ import { Router } from "express";
 import crypto from "crypto";
 import { db } from "@workspace/db";
 import { abandonedCarts } from "@workspace/db/schema";
-import { eq, desc, and, isNull, isNotNull, or } from "drizzle-orm";
+import { eq, desc, and, isNull, isNotNull } from "drizzle-orm";
 import { sendEmail, buildAbandonedCartEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 import { getSiteUrl } from "../lib/siteUrl";
@@ -164,6 +164,9 @@ router.post("/abandoned-carts/complete", async (req, res) => {
   const safeEmail = email.trim().toLowerCase();
 
   try {
+    const now = new Date();
+
+    // Mark any "started" record recovered (customer completed the flow before email 1 fired).
     const [existing] = await db.select().from(abandonedCarts)
       .where(and(eq(abandonedCarts.email, safeEmail), eq(abandonedCarts.status, "started")))
       .orderBy(desc(abandonedCarts.createdAt))
@@ -171,10 +174,25 @@ router.post("/abandoned-carts/complete", async (req, res) => {
 
     if (existing) {
       await db.update(abandonedCarts)
-        .set({ status: "recovered", recoveredAt: new Date(), updatedAt: new Date() })
+        .set({ status: "recovered", recoveredAt: now, updatedAt: now })
         .where(eq(abandonedCarts.id, existing.id));
       req.log.info({ id: existing.id, email: safeEmail }, "abandoned-cart: recovered");
-    } else {
+    }
+
+    // Also cancel any "email_sent" sequences so emails 2 & 3 don't fire after purchase.
+    // This handles the case where the customer placed an order in a new browser session
+    // after email 1 was already sent (status = email_sent, abandonedCartIdRef was lost).
+    const cancelled = await db.update(abandonedCarts)
+      .set({ status: "recovered", recoveredAt: now, updatedAt: now })
+      .where(and(eq(abandonedCarts.email, safeEmail), eq(abandonedCarts.status, "email_sent")))
+      .returning({ id: abandonedCarts.id });
+    if (cancelled.length > 0) {
+      req.log.info({ ids: cancelled.map((r) => r.id), email: safeEmail }, "abandoned-cart: recovered email_sent records on order completion");
+    }
+
+    // If nothing was found to update, create a recovered record so every completed
+    // order appears in the admin panel.
+    if (!existing && cancelled.length === 0) {
       const token = generateRecoveryToken();
       const [row] = await db.insert(abandonedCarts).values({
         email: safeEmail,
@@ -184,9 +202,9 @@ router.post("/abandoned-carts/complete", async (req, res) => {
         totalAmount,
         recoveryToken: token,
         status: "recovered",
-        recoveredAt: new Date(),
+        recoveredAt: now,
       }).returning();
-      req.log.info({ id: row.id, email: safeEmail }, "abandoned-cart: recovered (no prior started record)");
+      req.log.info({ id: row.id, email: safeEmail }, "abandoned-cart: recovered (no prior record)");
     }
 
     res.status(200).json({ ok: true });
