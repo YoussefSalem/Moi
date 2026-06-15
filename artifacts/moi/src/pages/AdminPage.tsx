@@ -1548,6 +1548,7 @@ function AbandonedCartsTab({ token, onAuth }: { token: string; onAuth?: (t: stri
     email_sent: { bg: "rgba(60,100,140,0.12)", text: "#2d5a7e" },
     clicked: { bg: "rgba(60,120,60,0.12)", text: "#2d6e2d" },
     recovered: { bg: "rgba(60,120,60,0.12)", text: "#2d6e2d" },
+    superseded: { bg: "rgba(150,150,150,0.12)", text: "#777" },
     cancelled: { bg: "rgba(150,150,150,0.12)", text: "#777" },
     failed: { bg: "rgba(180,60,40,0.10)", text: "#a03020" },
   };
@@ -1605,6 +1606,7 @@ function AbandonedCartsTab({ token, onAuth }: { token: string; onAuth?: (t: stri
           <option value="email_sent">Email Sent</option>
           <option value="clicked">Clicked</option>
           <option value="recovered">Recovered</option>
+          <option value="superseded">Superseded</option>
         </select>
         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ ...inputStyle, width: "auto" }} />
         <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ ...inputStyle, width: "auto" }} />

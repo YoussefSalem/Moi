@@ -69,7 +69,17 @@ router.post("/abandoned-carts/start", async (req, res) => {
       return;
     }
 
-    // No existing record — create a fresh one.
+    // No existing "started" record — this is a new session for this email.
+    // Cancel any older "email_sent" sequences so follow-up emails (2 & 3) for
+    // the previous cart don't fire after the customer has returned with a new cart.
+    const cancelled = await db.update(abandonedCarts)
+      .set({ status: "superseded", updatedAt: new Date() })
+      .where(and(eq(abandonedCarts.email, safeEmail), eq(abandonedCarts.status, "email_sent")))
+      .returning({ id: abandonedCarts.id });
+    if (cancelled.length > 0) {
+      req.log.info({ ids: cancelled.map((r) => r.id), email: safeEmail }, "abandoned-cart: superseded older email_sent records for new session");
+    }
+
     const token = generateRecoveryToken();
     const [row] = await db.insert(abandonedCarts).values({
       email: safeEmail,
